@@ -11,4 +11,4 @@ let b =
     "lib2"
 
 let () =
-  generate (ocaml [a; b])
+  generate (libraries [a; b])

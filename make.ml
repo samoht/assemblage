@@ -1,6 +1,7 @@
 #use "lib/makefile.ml"
 
+let makefile =
+  Library.create ~dir:"lib" [Unit.create "makefile"] "makefile"
+
 let () =
-  let makefile = Unit.create "makefile" in
-  let lib      = Library.create ~dir:"lib" [makefile] "makefile" in
-  generate (ocaml [lib])
+  generate (libraries [makefile])

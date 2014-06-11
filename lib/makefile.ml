@@ -336,7 +336,7 @@ end = struct
 
 end
 
-let ocaml libs =
+let libraries libs =
   let variables = List.concat (List.map Library.variables libs) in
   let rules = List.concat (List.map Library.rules libs) in
   let main = Rule.create "main" ["all"] (List.map Library.name libs) [] in

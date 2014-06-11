@@ -5,6 +5,7 @@ let t = Unit.create ~deps:[
     Depend.library "xmlm";
   ] "t"
 
+let lib = Library.create [t] "mylib"
+
 let () =
-  let main = ocaml [Library.create [t] "mylib"] in
-  generate main
+  generate (libraries [lib])

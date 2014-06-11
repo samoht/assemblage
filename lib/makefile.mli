@@ -235,5 +235,5 @@ and Library: sig
 
 end
 
-val ocaml: Library.t list -> t
+val libraries: Library.t list -> t
 (** Generate a Makefile for the given libraries. *)
