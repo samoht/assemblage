@@ -1,4 +1,4 @@
-open Makefile
+#use "lib/makefile.ml"
 
 let () =
   let makefile = Unit.create "makefile" in
