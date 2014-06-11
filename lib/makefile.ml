@@ -71,7 +71,6 @@ module Rule = struct
     { name; targets; prerequisites=prereqs; order_only_prerequisites=order_only_prereqs; recipe }
 
   let generate buf t =
-    bprintf buf "# %s\n" t.name;
     bprintf buf "%s: %s%s\n"
       (String.concat " " t.targets)
       (String.concat " " t.prerequisites)
@@ -217,6 +216,7 @@ and Unit: sig
   val create: ?dir:string -> ?deps:Depend.t list -> string -> t
   val variables: t -> Variable.t list
   val rules: t -> Rule.t list
+  val generated: t -> string list
 end = struct
 
   type t = {
@@ -284,6 +284,13 @@ end = struct
     | None   -> []
     | Some l -> [l]
 
+  let generated t =
+    [ (t.dir / t.name ^ ".cmi");
+      (t.dir / t.name ^ ".cmo");
+      (t.dir / t.name ^ ".cmx");
+      (t.dir / t.name ^ ".o");
+      (t.dir / t.name ^ ".cma");
+      (t.dir / t.name ^ ".cmxa") ]
 end
 
 and Library: sig
@@ -294,6 +301,7 @@ and Library: sig
   val create: ?dir:string -> Unit.t list -> string -> t
   val variables: t -> Variable.t list
   val rules: t -> Rule.t list
+  val generated: t -> string list
 end = struct
 
   type t = {
@@ -334,13 +342,28 @@ end = struct
        []
     ) :: cma t :: cmxa t :: List.concat (List.map Unit.rules t.units)
 
+  let generated t =
+    [ (t.dir / t.name ^ ".cma");
+      (t.dir / t.name ^ ".a");
+      (t.dir / t.name ^ ".cmxa");
+    ] @ List.concat (List.map Unit.generated t.units)
+
 end
 
 let libraries libs =
   let variables = List.concat (List.map Library.variables libs) in
   let rules = List.concat (List.map Library.rules libs) in
   let main = Rule.create "main" ["all"] (List.map Library.name libs) [] in
+  let clean = Rule.create "clean" ["clean"] [] [
+      (let dirs = List.map (fun d ->
+           match Library.dir d with
+           | None   -> ""
+           | Some d -> sprintf "%s/*~" d) libs in
+       sprintf "rm -f *~ %s" (String.concat " " dirs));
+      (let generated = List.concat (List.map Library.generated libs) in
+       sprintf "rm -f %s" (String.concat " " generated));
+    ] in
   create
-    ~phony:["all"]
+    ~phony:["all"; "clean"]
     variables
-    (main :: rules)
+    (main :: clean :: rules)

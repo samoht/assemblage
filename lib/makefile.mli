@@ -207,6 +207,9 @@ and Unit: sig
   val rules: t -> Rule.t list
   (** Return the list of rules to build the given compilation unit. *)
 
+  val generated: t -> string list
+  (** Return the list of generated files. *)
+
 end
 
 and Library: sig
@@ -232,6 +235,9 @@ and Library: sig
 
   val rules: t -> Rule.t list
   (** Return the list of rules to build the given library. *)
+
+  val generated: t -> string list
+  (** Return the list of generated files. *)
 
 end
 
