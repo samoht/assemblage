@@ -150,7 +150,7 @@ val generate: ?file:string -> t -> unit
 
 (** {2 OCaml specific rules} *)
 
-module Depend: sig
+module rec Depend: sig
 
   (** Library dependencies. *)
 
@@ -160,7 +160,7 @@ module Depend: sig
   val unit: string -> t
   (** A compilation unit in the same directory. *)
 
-  val local: name:string -> dir:string -> t
+  val local: Library.t -> t
   (** A local library. *)
 
   val camlp4o : string -> t
@@ -169,13 +169,33 @@ module Depend: sig
   val library: string -> t
   (** A library managed by ocamlfind. *)
 
+  val ppflags: string -> t list -> Variable.t option
+  (** Compute the flags to pass to the pre-processor and store it in a
+      variable. *)
+
+  val compflags: string -> t list -> Variable.t
+  (** Compute the flags to pass the the bytecode and native compilers
+      and store it in a variable. *)
+
+  val prereqs: ?cmx:bool -> t list -> string list
+  (** Compute the list of prerequisite. *)
+
 end
 
-module Unit: sig
+and Unit: sig
 
   (** Compilation unit. *)
 
   type t
+
+  val name: t -> string
+  (** Return the compilation unit name. *)
+
+  val dir: t -> string option
+  (** Return the compilation unit directory. *)
+
+  val with_dir: t -> string option -> t
+  (** Change the compilation unit directory. *)
 
   val create: ?dir:string -> ?deps:Depend.t list -> string -> t
   (** Create a compilation unit. *)
@@ -189,11 +209,20 @@ module Unit: sig
 
 end
 
-module Library: sig
+and Library: sig
 
   (** Libraries. *)
 
   type t
+
+  val name: t -> string
+  (** Return the library name. *)
+
+  val dir: t -> string option
+  (** Return the library directory. *)
+
+  val units: t -> Unit.t list
+  (** Return the list of compilation units. *)
 
   val create: ?dir:string -> Unit.t list -> string -> t
   (** Create a library. *)

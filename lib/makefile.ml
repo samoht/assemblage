@@ -127,19 +127,28 @@ let (/) x y =
   | None   -> y
   | Some x -> Filename.concat x y
 
-module Depend = struct
+module rec Depend: sig
+  type t
+  val unit: string -> t
+  val local: Library.t -> t
+  val camlp4o : string -> t
+  val library: string -> t
+  val ppflags: string -> t list -> Variable.t option
+  val compflags: string -> t list -> Variable.t
+  val prereqs: ?cmx:bool -> t list -> string list
+end = struct
 
   type local = { name: string; dir: string }
 
   type t =
     | Unit of string
-    | Local of local
+    | Local of Library.t
     | Camlp4o of string
     | Library of string
 
   let unit t = Unit t
 
-  let local ~name ~dir = Local { name; dir }
+  let local t = Local t
 
   let camlp4o t = Camlp4o t
 
@@ -155,7 +164,13 @@ module Depend = struct
       Some (Variable.shell ("PPFLAGS_" ^ name) cmd)
 
   let compflags name deps =
-    let incls = List.fold_left (fun acc -> function Unit d -> ("-I "^ d) :: acc | _ -> acc) [] deps in
+    let incls = List.fold_left (fun acc -> function
+        | Local l -> begin
+            match Library.dir l with
+            | None   -> acc
+            | Some d -> ("-I "^ d) :: acc
+          end
+        | _ -> acc) [] deps in
     let incls = match incls with
       | [] -> ""
       | l  -> String.concat " " (List.rev l) in
@@ -176,7 +191,11 @@ module Depend = struct
   let prereqs ?(cmx=false) deps =
     let units = List.fold_left (fun acc -> function
         | Unit d  -> (d ^ ".cmi") :: acc
-        | Local l -> (if cmx then [l.dir ^ "/*.cmx"] else []) @ (l.dir ^ "/*.cmi") :: acc
+        | Local l ->
+          let units = Library.units l in
+          let cmxs = List.map (fun u -> Unit.dir u / Unit.name u ^ ".cmx") units in
+          let cmis = List.map (fun u -> Unit.dir u / Unit.name u ^ ".cmi") units in
+          (if cmx then cmxs else []) @ cmis @ acc
         | _       -> acc
       ) [] deps in
     List.rev units
@@ -190,7 +209,15 @@ module Depend = struct
 
 end
 
-module Unit = struct
+and Unit: sig
+  type t
+  val name: t -> string
+  val dir: t -> string option
+  val with_dir: t -> string option -> t
+  val create: ?dir:string -> ?deps:Depend.t list -> string -> t
+  val variables: t -> Variable.t list
+  val rules: t -> Rule.t list
+end = struct
 
   type t = {
     dir: string option;
@@ -203,6 +230,8 @@ module Unit = struct
   let dir t = t.dir
 
   let name t = t.name
+
+  let with_dir t dir = { t with dir }
 
   let create ?dir ?(deps=[]) name =
     let ppflags = Depend.ppflags name deps in
@@ -257,7 +286,15 @@ module Unit = struct
 
 end
 
-module Library = struct
+and Library: sig
+  type t
+  val name: t -> string
+  val dir: t -> string option
+  val units: t -> Unit.t list
+  val create: ?dir:string -> Unit.t list -> string -> t
+  val variables: t -> Variable.t list
+  val rules: t -> Rule.t list
+end = struct
 
   type t = {
     dir : string option;
@@ -267,8 +304,12 @@ module Library = struct
 
   let name t = t.name
 
+  let dir t = t.dir
+
+  let units t = t.units
+
   let create ?dir units name =
-    let units = List.map (fun u -> { u with Unit.dir = dir }) units in
+    let units = List.map (fun u -> Unit.with_dir u dir) units in
     { dir; name; units }
 
   let cma t =
