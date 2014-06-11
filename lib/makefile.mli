@@ -163,8 +163,8 @@ module Depend: sig
   val local: name:string -> dir:string -> t
   (** A local library. *)
 
-  val camlp4 : string -> t
-  (** A syntax extension using Camlp4, managed by ocamlfind. *)
+  val camlp4o : string -> t
+  (** A syntax extension using camlp4o, managed by ocamlfind. *)
 
   val library: string -> t
   (** A library managed by ocamlfind. *)

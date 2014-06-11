@@ -122,7 +122,10 @@ let generate ?(file="Makefile") t =
   output_string oc (Buffer.contents buf);
   close_out oc
 
-let (/) = Filename.concat
+let (/) x y =
+  match x with
+  | None   -> y
+  | Some x -> Filename.concat x y
 
 module Depend = struct
 
@@ -131,24 +134,24 @@ module Depend = struct
   type t =
     | Unit of string
     | Local of local
-    | Camlp4 of string
+    | Camlp4o of string
     | Library of string
 
   let unit t = Unit t
 
   let local ~name ~dir = Local { name; dir }
 
-  let camlp4 t = Camlp4 t
+  let camlp4o t = Camlp4o t
 
   let library t = Library t
 
   let ppflags name deps =
-    let deps = List.fold_left (fun acc -> function Camlp4 c -> c :: acc | _ -> acc) [] deps in
+    let deps = List.fold_left (fun acc -> function Camlp4o c -> c :: acc | _ -> acc) [] deps in
     match List.rev deps with
     | []   -> None
     | deps ->
-      let deps =  String.concat "," deps in
-      let cmd  = sprintf "ocamlfind query %s -R -predicates preprocessor,byte -format \"-I %%d %%a\"" deps in
+      let deps =  String.concat " " deps in
+      let cmd  = sprintf "ocamlfind query %s -r -predicates byte,syntax -format \"-I %%d %%a\"" deps in
       Some (Variable.shell ("PPFLAGS_" ^ name) cmd)
 
   let compflags name deps =
@@ -156,12 +159,16 @@ module Depend = struct
     let incls = match incls with
       | [] -> ""
       | l  -> String.concat " " (List.rev l) in
-    let libs = List.fold_left (fun acc -> function Library c -> c :: acc | _ -> acc) [] deps in
+    let libs = List.fold_left (fun acc -> function
+        | Library c
+        | Camlp4o c -> c :: acc
+        | _         -> acc
+      ) [] deps in
     let libs = match libs with
       | [] -> ""
       | l  ->
-        let libs = String.concat ","  (List.rev l) in
-        sprintf "$(ocamlfind query %s -R -predicates byte -format \"-I %%d\")" libs in
+        let libs = String.concat " "  (List.rev l) in
+        sprintf "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d\")" libs in
     let flags = sprintf "%s %s" incls libs in
     let var = "COMFLAGS_" ^ name in
     Variable.(var := flags)
@@ -169,7 +176,7 @@ module Depend = struct
   let prereqs ?(cmx=false) deps =
     let units = List.fold_left (fun acc -> function
         | Unit d  -> (d ^ ".cmi") :: acc
-        | Local l -> (if cmx then [l.dir / "*.cmx"] else []) @ l.dir / "*.cmi" :: acc
+        | Local l -> (if cmx then [l.dir ^ "/*.cmx"] else []) @ (l.dir ^ "/*.cmi") :: acc
         | _       -> acc
       ) [] deps in
     List.rev units
@@ -186,7 +193,7 @@ end
 module Unit = struct
 
   type t = {
-    dir: string;
+    dir: string option;
     deps: Depend.t list;
     ppflags: Variable.t option;
     compflags: Variable.t;
@@ -197,35 +204,50 @@ module Unit = struct
 
   let name t = t.name
 
-  let create ?(dir=Sys.getcwd()) ?(deps=[]) name =
+  let create ?dir ?(deps=[]) name =
     let ppflags = Depend.ppflags name deps in
     let compflags = Depend.compflags name deps in
     { dir; deps; ppflags; compflags; name }
 
   let pp = function
     | None   -> ""
-    | Some v -> sprintf " -pp 'camlp4 %s'" (Variable.name v)
+    | Some v -> sprintf " -pp 'camlp4o %s' " (Variable.name v)
+
+  let incl = function
+    | None   -> ""
+    | Some s -> sprintf " -I %s " s
 
   let cmi t =
+    let mli = t.dir / t.name ^ ".mli" in
+    let ml  = t.dir / t.name ^ ".ml" in
+    let cmi = t.dir / t.name ^ ".cmi" in
+    let cmo = t.dir / t.name ^ ".cmo" in
+    let targets, prereqs =
+      if Sys.file_exists mli then [cmi], [mli]
+      else [cmo;cmi], [ml] in
     Rule.create "cmi"
-      [t.dir / t.name ^ ".cmi"]
-      (t.dir / (t.name ^ ".mli") :: Depend.prereqs t.deps)
-      [sprintf "ocamlc -I %s -c %s%s %s" t.dir (pp t.ppflags) (Variable.name t.compflags) Rule.prereq]
+      targets
+      (prereqs @ Depend.prereqs t.deps)
+      [sprintf "ocamlc -c %s%s%s %s" (incl t.dir) (pp t.ppflags) (Variable.name t.compflags) Rule.prereq]
 
   let cmo t =
-    Rule.create "cmo"
-      [t.dir / t.name ^ ".cmo"]
-      (t.dir / (t.name ^ ".ml") :: t.dir / (t.name ^ ".cmi") :: Depend.prereqs t.deps)
-      [sprintf "ocamlc -I %s -c %s%s %s" t.dir (pp t.ppflags) (Variable.name t.compflags) Rule.prereq]
+    let mli = t.dir / t.name ^ ".mli" in
+    if Sys.file_exists mli then
+      [Rule.create "cmo"
+         [t.dir / t.name ^ ".cmo"]
+         (t.dir / (t.name ^ ".ml") :: t.dir / (t.name ^ ".cmi") :: Depend.prereqs t.deps)
+         [sprintf "ocamlc -c %s%s%s %s" (incl t.dir) (pp t.ppflags) (Variable.name t.compflags) Rule.prereq]]
+    else
+      []
 
   let cmx t =
     Rule.create "cmx"
       [t.dir / t.name ^ ".cmx"]
       (t.dir / (t.name ^ ".ml") :: t.dir / (t.name ^ ".cmi") :: Depend.prereqs ~cmx:true t.deps)
-      [sprintf "ocamlopt -I %s -c %s%s %s" t.dir (pp t.ppflags) (Variable.name t.compflags) Rule.prereq]
+      [sprintf "ocamlopt -c %s%s%s %s" (incl t.dir) (pp t.ppflags) (Variable.name t.compflags) Rule.prereq]
 
   let rules t =
-    [ cmi t; cmo t;cmx t ]
+    cmi t :: cmx t :: cmo t
 
   let variables t =
     t.compflags ::
@@ -238,14 +260,14 @@ end
 module Library = struct
 
   type t = {
+    dir : string option;
     name: string;
-    dir : string;
     units: Unit.t list;
   }
 
   let name t = t.name
 
-  let create ?(dir=Sys.getcwd()) units name =
+  let create ?dir units name =
     let units = List.map (fun u -> { u with Unit.dir = dir }) units in
     { dir; name; units }
 
