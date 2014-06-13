@@ -21,4 +21,5 @@ of dependencies are currently supported:
 
 You can find few examples in the `examples/` directory, where projects are built using
 multiple local libraries and ocamlfind libraries and syntax extensions. To generate a
-Makefile for a given project, simply run `ocaml make.ml`.
+Makefile for a given project, run `make` at the root of this repository and then
+simply run `ocaml configure.ml` at the root of each project examples.
