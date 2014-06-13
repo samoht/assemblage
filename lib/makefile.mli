@@ -14,8 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** EDSL to manipulate Makefiles. *)
-
 module Rule: sig
 
   (** Rules. *)
@@ -145,101 +143,8 @@ val create:
   Variable.t list -> Rule.t list -> t
 (** Create a Makefile. *)
 
+val of_project: ?file:string -> Project.t -> unit
+(** Generate a Makefile from a project description. *)
+
 val generate: ?file:string -> t -> unit
 (** Generate a Makefile. *)
-
-(** {2 OCaml specific rules} *)
-
-module rec Depend: sig
-
-  (** Library dependencies. *)
-
-  type t
-  (** Dependency values. *)
-
-  val unit: string -> t
-  (** A compilation unit in the same directory. *)
-
-  val local: Library.t -> t
-  (** A local library. *)
-
-  val camlp4o : string -> t
-  (** A syntax extension using camlp4o, managed by ocamlfind. *)
-
-  val library: string -> t
-  (** A library managed by ocamlfind. *)
-
-  val ppflags: string -> t list -> Variable.t option
-  (** Compute the flags to pass to the pre-processor and store it in a
-      variable. *)
-
-  val compflags: string -> t list -> Variable.t
-  (** Compute the flags to pass the the bytecode and native compilers
-      and store it in a variable. *)
-
-  val prereqs: ?cmx:bool -> t list -> string list
-  (** Compute the list of prerequisite. *)
-
-end
-
-and Unit: sig
-
-  (** Compilation unit. *)
-
-  type t
-
-  val name: t -> string
-  (** Return the compilation unit name. *)
-
-  val dir: t -> string option
-  (** Return the compilation unit directory. *)
-
-  val with_dir: t -> string option -> t
-  (** Change the compilation unit directory. *)
-
-  val create: ?dir:string -> ?deps:Depend.t list -> string -> t
-  (** Create a compilation unit. *)
-
-  val variables: t -> Variable.t list
-  (** Return the list of variables to build the given compilation
-      unit. *)
-
-  val rules: t -> Rule.t list
-  (** Return the list of rules to build the given compilation unit. *)
-
-  val generated: t -> string list
-  (** Return the list of generated files. *)
-
-end
-
-and Library: sig
-
-  (** Libraries. *)
-
-  type t
-
-  val name: t -> string
-  (** Return the library name. *)
-
-  val dir: t -> string option
-  (** Return the library directory. *)
-
-  val units: t -> Unit.t list
-  (** Return the list of compilation units. *)
-
-  val create: ?dir:string -> Unit.t list -> string -> t
-  (** Create a library. *)
-
-  val variables: t -> Variable.t list
-  (** Return the list of variables to build the given library. *)
-
-  val rules: t -> Rule.t list
-  (** Return the list of rules to build the given library. *)
-
-  val generated: t -> string list
-  (** Return the list of generated files. *)
-
-end
-
-val libraries: Library.t list -> t
-(** Generate a Makefile for the given libraries. *)

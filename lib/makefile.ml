@@ -14,7 +14,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Project
 open Printf
+
+let (/) x y = Filename.concat x y
+
+let (//) x y =
+  match x with
+  | None   -> y
+  | Some x -> Filename.concat x y
+
 
 module Variable = struct
 
@@ -93,6 +102,7 @@ module Rule = struct
 
 end
 
+
 type t = {
   header: string list;
   phony: string list;
@@ -121,249 +131,183 @@ let generate ?(file="Makefile") t =
   output_string oc (Buffer.contents buf);
   close_out oc
 
-let (/) x y =
-  match x with
-  | None   -> y
-  | Some x -> Filename.concat x y
+(******************************************************************************)
 
-module rec Depend: sig
-  type t
-  val unit: string -> t
-  val local: Library.t -> t
-  val camlp4o : string -> t
-  val library: string -> t
-  val ppflags: string -> t list -> Variable.t option
-  val compflags: string -> t list -> Variable.t
-  val prereqs: ?cmx:bool -> t list -> string list
+module Unit: sig
+  include (module type of Unit with type t = Unit.t)
+  val rules: t -> Lib.t option -> Conf.t -> Rule.t list
+  val variables: t -> Lib.t option -> Conf.t -> Variable.t list
 end = struct
 
-  type local = { name: string; dir: string }
-
-  type t =
-    | Unit of string
-    | Local of Library.t
-    | Camlp4o of string
-    | Library of string
-
-  let unit t = Unit t
-
-  let local t = Local t
-
-  let camlp4o t = Camlp4o t
-
-  let library t = Library t
-
-  let ppflags name deps =
-    let deps = List.fold_left (fun acc -> function Camlp4o c -> c :: acc | _ -> acc) [] deps in
-    match List.rev deps with
-    | []   -> None
-    | deps ->
-      let deps =  String.concat " " deps in
-      let cmd  = sprintf "ocamlfind query %s -r -predicates byte,syntax -format \"-I %%d %%a\"" deps in
-      Some (Variable.shell ("PPFLAGS_" ^ name) cmd)
-
-  let compflags name deps =
-    let incls = List.fold_left (fun acc -> function
-        | Local l -> begin
-            match Library.dir l with
-            | None   -> acc
-            | Some d -> ("-I "^ d) :: acc
-          end
-        | _ -> acc) [] deps in
-    let incls = match incls with
-      | [] -> ""
-      | l  -> String.concat " " (List.rev l) in
-    let libs = List.fold_left (fun acc -> function
-        | Library c
-        | Camlp4o c -> c :: acc
-        | _         -> acc
-      ) [] deps in
-    let libs = match libs with
-      | [] -> ""
-      | l  ->
-        let libs = String.concat " "  (List.rev l) in
-        sprintf "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d\")" libs in
-    let flags = sprintf "%s %s" incls libs in
-    let var = "COMFLAGS_" ^ name in
-    Variable.(var := flags)
-
-  let prereqs ?(cmx=false) deps =
-    let units = List.fold_left (fun acc -> function
-        | Unit d  -> (d ^ ".cmi") :: acc
-        | Local l ->
-          let units = Library.units l in
-          let cmxs = List.map (fun u -> Unit.dir u / Unit.name u ^ ".cmx") units in
-          let cmis = List.map (fun u -> Unit.dir u / Unit.name u ^ ".cmi") units in
-          (if cmx then cmxs else []) @ cmis @ acc
-        | _       -> acc
-      ) [] deps in
-    List.rev units
-
-  let files ext deps =
-    let units = List.fold_left (fun acc -> function
-        | Unit d    -> (d ^ ext) :: acc
-        | _         -> acc
-      ) [] deps in
-    List.rev units
-
-end
-
-and Unit: sig
-  type t
-  val name: t -> string
-  val dir: t -> string option
-  val with_dir: t -> string option -> t
-  val create: ?dir:string -> ?deps:Depend.t list -> string -> t
-  val variables: t -> Variable.t list
-  val rules: t -> Rule.t list
-  val generated: t -> string list
-end = struct
-
-  type t = {
-    dir: string option;
-    deps: Depend.t list;
-    ppflags: Variable.t option;
+  type ext = {
+    p4flags  : Variable.t option;
     compflags: Variable.t;
-    name: string;
+    prereqs  : string list;
   }
 
-  let dir t = t.dir
+  let p4flags t _lib conf =
+    match Unit.p4flags t conf with
+    | [] -> None
+    | l  ->
+      let var = "P4FLAGS_" ^ Unit.name t in
+      Some (Variable.(var := String.concat " " l))
 
-  let name t = t.name
+  let compflags t _lib conf =
+    let l = Unit.compflags t conf in
+    let var = "COMPFLAGS_" ^ Unit.name t in
+    Variable.(var := String.concat " " l)
 
-  let with_dir t dir = { t with dir }
+  let prereqs t lib conf =
+    let units = Dep.units (Unit.deps t) in
+    let units = List.map (fun d ->
+        match lib with
+        | None   -> Conf.destdir conf / Unit.name d ^ ".cmi"
+        | Some l -> Conf.destdir conf / Lib.name l / Unit.name d ^ ".cmi"
+      ) units in
+    let locals = Dep.libs (Unit.deps t) in
+    let locals = List.map (fun l ->
+        let units = Lib.units l in
+        let cmxs = List.map (fun u ->
+            Conf.destdir conf / Lib.name l / Unit.name u ^ ".cmx"
+          ) units in
+        let cmis = List.map (fun u ->
+            Conf.destdir conf / Lib.name l / Unit.name u ^ ".cmi"
+          ) units in
+        (if Conf.native conf then cmxs else []) @ cmis
+      ) locals in
+    units @ List.concat locals
 
-  let create ?dir ?(deps=[]) name =
-    let ppflags = Depend.ppflags name deps in
-    let compflags = Depend.compflags name deps in
-    { dir; deps; ppflags; compflags; name }
+  let process t lib conf =
+    let prereqs = prereqs t lib conf in
+    let compflags = compflags t lib conf in
+    let p4flags = p4flags t lib conf in
+    { prereqs; compflags; p4flags }
 
-  let pp = function
-    | None   -> ""
-    | Some v -> sprintf " -pp 'camlp4o %s' " (Variable.name v)
+  let rules t lib conf =
 
-  let incl = function
-    | None   -> ""
-    | Some s -> sprintf " -I %s " s
+    let x = process t lib conf in
 
-  let cmi t =
-    let mli = t.dir / t.name ^ ".mli" in
-    let ml  = t.dir / t.name ^ ".ml" in
-    let cmi = t.dir / t.name ^ ".cmi" in
-    let cmo = t.dir / t.name ^ ".cmo" in
-    let targets, prereqs =
-      if Sys.file_exists mli then [cmi], [mli]
-      else [cmo;cmi], [ml] in
-    Rule.create "cmi"
-      targets
-      (prereqs @ Depend.prereqs t.deps)
-      [sprintf "ocamlc -c %s%s%s %s" (incl t.dir) (pp t.ppflags) (Variable.name t.compflags) Rule.prereq]
+    let lib_name = match lib with
+      | None   -> None
+      | Some l -> Some (Lib.name l) in
 
-  let cmo t =
-    let mli = t.dir / t.name ^ ".mli" in
-    if Sys.file_exists mli then
-      [Rule.create "cmo"
-         [t.dir / t.name ^ ".cmo"]
-         (t.dir / (t.name ^ ".ml") :: t.dir / (t.name ^ ".cmi") :: Depend.prereqs t.deps)
-         [sprintf "ocamlc -c %s%s%s %s" (incl t.dir) (pp t.ppflags) (Variable.name t.compflags) Rule.prereq]]
-    else
-      []
+    let pp = match x.p4flags with
+      | None   -> ""
+      | Some v -> sprintf " -pp 'camlp4o %s' " (Variable.name v) in
 
-  let cmx t =
-    Rule.create "cmx"
-      [t.dir / t.name ^ ".cmx"]
-      (t.dir / (t.name ^ ".ml") :: t.dir / (t.name ^ ".cmi") :: Depend.prereqs ~cmx:true t.deps)
-      [sprintf "ocamlopt -c %s%s%s %s" (incl t.dir) (pp t.ppflags) (Variable.name t.compflags) Rule.prereq]
+    let incl = match lib_name with
+      | None   -> ""
+      | Some l -> sprintf " -I %s " (Conf.destdir conf / l) in
 
-  let rules t =
-    cmi t :: cmx t :: cmo t
+    let target ext =
+      Conf.destdir conf / (lib_name // Unit.name t ^ ext) in
 
-  let variables t =
-    t.compflags ::
-    match t.ppflags with
-    | None   -> []
-    | Some l -> [l]
+    let source ext =
+      Unit.dir t // Unit.name t ^ ext in
 
-  let generated t =
-    [ (t.dir / t.name ^ ".cmi");
-      (t.dir / t.name ^ ".cmo");
-      (t.dir / t.name ^ ".cmx");
-      (t.dir / t.name ^ ".o");
-      (t.dir / t.name ^ ".cma");
-      (t.dir / t.name ^ ".cmxa") ]
+    let ln = (* link source file to target directory *)
+      let aux ext =
+        let source = source ext in
+        let target = target ext in
+        if Sys.file_exists source then
+          [Rule.create ("ln" ^ ext)
+             [target] [source]
+             ((match lib_name with
+                 | None   -> []
+                 | Some d -> [sprintf "mkdir -p %s" (Conf.destdir conf / d)])
+              @ [sprintf "ln -s $(shell pwd)/%s %s" source target])]
+        else []
+      in
+      aux ".ml" @ aux ".mli"
+    in
+
+    let cmi = (* generate cmis *)
+      let targets, prereqs =
+        if Sys.file_exists (source ".mli") then [target ".cmi"], [target ".mli"]
+        else [target ".cmo"; target ".cmi"], [target ".ml"] in
+      [Rule.create "cmi"
+         targets
+         (prereqs @ x.prereqs)
+         [sprintf "ocamlc -c %s%s%s %s" incl pp (Variable.name x.compflags) Rule.prereq]]
+    in
+
+    let cmo = (* Generate cmos *)
+      if Sys.file_exists (source ".mli") then
+        [Rule.create "cmo"
+           [target ".cmo"]
+           (target ".ml" :: target ".cmi" :: x.prereqs)
+           [sprintf "ocamlc -c %s%s%s %s" incl pp (Variable.name x.compflags) Rule.prereq]]
+      else
+        []
+    in
+
+    let cmx = (* Generate cmxs *)
+      if Conf.native conf then
+        [Rule.create "cmx"
+           [target ".cmx"]
+           (target ".ml" :: target ".cmi" :: x.prereqs)
+           [sprintf "ocamlopt -c %s%s%s %s" incl pp (Variable.name x.compflags) Rule.prereq]]
+      else
+        []
+    in
+    ln @ cmi @ cmo @ cmx
+
+    let variables t lib conf =
+      let x = process t lib conf in
+      x.compflags :: match x.p4flags with
+      | None   -> []
+      | Some l -> [l]
+
+    include Unit
+
 end
 
-and Library: sig
-  type t
-  val name: t -> string
-  val dir: t -> string option
-  val units: t -> Unit.t list
-  val create: ?dir:string -> Unit.t list -> string -> t
-  val variables: t -> Variable.t list
-  val rules: t -> Rule.t list
-  val generated: t -> string list
+module Lib: sig
+  include (module type of Lib with type t = Lib.t)
+  val rules: t -> Conf.t -> Rule.t list
+  val variables: t -> Conf.t -> Variable.t list
 end = struct
 
-  type t = {
-    dir : string option;
-    name: string;
-    units: Unit.t list;
-  }
+  let variables t conf =
+    List.concat (List.map (fun u -> Unit.variables u (Some t) conf) (Lib.units t))
 
-  let name t = t.name
+  let rules t conf =
+    let file_u u ext = Conf.destdir conf / Lib.name t / Unit.name u ^ ext in
+    let file ext     = Conf.destdir conf / Lib.name t ^ ext in
+    let cma =
+      let files = List.map (fun u -> file_u u ".cmo") (Lib.units t) in
+      Rule.create "cma" [file ".cma"] files [
+        sprintf "ocamlc -a %s -o %s" (String.concat " " files) Rule.target
+      ] in
+    let cmxa =
+      let files = List.map (fun u -> file_u u  ".cmx") (Lib.units t) in
+      Rule.create "cmxa" [file ".cmxa"] files [
+        sprintf "ocamlopt -a %s -o %s" (String.concat " " files) Rule.target
+      ] in
+    (Rule.create (Lib.name t)
+       [Lib.name t]
+       ([file ".cma"] @ if Conf.native conf then [file ".cmxa"] else [])
+       [])
+    :: cma
+    :: (if Conf.native conf then [cmxa] else [])
+    @  List.concat (List.map (fun u -> Unit.rules u (Some t) conf) (Lib.units t))
 
-  let dir t = t.dir
-
-  let units t = t.units
-
-  let create ?dir units name =
-    let units = List.map (fun u -> Unit.with_dir u dir) units in
-    { dir; name; units }
-
-  let cma t =
-    let files = List.map (fun f -> Unit.dir f / Unit.name f ^ ".cmo") t.units in
-    Rule.create "cma" [t.dir / t.name ^ ".cma"] files [
-      sprintf "ocamlc -a %s -o %s" (String.concat " " files) Rule.target
-    ]
-
-  let cmxa t =
-    let files = List.map (fun f -> Unit.dir f / Unit.name f ^ ".cmx") t.units in
-    Rule.create "cma" [t.dir / t.name ^ ".cmxa"] files [
-      sprintf "ocamlopt -a %s -o %s" (String.concat " " files) Rule.target
-    ]
-
-  let variables t =
-    List.concat (List.map Unit.variables t.units)
-
-  let rules t =
-    (Rule.create t.name
-       [t.name]
-       [t.dir / t.name ^ ".cma"; t.dir / t.name ^ ".cmxa"]
-       []
-    ) :: cma t :: cmxa t :: List.concat (List.map Unit.rules t.units)
-
-  let generated t =
-    [ (t.dir / t.name ^ ".cma");
-      (t.dir / t.name ^ ".a");
-      (t.dir / t.name ^ ".cmxa");
-    ] @ List.concat (List.map Unit.generated t.units)
+  include Lib
 
 end
 
-let libraries libs =
-  let variables = List.concat (List.map Library.variables libs) in
-  let rules = List.concat (List.map Library.rules libs) in
-  let main = Rule.create "main" ["all"] (List.map Library.name libs) [] in
+let of_project ?file t =
+  let libs = Project.libs t in
+  let conf = Project.conf t in
+  let variables = List.concat (List.map (fun t -> Lib.variables t conf) libs) in
+  let rules = List.concat (List.map (fun t -> Lib.rules t conf) libs) in
+  let main = Rule.create "main" ["all"] (List.map Lib.name libs) [] in
   let clean = Rule.create "clean" ["clean"] [] [
-      (let dirs = List.map (fun d ->
-           match Library.dir d with
-           | None   -> ""
-           | Some d -> sprintf "%s/*~" d) libs in
-       sprintf "rm -f *~ %s" (String.concat " " dirs));
-      (let generated = List.concat (List.map Library.generated libs) in
-       sprintf "rm -f %s" (String.concat " " generated));
+      "rm -f *~ **/*~";
+      sprintf "rm -rf %s" (Conf.destdir conf);
     ] in
-  create
-    ~phony:["all"; "clean"]
-    variables
-    (main :: clean :: rules)
+  let t = create
+      ~phony:["all"; "clean"]
+      variables
+      (main :: clean :: rules) in
+  generate ?file t
