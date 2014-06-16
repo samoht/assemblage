@@ -4,13 +4,17 @@ A set of tools to manage the configuration of OCaml projects.
 
 ### Status
 
-The library can be used to describe OCaml projects with static dependencies,
-generate the corresponding `Makefile` to build the project, and generate the
-correponding `META` and `<pkg>.install` files to install it.
+The library can be used to describe OCaml projects with static dependencies.
 
 A projects description consists of a list of libraries, binaries and/or toplevels.
 Each containing a list of compilation units with precise (and static) dependency
 relationships.
+
+Using a project description, the tools can generate:
+
+- a `Makefile` to build the project;
+- a `.install` to install the project; and
+- a `META` file to use the project.
 
 #### Dependency Tracking
 
