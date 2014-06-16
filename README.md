@@ -32,8 +32,6 @@ of the project to be built (and installed) or not. The flag can be enabled or
 disabled either programmatically (ie. in the project description itself) or
 passed on the command-line using an integrated `Cmdliner` interface.
 
-#### `opam-configure`
-
 The package also installs a `opam-configure` helper scripts, which can be used
 to configure an OCaml project using the state of OPAM in the user computer.
 
