@@ -221,18 +221,18 @@ module rec Dep: sig
   val unit: Unit.t -> t
   val units: Unit.t list -> t list
   val get_units: t list -> Unit.t list
-  val local_lib: Lib.t -> t
-  val local_libs: Lib.t list -> t list
-  val get_local_libs: t list -> Lib.t list
-  val lib: string -> t
-  val libs: string list -> t list
-  val get_libs: t list -> string list
-  val local_p4o: Lib.t -> t
-  val local_p4os: Lib.t list -> t list
-  val get_local_p4os: t list -> Lib.t list
-  val p4o: string -> t
-  val p4os: string list -> t list
-  val get_p4os: t list -> string list
+  val lib: Lib.t -> t
+  val libs: Lib.t list -> t list
+  val get_libs: t list -> Lib.t list
+  val pkg: string -> t
+  val pkgs: string list -> t list
+  val get_pkgs: t list -> string list
+  val p4o: Lib.t -> t
+  val p4os: Lib.t list -> t list
+  val get_p4os: t list -> Lib.t list
+  val pkg_p4o: string -> t
+  val pkg_p4os: string list -> t list
+  val get_pkg_p4os: t list -> string list
   type custom = {
     inputs : string list;
     outputs: string list;
@@ -252,10 +252,10 @@ end = struct
 
   type t =
     | Unit of Unit.t
-    | Local_lib of Lib.t
-    | Local_p4o of Lib.t
-    | P4o of string
-    | Lib of string
+    | Lib of Lib.t
+    | P4o of Lib.t
+    | Pkg_p4o of string
+    | Pkg of string
     | Custom of custom
 
   let unit t = Unit t
@@ -267,24 +267,16 @@ end = struct
   let p4o t = P4o t
   let p4os = List.map p4o
 
-  let local_p4o t = Local_p4o t
-  let local_p4os = List.map local_p4o
+  let pkg_p4o t = Pkg_p4o t
+  let pkg_p4os = List.map pkg_p4o
 
-  let local_lib t = Local_lib t
-  let local_libs = List.map local_lib
+  let pkg t = Pkg t
+  let pkgs = List.map pkg
 
   let custom t = Custom t
 
   let get_units t =
     List.fold_left (fun acc -> function Unit t -> t :: acc | _ -> acc) [] t
-    |> List.rev
-
-  let get_local_libs t =
-    List.fold_left (fun acc -> function Local_lib t -> t :: acc | _ -> acc) [] t
-    |> List.rev
-
-  let get_local_p4os t =
-    List.fold_left (fun acc -> function Local_p4o t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
   let get_libs t =
@@ -293,6 +285,14 @@ end = struct
 
   let get_p4os t =
     List.fold_left (fun acc -> function P4o t -> t :: acc | _ -> acc) [] t
+    |> List.rev
+
+  let get_pkgs t =
+    List.fold_left (fun acc -> function Pkg t -> t :: acc | _ -> acc) [] t
+    |> List.rev
+
+  let get_pkg_p4os t =
+    List.fold_left (fun acc -> function Pkg_p4o t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
   let get_customs t =
@@ -316,7 +316,7 @@ end = struct
           | Unit u ->
             let d' = Unit.deps u in
             aux acc (d' @ d)
-          | Local_lib l ->
+          | Lib l ->
             let d' = Lib.deps l in
             aux acc (d' @ d)
           | _ -> Hashtbl.replace deps h 1; aux (h :: acc) t
@@ -368,8 +368,8 @@ end = struct
     { dir; lib=None; deps; name; flags }
 
   let p4oflags t c resolver =
-    let local = Dep.get_local_p4os (Unit.deps t) in
-    let global = Dep.get_p4os (Unit.deps t) in
+    let local = Dep.get_p4os (Unit.deps t) in
+    let global = Dep.get_pkg_p4os (Unit.deps t) in
     match local, global, Conf.p4o c with
     | []   , []  , [] -> []
     | local, global, conf ->
@@ -378,11 +378,11 @@ end = struct
       conf @ local @ global
 
   let compflags t conf resolver =
-    let local = Dep.get_local_libs (Unit.deps t) in
+    let local = Dep.get_libs (Unit.deps t) in
     let local = List.fold_left (fun acc l ->
         "-I" :: Conf.destdir conf / Lib.name l :: acc
       ) [] local in
-    let global = Dep.get_libs (Unit.deps t) @ Dep.get_p4os (Unit.deps t) in
+    let global = Dep.get_pkgs (Unit.deps t) @ Dep.get_pkg_p4os (Unit.deps t) in
     let global = match global with
       | [] -> []
       | l  -> resolver global in

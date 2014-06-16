@@ -1,9 +1,11 @@
 #directory "../../_build/lib/";;
+#directory "../../_build/tools/";;
+
 open Project
 
 let t = Unit.create ~deps:[
-    Dep.p4o "sexplib.syntax";
-    Dep.lib "xmlm";
+    Dep.pkg_p4o "sexplib.syntax";
+    Dep.pkg     "xmlm";
   ] "t"
 
 let lib = Lib.create [t] "mylib"

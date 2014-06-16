@@ -170,7 +170,7 @@ end = struct
         | None   -> "$(DESTDIR)" / Unit.name d ^ ext
         | Some l -> "$(DESTDIR)" / Lib.name l / Unit.name d ^ ext
       ) units in
-    let locals = Dep.get_local_libs (Unit.deps t) in
+    let locals = Dep.get_libs (Unit.deps t) in
     let locals = List.map (fun l ->
         let units = Lib.units l in
         let cmxs = List.map (fun u ->
@@ -322,9 +322,9 @@ end = struct
   let variables t conf =
     let link =
       Top.libs t
-      |> Dep.local_libs
+      |> Dep.libs
       |> Dep.closure
-      |> Dep.get_libs
+      |> Dep.get_pkgs
       |> Ocamlfind.bytlink
       |> String.concat " "
     in
@@ -335,11 +335,11 @@ end = struct
   let rules t conf =
     let deps =
       Top.libs t
-      |> Dep.local_libs
+      |> Dep.libs
       |> Dep.closure in
     let cma =
       deps
-      |> Dep.get_local_libs
+      |> Dep.get_libs
       |> List.map (fun l -> "$(DESTDIR)" / Lib.name l / Lib.name l ^ ".cma") in
     let link = sprintf "$(LINKTOP_%s)" (Top.name t) in
     Rule.create "toplevel-target"
@@ -365,9 +365,9 @@ end = struct
 
   let variables t conf =
     let link =
-      Dep.local_libs (Bin.libs t) @ Dep.units (Bin.units t)
+      Dep.libs (Bin.libs t) @ Dep.units (Bin.units t)
       |> Dep.closure
-      |> Dep.get_libs
+      |> Dep.get_pkgs
       |> (fun links ->
           if Conf.native conf then Ocamlfind.natlink links
           else Ocamlfind.bytlink links)
@@ -381,11 +381,11 @@ end = struct
 
   let rules t conf =
     let deps =
-      Dep.local_libs (Bin.libs t) @ Dep.units (Bin.units t)
+      Dep.libs (Bin.libs t) @ Dep.units (Bin.units t)
       |> Dep.closure in
     let libs =
       deps
-      |> Dep.get_local_libs
+      |> Dep.get_libs
       |> List.map (fun l ->
           let file ext = "$(DESTDIR)" / Lib.name l / Lib.name l ^ ext in
           if Conf.native conf then file ".cmxa"

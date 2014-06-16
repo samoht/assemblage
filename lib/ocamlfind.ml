@@ -82,7 +82,7 @@ module META = struct
       let aux lib =
         let requires =
           Lib.deps lib
-          |> Dep.get_libs
+          |> Dep.get_pkgs
           |> String.concat " " in
         bprintf buf "version  = \"%s\"\n" version;
         bprintf buf "requires = \"%s\"\n" requires;

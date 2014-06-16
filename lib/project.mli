@@ -134,43 +134,43 @@ module rec Dep: sig
 
   (** {2 Libraries} *)
 
-  val local_lib: Lib.t -> t
+  val lib: Lib.t -> t
   (** A local library. *)
 
-  val local_libs: Lib.t list -> t list
+  val libs: Lib.t list -> t list
   (** A list of local libraries. *)
 
-  val get_local_libs: t list -> Lib.t list
+  val get_libs: t list -> Lib.t list
   (** Return the list of local libraries in the dependency list. *)
 
-  val lib: string -> t
-  (** A globally installed library. *)
+  val pkg: string -> t
+  (** A globally installed package. *)
 
-  val libs: string list -> t list
-  (** A list of globally installed libraries. *)
+  val pkgs: string list -> t list
+  (** A list of globally installed packages. *)
 
-  val get_libs: t list -> string list
-  (** Return the list of globally installed libraries in the
-      dependency list. *)
+  val get_pkgs: t list -> string list
+  (** Return the list of globally installed packages in the dependency
+      list. *)
 
   (** {2 Pre-processors} *)
 
-  val local_p4o: Lib.t -> t
+  val p4o: Lib.t -> t
   (** A local syntax extension, using [camlp4o]. *)
 
-  val local_p4os: Lib.t list -> t list
+  val p4os: Lib.t list -> t list
   (** A set of local syntax extensions, using [camlp4o]. *)
 
-  val get_local_p4os: t list -> Lib.t list
+  val get_p4os: t list -> Lib.t list
   (** Return the local extensions in the depency list. *)
 
-  val p4o: string -> t
+  val pkg_p4o: string -> t
   (** A globally installed syntax extension. *)
 
-  val p4os: string list -> t list
+  val pkg_p4os: string list -> t list
   (** A list of globally installed syntax extensions. *)
 
-  val get_p4os: t list -> string list
+  val get_pkg_p4os: t list -> string list
   (** Return the list of globally installed syntax extension in the
       dependency list. *)
 
