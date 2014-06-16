@@ -1,0 +1,14 @@
+opam-version: "1"
+name: "tools"
+version: "0.1"
+maintainer: "thomas@gazagnaire.org"
+authors: [ "Thomas Gazagnaire" ]
+license: "ISC"
+depends: [
+  "cmdliner"
+  "opam-lib" {>= "1.1.1"}
+]
+build: [
+  ["./bootstrap"]
+  ["make"]
+]
