@@ -15,27 +15,91 @@
  *)
 
 open Printf
+open Cmdliner
+
+let global_option_section = "COMMON OPTIONS"
+let help_sections = [
+  `S global_option_section;
+  `P "These options are common to all commands.";
+  `S "AUTHORS";
+  `P "Thomas Gazagnaire <thomas@gazagnaire.org>";
+  `S "BUGS";
+  `P "Check bug reports at https://github.com/samoht/ocaml-tools/issues.";
+]
+
+type global = {
+  mutable verbose: bool;
+}
+
+let global = {
+  verbose = false;
+}
+
+let debug fmt =
+  ksprintf (fun str ->
+      printf "+ %s\n" str
+    ) fmt
+
+let global =
+  let verbose =
+    let doc =
+      Arg.info ~docs:global_option_section ~doc:"Verbose mode." ["v";"verbose"] in
+    Arg.(value & flag & doc) in
+  let help =
+    let doc =
+      Arg.info ~docs:global_option_section ~doc:"Display help." ["h";"help"] in
+    Arg.(value & flag & doc) in
+  let create verbose help man_format =
+    if help then `Help (man_format, None)
+    else (
+      global.verbose <- verbose;
+      `Ok ()
+    ) in
+  Term.(ret (pure create $ verbose $ help $ Term.man_format))
+
+let mk (fn:'a): 'a Term.t =
+  Term.(pure (fun () -> fn) $ global)
 
 module Flag = struct
-  type name = string
-  type t = name * bool
-  let name = fst
-  let value = snd
-  let create name value = (name, value)
+  type t = {
+    name: string;
+    doc: string;
+  }
+  let name t = t.name
+  let doc t = t.doc
+  let create ~doc name = { name; doc }
+  let parse t =
+    let enable =
+    let d = Arg.info ~doc:(sprintf "Enable %s" t.doc)
+        ["enable-" ^ t.name] in
+    Arg.(value & flag & d) in
+    let disable =
+      let d = Arg.info ~doc:(sprintf "Disable %s" t.doc)
+          ["disable-" ^ t.name] in
+      Arg.(value & flag & d) in
+    let create enable disable =
+      let v = match enable, disable with
+        | true , false -> Some true
+        | false, true  -> Some false
+        | false, false -> None
+        | true , true  -> failwith "Invalid flag" in
+      (t, v) in
+    Term.(mk create $ enable $ disable)
+
 end
 
 module Conf = struct
   type t = {
     native: bool;
     native_dynlink: bool;
-    flags: Flag.t list;
+    flags: (Flag.t * bool) list;
     comp: string list;
     bytcomp: string list;
     natcomp: string list;
     link: string list;
     bytlink: string list;
     natlink: string list;
-    p4: string list;
+    p4o: string list;
     destdir: string;
   }
 
@@ -49,11 +113,11 @@ module Conf = struct
       ?(link=[])
       ?(bytlink=[])
       ?(natlink=[])
-      ?(p4=[])
+      ?(p4o=[])
       ?(destdir="_build")
       () =
     { native; native_dynlink; flags; comp; bytcomp; natcomp;
-      link; bytlink; natlink; p4; destdir }
+      link; bytlink; natlink; p4o; destdir }
 
   let destdir t = t.destdir
   let native t = t.native
@@ -68,7 +132,7 @@ module Conf = struct
   let bytlink t = t.bytlink @ t.link
   let natlink t = t.natlink @ t.link
 
-  let p4 t = t.p4
+  let p4o t = t.p4o
 
   let default = {
     native = true;
@@ -80,7 +144,7 @@ module Conf = struct
     link = [];
     bytlink = [];
     natlink = [];
-    p4 = [];
+    p4o = [];
     destdir = "_build";
   }
 
@@ -90,6 +154,58 @@ module Conf = struct
         with Not_found -> false
       ) flags
 
+  let term_of_list default list =
+    let aux acc h = Term.(pure (fun (f,b) t -> (f, default b) :: t) $ h $ acc) in
+    List.fold_left aux (Term.pure []) list
+
+  let parse flags =
+    let default d = function
+      | None   -> d
+      | Some b -> b in
+    let flags = term_of_list (default false) (List.map Flag.parse flags) in
+    let native = Flag.(parse (create ~doc:"native code compilation." "native")) in
+    let native_dynlink =
+      Flag.(parse (create ~doc:"native plugins for native code." "native-dynlink")) in
+    let comp =
+      let doc = Arg.info
+          ~doc:"Additional options passed to both the native and bytecode the \
+                compilers."
+          ~docv:"OPTIONS" ["comp"] in
+      Arg.(value & opt (some string) None & doc) in
+    let link =
+      let doc = Arg.info
+          ~doc:"Additional options passed to both the native and bytecode the \
+                linkers."
+          ~docv:"OPTIONS"["link"] in
+      Arg.(value & opt (some string) None & doc) in
+    let p4o =
+      let doc = Arg.info
+          ~doc:"Additional options passed to the camlp4o pre-processor."
+          ~docv:"OPTIONS" ["p4o"] in
+      Arg.(value & opt (some string) None & doc) in
+    let destdir =
+      let doc = Arg.info
+          ~doc:"The name of the directory where built artifacts are created."
+          ~docv:"DIR" ["destdir"] in
+      Arg.(value & opt string "_build" & doc) in
+    let list = function
+      | None   -> []
+      | Some l -> [l] in
+
+    let create (_,native) (_,native_dynlink) flags comp link p4o destdir = {
+      native = default true native;
+      native_dynlink = default true native;
+      flags;
+      comp = list comp;
+      bytcomp = [];
+      natcomp = [];
+      link = list link;
+      bytlink = [];
+      natlink = [];
+      p4o = list p4o;
+      destdir;
+    } in
+    Term.(mk create $ native $ native_dynlink $ flags $ comp $ link $ p4o $ destdir)
 
 end
 
@@ -102,21 +218,30 @@ let (//) x y =
 
 module rec Dep: sig
   type t
-  type custom = {
-    inputs: string list;
-    outputs: string list;
-    recipe: string list
-  }
   val unit: Unit.t -> t
-  val lib: Lib.t -> t
-  val findp4o : string -> t
-  val findlib: string -> t
+  val units: Unit.t list -> t list
+  val get_units: t list -> Unit.t list
+  val local_lib: Lib.t -> t
+  val local_libs: Lib.t list -> t list
+  val get_local_libs: t list -> Lib.t list
+  val lib: string -> t
+  val libs: string list -> t list
+  val get_libs: t list -> string list
+  val local_p4o: Lib.t -> t
+  val local_p4os: Lib.t list -> t list
+  val get_local_p4os: t list -> Lib.t list
+  val p4o: string -> t
+  val p4os: string list -> t list
+  val get_p4os: t list -> string list
+  type custom = {
+    inputs : string list;
+    outputs: string list;
+    recipe : string list
+  }
   val custom: custom -> t
-  val units: t list -> Unit.t list
-  val libs: t list -> Lib.t list
-  val findp4os: t list -> string list
-  val findlibs: t list -> string list
-  val customs: t list -> custom list
+  val get_customs: t list -> custom list
+  type resolver = string list -> string list
+  val closure: t list -> t list
 end = struct
 
   type custom = {
@@ -127,40 +252,80 @@ end = struct
 
   type t =
     | Unit of Unit.t
-    | Lib of Lib.t
-    | Findp4o of string
-    | Findlib of string
+    | Local_lib of Lib.t
+    | Local_p4o of Lib.t
+    | P4o of string
+    | Lib of string
     | Custom of custom
 
   let unit t = Unit t
+  let units = List.map unit
 
   let lib t = Lib t
+  let libs = List.map lib
 
-  let findp4o t = Findp4o t
+  let p4o t = P4o t
+  let p4os = List.map p4o
 
-  let findlib t = Findlib t
+  let local_p4o t = Local_p4o t
+  let local_p4os = List.map local_p4o
+
+  let local_lib t = Local_lib t
+  let local_libs = List.map local_lib
 
   let custom t = Custom t
 
-  let units t =
+  let get_units t =
     List.fold_left (fun acc -> function Unit t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
-  let libs t =
+  let get_local_libs t =
+    List.fold_left (fun acc -> function Local_lib t -> t :: acc | _ -> acc) [] t
+    |> List.rev
+
+  let get_local_p4os t =
+    List.fold_left (fun acc -> function Local_p4o t -> t :: acc | _ -> acc) [] t
+    |> List.rev
+
+  let get_libs t =
     List.fold_left (fun acc -> function Lib t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
-  let findp4os t =
-    List.fold_left (fun acc -> function Findp4o t -> t :: acc | _ -> acc) [] t
+  let get_p4os t =
+    List.fold_left (fun acc -> function P4o t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
-  let findlibs t =
-    List.fold_left (fun acc -> function Findlib t -> t :: acc | _ -> acc) [] t
-    |> List.rev
-
-  let customs t =
+  let get_customs t =
     List.fold_left (fun acc -> function Custom t -> t :: acc | _ -> acc) [] t
     |> List.rev
+
+  type resolver = string list -> string list
+
+  let closure ts =
+    let deps = Hashtbl.create 24 in
+    let rec aux acc = function
+      | []          -> List.rev acc
+      | h :: t as d ->
+        if Hashtbl.mem deps h then
+          match Hashtbl.find deps h with
+          | 0 -> Hashtbl.replace deps h 1; aux (h :: acc) t
+          | _ -> aux acc t
+        else (
+          Hashtbl.add deps h 0;
+          match h with
+          | Unit u ->
+            let d' = Unit.deps u in
+            aux acc (d' @ d)
+          | Local_lib l ->
+            let d' =
+              Lib.units l
+              |> List.map Unit.deps
+              |> List.concat in
+            aux acc (d' @ d)
+          | _ -> Hashtbl.replace deps h 1; aux (h :: acc) t
+        )
+    in
+    aux [] ts
 
 end
 
@@ -169,19 +334,19 @@ and Unit: sig
   val name: t -> string
   val dir: t -> string option
   val deps: t -> Dep.t list
-  val flags: t -> Flag.name list
-  val with_dir: t -> string option -> t
-  val create: ?dir:string -> ?deps:Dep.t list -> ?flags:Flag.name list -> string -> t
+  val flags: t -> Flag.t list
+  val add_deps: t -> Dep.t list -> t
+  val create: ?dir:string -> ?deps:Dep.t list -> ?flags:Flag.t list -> string -> t
   val generated_files: t -> Conf.t -> string list
-  val compflags: t -> Conf.t -> string list
-  val p4flags: t -> Conf.t -> string list
+  val compflags: t -> Conf.t -> Dep.resolver -> string list
+  val p4oflags: t -> Conf.t -> Dep.resolver -> string list
 end = struct
 
   type t = {
     dir: string option;
     deps: Dep.t list;
     name: string;
-    flags: Flag.name list;
+    flags: Flag.t list;
   }
 
   let dir t = t.dir
@@ -192,37 +357,33 @@ end = struct
 
   let flags t = t.flags
 
-  let with_dir t dir = { t with dir }
+  let add_deps t deps =
+    { t with deps = t.deps @ deps }
 
   let create ?dir ?(deps=[]) ?(flags=[])name =
     { dir; deps; name; flags }
 
+  let p4oflags t c resolver =
+    let local = Dep.get_local_p4os (Unit.deps t) in
+    let global = Dep.get_p4os (Unit.deps t) in
+    match local, global, Conf.p4o c with
+    | []   , []  , [] -> []
+    | local, global, conf ->
+      let local = List.map (fun l -> Conf.destdir c / Lib.name l ^ ".cma") local in
+      let global = resolver global in
+      conf @ local @ global
 
-  let p4flags t conf =
-    let deps = Dep.findp4os (Unit.deps t) in
-    match List.rev deps, Conf.p4 conf with
-    | []  , [] -> []
-    | deps, p4 ->
-      let deps = String.concat " " deps in
-      let deps =
-        sprintf
-          "$(shell ocamlfind query %s -r -predicates byte,syntax -format \"-I %%d %%a\")" deps
-      in
-      p4 @ [deps]
-
-  let compflags t conf =
-    let incls = Dep.libs (Unit.deps t) in
-    let incls = List.fold_left (fun acc l ->
+  let compflags t conf resolver =
+    let local = Dep.get_local_libs (Unit.deps t) in
+    let local = List.fold_left (fun acc l ->
         "-I" :: Conf.destdir conf / Lib.name l :: acc
-      ) [] incls in
-    let libs = Dep.findlibs (Unit.deps t) @ Dep.findp4os (Unit.deps t) in
-    let libs = match libs with
+      ) [] local in
+    let global = Dep.get_libs (Unit.deps t) @ Dep.get_p4os (Unit.deps t) in
+    let global = match global with
       | [] -> []
-      | l  ->
-        let libs = String.concat " "  (List.rev l) in
-        [sprintf " $(shell ocamlfind query %s -r -predicates byte -format \"-I %%d\")" libs] in
-    let global = Conf.comp conf in
-    global @ incls @ libs
+      | l  -> resolver global in
+    let conf = Conf.comp conf in
+    conf @ local @ global
 
   let generated_files t conf =
     if Conf.enable conf t.flags then
@@ -243,22 +404,24 @@ and Lib: sig
   type t
   val name: t -> string
   val units: t -> Unit.t list
-  val create: ?flags:Flag.name list -> Unit.t list -> string -> t
+  val create: ?flags:Flag.t list -> ?deps:Dep.t list -> Unit.t list -> string -> t
   val generated_files: t -> Conf.t -> string list
 end = struct
 
   type t = {
     name: string;
     units: Unit.t list;
-    flags: Flag.name list;
+    flags: Flag.t list;
+    deps : Dep.t list;
   }
 
   let name t = t.name
 
   let units t = t.units
 
-  let create ?(flags=[]) units name =
-    { name; units; flags }
+  let create ?(flags=[]) ?(deps=[]) units name =
+    let units = List.map (fun u -> Unit.add_deps u deps) units in
+    { name; units; flags; deps }
 
   let generated_files t conf =
     if Conf.enable conf t.flags then
@@ -277,13 +440,90 @@ end = struct
 
 end
 
+module Top = struct
+
+  type t = {
+    libs: Lib.t list;
+    name: string;
+    custom: bool;
+  }
+
+  let create ?(custom=false) libs name =
+    { libs; name; custom }
+
+  let name t = t.name
+
+  let libs t = t.libs
+
+  let custom t = t.custom
+
+end
+
+module Bin = struct
+
+  type t = {
+    libs: Lib.t list;
+    units: Unit.t list;
+    name: string;
+  }
+
+  let name t = t.name
+
+  let libs t = t.libs
+
+  let units t = t.units
+
+  let create libs units name =
+    { libs; units; name }
+
+end
+
 type t = {
   libs: Lib.t list;
+  bins: Bin.t list;
+  tops: Top.t list;
   conf: Conf.t;
 }
 
 let libs t = t.libs
 
+let bins t = t.bins
+
+let tops t = t.tops
+
 let conf t = t.conf
 
-let create ~libs conf = { libs; conf }
+let parse flags =
+  let doc = "opam-configure - helpers to manage and configure OCaml projects." in
+  let man = [
+    `S "DESCRIPTION";
+    `P "opam-configure is part of OCaml-tools, a collection of tools to \
+        manage and configure OCaml projects.";
+  ] in
+  let version = "0.1" in (* XXX: autogen *)
+  let info = Term.info "opam-configure"
+      ~version
+      ~sdocs:global_option_section
+      ~doc
+      ~man in
+  match Term.eval ((Conf.parse flags), info) with
+  | `Ok conf -> conf
+  | `Version -> failwith "version"
+  | `Help    -> failwith "help"
+  | `Error _ -> exit 1
+
+let create
+    ?flags
+    ?conf
+    ?(libs=[])
+    ?(bins=[])
+    ?(tops=[])
+    () =
+  let conf = match conf with
+    | Some c -> c
+    | None   ->
+      let flags = match flags with
+        | None   -> []
+        | Some f -> f in
+      parse flags in
+  { libs; bins; tops; conf }

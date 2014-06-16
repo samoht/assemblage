@@ -23,17 +23,17 @@ module Flag: sig
   type t
   (** Flag values. *)
 
-  type name = string
-  (** Flag names. *)
-
-  val name: t -> name
+  val name: t -> string
   (** The flag name. *)
 
-  val value: t -> bool
-  (** The flag value. *)
+  val doc: t -> string
+  (** The flag documentation. *)
 
-  val create: name -> bool -> t
+  val create: doc:string -> string -> t
   (** Create a flag. *)
+
+  val parse: t -> (t * bool option) Cmdliner.Term.t
+  (** A cmldiner term which parses a flag. *)
 
 end
 
@@ -51,7 +51,7 @@ module Conf: sig
     (** Enable compilation of native dynlink units. Default is
         [true]. *)
 
-    ?flags:Flag.t list ->
+    ?flags:(Flag.t * bool) list ->
     (** Environment flags. *)
 
     ?comp: string list ->
@@ -73,8 +73,8 @@ module Conf: sig
     ?natlink: string list ->
     (** Addtional link flags passed to [ocamlopt]. *)
 
-    ?p4: string list ->
-    (** Addition flags passed to the preprocessor. *)
+    ?p4o: string list ->
+    (** Addition flags passed to the camlp4o preprocessor. *)
 
     ?destdir: string ->
     (** Location of the generated files. [None] means the files stays in
@@ -84,6 +84,10 @@ module Conf: sig
 
   val default: t
   (** Default project configuration. *)
+
+  val parse: Flag.t list -> t Cmdliner.Term.t
+  (** Parse the arguments given on the command-line as a configuration
+      value. *)
 
   val native: t -> bool
   (** Check if the native compilers are enable in the given
@@ -99,13 +103,13 @@ module Conf: sig
   val link: t -> string list
   (** Return the global command-line flags for linking. *)
 
-  val p4: t -> string list
+  val p4o: t -> string list
   (** Return the global command-line option for the camlp4o preprocessor. *)
 
   val destdir: t -> string
   (** Return the directory where build artififacts are generated. *)
 
-  val enable: t -> Flag.name list -> bool
+  val enable: t -> Flag.t list -> bool
   (** Check if the given set of flags are all enabled. *)
 
 end
@@ -117,6 +121,61 @@ module rec Dep: sig
   type t
   (** Dependency values. *)
 
+  (** {2 Compilation units} *)
+
+  val unit: Unit.t -> t
+  (** A compilation unit in the same project. *)
+
+  val units: Unit.t list -> t list
+  (** A list of compilation units. *)
+
+  val get_units: t list -> Unit.t list
+  (** Return the list of compilation unit in the dependency list. *)
+
+  (** {2 Libraries} *)
+
+  val local_lib: Lib.t -> t
+  (** A local library. *)
+
+  val local_libs: Lib.t list -> t list
+  (** A list of local libraries. *)
+
+  val get_local_libs: t list -> Lib.t list
+  (** Return the list of local libraries in the dependency list. *)
+
+  val lib: string -> t
+  (** A globally installed library. *)
+
+  val libs: string list -> t list
+  (** A list of globally installed libraries. *)
+
+  val get_libs: t list -> string list
+  (** Return the list of globally installed libraries in the
+      dependency list. *)
+
+  (** {2 Pre-processors} *)
+
+  val local_p4o: Lib.t -> t
+  (** A local syntax extension, using [camlp4o]. *)
+
+  val local_p4os: Lib.t list -> t list
+  (** A set of local syntax extensions, using [camlp4o]. *)
+
+  val get_local_p4os: t list -> Lib.t list
+  (** Return the local extensions in the depency list. *)
+
+  val p4o: string -> t
+  (** A globally installed syntax extension. *)
+
+  val p4os: string list -> t list
+  (** A list of globally installed syntax extensions. *)
+
+  val get_p4os: t list -> string list
+  (** Return the list of globally installed syntax extension in the
+      dependency list. *)
+
+  (** {2 Custom generation rules} *)
+
   type custom = {
     inputs : string list;
     outputs: string list;
@@ -124,35 +183,21 @@ module rec Dep: sig
   }
   (** Custom rules. *)
 
-  val unit: Unit.t -> t
-  (** A compilation unit in the same directory. *)
-
-  val lib: Lib.t -> t
-  (** A local library. *)
-
-  val findp4o: string -> t
-  (** A syntax extension using camlp4o, managed by ocamlfind. *)
-
-  val findlib: string -> t
-  (** A library managed by ocamlfind. *)
-
   val custom: custom -> t
   (** Custom generation rule. *)
 
-  val units: t list -> Unit.t list
-  (** Return the list of compilation unit dependencies. *)
-
-  val libs: t list -> Lib.t list
-  (** Return the list of local library dependencies. *)
-
-  val findp4os: t list -> string list
-  (** Return the list of ocamlfind syntax dependencies. *)
-
-  val findlibs: t list -> string list
-  (** Return the list of ocamlfind library dependencies. *)
-
-  val customs: t list -> custom list
+  val get_customs: t list -> custom list
   (** Return the list of custom rules. *)
+
+  (** {2 Misc} *)
+
+  type resolver = string list -> string list
+  (** Resolve a list of package names into a list of command-line
+      arguments. *)
+
+  val closure: t list -> t list
+  (** Compute the transitive closure of dependencies. Try to keep the
+      order as consistent as possible. *)
 
 end
 
@@ -171,24 +216,28 @@ and Unit: sig
   val deps: t -> Dep.t list
   (** Return the compilation unit dependencies. *)
 
-  val flags: t -> Flag.name list
+  val flags: t -> Flag.t list
   (** Return the compilation unit conditional flags. *)
 
-  val with_dir: t -> string option -> t
-  (** Change the compilation unit directory. *)
+  val add_deps: t -> Dep.t list -> t
+  (** Add more dependencies to the compilation unit. *)
 
-  val create: ?dir:string -> ?deps:Dep.t list -> ?flags:Flag.name list -> string -> t
+  val create: ?dir:string -> ?deps:Dep.t list -> ?flags:Flag.t list -> string -> t
   (** Create a compilation unit. *)
 
   val generated_files: t -> Conf.t -> string list
   (** Return the list of generated files for the given project
       configuration. *)
 
-  val compflags: t -> Conf.t -> string list
-  (** Return the computed compilation flags. *)
+  val compflags: t -> Conf.t -> Dep.resolver -> string list
+  (** Return the computed compilation flags. The [resolver] function
+      resolves a list of external library names into a list of command-line
+      options for the compilers. *)
 
-  val p4flags: t -> Conf.t -> string list
-  (** Return the computed pre-processing flags. *)
+  val p4oflags: t -> Conf.t -> Dep.resolver -> string list
+  (** Return the computed pre-processing flags. The [resolver] function
+      resolves a list of external syntax extensions into a list of
+      command-line options for the linkers. *)
 
 end
 
@@ -204,12 +253,53 @@ and Lib: sig
   val units: t -> Unit.t list
   (** Return the list of compilation units. *)
 
-  val create: ?flags:Flag.name list -> Unit.t list -> string -> t
+  val create: ?flags:Flag.t list -> ?deps:Dep.t list -> Unit.t list -> string -> t
   (** Create a library. *)
 
   val generated_files: t -> Conf.t -> string list
   (** Return the list of generated files for the given project
       configuration. *)
+
+end
+
+module Top: sig
+
+  (** Build toplevels. *)
+
+  type t
+
+  val name: t -> string
+  (** Return the toplevel name. *)
+
+  val libs: t -> Lib.t list
+  (** Return the libraries linked by the toplevel. *)
+
+  val custom: t -> bool
+  (** Should the toplevel be compiled with the [custom] option ? *)
+
+  val create: ?custom:bool -> Lib.t list -> string -> t
+  (** Create a custom toplevel from a set of libraries. *)
+
+end
+
+module Bin: sig
+
+  (** Build binaries. *)
+
+  type t
+
+  val name: t -> string
+  (** Return the binary name. *)
+
+  val libs: t -> Lib.t list
+  (** Return the libraries linked by the binary. *)
+
+  val units: t -> Unit.t list
+  (** Return the compilation units linked by the binary. *)
+
+  val create: Lib.t list -> Unit.t list -> string -> t
+  (** Build a binary by linking a set of libraries and additional
+      compilation units. *)
 
 end
 
@@ -219,9 +309,23 @@ type t
 val libs: t -> Lib.t list
 (** Return the list of libraries defined by the project. *)
 
+val bins: t -> Bin.t list
+(** Return the list of binaries defined by the project. *)
+
+val tops: t -> Top.t list
+(** Return the list of toplevels defined by the project. *)
+
 val conf: t -> Conf.t
 (** Return the project configuration. *)
 
-val create: libs:Lib.t list -> Conf.t -> t
+val create:
+  ?flags:Flag.t list ->
+  ?conf:Conf.t ->
+  ?libs:Lib.t list ->
+  ?bins:Bin.t list ->
+  ?tops:Top.t list ->
+  unit -> t
 (** Generate a project description for the given collection of
-    libraries, with the given project settings. *)
+    libraries, with the given project settings. If [conf] is not set,
+    use the given [flags] to read the settings from the command line
+    arguments. *)
