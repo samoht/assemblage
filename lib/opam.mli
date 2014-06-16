@@ -14,35 +14,45 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Manage OCamlfind invocations. *)
+(** Manage OPAM files. *)
 
 open Project
 
-val p4o: Dep.resolver
-(** Resolve external syntax extensions. *)
+val version: unit -> string option
+(** Return the package version. If run in a Git repository, append the
+    current commit id. *)
 
-val incl: Dep.resolver
-(** Resolve includes for external packages. *)
+val name: unit -> string option
+(** Return the package name. *)
 
-val bytlink: Dep.resolver
-(** Resolve bytecode compilation for external packages. *)
+type t
+(** An OPAM file. *)
 
-val natlink: Dep.resolver
-(** Resolve native code compilation for external packages. *)
+val read: unit -> t option
+(** Read the OPAM file of the project. *)
 
-module META: sig
+val write: t -> unit
+(** Write the OPAM file. *)
 
-  (** Generate META files. *)
+val with_configure: t -> Flag.t list -> t
+(** Rewrite the configuration line to check for the given flags. *)
 
+module Install: sig
+
+  (** OPAM install files. *)
   type t
 
-  val create: version:string -> libs:Lib.t list -> Conf.t -> t option
-  (** Create a META file. *)
+  val create:
+    ?libs:Lib.t list ->
+    ?bins:Bin.t list ->
+    ?tops:Top.t list ->
+    string -> Conf.t -> t
+  (** Create an `.install` file. *)
 
   val write: t -> unit
-  (** Write a META file. *)
+  (** Write an `.install` file. *)
 
   val of_project: Project.t -> unit
-  (** Generate a META file for the given project. *)
+  (** Generate an `.install` file for the given project. *)
 
 end

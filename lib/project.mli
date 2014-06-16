@@ -216,11 +216,17 @@ and Unit: sig
   val deps: t -> Dep.t list
   (** Return the compilation unit dependencies. *)
 
+  val lib: t -> Lib.t option
+  (** Return the library the compilation unit belongs to. *)
+
   val flags: t -> Flag.t list
   (** Return the compilation unit conditional flags. *)
 
   val add_deps: t -> Dep.t list -> t
   (** Add more dependencies to the compilation unit. *)
+
+  val with_lib: t -> Lib.t -> t
+  (** Set the library of the compilation unit. *)
 
   val create: ?dir:string -> ?deps:Dep.t list -> ?flags:Flag.t list -> string -> t
   (** Create a compilation unit. *)
@@ -260,6 +266,10 @@ and Lib: sig
   (** Return the list of generated files for the given project
       configuration. *)
 
+  val deps: t -> Dep.t list
+  (** Return the list of dependencies of the compilation units in the
+      library. *)
+
 end
 
 module Top: sig
@@ -279,6 +289,10 @@ module Top: sig
 
   val create: ?custom:bool -> Lib.t list -> string -> t
   (** Create a custom toplevel from a set of libraries. *)
+
+  val generated_files: t -> Conf.t -> string list
+  (** Return the list of generated files for the given project
+      configuration. *)
 
 end
 
@@ -301,10 +315,20 @@ module Bin: sig
   (** Build a binary by linking a set of libraries and additional
       compilation units. *)
 
+  val generated_files: t -> Conf.t -> string list
+  (** Return the list of generated files for the given project
+      configuration. *)
+
 end
 
 type t
 (** Project values. *)
+
+val name: t -> string option
+(** Return the project name. *)
+
+val version: t -> string option
+(** Return the project version. *)
 
 val libs: t -> Lib.t list
 (** Return the list of libraries defined by the project. *)
@@ -318,7 +342,15 @@ val tops: t -> Top.t list
 val conf: t -> Conf.t
 (** Return the project configuration. *)
 
+val with_name: t -> string -> t
+(** Set the project name. *)
+
+val with_version: t -> string -> t
+(** Set the project version. *)
+
 val create:
+  ?name:string ->
+  ?version:string ->
   ?flags:Flag.t list ->
   ?conf:Conf.t ->
   ?libs:Lib.t list ->

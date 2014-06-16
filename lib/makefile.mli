@@ -144,7 +144,8 @@ val create:
 (** Create a Makefile. *)
 
 val of_project: ?file:string -> Project.t -> unit
-(** Generate a Makefile from a project description. *)
+(** Generate a Makefile from a project description. Also generate the
+    META and .install files by reading the opam file of the project. *)
 
-val generate: ?file:string -> t -> unit
+val write: ?file:string -> t -> unit
 (** Generate a Makefile. *)

@@ -14,35 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Manage OCamlfind invocations. *)
+(** Main entry point. *)
 
-open Project
-
-val p4o: Dep.resolver
-(** Resolve external syntax extensions. *)
-
-val incl: Dep.resolver
-(** Resolve includes for external packages. *)
-
-val bytlink: Dep.resolver
-(** Resolve bytecode compilation for external packages. *)
-
-val natlink: Dep.resolver
-(** Resolve native code compilation for external packages. *)
-
-module META: sig
-
-  (** Generate META files. *)
-
-  type t
-
-  val create: version:string -> libs:Lib.t list -> Conf.t -> t option
-  (** Create a META file. *)
-
-  val write: t -> unit
-  (** Write a META file. *)
-
-  val of_project: Project.t -> unit
-  (** Generate a META file for the given project. *)
-
-end
+val generate: Project.t -> [`Makefile] -> unit
+(** Generate the project files, using the given build system
+    backend. *)

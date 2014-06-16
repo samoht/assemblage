@@ -317,10 +317,7 @@ end = struct
             let d' = Unit.deps u in
             aux acc (d' @ d)
           | Local_lib l ->
-            let d' =
-              Lib.units l
-              |> List.map Unit.deps
-              |> List.concat in
+            let d' = Lib.deps l in
             aux acc (d' @ d)
           | _ -> Hashtbl.replace deps h 1; aux (h :: acc) t
         )
@@ -335,7 +332,9 @@ and Unit: sig
   val dir: t -> string option
   val deps: t -> Dep.t list
   val flags: t -> Flag.t list
+  val lib: t -> Lib.t option
   val add_deps: t -> Dep.t list -> t
+  val with_lib: t -> Lib.t -> t
   val create: ?dir:string -> ?deps:Dep.t list -> ?flags:Flag.t list -> string -> t
   val generated_files: t -> Conf.t -> string list
   val compflags: t -> Conf.t -> Dep.resolver -> string list
@@ -347,6 +346,7 @@ end = struct
     deps: Dep.t list;
     name: string;
     flags: Flag.t list;
+    lib: Lib.t option;
   }
 
   let dir t = t.dir
@@ -357,11 +357,15 @@ end = struct
 
   let flags t = t.flags
 
+  let lib t = t.lib
+
+  let with_lib t lib = { t with lib = Some lib }
+
   let add_deps t deps =
     { t with deps = t.deps @ deps }
 
   let create ?dir ?(deps=[]) ?(flags=[])name =
-    { dir; deps; name; flags }
+    { dir; lib=None; deps; name; flags }
 
   let p4oflags t c resolver =
     let local = Dep.get_local_p4os (Unit.deps t) in
@@ -387,14 +391,13 @@ end = struct
 
   let generated_files t conf =
     if Conf.enable conf t.flags then
-      let file ext =
-        Conf.destdir conf / (t.dir // t.name ^ ext) in
+      let file ext = match t.lib with
+        | None   -> Conf.destdir conf / t.name ^ ext
+        | Some l -> Conf.destdir conf / Lib.name l / t.name ^ ext in
       let byte = [ file ".cmi"; file ".cmo" ] in
       let native = [ file ".o"; file ".cmx" ] in
-      let native_dynlink = [ file ".cmxs" ] in
       byte
       @ (if Conf.native conf then native else [])
-      @ (if Conf.native_dynlink conf then native_dynlink else [])
     else
       []
 
@@ -406,11 +409,12 @@ and Lib: sig
   val units: t -> Unit.t list
   val create: ?flags:Flag.t list -> ?deps:Dep.t list -> Unit.t list -> string -> t
   val generated_files: t -> Conf.t -> string list
+  val deps: t -> Dep.t list
 end = struct
 
   type t = {
     name: string;
-    units: Unit.t list;
+    mutable units: Unit.t list;
     flags: Flag.t list;
     deps : Dep.t list;
   }
@@ -421,22 +425,32 @@ end = struct
 
   let create ?(flags=[]) ?(deps=[]) units name =
     let units = List.map (fun u -> Unit.add_deps u deps) units in
-    { name; units; flags; deps }
+    let t = { name; units; flags; deps } in
+    let units = List.map (fun u -> Unit.with_lib u t) units in
+    t.units <- units;
+    t
 
   let generated_files t conf =
     if Conf.enable conf t.flags then
       let file ext =
-        Conf.destdir conf / t.name ^ ext in
+        Conf.destdir conf / t.name / t.name ^ ext in
       let byte = [ file ".cma" ] in
       let native = [ file ".cmxa" ] in
+      let native_dynlink = [ file ".cmxs" ] in
       let units = List.concat (List.map (fun u ->
           Unit.generated_files u conf
         )  t.units) in
       byte
       @ (if Conf.native conf then native else [])
+      @ (if Conf.native_dynlink conf then native_dynlink else [])
       @ units
     else
       []
+
+  let deps t =
+    Lib.units t
+    |> List.map Unit.deps
+    |> List.concat
 
 end
 
@@ -457,6 +471,9 @@ module Top = struct
 
   let custom t = t.custom
 
+  let generated_files t conf =
+    [Conf.destdir conf / t.name / t.name]
+
 end
 
 module Bin = struct
@@ -476,14 +493,27 @@ module Bin = struct
   let create libs units name =
     { libs; units; name }
 
+  let generated_files t conf =
+    [Conf.destdir conf / t.name / t.name]
+
 end
 
 type t = {
+  name: string option;
+  version: string option;
   libs: Lib.t list;
   bins: Bin.t list;
   tops: Top.t list;
   conf: Conf.t;
 }
+
+let version t = t.version
+
+let name t = t.name
+
+let with_name t name = { t with name = Some name }
+
+let with_version t version = { t with version = Some version }
 
 let libs t = t.libs
 
@@ -493,14 +523,19 @@ let tops t = t.tops
 
 let conf t = t.conf
 
-let parse flags =
+let parse ?version flags =
   let doc = "opam-configure - helpers to manage and configure OCaml projects." in
   let man = [
     `S "DESCRIPTION";
     `P "opam-configure is part of OCaml-tools, a collection of tools to \
         manage and configure OCaml projects.";
   ] in
-  let version = "0.1" in (* XXX: autogen *)
+  let git_version = match Git.version () with
+    | None   -> ""
+    | Some v -> v in
+  let version = match version with
+    | None   -> git_version
+    | Some v -> v ^ git_version in
   let info = Term.info "opam-configure"
       ~version
       ~sdocs:global_option_section
@@ -513,6 +548,8 @@ let parse flags =
   | `Error _ -> exit 1
 
 let create
+    ?name
+    ?version
     ?flags
     ?conf
     ?(libs=[])
@@ -525,5 +562,5 @@ let create
       let flags = match flags with
         | None   -> []
         | Some f -> f in
-      parse flags in
-  { libs; bins; tops; conf }
+      parse ?version flags in
+  { name; version; libs; bins; tops; conf }

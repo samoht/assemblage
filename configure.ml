@@ -1,11 +1,14 @@
 open Project
 
 let dir = "lib"
-let p = Unit.create ~dir ~deps:[Dep.lib "cmdliner"] "project"
-let o = Unit.create ~dir ~deps:[Dep.unit p]         "ocamlfind"
-let m = Unit.create ~dir ~deps:(Dep.units [p;o])    "makefile"
+let g = Unit.create ~dir                                        "git"
+let p = Unit.create ~dir ~deps:[Dep.lib "cmdliner"; Dep.unit g] "project"
+let f = Unit.create ~dir ~deps:[Dep.unit p]                     "ocamlfind"
+let o = Unit.create ~dir ~deps:[Dep.lib "opam"; Dep.unit p]     "opam"
+let m = Unit.create ~dir ~deps:(Dep.units [p; f])               "makefile"
+let t = Unit.create ~dir ~deps:(Dep.units [m; f; o])            "tools"
 
-let lib = Lib.create [p;o;m] "tools"
+let lib = Lib.create [g; p; f; o; m; t] "tools"
 
 let top = Top.create [lib] "configure.top"
 
@@ -15,4 +18,4 @@ let bin =
   Bin.create [] [main] "opam-configure"
 
 let () =
-  Makefile.of_project (create ~libs:[lib] ~tops:[top] ~bins:[bin] ())
+  Tools.generate (create ~libs:[lib] ~tops:[top] ~bins:[bin] ()) `Makefile

@@ -2,6 +2,8 @@
 
 set -ex
 
-ocamlbuild lib/project.cmo lib/ocamlfind.cmo lib/makefile.cmo -package cmdliner
-ocamlmktop -I $(opam config var cmdliner:lib) cmdliner.cma -I _build/lib project.cmo ocamlfind.cmo makefile.cmo -o configure.top
+ocamlbuild lib/git.cmo lib/project.cmo lib/ocamlfind.cmo lib/opam.cmo lib/makefile.cmo lib/tools.cmo -package cmdliner -package opam
+ocamlmktop \
+    $(ocamlfind query -r unix cmdliner opam -predicates byte -format "-I %d %a")  \
+    -I _build/lib git.cmo project.cmo ocamlfind.cmo opam.cmo makefile.cmo tools.cmo -o configure.top
 ./configure.top -I _build/lib configure.ml
