@@ -5,6 +5,9 @@ open Project
 
 let t = Unit.create ~deps:[
     Dep.pkg_p4o "sexplib.syntax";
+    Dep.pkg_p4o "comparelib.syntax";
+    Dep.pkg     "sexplib";
+    Dep.pkg     "comparelib";
     Dep.pkg     "xmlm";
   ] "t"
 

@@ -371,7 +371,7 @@ end = struct
     let local = Dep.get_p4os (Unit.deps t) in
     let global = Dep.get_pkg_p4os (Unit.deps t) in
     match local, global, Conf.p4o c with
-    | []   , []  , [] -> []
+    | [], [], [] -> []
     | local, global, conf ->
       let local = List.map (fun l -> Conf.destdir c / Lib.name l ^ ".cma") local in
       let global = resolver global in
@@ -382,7 +382,7 @@ end = struct
     let local = List.fold_left (fun acc l ->
         "-I" :: Conf.destdir conf / Lib.name l :: acc
       ) [] local in
-    let global = Dep.get_pkgs (Unit.deps t) @ Dep.get_pkg_p4os (Unit.deps t) in
+    let global = Dep.get_pkgs (Unit.deps t) in
     let global = match global with
       | [] -> []
       | l  -> resolver global in

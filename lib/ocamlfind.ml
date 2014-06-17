@@ -22,7 +22,7 @@ let (/) = Filename.concat
 let p4o names =
   let names = String.concat " " names in
   [sprintf
-     "$(shell ocamlfind query %s -r -predicates byte,syntax -format \"-I %%d %%a\")"
+     "$(shell ocamlfind query %s -r -predicates syntax,preprocessor -format \"-I %%d %%a\")"
      names]
 
 let incl names =
