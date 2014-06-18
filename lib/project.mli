@@ -16,104 +16,6 @@
 
 (** EDSL to describe OCaml projects. *)
 
-module Flag: sig
-
-  (** Conditional flags. *)
-
-  type t
-  (** Flag values. *)
-
-  val name: t -> string
-  (** The flag name. *)
-
-  val doc: t -> string
-  (** The flag documentation. *)
-
-  val create: doc:string -> string -> t
-  (** Create a flag. *)
-
-  val parse: t -> (t * bool option) Cmdliner.Term.t
-  (** A cmldiner term which parses a flag. *)
-
-end
-
-module Conf: sig
-
-  (** Global project configuration. *)
-  type t
-
-  val create:
-
-    ?native:bool ->
-    (** Enable native compilation. Default is [true]. *)
-
-    ?native_dynlink: bool ->
-    (** Enable compilation of native dynlink units. Default is
-        [true]. *)
-
-    ?flags:(Flag.t * bool) list ->
-    (** Environment flags. *)
-
-    ?comp: string list ->
-    (** Additional compilation flags passed to both [ocamlc] and
-        [ocamlopt]. *)
-
-    ?bytcomp: string list ->
-    (** Additional compilation flags passed to [ocamlc] only. *)
-
-    ?natcomp: string list ->
-    (** Additional compilation flags passed to [ocamlopt] only. *)
-
-    ?link: string list ->
-    (** Additional link flags passed to both [ocamlc] and [ocamlopt]. *)
-
-    ?bytlink: string list ->
-    (** Addtional link flags passed to [ocamlc]. *)
-
-    ?natlink: string list ->
-    (** Addtional link flags passed to [ocamlopt]. *)
-
-    ?p4o: string list ->
-    (** Addition flags passed to the camlp4o preprocessor. *)
-
-    ?destdir: string ->
-    (** Location of the generated files. [None] means the files stays in
-        the same directory. *)
-
-    unit -> t
-
-  val default: t
-  (** Default project configuration. *)
-
-  val parse: Flag.t list -> t Cmdliner.Term.t
-  (** Parse the arguments given on the command-line as a configuration
-      value. *)
-
-  val native: t -> bool
-  (** Check if the native compilers are enable in the given
-      configuration. *)
-
-  val native_dynlink: t -> bool
-  (** Check if the native dynlinker is enable in the given
-      configuration. *)
-
-  val comp: t -> string list
-  (** Return the global comand-line flags for compilation. *)
-
-  val link: t -> string list
-  (** Return the global command-line flags for linking. *)
-
-  val p4o: t -> string list
-  (** Return the global command-line option for the camlp4o preprocessor. *)
-
-  val destdir: t -> string
-  (** Return the directory where build artififacts are generated. *)
-
-  val enable: t -> Flag.t list -> bool
-  (** Check if the given set of flags are all enabled. *)
-
-end
-
 module rec Dep: sig
 
   (** Library dependencies. *)
@@ -216,6 +118,10 @@ and Unit: sig
   val deps: t -> Dep.t list
   (** Return the compilation unit dependencies. *)
 
+  val flags: t -> Env.Flag.t list
+  (** Return the environment flags which enables the build of that
+      compilation unit. *)
+
   val lib: t -> Lib.t option
   (** Return the library the compilation unit belongs to. *)
 
@@ -224,11 +130,11 @@ and Unit: sig
       can be other exotic places (for instance the exec name, if the
       compilation unit is the main program file). *)
 
-  val flags: t -> Flag.t list
-  (** Return the compilation unit conditional flags. *)
-
   val add_deps: t -> Dep.t list -> t
   (** Add more dependencies to the compilation unit. *)
+
+  val add_flags: t -> Env.Flag.t list -> t
+  (** Add more environment flags to the compilation unit. *)
 
   val with_lib: t -> Lib.t -> t
   (** Set the library of the compilation unit. This also set the build
@@ -237,19 +143,19 @@ and Unit: sig
   val with_build_dir: t -> string -> t
   (** Set the build directory of the compilation unit. *)
 
-  val create: ?dir:string -> ?deps:Dep.t list -> ?flags:Flag.t list -> string -> t
+  val create: ?flags:Env.Flag.t list -> ?dir:string -> ?deps:Dep.t list -> string -> t
   (** Create a compilation unit. *)
 
-  val generated_files: t -> Conf.t -> string list
-  (** Return the list of generated files for the given project
-      configuration. *)
+  val generated_files: t -> (Env.Flag.t list * string) list
+  (** Return the list of generated files when the given conjonction of
+      flags are enable. *)
 
-  val compflags: t -> Conf.t -> Dep.resolver -> string list
+  val compflags: t -> Dep.resolver -> string list
   (** Return the computed compilation flags. The [resolver] function
       resolves a list of external library names into a list of command-line
       options for the compilers. *)
 
-  val p4oflags: t -> Conf.t -> Dep.resolver -> string list
+  val p4oflags: t -> Dep.resolver -> string list
   (** Return the computed pre-processing flags. The [resolver] function
       resolves a list of external syntax extensions into a list of
       command-line options for the linkers. *)
@@ -266,12 +172,17 @@ and Lib: sig
   (** Return the library name. *)
 
   val units: t -> Unit.t list
-  (** Return the list of compilation units. *)
+  (** Return the list of compilation units which defines the
+      library. *)
 
-  val create: ?flags:Flag.t list -> ?deps:Dep.t list -> Unit.t list -> string -> t
+  val flags: t -> Env.Flag.t list
+  (** Return the environment flags which enables the build of that
+      library. *)
+
+  val create: ?flags:Env.Flag.t list -> ?deps:Dep.t list -> Unit.t list -> string -> t
   (** Create a library. *)
 
-  val generated_files: t -> Conf.t -> string list
+  val generated_files: t -> (Env.Flag.t list * string) list
   (** Return the list of generated files for the given project
       configuration. *)
 
@@ -293,13 +204,17 @@ module Top: sig
   val deps: t -> Dep.t list
   (** Return the dependencies linked by the toplevel. *)
 
+  val flags: t -> Env.Flag.t list
+  (** Return the conjonction of environment flags which enables the
+      build of that toplevel. *)
+
   val custom: t -> bool
   (** Should the toplevel be compiled with the [custom] option ? *)
 
-  val create: ?custom:bool -> Dep.t list -> string -> t
+  val create: ?flags:Env.Flag.t list -> ?custom:bool -> ?deps:Dep.t list -> string -> t
   (** Create a custom toplevel from a set of libraries. *)
 
-  val generated_files: t -> Conf.t -> string list
+  val generated_files: t -> (Env.Flag.t list * string) list
   (** Return the list of generated files for the given project
       configuration. *)
 
@@ -317,11 +232,11 @@ module Bin: sig
   val deps: t -> Dep.t list
   (** Return the dependencies linked by the binary. *)
 
-  val create: Dep.t list -> string -> t
+  val create: ?flags:Env.Flag.t list -> ?deps:Dep.t list -> string -> t
   (** Build a binary by linking a set of libraries and additional
       compilation units. *)
 
-  val generated_files: t -> Conf.t -> string list
+  val generated_files: t -> (Env.Flag.t list * string) list
   (** Return the list of generated files for the given project
       configuration. *)
 
@@ -329,12 +244,6 @@ end
 
 type t
 (** Project values. *)
-
-val name: t -> string option
-(** Return the project name. *)
-
-val version: t -> string option
-(** Return the project version. *)
 
 val libs: t -> Lib.t list
 (** Return the list of libraries defined by the project. *)
@@ -345,25 +254,6 @@ val bins: t -> Bin.t list
 val tops: t -> Top.t list
 (** Return the list of toplevels defined by the project. *)
 
-val conf: t -> Conf.t
-(** Return the project configuration. *)
-
-val with_name: t -> string -> t
-(** Set the project name. *)
-
-val with_version: t -> string -> t
-(** Set the project version. *)
-
-val create:
-  ?name:string ->
-  ?version:string ->
-  ?flags:Flag.t list ->
-  ?conf:Conf.t ->
-  ?libs:Lib.t list ->
-  ?bins:Bin.t list ->
-  ?tops:Top.t list ->
-  unit -> t
+val create: ?libs:Lib.t list -> ?bins:Bin.t list -> ?tops:Top.t list -> unit -> t
 (** Generate a project description for the given collection of
-    libraries, with the given project settings. If [conf] is not set,
-    use the given [flags] to read the settings from the command line
-    arguments. *)
+    dependencies. *)

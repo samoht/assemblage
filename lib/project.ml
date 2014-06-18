@@ -15,201 +15,10 @@
  *)
 
 open Printf
-open Cmdliner
-
-let global_option_section = "COMMON OPTIONS"
-let help_sections = [
-  `S global_option_section;
-  `P "These options are common to all commands.";
-  `S "AUTHORS";
-  `P "Thomas Gazagnaire <thomas@gazagnaire.org>";
-  `S "BUGS";
-  `P "Check bug reports at https://github.com/samoht/ocaml-tools/issues.";
-]
-
-type global = {
-  mutable verbose: bool;
-}
-
-let global = {
-  verbose = false;
-}
-
-let debug fmt =
-  ksprintf (fun str ->
-      printf "+ %s\n" str
-    ) fmt
-
-let global =
-  let verbose =
-    let doc =
-      Arg.info ~docs:global_option_section ~doc:"Verbose mode." ["v";"verbose"] in
-    Arg.(value & flag & doc) in
-  let help =
-    let doc =
-      Arg.info ~docs:global_option_section ~doc:"Display help." ["h";"help"] in
-    Arg.(value & flag & doc) in
-  let create verbose help man_format =
-    if help then `Help (man_format, None)
-    else (
-      global.verbose <- verbose;
-      `Ok ()
-    ) in
-  Term.(ret (pure create $ verbose $ help $ Term.man_format))
-
-let mk (fn:'a): 'a Term.t =
-  Term.(pure (fun () -> fn) $ global)
-
-module Flag = struct
-  type t = {
-    name: string;
-    doc: string;
-  }
-  let name t = t.name
-  let doc t = t.doc
-  let create ~doc name = { name; doc }
-  let parse t =
-    let enable =
-    let d = Arg.info ~doc:(sprintf "Enable %s" t.doc)
-        ["enable-" ^ t.name] in
-    Arg.(value & flag & d) in
-    let disable =
-      let d = Arg.info ~doc:(sprintf "Disable %s" t.doc)
-          ["disable-" ^ t.name] in
-      Arg.(value & flag & d) in
-    let create enable disable =
-      let v = match enable, disable with
-        | true , false -> Some true
-        | false, true  -> Some false
-        | false, false -> None
-        | true , true  -> failwith "Invalid flag" in
-      (t, v) in
-    Term.(mk create $ enable $ disable)
-
-end
-
-module Conf = struct
-  type t = {
-    native: bool;
-    native_dynlink: bool;
-    flags: (Flag.t * bool) list;
-    comp: string list;
-    bytcomp: string list;
-    natcomp: string list;
-    link: string list;
-    bytlink: string list;
-    natlink: string list;
-    p4o: string list;
-    destdir: string;
-  }
-
-  let create
-      ?(native=true)
-      ?(native_dynlink=true)
-      ?(flags=[])
-      ?(comp=[])
-      ?(bytcomp=[])
-      ?(natcomp=[])
-      ?(link=[])
-      ?(bytlink=[])
-      ?(natlink=[])
-      ?(p4o=[])
-      ?(destdir="_build")
-      () =
-    { native; native_dynlink; flags; comp; bytcomp; natcomp;
-      link; bytlink; natlink; p4o; destdir }
-
-  let destdir t = t.destdir
-  let native t = t.native
-  let native_dynlink t = t.native && t.native_dynlink
-  let flags t = t.flags
-
-  let comp t = t.comp
-  let bytcomp t = t.bytcomp @ t.comp
-  let natcomp t = t.natcomp @ t.comp
-
-  let link t = t.link
-  let bytlink t = t.bytlink @ t.link
-  let natlink t = t.natlink @ t.link
-
-  let p4o t = t.p4o
-
-  let default = {
-    native = true;
-    native_dynlink = true;
-    flags = [];
-    comp = [];
-    bytcomp = [];
-    natcomp = [];
-    link = [];
-    bytlink = [];
-    natlink = [];
-    p4o = [];
-    destdir = "_build";
-  }
-
-  let enable t flags =
-    List.for_all (fun f ->
-        try List.assoc f t.flags
-        with Not_found -> false
-      ) flags
-
-  let term_of_list default list =
-    let aux acc h = Term.(pure (fun (f,b) t -> (f, default b) :: t) $ h $ acc) in
-    List.fold_left aux (Term.pure []) list
-
-  let parse flags =
-    let default d = function
-      | None   -> d
-      | Some b -> b in
-    let flags = term_of_list (default false) (List.map Flag.parse flags) in
-    let native = Flag.(parse (create ~doc:"native code compilation." "native")) in
-    let native_dynlink =
-      Flag.(parse (create ~doc:"native plugins for native code." "native-dynlink")) in
-    let comp =
-      let doc = Arg.info
-          ~doc:"Additional options passed to both the native and bytecode the \
-                compilers."
-          ~docv:"OPTIONS" ["comp"] in
-      Arg.(value & opt (some string) None & doc) in
-    let link =
-      let doc = Arg.info
-          ~doc:"Additional options passed to both the native and bytecode the \
-                linkers."
-          ~docv:"OPTIONS"["link"] in
-      Arg.(value & opt (some string) None & doc) in
-    let p4o =
-      let doc = Arg.info
-          ~doc:"Additional options passed to the camlp4o pre-processor."
-          ~docv:"OPTIONS" ["p4o"] in
-      Arg.(value & opt (some string) None & doc) in
-    let destdir =
-      let doc = Arg.info
-          ~doc:"The name of the directory where built artifacts are created."
-          ~docv:"DIR" ["destdir"] in
-      Arg.(value & opt string "_build" & doc) in
-    let list = function
-      | None   -> []
-      | Some l -> [l] in
-
-    let create (_,native) (_,native_dynlink) flags comp link p4o destdir = {
-      native = default true native;
-      native_dynlink = default true native;
-      flags;
-      comp = list comp;
-      bytcomp = [];
-      natcomp = [];
-      link = list link;
-      bytlink = [];
-      natlink = [];
-      p4o = list p4o;
-      destdir;
-    } in
-    Term.(mk create $ native $ native_dynlink $ flags $ comp $ link $ p4o $ destdir)
-
-end
 
 let (/) x y = Filename.concat x y
+
+let conmap f l = List.concat (List.map f l)
 
 let (//) x y =
   match x with
@@ -331,16 +140,17 @@ and Unit: sig
   val name: t -> string
   val dir: t -> string option
   val deps: t -> Dep.t list
-  val flags: t -> Flag.t list
+  val flags: t -> Env.Flag.t list
   val lib: t -> Lib.t option
   val build_dir: t -> string option
   val add_deps: t -> Dep.t list -> t
+  val add_flags: t -> Env.Flag.t list -> t
   val with_lib: t -> Lib.t -> t
   val with_build_dir: t -> string -> t
-  val create: ?dir:string -> ?deps:Dep.t list -> ?flags:Flag.t list -> string -> t
-  val generated_files: t -> Conf.t -> string list
-  val compflags: t -> Conf.t -> Dep.resolver -> string list
-  val p4oflags: t -> Conf.t -> Dep.resolver -> string list
+  val create: ?flags:Env.Flag.t list -> ?dir:string -> ?deps:Dep.t list -> string -> t
+  val generated_files: t -> (Env.Flag.t list * string) list
+  val compflags: t -> Dep.resolver -> string list
+  val p4oflags: t -> Dep.resolver -> string list
 end = struct
 
   type t = {
@@ -348,7 +158,7 @@ end = struct
     build_dir: string option;
     deps: Dep.t list;
     name: string;
-    flags: Flag.t list;
+    flags: Env.Flag.t list;
     lib: Lib.t option;
   }
 
@@ -373,42 +183,48 @@ end = struct
   let add_deps t deps =
     { t with deps = t.deps @ deps }
 
-  let create ?dir ?(deps=[]) ?(flags=[])name =
+  let add_flags t flags =
+    { t with flags = t.flags @ flags }
+
+  let create ?(flags=[]) ?dir ?(deps=[]) name =
     { dir; lib=None; build_dir=None; deps; name; flags }
 
-  let p4oflags t c resolver =
+  let p4oflags t resolver =
     let local = Dep.get_p4os (Unit.deps t) in
     let global = Dep.get_pkg_p4os (Unit.deps t) in
-    match local, global, Conf.p4o c with
-    | [], [], [] -> []
-    | local, global, conf ->
-      let local = List.map (fun l -> Conf.destdir c / Lib.name l ^ ".cma") local in
+    match local, global with
+    | []   , []     -> []
+    | local, global ->
+      let local = conmap (fun l ->
+          ["-I"; Lib.name l; Lib.name l / Lib.name l ^ ".cma"]
+        ) local in
       let global = resolver global in
-      conf @ local @ global
+      local @ global
 
-  let compflags t conf resolver =
+  let compflags t resolver =
     let local = Dep.get_libs (Unit.deps t) in
-    let local = List.fold_left (fun acc l ->
-        "-I" :: Conf.destdir conf / Lib.name l :: acc
-      ) [] local in
+    let local = conmap (fun l ->
+        ["-I"; Lib.name l]
+      )local in
     let global = Dep.get_pkgs (Unit.deps t) in
     let global = match global with
       | [] -> []
       | l  -> resolver global in
-    let conf = Conf.comp conf in
-    conf @ local @ global
+    local @ global
 
-  let generated_files t conf =
-    if Conf.enable conf t.flags then
-      let file ext = match t.lib with
-        | None   -> Conf.destdir conf / t.name ^ ext
-        | Some l -> Conf.destdir conf / Lib.name l / t.name ^ ext in
-      let byte = [ file ".cmi"; file ".cmo" ] in
-      let native = [ file ".o"; file ".cmx" ] in
-      byte
-      @ (if Conf.native conf then native else [])
-    else
-      []
+  let generated_files t =
+    let file ext = match t.lib with
+      | None   -> t.name ^ ext
+      | Some l -> Lib.name l / t.name ^ ext in
+    let byte   = [
+      t.flags, file ".cmi";
+      t.flags, file ".cmo"
+    ] in
+    let native = [
+      Env.Flag.native :: t.flags, file ".o";
+      Env.Flag.native :: t.flags, file ".cmx"
+    ] in
+    byte @ native
 
 end
 
@@ -416,15 +232,16 @@ and Lib: sig
   type t
   val name: t -> string
   val units: t -> Unit.t list
-  val create: ?flags:Flag.t list -> ?deps:Dep.t list -> Unit.t list -> string -> t
-  val generated_files: t -> Conf.t -> string list
+  val flags: t -> Env.Flag.t list
+  val create: ?flags:Env.Flag.t list -> ?deps:Dep.t list -> Unit.t list -> string -> t
+  val generated_files: t -> (Env.Flag.t list * string) list
   val deps: t -> Dep.t list
 end = struct
 
   type t = {
     name: string;
     mutable units: Unit.t list;
-    flags: Flag.t list;
+    flags: Env.Flag.t list;
     deps : Dep.t list;
   }
 
@@ -432,29 +249,23 @@ end = struct
 
   let units t = t.units
 
+  let flags t = t.flags
+
   let create ?(flags=[]) ?(deps=[]) units name =
     let units = List.map (fun u -> Unit.add_deps u deps) units in
+    let units = List.map (fun u -> Unit.add_flags u flags) units in
     let t = { name; units; flags; deps } in
     let units = List.map (fun u -> Unit.with_lib u t) units in
     t.units <- units;
     t
 
-  let generated_files t conf =
-    if Conf.enable conf t.flags then
-      let file ext =
-        Conf.destdir conf / t.name / t.name ^ ext in
-      let byte = [ file ".cma" ] in
-      let native = [ file ".cmxa" ] in
-      let native_dynlink = [ file ".cmxs" ] in
-      let units = List.concat (List.map (fun u ->
-          Unit.generated_files u conf
-        )  t.units) in
-      byte
-      @ (if Conf.native conf then native else [])
-      @ (if Conf.native_dynlink conf then native_dynlink else [])
-      @ units
-    else
-      []
+  let generated_files t =
+    let file ext = t.name / t.name ^ ext in
+    let byte           = (                           t.flags, file ".cma" ) in
+    let native         = (Env.Flag.native ::         t.flags, file ".cmxa") in
+    let native_dynlink = (Env.Flag.native_dynlink :: t.flags, file ".cmxs") in
+    let units = conmap (fun u -> Unit.generated_files u) t.units in
+    byte :: native :: native_dynlink :: units
 
   let deps t =
     Lib.units t
@@ -469,10 +280,13 @@ module Top = struct
     deps  : Dep.t list;
     name  : string;
     custom: bool;
+    flags : Env.Flag.t list;
   }
 
-  let create ?(custom=false) deps name =
-    { deps; name; custom }
+  let flags t = t.flags
+
+  let create ?(flags=[]) ?(custom=false) ?(deps=[]) name =
+    { deps; flags; name; custom }
 
   let name t = t.name
 
@@ -480,8 +294,8 @@ module Top = struct
 
   let custom t = t.custom
 
-  let generated_files t conf =
-    [Conf.destdir conf / t.name / t.name]
+  let generated_files t =
+    [ [], t.name / t.name ]
 
 end
 
@@ -490,36 +304,31 @@ module Bin = struct
   type t = {
     deps: Dep.t list;
     name: string;
+    flags: Env.Flag.t list;
   }
 
   let name t = t.name
 
   let deps t = t.deps
 
-  let create deps name =
-    { deps; name }
+  let flags t = t.flags
 
-  let generated_files t conf =
-    [Conf.destdir conf / t.name / t.name]
+  let create ?(flags=[]) ?(deps=[]) name =
+    { deps; flags; name }
+
+  let generated_files t =
+    [
+      []               , t.name / t.name ;
+      [Env.Flag.native], t.name / t.name ^ ".opt" ;
+    ]
 
 end
 
 type t = {
-  name: string option;
-  version: string option;
   libs: Lib.t list;
   bins: Bin.t list;
   tops: Top.t list;
-  conf: Conf.t;
 }
-
-let version t = t.version
-
-let name t = t.name
-
-let with_name t name = { t with name = Some name }
-
-let with_version t version = { t with version = Some version }
 
 let libs t = t.libs
 
@@ -527,46 +336,5 @@ let bins t = t.bins
 
 let tops t = t.tops
 
-let conf t = t.conf
-
-let parse ?version flags =
-  let doc = "opam-configure - helpers to manage and configure OCaml projects." in
-  let man = [
-    `S "DESCRIPTION";
-    `P "opam-configure is part of OCaml-tools, a collection of tools to \
-        manage and configure OCaml projects.";
-  ] in
-  let git_version = match Git.version () with
-    | None   -> ""
-    | Some v -> v in
-  let version = match version with
-    | None   -> git_version
-    | Some v -> v ^ git_version in
-  let info = Term.info "opam-configure"
-      ~version
-      ~sdocs:global_option_section
-      ~doc
-      ~man in
-  match Term.eval ((Conf.parse flags), info) with
-  | `Ok conf -> conf
-  | `Version -> failwith "version"
-  | `Help    -> failwith "help"
-  | `Error _ -> exit 1
-
-let create
-    ?name
-    ?version
-    ?flags
-    ?conf
-    ?(libs=[])
-    ?(bins=[])
-    ?(tops=[])
-    () =
-  let conf = match conf with
-    | Some c -> c
-    | None   ->
-      let flags = match flags with
-        | None   -> []
-        | Some f -> f in
-      parse ?version flags in
-  { name; version; libs; bins; tops; conf }
+let create ?(libs=[]) ?(bins=[]) ?(tops=[]) () =
+  { libs; bins; tops }
