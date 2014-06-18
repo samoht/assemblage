@@ -162,13 +162,13 @@ end = struct
     Variable.(var := String.concat " " links)
 
   let prereqs t conf mode =
-    let lib = Unit.lib t in
+    let build_dir = Unit.build_dir t in
     let ext = match mode with `native -> ".cmx" | `byte -> ".cmi" in
     let units = Dep.get_units (Unit.deps t) in
     let units = List.map (fun d ->
-        match lib with
+        match build_dir with
         | None   -> "$(DESTDIR)" / Unit.name d ^ ext
-        | Some l -> "$(DESTDIR)" / Lib.name l / Unit.name d ^ ext
+        | Some b -> "$(DESTDIR)" / b / Unit.name d ^ ext
       ) units in
     let locals = Dep.get_libs (Unit.deps t) in
     let locals = List.map (fun l ->
@@ -271,6 +271,8 @@ end = struct
 
 end
 
+let conmap f l = List.concat (List.map f l)
+
 module Lib: sig
   include (module type of Lib with type t = Lib.t)
   val rules: t -> Conf.t -> Rule.t list
@@ -278,7 +280,7 @@ module Lib: sig
 end = struct
 
   let variables t conf =
-    List.concat (List.map (fun u -> Unit.variables u conf) (Lib.units t))
+    conmap (fun u -> Unit.variables u conf) (Lib.units t)
 
   let rules t conf =
     let file_u u ext = "$(DESTDIR)" / Lib.name t / Unit.name u ^ ext in
@@ -307,7 +309,7 @@ end = struct
     :: cma
     :: (if Conf.native conf then aux `archive else [])
     @ (if Conf.native_dynlink conf then aux `shared else [])
-    @ List.concat (List.map (fun u -> Unit.rules u conf) (Lib.units t))
+    @ conmap (fun u -> Unit.rules u conf) (Lib.units t)
 
   include Lib
 
@@ -321,37 +323,43 @@ end = struct
 
   let variables t conf =
     let link =
-      Top.libs t
-      |> Dep.libs
+      Top.deps t
       |> Dep.closure
       |> Dep.get_pkgs
       |> Ocamlfind.bytlink
       |> String.concat " "
     in
+    let units =
+      Top.deps t
+      |> Dep.get_units
+    in
     let n = sprintf "LINKTOP_%s" (Top.name t) in
-    Variable.(n := link)
-    :: List.concat (List.map (fun l -> Lib.variables l conf) (Top.libs t))
+    Variable.(n := link) ::
+    conmap (fun u -> Unit.variables (Unit.with_build_dir u (Top.name t)) conf) units
 
   let rules t conf =
-    let deps =
-      Top.libs t
-      |> Dep.libs
-      |> Dep.closure in
     let cma =
-      deps
+      Top.deps t
+      |> Dep.closure
       |> Dep.get_libs
       |> List.map (fun l -> "$(DESTDIR)" / Lib.name l / Lib.name l ^ ".cma") in
+    let units =
+      Top.deps t
+      |> Dep.get_units
+    in
     let link = sprintf "$(LINKTOP_%s)" (Top.name t) in
     Rule.create "toplevel-target"
       [Top.name t]
       ["$(DESTDIR)" / Top.name t / Top.name t]
       []
-    :: Rule.create "toplevel"
+    ::
+    Rule.create "toplevel"
       ["$(DESTDIR)" / Top.name t / Top.name t]
       cma
       [sprintf "mkdir -p %s" ("$(DESTDIR)" / Top.name t);
        sprintf "$(OCAMLMKTOP) %s %s -o %s" link Rule.prereqs Rule.target]
-    :: List.concat (List.map (fun l -> Lib.rules l conf) (Top.libs t))
+    ::
+    conmap (fun u -> Unit.rules (Unit.with_build_dir u (Top.name t)) conf) units
 
   include Top
 
@@ -365,26 +373,24 @@ end = struct
 
   let variables t conf =
     let link =
-      Dep.libs (Bin.libs t) @ Dep.units (Bin.units t)
+      Bin.deps t
       |> Dep.closure
       |> Dep.get_pkgs
       |> (fun links ->
           if Conf.native conf then Ocamlfind.natlink links
           else Ocamlfind.bytlink links)
       |> String.concat " " in
+    let units =
+      Bin.deps t
+      |> Dep.get_units in
     let n = "LINK_" ^ Bin.name t in
-    (* XXX: ugly *)
-    let l' = Lib.create [] (Bin.name t) in
     Variable.(n := link)
-    :: List.concat (List.map (fun u -> Unit.variables (Unit.with_lib u l') conf) (Bin.units t))
-    @  List.concat (List.map (fun l -> Lib.variables l conf) (Bin.libs t))
+    :: conmap (fun u -> Unit.variables (Unit.with_build_dir u (Bin.name t)) conf) units
 
   let rules t conf =
-    let deps =
-      Dep.libs (Bin.libs t) @ Dep.units (Bin.units t)
-      |> Dep.closure in
     let libs =
-      deps
+      Bin.deps t
+      |> Dep.closure
       |> Dep.get_libs
       |> List.map (fun l ->
           let file ext = "$(DESTDIR)" / Lib.name l / Lib.name l ^ ext in
@@ -393,30 +399,29 @@ end = struct
     let file u ext =
       "$(DESTDIR)" / Bin.name t / Unit.name u ^ ext in
     let units =
-      Bin.units t
+      Bin.deps t
+      |> Dep.get_units
+    in
+    let unit_files =
+      units
       |> List.map (fun u ->
           if Conf.native conf then file u ".cmx"
           else file u ".cmo") in
     let link = sprintf "$(LINK_%s)" (Bin.name t) in
     let compiler = if Conf.native conf then "$(OCAMLOPT)" else "$(OCAMLC)" in
-    (* XXX: ugly *)
-    let l' = Lib.create [] (Bin.name t) in
     Rule.create "bin-target"
       [Bin.name t]
       ["$(DESTDIR)" / Bin.name t / Bin.name t]
       []
     :: Rule.create "bin"
       ["$(DESTDIR)" / Bin.name t / Bin.name t]
-      (libs @ units)
+      (libs @ unit_files)
       [sprintf "%s %s %s -o %s" compiler link Rule.prereqs Rule.target]
-    :: List.concat (List.map (fun u -> Unit.rules (Unit.with_lib u l') conf) (Bin.units t))
-    @  List.concat (List.map (fun l -> Lib.rules l conf) (Bin.libs t))
+    :: conmap (fun u -> Unit.rules (Unit.with_build_dir u (Bin.name t)) conf) units
 
   include Bin
 
 end
-
-let conmap f l = List.concat (List.map f l)
 
 let dedup l =
   let saw = Hashtbl.create (List.length l) in

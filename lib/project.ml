@@ -333,8 +333,10 @@ and Unit: sig
   val deps: t -> Dep.t list
   val flags: t -> Flag.t list
   val lib: t -> Lib.t option
+  val build_dir: t -> string option
   val add_deps: t -> Dep.t list -> t
   val with_lib: t -> Lib.t -> t
+  val with_build_dir: t -> string -> t
   val create: ?dir:string -> ?deps:Dep.t list -> ?flags:Flag.t list -> string -> t
   val generated_files: t -> Conf.t -> string list
   val compflags: t -> Conf.t -> Dep.resolver -> string list
@@ -343,6 +345,7 @@ end = struct
 
   type t = {
     dir: string option;
+    build_dir: string option;
     deps: Dep.t list;
     name: string;
     flags: Flag.t list;
@@ -350,6 +353,8 @@ end = struct
   }
 
   let dir t = t.dir
+
+  let build_dir t = t.build_dir
 
   let name t = t.name
 
@@ -359,13 +364,17 @@ end = struct
 
   let lib t = t.lib
 
-  let with_lib t lib = { t with lib = Some lib }
+  let with_lib t lib =
+    { t with lib = Some lib; build_dir = Some (Lib.name lib) }
+
+  let with_build_dir t build_dir =
+    { t with build_dir = Some build_dir }
 
   let add_deps t deps =
     { t with deps = t.deps @ deps }
 
   let create ?dir ?(deps=[]) ?(flags=[])name =
-    { dir; lib=None; deps; name; flags }
+    { dir; lib=None; build_dir=None; deps; name; flags }
 
   let p4oflags t c resolver =
     let local = Dep.get_p4os (Unit.deps t) in
@@ -457,17 +466,17 @@ end
 module Top = struct
 
   type t = {
-    libs: Lib.t list;
-    name: string;
+    deps  : Dep.t list;
+    name  : string;
     custom: bool;
   }
 
-  let create ?(custom=false) libs name =
-    { libs; name; custom }
+  let create ?(custom=false) deps name =
+    { deps; name; custom }
 
   let name t = t.name
 
-  let libs t = t.libs
+  let deps t = t.deps
 
   let custom t = t.custom
 
@@ -479,19 +488,16 @@ end
 module Bin = struct
 
   type t = {
-    libs: Lib.t list;
-    units: Unit.t list;
+    deps: Dep.t list;
     name: string;
   }
 
   let name t = t.name
 
-  let libs t = t.libs
+  let deps t = t.deps
 
-  let units t = t.units
-
-  let create libs units name =
-    { libs; units; name }
+  let create deps name =
+    { deps; name }
 
   let generated_files t conf =
     [Conf.destdir conf / t.name / t.name]

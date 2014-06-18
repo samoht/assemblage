@@ -219,6 +219,11 @@ and Unit: sig
   val lib: t -> Lib.t option
   (** Return the library the compilation unit belongs to. *)
 
+  val build_dir: t -> string option
+  (** Return the build directory. Usually it is the library name, but
+      can be other exotic places (for instance the exec name, if the
+      compilation unit is the main program file). *)
+
   val flags: t -> Flag.t list
   (** Return the compilation unit conditional flags. *)
 
@@ -226,7 +231,11 @@ and Unit: sig
   (** Add more dependencies to the compilation unit. *)
 
   val with_lib: t -> Lib.t -> t
-  (** Set the library of the compilation unit. *)
+  (** Set the library of the compilation unit. This also set the build
+      directory to be the name of the library. *)
+
+  val with_build_dir: t -> string -> t
+  (** Set the build directory of the compilation unit. *)
 
   val create: ?dir:string -> ?deps:Dep.t list -> ?flags:Flag.t list -> string -> t
   (** Create a compilation unit. *)
@@ -281,13 +290,13 @@ module Top: sig
   val name: t -> string
   (** Return the toplevel name. *)
 
-  val libs: t -> Lib.t list
-  (** Return the libraries linked by the toplevel. *)
+  val deps: t -> Dep.t list
+  (** Return the dependencies linked by the toplevel. *)
 
   val custom: t -> bool
   (** Should the toplevel be compiled with the [custom] option ? *)
 
-  val create: ?custom:bool -> Lib.t list -> string -> t
+  val create: ?custom:bool -> Dep.t list -> string -> t
   (** Create a custom toplevel from a set of libraries. *)
 
   val generated_files: t -> Conf.t -> string list
@@ -305,13 +314,10 @@ module Bin: sig
   val name: t -> string
   (** Return the binary name. *)
 
-  val libs: t -> Lib.t list
-  (** Return the libraries linked by the binary. *)
+  val deps: t -> Dep.t list
+  (** Return the dependencies linked by the binary. *)
 
-  val units: t -> Unit.t list
-  (** Return the compilation units linked by the binary. *)
-
-  val create: Lib.t list -> Unit.t list -> string -> t
+  val create: Dep.t list -> string -> t
   (** Build a binary by linking a set of libraries and additional
       compilation units. *)
 
