@@ -16,6 +16,22 @@ Using a project description, the tools can generate:
 - a `.install` to install the project; and
 - a `META` file to use the project.
 
+### Design principles
+
+Following the Bünzli principle, we are trying to design simple components
+which works well together. We have the following pieces:
+
+1. A *build system specification*, which maps an high-level project specification
+   to a build system
+
+2. A *build system*, which knows how to build artefacts
+
+3. A *build environment* (can be a human), which discovers available features
+
+4. A *builder*, which maps build environments to build artefacts
+
+5. An *installer*, which maps build artefacts to install locations
+
 #### Dependency Tracking
 
 Multiple kinds of dependencies are currently supported:
