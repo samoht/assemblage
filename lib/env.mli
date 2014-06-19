@@ -88,6 +88,12 @@ val create:
   (** Location of the generated files. [None] means the files stays in
       the same directory. *)
 
+  ?name:string ->
+  (** The package name. *)
+
+  ?version: string ->
+  (** The package version. *)
+
   unit -> t
 
 val default: t
@@ -118,4 +124,10 @@ val destdir: t -> string
 (** Return the directory where build artififacts are generated. *)
 
 val enable: t -> Flag.t list -> bool
-  (** Check if the given set of flags are all enabled. *)
+(** Check if the given set of flags are all enabled. *)
+
+val name: t -> string option
+(** Return the package name. *)
+
+val version: t -> string option
+(** Return the package version. *)

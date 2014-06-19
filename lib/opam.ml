@@ -50,6 +50,7 @@ let name t =
   | None   -> None
   | Some t -> Some (OpamPackage.Name.to_string (OpamFile.OPAM.name t))
 
+(*
 let with_configure t flags =
   let build = match OpamFile.OPAM.build t with
     | ( (CString "opam", o) :: (CString "configure", c) :: _ , f) :: t ->
@@ -59,6 +60,7 @@ let with_configure t flags =
       ( (CString "opam", o) :: (CString "configure", c) :: flags, f) :: t
     | l -> l in
   OpamFile.OPAM.with_build t build
+*)
 
 module Install = struct
 
@@ -67,30 +69,33 @@ module Install = struct
     contents: string;
   }
 
-  let create ?(libs=[]) ?(bins=[]) ?(tops=[]) name conf =
+  let create ?(libs=[]) ?(bins=[]) ?(tops=[]) env =
+    let name = match Env.name env with
+      | None   -> "not-set"
+      | Some n -> n in
     let buf = Buffer.create 1024 in
     if libs <> [] then (
       bprintf buf "lib: [\n";
-      bprintf buf " \"%s/META\"" (Conf.destdir conf / name);
+      bprintf buf " \"%s/META\"" (Env.destdir env / name);
       List.iter (fun l ->
-          let files = Lib.generated_files l conf in
-          List.iter (fun f ->
-              bprintf buf "  \"%s\"\n" f
+          let files = Lib.generated_files l in
+          List.iter (fun (flags, file) ->
+              if Env.enable env flags then bprintf buf "  \"%s\"\n" file
             ) files;
         ) libs;
       bprintf buf "]\n");
     if bins <> [] || tops <> [] then (
       bprintf buf "bin: [\n";
       List.iter (fun b ->
-          let files = Bin.generated_files b conf in
-          List.iter (fun f ->
-              bprintf buf "  \"%s\"\n" f
+          let files = Bin.generated_files b in
+          List.iter (fun (flags, file) ->
+              if Env.enable env flags then bprintf buf "  \"%s\"\n" file
             ) files;
         ) bins;
       List.iter (fun t ->
-          let files = Top.generated_files t conf in
-          List.iter (fun f ->
-              bprintf buf "  \"%s\"\n" f
+          let files = Top.generated_files t in
+          List.iter (fun (flags, file) ->
+              if Env.enable env flags then bprintf buf "  \"%s\"\n" file
             ) files;
         ) tops;
       bprintf buf "]\n";
@@ -105,15 +110,11 @@ module Install = struct
     output_string oc t.contents;
     close_out oc
 
-  let of_project p =
-    let conf = Project.conf p in
-    let libs = Project.libs p in
-    let bins = Project.bins p in
-    let tops = Project.tops p in
-    let name = match name () with
-      | None   -> "not-set"
-      | Some n -> n in
-    let t = create ~libs ~bins ~tops name conf in
+  let of_project t env =
+    let libs = Project.libs t in
+    let bins = Project.bins t in
+    let tops = Project.tops t in
+    let t = create ~libs ~bins ~tops env in
     write t
 
 end

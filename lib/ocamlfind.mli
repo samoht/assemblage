@@ -18,16 +18,16 @@
 
 open Project
 
-val p4o: Dep.resolver
+val p4o: string -> Dep.resolver
 (** Resolve external syntax extensions. *)
 
-val incl: Dep.resolver
+val incl: string -> Dep.resolver
 (** Resolve includes for external packages. *)
 
-val bytlink: Dep.resolver
+val bytlink: string -> Dep.resolver
 (** Resolve bytecode compilation for external packages. *)
 
-val natlink: Dep.resolver
+val natlink: string -> Dep.resolver
 (** Resolve native code compilation for external packages. *)
 
 module META: sig
@@ -36,13 +36,13 @@ module META: sig
 
   type t
 
-  val create: version:string -> libs:Lib.t list -> Conf.t -> t option
+  val create: version:string -> libs:Lib.t list -> Env.t -> t option
   (** Create a META file. *)
 
   val write: t -> unit
   (** Write a META file. *)
 
-  val of_project: Project.t -> unit
+  val of_project: Project.t -> Env.t -> unit
   (** Generate a META file for the given project. *)
 
 end

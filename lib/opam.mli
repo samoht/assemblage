@@ -34,9 +34,6 @@ val read: unit -> t option
 val write: t -> unit
 (** Write the OPAM file. *)
 
-val with_configure: t -> Flag.t list -> t
-(** Rewrite the configuration line to check for the given flags. *)
-
 module Install: sig
 
   (** OPAM install files. *)
@@ -46,13 +43,13 @@ module Install: sig
     ?libs:Lib.t list ->
     ?bins:Bin.t list ->
     ?tops:Top.t list ->
-    string -> Conf.t -> t
+    Env.t -> t
   (** Create an `.install` file. *)
 
   val write: t -> unit
   (** Write an `.install` file. *)
 
-  val of_project: Project.t -> unit
+  val of_project: Project.t -> Env.t -> unit
   (** Generate an `.install` file for the given project. *)
 
 end

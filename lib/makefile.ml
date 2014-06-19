@@ -32,8 +32,13 @@ module Variable = struct
   type t = {
     name    : string;
     assign  : assign;
-    contents: string;
+    contents: contents;
   }
+
+  and contents =
+    [ `String of string
+    | `Strings of string list
+    | `Case of (t list * contents) list ]
 
   let (=) name contents =
     { name; contents; assign = "=" }
@@ -46,23 +51,54 @@ module Variable = struct
 
   let subst t name ~input ~output =
     { name; assign = "=";
-      contents = sprintf "$(${%s}:%s=%s)" t.name input output
+      contents = `String (sprintf "$(${%s}:%s=%s)" t.name input output)
     }
 
   let name t =
     sprintf "$(%s)" t.name
 
   let generate buf t =
-    bprintf buf "%-25s %s %s\n" t.name t.assign t.contents
+    let string c =
+      bprintf buf "%-25s %s %s\n" t.name t.assign c in
+    let rec contents = function
+      | `String s   -> string s
+      | `Strings ss -> string (String.concat " " ss)
+      | `Case cases ->
+        let rec aux = function
+          | []                -> bprintf buf "endif\n"
+          | (vars, c) :: rest ->
+            bprintf buf "ifneq (";
+            List.iter (fun var -> bprintf buf "$(%s:0=)" var.name) vars;
+            bprintf buf ",)\n";
+            contents c;
+            if rest <> [] then bprintf buf "else\n";
+            aux rest in
+        aux cases in
+    contents t.contents
 
   let shell name command =
     { name; assign = "=";
-      contents = sprintf "$(shell %s)" command
+      contents = `String (sprintf "$(shell %s)" command)
     }
 
   let files name ~dir ~ext =
     { name; assign = "=";
-      contents = sprintf "$(wildcard %s/*.%s)" dir ext }
+      contents = `String (sprintf "$(wildcard %s/*.%s)" dir ext) }
+
+  let has_feature f =
+    let var = String.capitalize (Env.Flag.name f) in
+    for i = 0 to String.length var - 1 do
+      match var.[i] with
+      | '-' -> var.[i] <- '_'
+      | _   -> ()
+    done;
+    ("HAS_" ^ Env.Flag.name f) := `String (if Env.Flag.default f then "1" else "0")
+
+  let has_native =
+    has_feature Env.Flag.native
+
+  let has_native_dynlink =
+    has_feature Env.Flag.native_dynlink
 
 end
 
@@ -137,10 +173,12 @@ let write ?(file="Makefile") t =
 
 (******************************************************************************)
 
+let destdir = "$(DESTDIR)"
+
 module Unit: sig
   include (module type of Unit with type t = Unit.t)
-  val rules: t -> Conf.t -> Rule.t list
-  val variables: t -> Conf.t -> Variable.t list
+  val rules: t -> Rule.t list
+  val variables: t -> Variable.t list
 end = struct
 
   type ext = {
@@ -149,67 +187,53 @@ end = struct
     prereqs  : [`native | `byte] -> string list;
   }
 
-  let p4oflags t conf =
-    match Unit.p4oflags t conf Ocamlfind.p4o with
+  let p4oflags t =
+    match Unit.p4oflags t (Ocamlfind.p4o destdir) with
     | [] -> None
     | l  ->
       let var = "P4FLAGS_" ^ Unit.name t in
-      Some (Variable.(var := String.concat " " l))
+      Some (Variable.(var := `Strings l))
 
-  let compflags t conf =
-    let links = Unit.compflags t conf Ocamlfind.incl in
+  let compflags t =
+    let links = Unit.compflags t (Ocamlfind.incl destdir) in
     let var = "COMPFLAGS_" ^ Unit.name t in
-    Variable.(var := String.concat " " links)
+    Variable.(var := `Strings links)
 
-  let prereqs t conf mode =
-    let build_dir = Unit.build_dir t in
-    let ext = match mode with `native -> ".cmx" | `byte -> ".cmi" in
+  let prereqs t mode =
     let units = Dep.get_units (Unit.deps t) in
-    let units = List.map (fun d ->
-        match build_dir with
-        | None   -> "$(DESTDIR)" / Unit.name d ^ ext
-        | Some b -> "$(DESTDIR)" / b / Unit.name d ^ ext
+    let units = List.map (fun u ->
+        match mode with
+        | `native -> destdir / Unit.cmx u
+        | `byte   -> destdir / Unit.cmi u
       ) units in
-    let locals = Dep.get_libs (Unit.deps t) in
-    let locals = List.map (fun l ->
-        let units = Lib.units l in
-        let cmxs = List.map (fun u ->
-            "$(DESTDIR)" / Lib.name l / Unit.name u ^ ext
-          ) units in
-        let cmis = List.map (fun u ->
-            "$(DESTDIR)" / Lib.name l / Unit.name u ^ ext
-          ) units in
-        (if Conf.native conf then cmxs else []) @ cmis
-      ) locals in
-    units @ List.concat locals
+    let libs = Dep.get_libs (Unit.deps t) in
+    let libs = List.map (fun l ->
+        match mode with
+        | `native -> destdir / Lib.cmxa l
+        | `byte   -> destdir / Lib.cma l
+      ) libs in
+    units @ libs
 
-  let process t conf =
-    let prereqs = prereqs t conf in
-    let compflags = compflags t conf in
-    let p4flags = p4oflags t conf in
+  let process t =
+    let prereqs = prereqs t in
+    let compflags = compflags t in
+    let p4flags = p4oflags t in
     { prereqs; compflags; p4flags }
 
-  let rules t conf =
+  let rules t =
 
-    let x = process t conf in
-
-    let lib_name = match Unit.lib t with
-      | None   -> None
-      | Some l -> Some (Lib.name l) in
+    let x = process t in
 
     let pp = match x.p4flags with
       | None   -> ""
       | Some v -> sprintf "-pp '$(CAMLP4O) %s' " (Variable.name v) in
 
-    let incl = match lib_name with
+    let incl = match Unit.build_dir t with
       | None   -> ""
       | Some l -> sprintf "-I %s " ("$(DESTDIR)" / l) in
 
-    let target ext =
-      "$(DESTDIR)" / (lib_name // Unit.name t ^ ext) in
-
-    let source ext =
-      Unit.dir t // Unit.name t ^ ext in
+    let target file = destdir / file in
+    let source ext = Unit.dir t // Unit.name t ^ ext in
 
     let ln = (* link source file to target directory *)
       let aux ext =
@@ -218,8 +242,8 @@ end = struct
         if Sys.file_exists source then
           [Rule.create ("ln" ^ ext)
              [target] [source]
-             ((match lib_name with
-                 | None   -> []
+             ((match Unit.build_dir t with
+                 | None   -> [sprintf "mkdir -p %S" "$(DESTDIR)"]
                  | Some d -> [sprintf "mkdir -p %s" ("$(DESTDIR)" / d)])
               @ [sprintf "ln -sf $(shell pwd)/%s %s" source target])]
         else []
@@ -250,19 +274,16 @@ end = struct
     in
 
     let cmx = (* Generate cmxs *)
-      if Conf.native conf then
-        [Rule.create "cmx"
-           [target ".cmx"]
-           (target ".ml" :: target ".cmi" :: x.prereqs `native)
-           [sprintf "$(OCAMLOPT) -c %s%s%s %s"
-              incl pp (Variable.name x.compflags) Rule.prereq]]
-      else
-        []
+      [Rule.create "cmx"
+         [target ".cmx"]
+         (target ".ml" :: target ".cmi" :: x.prereqs `native)
+         [sprintf "$(OCAMLOPT) -c %s%s%s %s"
+            incl pp (Variable.name x.compflags) Rule.prereq]]
     in
     ln @ cmi @ cmo @ cmx
 
-    let variables t conf =
-      let x = process t conf in
+    let variables t =
+      let x = process t in
       x.compflags :: match x.p4flags with
       | None   -> []
       | Some l -> [l]
@@ -275,41 +296,41 @@ let conmap f l = List.concat (List.map f l)
 
 module Lib: sig
   include (module type of Lib with type t = Lib.t)
-  val rules: t -> Conf.t -> Rule.t list
-  val variables: t -> Conf.t -> Variable.t list
+  val rules: t -> Rule.t list
+  val variables: t -> Variable.t list
 end = struct
 
-  let variables t conf =
-    conmap (fun u -> Unit.variables u conf) (Lib.units t)
+  let variables t =
+    let cma  = destdir / Lib.cma t in
+    let cmxa = destdir / Lib.cmxa t in
+    let cmxs = destdir / Lib.cmxs t in
+    let case = [
+      [Variable.has_native; Variable.has_native_dynlink], `Strings [cma; cmxa; cmxs];
+      [Variable.has_native]                             , `Strings [cma; cmxa];
+      []                                                , `Strings [cma];
+    ] in
+    [Variable.(Lib.name t := `Case case)]
 
-  let rules t conf =
-    let file_u u ext = "$(DESTDIR)" / Lib.name t / Unit.name u ^ ext in
-    let file ext     = "$(DESTDIR)" / Lib.name t / Lib.name t ^ ext in
-    let cma =
-      let cmo = List.map (fun u -> file_u u ".cmo") (Lib.units t) in
-      let cmi = List.map (fun u -> file_u u ".cmi") (Lib.units t) in
-      Rule.create "cma" [file ".cma"] (cmo @ cmi) [
+  let rules t =
+    let byte =
+      let cmo = List.map (fun u -> destdir / Unit.cmo u) (Lib.units t) in
+      let cmi = List.map (fun u -> destdir / Unit.cmi u) (Lib.units t) in
+      Rule.create "cma" [destdir / Lib.cma t] (cmo @ cmi) [
         sprintf "$(OCAMLC) -a %s -o %s" (String.concat " " cmo) Rule.target
       ] in
-    let aux mode =
-      if mode = `shared && not (Conf.native_dynlink conf) then []
-      else
-        let ext, mode = if mode = `shared then "cmxs", "-shared" else "cmxa", "-a" in
-        let cmx = List.map (fun u -> file_u u  ".cmx") (Lib.units t) in
-        let cmi = List.map (fun u -> file_u u  ".cmi") (Lib.units t) in
-        [Rule.create ext [file ("." ^ ext)] (cmx @ cmi) [
-            sprintf "$(OCAMLOPT) %s %s -o %s" mode (String.concat " " cmx) Rule.target
-          ]] in
-    (Rule.create (Lib.name t)
-       [Lib.name t]
-       ([file ".cma"]
-        @ (if Conf.native conf then [file ".cmxa"] else [])
-        @ (if Conf.native_dynlink conf then [file ".cmxs"] else []))
-       [])
-    :: cma
-    :: (if Conf.native conf then aux `archive else [])
-    @ (if Conf.native_dynlink conf then aux `shared else [])
-    @ conmap (fun u -> Unit.rules u conf) (Lib.units t)
+    let native mode =
+      let name, file, mode = match mode with
+        | `shared  -> "cmxs", destdir / Lib.cmxs t, "-shared"
+        | `archive -> "cmxa", destdir / Lib.cmxa t, "-a" in
+      let cmx = List.map (fun u -> destdir / Unit.cmx u) (Lib.units t) in
+      let cmi = List.map (fun u -> destdir / Unit.cmi u) (Lib.units t) in
+      Rule.create name [file] (cmx @ cmi) [
+        sprintf "$(OCAMLOPT) %s %s -o %s" mode (String.concat " " cmx) Rule.target
+      ] in
+    byte
+    :: native `archive
+    :: native `shared
+    :: conmap (fun u -> Unit.rules u) (Lib.units t)
 
   include Lib
 
@@ -317,49 +338,48 @@ end
 
 module Top: sig
   include (module type of Top with type t = Top.t)
-  val rules: t -> Conf.t -> Rule.t list
-  val variables: t -> Conf.t -> Variable.t list
+  val rules: t -> Rule.t list
+  val variables: t -> Variable.t list
 end = struct
 
-  let variables t conf =
+  let variables t =
     let link =
       Top.deps t
       |> Dep.closure
       |> Dep.get_pkgs
-      |> Ocamlfind.bytlink
-      |> String.concat " "
+      |> fun pkgs -> Ocamlfind.bytlink destdir (`Pkgs pkgs)
     in
     let units =
       Top.deps t
       |> Dep.get_units
     in
-    let n = sprintf "LINKTOP_%s" (Top.name t) in
-    Variable.(n := link) ::
-    conmap (fun u -> Unit.variables (Unit.with_build_dir u (Top.name t)) conf) units
+    let var = sprintf "LINKTOP_%s" (Top.name t) in
+    Variable.(var := `String link) ::
+    conmap (fun u -> Unit.variables (Unit.with_build_dir u (Top.name t))) units
 
-  let rules t conf =
+  let rules t =
     let cma =
       Top.deps t
       |> Dep.closure
       |> Dep.get_libs
-      |> List.map (fun l -> "$(DESTDIR)" / Lib.name l / Lib.name l ^ ".cma") in
+      |> List.map (fun l -> destdir / Lib.cma l) in
     let units =
       Top.deps t
       |> Dep.get_units
     in
     let link = sprintf "$(LINKTOP_%s)" (Top.name t) in
-    Rule.create "toplevel-target"
+    Rule.create "toplevel"
       [Top.name t]
-      ["$(DESTDIR)" / Top.name t / Top.name t]
+      [destdir / Top.byte t]
       []
     ::
-    Rule.create "toplevel"
-      ["$(DESTDIR)" / Top.name t / Top.name t]
+    Rule.create "toplevel.byte"
+      [destdir / Top.byte t]
       cma
-      [sprintf "mkdir -p %s" ("$(DESTDIR)" / Top.name t);
+      [sprintf "mkdir -p %s" (destdir / Top.name t);
        sprintf "$(OCAMLMKTOP) %s %s -o %s" link Rule.prereqs Rule.target]
     ::
-    conmap (fun u -> Unit.rules (Unit.with_build_dir u (Top.name t)) conf) units
+    conmap (fun u -> Unit.rules (Unit.with_build_dir u (Top.name t))) units
 
   include Top
 
@@ -367,62 +387,63 @@ end
 
 module Bin: sig
   include (module type of Bin with type t = Bin.t)
-  val rules: t -> Conf.t -> Rule.t list
-  val variables: t -> Conf.t -> Variable.t list
+  val rules: t -> Rule.t list
+  val variables: t -> Variable.t list
 end = struct
 
-  let variables t conf =
-    let link =
+  let variables t =
+    let pkgs =
       Bin.deps t
       |> Dep.closure
-      |> Dep.get_pkgs
-      |> (fun links ->
-          if Conf.native conf then Ocamlfind.natlink links
-          else Ocamlfind.bytlink links)
-      |> String.concat " " in
+      |> Dep.get_pkgs in
+    let bytlink = Ocamlfind.bytlink destdir (`Pkgs pkgs) in
+    let natlink = Ocamlfind.natlink destdir (`Pkgs pkgs) in
     let units =
       Bin.deps t
       |> Dep.get_units in
-    let n = "LINK_" ^ Bin.name t in
-    Variable.(n := link)
-    :: conmap (fun u -> Unit.variables (Unit.with_build_dir u (Bin.name t)) conf) units
+    let var    = Bin.name t in
+    let bytvar = Bin.name t ^ "_byte" in
+    let natvar = Bin.name t ^ "_native" in
+    Variable.(var := `Case [
+        [Variable.has_native], `Strings [destdir / Bin.byte t; destdir / Bin.native t];
+        []                   , `String  (destdir / Bin.byte t);
+      ])
+    :: Variable.(bytvar := `String bytlink)
+    :: Variable.(natvar := `String natlink)
+    :: conmap (fun u -> Unit.variables (Unit.with_build_dir u (Bin.name t))) units
 
-  let rules t conf =
-    let libs =
-      Bin.deps t
-      |> Dep.closure
-      |> Dep.get_libs
-      |> List.map (fun l ->
-          let file ext = "$(DESTDIR)" / Lib.name l / Lib.name l ^ ext in
-          if Conf.native conf then file ".cmxa"
-          else file ".cma") in
-    let file u ext =
-      "$(DESTDIR)" / Bin.name t / Unit.name u ^ ext in
-    let units =
-      Bin.deps t
-      |> Dep.get_units
-    in
-    let unit_files =
-      units
-      |> List.map (fun u ->
-          if Conf.native conf then file u ".cmx"
-          else file u ".cmo") in
-    let link = sprintf "$(LINK_%s)" (Bin.name t) in
-    let compiler = if Conf.native conf then "$(OCAMLOPT)" else "$(OCAMLC)" in
-    Rule.create "bin-target"
+  let rules t =
+    let libs = Bin.deps t |> Dep.closure |> Dep.get_libs in
+    let bytlibs = List.map (fun l -> destdir / Lib.cma l) libs in
+    let natlibs = List.map (fun l -> destdir / Lib.cmxa l) libs in
+    let units = Bin.deps t |> Dep.get_units in
+    let bytunits = List.map (fun u -> destdir / Unit.cmo u) units in
+    let natunits = List.map (fun u -> destdir / Unit.cmx u) units in
+    Rule.create "bin"
       [Bin.name t]
-      ["$(DESTDIR)" / Bin.name t / Bin.name t]
+      [sprintf "$(%s)" (Bin.name t)]
       []
-    :: Rule.create "bin"
-      ["$(DESTDIR)" / Bin.name t / Bin.name t]
-      (libs @ unit_files)
-      [sprintf "%s %s %s -o %s" compiler link Rule.prereqs Rule.target]
-    :: conmap (fun u -> Unit.rules (Unit.with_build_dir u (Bin.name t)) conf) units
+    ::
+    Rule.create "bin.byte"
+      [destdir / Bin.byte t]
+      (bytlibs @ bytunits)
+      [sprintf "$(OCAMLC) $(%s_byte) %s -o %s"
+         (Bin.name t) Rule.prereqs Rule.target]
+    ::
+    Rule.create "bin.native"
+      [destdir / Bin.native t]
+      (natlibs @ natunits)
+      [sprintf "$(OCAMLOPT) $(%s_native) %s -o %s"
+         (Bin.name t) Rule.prereqs Rule.target]
+    ::
+    conmap Lib.rules libs
+    @ conmap (fun u -> Unit.rules (Unit.with_build_dir u (Bin.name t))) units
 
   include Bin
 
 end
 
+(* dedup while keeping the initial order *)
 let dedup l =
   let saw = Hashtbl.create (List.length l) in
   let rec aux acc = function
@@ -435,27 +456,24 @@ let dedup l =
       ) in
   aux [] l
 
-let of_project ?file t =
+let of_project ?file ?(destdir="_build") t =
   let libs = Project.libs t in
   let bins = Project.bins t in
   let tops = Project.tops t in
-  let conf = Project.conf t in
   let variables =
     dedup (
-      Variable.("DESTDIR" := Conf.destdir conf)
-      :: Variable.("OCAMLOPT"   := "ocamlopt")
-      :: Variable.("OCAMLC"     := "ocamlc")
-      :: Variable.("OCAMLMKTOP" := "ocamlmktop")
-      :: Variable.("CAMLP4O"    := "camlp4o")
-      :: conmap (fun t -> Lib.variables t conf) libs
-      @  conmap (fun t -> Bin.variables t conf) bins
-      @  conmap (fun t -> Top.variables t conf) tops
+      Variable.(   "DESTDIR"    := `String destdir)
+      :: Variable.("OCAMLOPT"   := `String "ocamlopt")
+      :: Variable.("OCAMLC"     := `String "ocamlc")
+      :: Variable.("OCAMLMKTOP" := `String "ocamlmktop")
+      :: Variable.("CAMLP4O"    := `String "camlp4o")
+      :: conmap (fun t -> Lib.variables t) libs
+      @  conmap (fun t -> Bin.variables t) bins
+      @  conmap (fun t -> Top.variables t) tops
     ) in
   let rules =
     dedup (
-      conmap (fun t -> Lib.rules t conf) libs
-      @ conmap (fun t -> Bin.rules t conf) bins
-      @ conmap (fun t -> Top.rules t conf) tops
+      conmap Lib.rules libs @ conmap Bin.rules bins @ conmap Top.rules tops
     ) in
   let main = Rule.create "main" ["all"]
       (List.map Lib.name libs @ List.map Bin.name bins @ List.map Top.name tops)

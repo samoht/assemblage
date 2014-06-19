@@ -93,7 +93,7 @@ module rec Dep: sig
 
   (** {2 Misc} *)
 
-  type resolver = string list -> string list
+  type resolver = [`Destdir of string | `Pkgs of string list] -> string
   (** Resolve a list of package names into a list of command-line
       arguments. *)
 
@@ -118,10 +118,6 @@ and Unit: sig
   val deps: t -> Dep.t list
   (** Return the compilation unit dependencies. *)
 
-  val flags: t -> Env.Flag.t list
-  (** Return the environment flags which enables the build of that
-      compilation unit. *)
-
   val lib: t -> Lib.t option
   (** Return the library the compilation unit belongs to. *)
 
@@ -133,9 +129,6 @@ and Unit: sig
   val add_deps: t -> Dep.t list -> t
   (** Add more dependencies to the compilation unit. *)
 
-  val add_flags: t -> Env.Flag.t list -> t
-  (** Add more environment flags to the compilation unit. *)
-
   val with_lib: t -> Lib.t -> t
   (** Set the library of the compilation unit. This also set the build
       directory to be the name of the library. *)
@@ -143,8 +136,21 @@ and Unit: sig
   val with_build_dir: t -> string -> t
   (** Set the build directory of the compilation unit. *)
 
-  val create: ?flags:Env.Flag.t list -> ?dir:string -> ?deps:Dep.t list -> string -> t
+  val create: ?dir:string -> ?deps:Dep.t list -> string -> t
   (** Create a compilation unit. *)
+
+  val cmi: t -> string
+  (** Return the name of the compiled module interface. *)
+
+  val cmo: t -> string
+  (** Return the name of the compiled module object. *)
+
+  val cmx: t -> string
+  (** Return the name of the extra information for native linking of
+      the compilation unit. *)
+
+  val o: t -> string
+  (** Return the name of the object file for the compilation unit. *)
 
   val generated_files: t -> (Env.Flag.t list * string) list
   (** Return the list of generated files when the given conjonction of
@@ -171,6 +177,14 @@ and Lib: sig
   val name: t -> string
   (** Return the library name. *)
 
+  val filename: t -> string
+  (** Return the library filename. Usually, it is the same as [name],
+      but this could be updated when the library is put in a named
+      project to [project.name]. *)
+
+  val set_filename: t -> string -> unit
+  (** Rename the library. *)
+
   val units: t -> Unit.t list
   (** Return the list of compilation units which defines the
       library. *)
@@ -181,6 +195,19 @@ and Lib: sig
 
   val create: ?flags:Env.Flag.t list -> ?deps:Dep.t list -> Unit.t list -> string -> t
   (** Create a library. *)
+
+  val cma: t -> string
+  (** Return the bytecode archive of the library. *)
+
+  val cmxa: t -> string
+  (** Return the extra information about the native archive of the
+      library. *)
+
+  val a: t -> string
+  (** Return the native archive of the libray. *)
+
+  val cmxs: t -> string
+  (** Return the shared archive of the library. *)
 
   val generated_files: t -> (Env.Flag.t list * string) list
   (** Return the list of generated files for the given project
@@ -214,6 +241,9 @@ module Top: sig
   val create: ?flags:Env.Flag.t list -> ?custom:bool -> ?deps:Dep.t list -> string -> t
   (** Create a custom toplevel from a set of libraries. *)
 
+  val byte: t -> string
+  (** Return the name of the bytecode toplevel. *)
+
   val generated_files: t -> (Env.Flag.t list * string) list
   (** Return the list of generated files for the given project
       configuration. *)
@@ -236,6 +266,12 @@ module Bin: sig
   (** Build a binary by linking a set of libraries and additional
       compilation units. *)
 
+  val byte: t -> string
+  (** Return the name of the byte-code binary. *)
+
+  val native: t -> string
+  (** Return the name of the native binary. *)
+
   val generated_files: t -> (Env.Flag.t list * string) list
   (** Return the list of generated files for the given project
       configuration. *)
@@ -244,6 +280,9 @@ end
 
 type t
 (** Project values. *)
+
+val name: t -> string
+(** Return the project name. *)
 
 val libs: t -> Lib.t list
 (** Return the list of libraries defined by the project. *)
@@ -254,6 +293,16 @@ val bins: t -> Bin.t list
 val tops: t -> Top.t list
 (** Return the list of toplevels defined by the project. *)
 
-val create: ?libs:Lib.t list -> ?bins:Bin.t list -> ?tops:Top.t list -> unit -> t
-(** Generate a project description for the given collection of
-    dependencies. *)
+val create:
+  ?libs:Lib.t list ->
+  ?bins:Bin.t list ->
+  ?tops:Top.t list ->
+  string -> t
+(** [create ?libs ?bins ?tops project] enerate a project description
+    named [project]. The first library of the list [libs] of libraries
+    will be used as the toplevel ocamlfind package named [project] --
+    any subsequent library named [lib] will be in the subpackage named
+    [project.lib]. *)
+
+val flags: t -> Env.Flag.t list
+(** Return the flags used in the project. *)

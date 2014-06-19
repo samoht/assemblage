@@ -114,6 +114,8 @@ type t = {
   natlink: string list;
   p4o: string list;
   destdir: string;
+  name: string option;
+  version: string option;
 }
 
 let create
@@ -128,9 +130,10 @@ let create
     ?(natlink=[])
     ?(p4o=[])
     ?(destdir="_build")
+    ?name ?version
     () =
   { native; native_dynlink; flags; comp; bytcomp; natcomp;
-    link; bytlink; natlink; p4o; destdir }
+    link; bytlink; natlink; p4o; destdir; name; version }
 
 let destdir t = t.destdir
 let native t = t.native
@@ -159,6 +162,8 @@ let default = {
   natlink = [];
   p4o = [];
   destdir = "_build";
+  name = None;
+  version = None;
 }
 
 let enable t flags =
@@ -197,11 +202,22 @@ let parse flags =
         ~doc:"The name of the directory where built artifacts are created."
         ~docv:"DIR" ["destdir"] in
     Arg.(value & opt string "_build" & doc) in
+  let nam =
+    let doc = Arg.info
+        ~doc:"The package name."
+        ~docv:"NAME" ["name"] in
+    Arg.(value & opt (some string) None & doc) in
+  let version =
+    let doc = Arg.info
+        ~doc:"The package version."
+        ~docv:"VERSION" ["version"] in
+    Arg.(value & opt (some string) None & doc) in
+
   let list = function
     | None   -> []
     | Some l -> [l] in
 
-  let create (_,native) (_,native_dynlink) flags comp link p4o destdir = {
+  let create (_,native) (_,native_dynlink) flags comp link p4o destdir name version = {
     native = native;
     native_dynlink = native_dynlink;
     flags;
@@ -213,8 +229,15 @@ let parse flags =
     natlink = [];
     p4o = list p4o;
     destdir;
+    name;
+    version;
   } in
-  Term.(mk create $ native $ native_dynlink $ flags $ comp $ link $ p4o $ destdir)
+  Term.(mk create $
+        native $ native_dynlink $ flags $ comp $ link $ p4o $ destdir $ nam $ version)
+
+let name t = t.name
+
+let version t = t.version
 
 (*
 let parse ?version flags =

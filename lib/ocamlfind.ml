@@ -19,29 +19,38 @@ open Project
 
 let (/) = Filename.concat
 
-let p4o names =
-  let names = String.concat " " names in
-  [sprintf
-     "$(shell ocamlfind query %s -r -predicates syntax,preprocessor -format \"-I %%d %%a\")"
-     names]
+let p4o destdir = function
+  | `Destdir f  -> destdir / f
+  | `Pkgs names ->
+    let names = String.concat " " names in
+    sprintf
+      "$(shell ocamlfind query %s -r -predicates syntax,preprocessor \
+       -format \"-I %%d %%a\")"
+      names
 
-let incl names =
-  let names = String.concat " "  (List.rev names) in
-  [sprintf
-     "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d\")"
-     names]
+let incl destdir = function
+  | `Destdir f  -> destdir / f
+  | `Pkgs names ->
+    let names = String.concat " "  (List.rev names) in
+    sprintf
+      "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d\")"
+      names
 
-let bytlink names =
-  let names = String.concat " "  (List.rev names) in
-  [sprintf
-     "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d %%a\")"
-     names]
+let bytlink destdir = function
+  | `Destdir f  -> destdir / f
+  | `Pkgs names ->
+    let names = String.concat " "  (List.rev names) in
+    sprintf
+      "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d %%a\")"
+      names
 
-let natlink names =
-  let names = String.concat " "  (List.rev names) in
-  [sprintf
-     "$(shell ocamlfind query %s -r -predicates native -format \"-I %%d %%a\")"
-     names]
+let natlink destdir = function
+  | `Destdir f  -> destdir / f
+  | `Pkgs names ->
+    let names = String.concat " "  (List.rev names) in
+    sprintf
+      "$(shell ocamlfind query %s -r -predicates native -format \"-I %%d %%a\")"
+      names
 
 module META = struct
 
@@ -57,7 +66,7 @@ module META = struct
       ) s;
     !exists
 
-  let create ~version ~libs conf =
+  let create ~version ~libs env =
     match libs with
     | [] -> None
     | _  ->
@@ -88,9 +97,9 @@ module META = struct
         bprintf buf "requires = \"%s\"\n" requires;
         bprintf buf "archive(byte) = \"%s.cma\"\n" (Lib.name lib);
         bprintf buf "archive(byte, plugin) = \"%s.cma\"\n" (Lib.name lib);
-        if Conf.native conf then
+        if Env.native env then
           bprintf buf "archive(native) = \"%s.cmxa\"\n" (Lib.name lib);
-        if Conf.native_dynlink conf then
+        if Env.native_dynlink env then
           bprintf buf "archive(native, plugin) = \"%s.cmxs\"\n" (Lib.name lib);
         bprintf buf "exist_if = \"%s.cma\"\n" (Lib.name lib) in
       aux main;
@@ -100,7 +109,7 @@ module META = struct
           bprintf buf ")\n"
         ) others;
       let contents = Buffer.contents buf in
-      let file = Conf.destdir conf / Lib.name main / "META" in
+      let file = Env.destdir env / Lib.name main / "META" in
       Some { file; contents }
 
   let write t =
@@ -109,13 +118,12 @@ module META = struct
     output_string oc t.contents;
     close_out oc
 
-  let of_project t =
-    let conf = Project.conf t in
+  let of_project t env =
     let libs = Project.libs t in
-    let version = match Project.version t with
-      | None   -> "version"
+    let version = match Env.version env with
+      | None   -> "<not-set>"
       | Some v -> v in
-    match create ~version ~libs conf with
+    match create ~version ~libs env with
     | None   -> ()
     | Some t -> write t
 

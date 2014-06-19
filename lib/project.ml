@@ -49,7 +49,7 @@ module rec Dep: sig
   }
   val custom: custom -> t
   val get_customs: t list -> custom list
-  type resolver = string list -> string list
+  type resolver = [`Destdir of string | `Pkgs of string list] -> string
   val closure: t list -> t list
 end = struct
 
@@ -108,7 +108,7 @@ end = struct
     List.fold_left (fun acc -> function Custom t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
-  type resolver = string list -> string list
+  type resolver = [`Destdir of string | `Pkgs of string list] -> string
 
   let closure ts =
     let deps = Hashtbl.create 24 in
@@ -140,14 +140,16 @@ and Unit: sig
   val name: t -> string
   val dir: t -> string option
   val deps: t -> Dep.t list
-  val flags: t -> Env.Flag.t list
   val lib: t -> Lib.t option
   val build_dir: t -> string option
   val add_deps: t -> Dep.t list -> t
-  val add_flags: t -> Env.Flag.t list -> t
   val with_lib: t -> Lib.t -> t
   val with_build_dir: t -> string -> t
-  val create: ?flags:Env.Flag.t list -> ?dir:string -> ?deps:Dep.t list -> string -> t
+  val create: ?dir:string -> ?deps:Dep.t list -> string -> t
+  val cmi: t -> string
+  val cmo: t -> string
+  val cmx: t -> string
+  val o: t -> string
   val generated_files: t -> (Env.Flag.t list * string) list
   val compflags: t -> Dep.resolver -> string list
   val p4oflags: t -> Dep.resolver -> string list
@@ -158,7 +160,6 @@ end = struct
     build_dir: string option;
     deps: Dep.t list;
     name: string;
-    flags: Env.Flag.t list;
     lib: Lib.t option;
   }
 
@@ -169,8 +170,6 @@ end = struct
   let name t = t.name
 
   let deps t = t.deps
-
-  let flags t = t.flags
 
   let lib t = t.lib
 
@@ -183,57 +182,70 @@ end = struct
   let add_deps t deps =
     { t with deps = t.deps @ deps }
 
-  let add_flags t flags =
-    { t with flags = t.flags @ flags }
+  let create ?dir ?(deps=[]) name =
+    { dir; lib=None; build_dir=None; deps; name }
 
-  let create ?(flags=[]) ?dir ?(deps=[]) name =
-    { dir; lib=None; build_dir=None; deps; name; flags }
-
-  let p4oflags t resolver =
+  let p4oflags t (resolver:Dep.resolver) =
     let local = Dep.get_p4os (Unit.deps t) in
     let global = Dep.get_pkg_p4os (Unit.deps t) in
     match local, global with
     | []   , []     -> []
     | local, global ->
       let local = conmap (fun l ->
-          ["-I"; Lib.name l; Lib.name l / Lib.name l ^ ".cma"]
+          ["-I"; resolver (`Destdir (Lib.name l)); resolver (`Destdir (Lib.cma l))]
         ) local in
-      let global = resolver global in
+      let global = [
+        resolver (`Pkgs global)
+      ] in
       local @ global
 
-  let compflags t resolver =
+  let compflags t (resolver:Dep.resolver) =
     let local = Dep.get_libs (Unit.deps t) in
     let local = conmap (fun l ->
-        ["-I"; Lib.name l]
+        ["-I";  resolver (`Destdir (Lib.name l))]
       )local in
     let global = Dep.get_pkgs (Unit.deps t) in
     let global = match global with
       | [] -> []
-      | l  -> resolver global in
+      | l  -> [ resolver (`Pkgs global) ] in
     local @ global
 
-  let generated_files t =
-    let file ext = match t.lib with
-      | None   -> t.name ^ ext
-      | Some l -> Lib.name l / t.name ^ ext in
-    let byte   = [
-      t.flags, file ".cmi";
-      t.flags, file ".cmo"
-    ] in
-    let native = [
-      Env.Flag.native :: t.flags, file ".o";
-      Env.Flag.native :: t.flags, file ".cmx"
-    ] in
-    byte @ native
+  let file t ext =
+    Unit.build_dir t // Unit.name t ^ ext
+
+  let cmi t =
+    file t ".cmi"
+
+  let cmo t =
+    file t ".cmo"
+
+  let cmx t =
+    file t ".cmx"
+
+  let o t =
+    file t ".o"
+
+  let generated_files t = [
+    []               , cmi t;
+    []               , cmo t;
+    [Env.Flag.native], o t;
+    [Env.Flag.native], cmx t;
+  ]
 
 end
 
 and Lib: sig
   type t
   val name: t -> string
+  val filename: t -> string
+  val set_filename: t -> string -> unit
   val units: t -> Unit.t list
   val flags: t -> Env.Flag.t list
   val create: ?flags:Env.Flag.t list -> ?deps:Dep.t list -> Unit.t list -> string -> t
+  val cma: t -> string
+  val cmxa: t -> string
+  val a: t -> string
+  val cmxs: t -> string
   val generated_files: t -> (Env.Flag.t list * string) list
   val deps: t -> Dep.t list
 end = struct
@@ -241,6 +253,7 @@ end = struct
   type t = {
     name: string;
     mutable units: Unit.t list;
+    mutable filename: string;
     flags: Env.Flag.t list;
     deps : Dep.t list;
   }
@@ -249,23 +262,43 @@ end = struct
 
   let units t = t.units
 
+  let filename t = t.filename
+
+  let set_filename t f =
+    t.filename <- f
+
   let flags t = t.flags
 
   let create ?(flags=[]) ?(deps=[]) units name =
     let units = List.map (fun u -> Unit.add_deps u deps) units in
-    let units = List.map (fun u -> Unit.add_flags u flags) units in
-    let t = { name; units; flags; deps } in
+    let filename = name in
+    let t = { name; units; flags; filename; deps } in
     let units = List.map (fun u -> Unit.with_lib u t) units in
     t.units <- units;
     t
 
-  let generated_files t =
-    let file ext = t.name / t.name ^ ext in
-    let byte           = (                           t.flags, file ".cma" ) in
-    let native         = (Env.Flag.native ::         t.flags, file ".cmxa") in
-    let native_dynlink = (Env.Flag.native_dynlink :: t.flags, file ".cmxs") in
-    let units = conmap (fun u -> Unit.generated_files u) t.units in
-    byte :: native :: native_dynlink :: units
+  let file t ext =
+    Lib.name t / Lib.name t ^ ext
+
+  let cma t =
+    file t ".cma"
+
+  let cmxa t =
+    file t ".cmxa"
+
+  let cmxs t =
+    file t ".cmxs"
+
+  let a t =
+    file t ".a"
+
+  let generated_files t = [
+    t.flags                           , cma  t;
+    Env.Flag.native :: t.flags        , cmxa t;
+    Env.Flag.native :: t.flags        , a t;
+    Env.Flag.native_dynlink :: t.flags, cmxs t
+  ]
+    @ conmap (fun u -> Unit.generated_files u) t.units
 
   let deps t =
     Lib.units t
@@ -294,8 +327,11 @@ module Top = struct
 
   let custom t = t.custom
 
+  let byte t =
+    t.name / t.name
+
   let generated_files t =
-    [ [], t.name / t.name ]
+    [ [], byte t ]
 
 end
 
@@ -316,19 +352,28 @@ module Bin = struct
   let create ?(flags=[]) ?(deps=[]) name =
     { deps; flags; name }
 
+  let byte t =
+    t.name / t.name ^ ".byte"
+
+  let native t =
+    t.name / t.name ^ ".native"
+
   let generated_files t =
     [
-      []               , t.name / t.name ;
-      [Env.Flag.native], t.name / t.name ^ ".opt" ;
+      []               , byte t;
+      [Env.Flag.native], native t;
     ]
 
 end
 
 type t = {
+  name: string;
   libs: Lib.t list;
   bins: Bin.t list;
   tops: Top.t list;
 }
+
+let name t = t.name
 
 let libs t = t.libs
 
@@ -336,5 +381,26 @@ let bins t = t.bins
 
 let tops t = t.tops
 
-let create ?(libs=[]) ?(bins=[]) ?(tops=[]) () =
-  { libs; bins; tops }
+let create ?(libs=[]) ?(bins=[]) ?(tops=[]) name =
+  List.iter (fun l ->
+      if Lib.name l <> name then
+        Lib.set_filename l (name ^ "." ^ Lib.name l)
+    ) libs;
+  { name; libs; bins; tops }
+
+(* dedup a list *)
+let dedup l =
+  let l = List.sort compare l in
+  let rec aux acc = function
+    | []             -> List.rev acc
+    | [x]            -> List.rev (x :: acc)
+    | x::(y::_ as t) ->
+      if x=y then aux acc t
+      else aux (x::acc) t in
+  aux [] l
+
+let flags t =
+  let libs = conmap Lib.flags t.libs in
+  let tops = conmap Top.flags t.tops in
+  let bins = conmap Bin.flags t.bins in
+  dedup (libs @ tops @ bins)

@@ -110,13 +110,19 @@ module Variable: sig
   val name: t -> string
   (** Variable name. *)
 
-  val (=): string -> string ->  t
+  type contents =
+    [ `String of string
+    | `Strings of string list
+    | `Case of (t list * contents) list ]
+  (** Contents can be either a string or case conditions. *)
+
+  val (=): string -> contents ->  t
   (** VAR = x *)
 
-  val (:=): string -> string ->  t
+  val (:=): string -> contents ->  t
   (** VAR := x *)
 
-  val (+=): string -> string -> t
+  val (+=): string -> contents -> t
   (** VAR += x *)
 
   val subst: t -> string -> input:string -> output:string -> t
@@ -132,6 +138,15 @@ module Variable: sig
   val files: string -> dir:string -> ext:string -> t
   (** VAR = $(wildcard <dir>/*.<ext>)  *)
 
+  val has_native: t
+  (** Is native code enabled. *)
+
+  val has_native_dynlink: t
+  (** Is native dynlink enabled. *)
+
+  val has_feature: Env.Flag.t -> t
+  (** Is the given feature enabled. *)
+
 end
 
 type t
@@ -143,9 +158,8 @@ val create:
   Variable.t list -> Rule.t list -> t
 (** Create a Makefile. *)
 
-val of_project: ?file:string -> Project.t -> unit
-(** Generate a Makefile from a project description. Also generate the
-    META and .install files by reading the opam file of the project. *)
+val of_project: ?file:string -> ?destdir:string -> Project.t -> unit
+(** Generate a Makefile from a project description. *)
 
 val write: ?file:string -> t -> unit
 (** Generate a Makefile. *)
