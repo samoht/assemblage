@@ -110,22 +110,23 @@ end
 module Rule = struct
 
   type t = {
-    name: string;
+    ext: bool;
     targets: string list;
     prerequisites:string list;
     order_only_prerequisites:string list;
     recipe:string list;
   }
 
-  let create ~name ~targets ~prereqs ?(order_only_prereqs=[]) ~recipe =
-    { name; targets;
+  let create ?(ext=false) ~targets ~prereqs ?(order_only_prereqs=[]) recipe =
+    { ext; targets;
       prerequisites=prereqs;
       order_only_prerequisites=order_only_prereqs;
       recipe }
 
   let generate buf t =
-    bprintf buf "%s: %s%s\n"
+    bprintf buf "%s%s %s%s\n"
       (String.concat " " t.targets)
+      (if t.ext then "::" else ":")
       (String.concat " " t.prerequisites)
       (match t.order_only_prerequisites with
        | []  -> ""
@@ -245,12 +246,12 @@ end = struct
         let source = source ext in
         let target = target ext in
         if Sys.file_exists source then
-          [Rule.create ("ln" ^ ext)
-             [target] [source]
-             ((match Unit.build_dir t with
-                 | None   -> [sprintf "mkdir -p %S" "$(DESTDIR)"]
-                 | Some d -> [sprintf "mkdir -p %s" ("$(DESTDIR)" / d)])
-              @ [sprintf "ln -sf $(shell pwd)/%s %s" source target])]
+          [Rule.create[target] [source] [
+              (match Unit.build_dir t with
+               | None   -> sprintf "mkdir -p %S" "$(DESTDIR)"
+               | Some d -> sprintf "mkdir -p %s" ("$(DESTDIR)" / d));
+              sprintf "ln -sf $(shell pwd)/%s %s" source target
+            ]]
         else []
       in
       aux ".ml" @ aux ".mli"
@@ -260,18 +261,15 @@ end = struct
       let targets, prereqs =
         if Sys.file_exists (source ".mli") then [target ".cmi"], [target ".mli"]
         else [target ".cmo"; target ".cmi"], [target ".ml"] in
-      [Rule.create "cmi"
-         targets
-         (prereqs @ x.prereqs `byte)
-         [sprintf "$(OCAMLC) -c %s%s%s %s"
-            incl pp (Variable.name x.compflags) Rule.prereq]]
+      [Rule.create targets (prereqs @ x.prereqs `byte) [
+          sprintf "$(OCAMLC) -c %s%s%s %s"
+            incl pp (Variable.name x.compflags) Rule.prereq
+        ]]
     in
 
     let cmo = (* Generate cmos *)
       if Sys.file_exists (source ".mli") then
-        [Rule.create "cmo"
-           [target ".cmo"]
-           (target ".ml" :: target ".cmi" :: x.prereqs `byte)
+        [Rule.create [target ".cmo"] (target ".ml" :: target ".cmi" :: x.prereqs `byte)
            [sprintf "$(OCAMLC) -c %s%s%s %s"
               incl pp (Variable.name x.compflags) Rule.prereq]]
       else
@@ -279,9 +277,7 @@ end = struct
     in
 
     let cmx = (* Generate cmxs *)
-      [Rule.create "cmx"
-         [target ".cmx"]
-         (target ".ml" :: target ".cmi" :: x.prereqs `native)
+      [Rule.create [target ".cmx"] (target ".ml" :: target ".cmi" :: x.prereqs `native)
          [sprintf "$(OCAMLOPT) -c %s%s%s %s"
             incl pp (Variable.name x.compflags) Rule.prereq]]
     in
@@ -327,7 +323,7 @@ end = struct
   let rules t =
     let byte =
       let cmo = List.map (fun u -> destdir / Unit.cmo u) (Lib.units t) in
-      Rule.create "cma" [destdir / Lib.cma t] cmo [
+      Rule.create [destdir / Lib.cma t] cmo [
         sprintf "$(OCAMLC) -a %s -o %s" Rule.prereqs Rule.target
       ] in
     let native mode =
@@ -335,13 +331,10 @@ end = struct
         | `shared  -> "cmxs", destdir / Lib.cmxs t, "-shared"
         | `archive -> "cmxa", destdir / Lib.cmxa t, "-a" in
       let cmx = List.map (fun u -> destdir / Unit.cmx u) (Lib.units t) in
-      Rule.create name [file] cmx [
+      Rule.create [file] cmx [
         sprintf "$(OCAMLOPT) %s %s -o %s" mode Rule.prereqs Rule.target
       ] in
-    Rule.create "lib"
-      [variable t]
-      [sprintf "$(%s)" (variable t)]
-      [echo_prereqs]
+    Rule.create [variable t] [sprintf "$(%s)" (variable t)] [echo_prereqs]
     :: byte
     :: native `archive
     :: native `shared
@@ -388,16 +381,12 @@ end = struct
       |> Dep.get_units
     in
     let link = sprintf "$(LINKTOP_%s)" (Top.name t) in
-    Rule.create "toplevel"
-      [variable t]
-      [sprintf "$(%s)" (variable t)]
-      [echo_prereqs]
+    Rule.create [variable t] [sprintf "$(%s)" (variable t)] [echo_prereqs]
     ::
-    Rule.create "toplevel.byte"
-      [destdir / Top.byte t]
-      cma
-      [sprintf "mkdir -p %s" (destdir / Top.name t);
-       sprintf "$(OCAMLMKTOP) %s %s -o %s" link Rule.prereqs Rule.target]
+    Rule.create [destdir / Top.byte t] cma [
+      sprintf "mkdir -p %s" (destdir / Top.name t);
+      sprintf "$(OCAMLMKTOP) %s %s -o %s" link Rule.prereqs Rule.target
+    ]
     ::
     conmap Unit.rules units
 
@@ -441,22 +430,17 @@ end = struct
     let units = Bin.deps t |> Dep.get_units in
     let bytunits = List.map (fun u -> destdir / Unit.cmo u) units in
     let natunits = List.map (fun u -> destdir / Unit.cmx u) units in
-    Rule.create "bin"
-      [variable t]
-      [sprintf "$(%s)" (variable t)]
-      [echo_prereqs]
+    Rule.create [variable t] [sprintf "$(%s)" (variable t)] [echo_prereqs]
     ::
-    Rule.create "bin.byte"
-      [destdir / Bin.byte t]
-      (bytlibs @ bytunits)
-      [sprintf "mkdir -p %s" (destdir / Bin.name t);
-       sprintf "$(OCAMLC) $(%s) %s -o %s" (bytvar t) Rule.prereqs Rule.target]
+    Rule.create [destdir / Bin.byte t] (bytlibs @ bytunits) [
+      sprintf "mkdir -p %s" (destdir / Bin.name t);
+      sprintf "$(OCAMLC) $(%s) %s -o %s" (bytvar t) Rule.prereqs Rule.target;
+    ]
     ::
-    Rule.create "bin.native"
-      [destdir / Bin.native t]
-      (natlibs @ natunits)
-      [sprintf "mkdir -p %s" (destdir / Bin.name t);
-       sprintf "$(OCAMLOPT) $(%s) %s -o %s" (natvar t) Rule.prereqs Rule.target]
+    Rule.create [destdir / Bin.native t] (natlibs @ natunits) [
+      sprintf "mkdir -p %s" (destdir / Bin.name t);
+      sprintf "$(OCAMLOPT) $(%s) %s -o %s" (natvar t) Rule.prereqs Rule.target;
+    ]
     ::
     conmap Lib.rules libs @ conmap Unit.rules units
 
@@ -498,17 +482,19 @@ let of_project ?(destdir="_build") t =
     dedup (
       conmap Lib.rules libs @ conmap Bin.rules bins @ conmap Top.rules tops
     ) in
-  let main = Rule.create "main" ["all"]
-      []
-      [sprintf "@echo '\027[32m== %s\027[m'"
-         (String.concat " " (List.map (fun v ->
-              sprintf "%s=%s" v.Variable.name (Variable.name v)
-            ) features));
-       sprintf "@$(MAKE) %s" (String.concat " "
-                               (List.map Lib.variable libs
-                                @ List.map Bin.variable bins
-                                @ List.map Top.variable tops))] in
-  let clean = Rule.create "clean" ["clean"] [] [
+  let main = Rule.create ~ext:true ~targets:["all"] ~prereqs:[] [
+      sprintf "@echo '\027[32m== %s\027[m'"
+        (String.concat " " (List.map (fun v ->
+             sprintf "%s=%s" v.Variable.name (Variable.name v)
+           ) features));
+      sprintf "@$(MAKE) %s"
+        (String.concat " "
+           (List.map Lib.variable libs
+            @ List.map Bin.variable bins
+            @ List.map Top.variable tops));
+      sprintf "@echo '\027[32m== Done!\027[m'";
+    ] in
+  let clean = Rule.create ~ext:true ~targets:["clean"] ~prereqs:[] [
       "rm -f *~ **/*~";
       sprintf "rm -rf $(DESTDIR)";
     ] in

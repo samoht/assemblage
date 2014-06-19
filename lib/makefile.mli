@@ -22,17 +22,20 @@ module Rule: sig
   (** A rule value. *)
 
   val create:
-    name:string ->
+    ?ext:bool ->
     targets:string list ->
     prereqs:string list ->
     ?order_only_prereqs:string list ->
-    recipe:string list ->
+    string list ->
     t
   (** Generate a Makefile rule:
 
-      targets : inputs | order-only-inputs
+      targets : prereqs | prereqs-only-inputs
          recipe
          ...
+
+      If [ext] is set, the rule is extensible (ie. it uses [::]
+      instead of [:].
   *)
 
   val target: string
