@@ -15,17 +15,6 @@
  *)
 
 let generate t `Makefile =
-  let name = match Project.name t with
-    | Some n -> n
-    | None   -> match Opam.name () with
-    | None   -> "name"
-    | Some n -> n in
-  let version = match Project.version t with
-    | Some n  -> n
-    | None    -> match Opam.version () with
-    | None    -> "version"
-    | Some n  -> n in
-  let t = Project.with_name (Project.with_version t version) name in
-  Makefile.of_project t;
-  Ocamlfind.META.of_project t;
-  Opam.Install.of_project t
+  Makefile.(write @@ of_project t);
+  Ocamlfind.META.(write @@ of_project t);
+  Opam.Install.(write @@ of_project t)

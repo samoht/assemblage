@@ -36,13 +36,10 @@ module META: sig
 
   type t
 
-  val create: version:string -> libs:Lib.t list -> Env.t -> t option
+  val of_project: Project.t -> t
   (** Create a META file. *)
 
-  val write: t -> unit
+  val write: ?dir:string -> t -> unit
   (** Write a META file. *)
-
-  val of_project: Project.t -> Env.t -> unit
-  (** Generate a META file for the given project. *)
 
 end

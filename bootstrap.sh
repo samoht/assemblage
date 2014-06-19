@@ -8,7 +8,7 @@ ocamlbuild lib/git.cmo lib/env.cmo lib/project.cmo \
 
 ocamlmktop \
     $(ocamlfind query -r unix cmdliner opam -predicates byte -format "-I %d %a")  \
-    -I _build/lib git.cmo env.cmo project.cmo ocamlfind.cmo opam.cmo makefile.cmo \
-    tools.cmo -o configure.top
+    -I _build/lib git.cmo project.cmo ocamlfind.cmo opam.cmo makefile.cmo \
+    env.cmo tools.cmo -o configure.top
 
 ./configure.top -I _build/lib configure.ml

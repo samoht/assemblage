@@ -54,77 +54,38 @@ let natlink destdir = function
 
 module META = struct
 
-  type t = {
-    file: string;
-    contents: string;
-  }
+  type t = string
 
-  let string_exists s fn =
-    let exists = ref false in
-    String.iter (fun c ->
-        exists := !exists || fn c
-      ) s;
-    !exists
-
-  let create ~version ~libs env =
-    match libs with
-    | [] -> None
-    | _  ->
-      let others, main =
-        List.partition (fun l -> string_exists (Lib.name l) ((=) '.')) libs in
-      let main = match main with
-        | [m] -> m
-        | []  -> failwith "Missing toplevel library"
-        | _   -> failwith "Too many toplevel libraries" in
-      let others = List.map (fun l ->
-          let s = Lib.name l in
-          let i = String.rindex s '.' in
-          let p = String.sub s 0 i in
-          let r = String.sub s (i+1) (String.length s - i - 1) in
-          if p <> Lib.name main then
-            failwith (sprintf "%s: invalid library name, it should start with %s."
-                        s (Lib.name main))
-          else
-            (r, l)
-        ) others in
-      let buf = Buffer.create 1024 in
-      let aux lib =
-        let requires =
-          Lib.deps lib
-          |> Dep.get_pkgs
-          |> String.concat " " in
-        bprintf buf "version  = \"%s\"\n" version;
-        bprintf buf "requires = \"%s\"\n" requires;
-        bprintf buf "archive(byte) = \"%s.cma\"\n" (Lib.name lib);
-        bprintf buf "archive(byte, plugin) = \"%s.cma\"\n" (Lib.name lib);
-        if Env.native env then
-          bprintf buf "archive(native) = \"%s.cmxa\"\n" (Lib.name lib);
-        if Env.native_dynlink env then
-          bprintf buf "archive(native, plugin) = \"%s.cmxs\"\n" (Lib.name lib);
-        bprintf buf "exist_if = \"%s.cma\"\n" (Lib.name lib) in
-      aux main;
-      List.iter (fun (name, l) ->
-          bprintf buf "package \"%s\" (" name;
-          aux l;
-          bprintf buf ")\n"
-        ) others;
-      let contents = Buffer.contents buf in
-      let file = Env.destdir env / Lib.name main / "META" in
-      Some { file; contents }
-
-  let write t =
-    printf "\027[36m+ write %s\027[m\n" t.file;
-    let oc = open_out t.file in
-    output_string oc t.contents;
-    close_out oc
-
-  let of_project t env =
+  let of_project t =
     let libs = Project.libs t in
-    let version = match Env.version env with
-      | None   -> "<not-set>"
-      | Some v -> v in
-    match create ~version ~libs env with
-    | None   -> ()
-    | Some t -> write t
+    let version = Project.version t in
+    let buf = Buffer.create 1024 in
+    let one lib =
+      let requires = Lib.deps lib |> Dep.get_pkgs |> String.concat " " in
+      bprintf buf "version  = \"%s\"\n" version;
+      bprintf buf "requires = \"%s\"\n" requires;
+      bprintf buf "archive(byte) = \"%s.cma\"\n" (Lib.name lib);
+      bprintf buf "archive(byte, plugin) = \"%s.cma\"\n" (Lib.name lib);
+      bprintf buf "archive(native) = \"%s.cmxa\"\n" (Lib.name lib);
+      bprintf buf "archive(native, plugin) = \"%s.cmxs\"\n" (Lib.name lib);
+      bprintf buf "exist_if = \"%s.cma\"\n" (Lib.name lib) in
+    List.iteri (fun i lib ->
+        if i = 0 then one lib
+        else (
+          bprintf buf "package \"%s\" (" (Lib.name lib);
+          one lib;
+          bprintf buf ")\n"
+        )
+      ) libs;
+    Buffer.contents buf
+
+  let write ?dir t =
+    let file = match dir with
+      | None   -> "META"
+      | Some d -> d / "META" in
+    printf "\027[36m+ write %s\027[m\n" file;
+    let oc = open_out file in
+    output_string oc t;
+    close_out oc
 
 end

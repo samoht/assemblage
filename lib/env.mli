@@ -17,38 +17,10 @@
 (** Global project environment. The build environment (which can be an
     human) discover available feature. *)
 
+open Project
+
 type t
 (** Environment values. *)
-
-module Flag: sig
-
-  (** Conditional flags. *)
-
-  type t
-  (** Flag values. *)
-
-  val name: t -> string
-  (** The flag name. *)
-
-  val doc: t -> string
-  (** The flag documentation. *)
-
-  val default: t -> bool
-  (** Default value. *)
-
-  val create: doc:string -> default:bool -> string -> t
-  (** Create a flag. *)
-
-  val parse: t -> (t * bool) Cmdliner.Term.t
-  (** A cmldiner term which parses a flag. *)
-
-  val native: t
-  (** Is native-code enabled ? *)
-
-  val native_dynlink: t
-  (** Is dynlink for native code enabled ? *)
-
-end
 
 val create:
 
@@ -59,8 +31,8 @@ val create:
   (** Enable compilation of native dynlink units. Default is
       [true]. *)
 
-  ?flags:(Flag.t * bool) list ->
-  (** Environment flags. *)
+  ?features:(Feature.t * bool) list ->
+  (** Project features. *)
 
   ?comp: string list ->
   (** Additional compilation flags passed to both [ocamlc] and
@@ -99,7 +71,7 @@ val create:
 val default: t
 (** Default project configuration. *)
 
-val parse: Flag.t list -> t Cmdliner.Term.t
+val parse: Feature.t list -> t Cmdliner.Term.t
 (** Parse the arguments given on the command-line as a configuration
     value. *)
 
@@ -123,7 +95,7 @@ val p4o: t -> string list
 val destdir: t -> string
 (** Return the directory where build artififacts are generated. *)
 
-val enable: t -> Flag.t list -> bool
+val enable: t -> Feature.t list -> bool
 (** Check if the given set of flags are all enabled. *)
 
 val name: t -> string option

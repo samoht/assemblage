@@ -116,14 +116,15 @@ module Variable: sig
     | `Case of (t list * contents) list ]
   (** Contents can be either a string or case conditions. *)
 
-  val (=): string -> contents ->  t
-  (** VAR = x *)
 
-  val (:=): string -> contents ->  t
+  val (=:=): string -> contents ->  t
   (** VAR := x *)
 
-  val (+=): string -> contents -> t
+  val (=+=): string -> contents -> t
   (** VAR += x *)
+
+  val (=?=): string -> contents -> t
+  (** VAR ?= x *)
 
   val subst: t -> string -> input:string -> output:string -> t
     (** Create a new variable by sustituting the contents of an other one.
@@ -144,7 +145,7 @@ module Variable: sig
   val has_native_dynlink: t
   (** Is native dynlink enabled. *)
 
-  val has_feature: Env.Flag.t -> t
+  val has_feature: Project.Feature.t -> t
   (** Is the given feature enabled. *)
 
 end
@@ -158,7 +159,7 @@ val create:
   Variable.t list -> Rule.t list -> t
 (** Create a Makefile. *)
 
-val of_project: ?file:string -> ?destdir:string -> Project.t -> unit
+val of_project: ?destdir:string -> Project.t -> t
 (** Generate a Makefile from a project description. *)
 
 val write: ?file:string -> t -> unit

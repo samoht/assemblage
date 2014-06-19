@@ -25,11 +25,57 @@ let (//) x y =
   | None   -> y
   | Some x -> Filename.concat x y
 
+
+module Feature = struct
+
+  open Cmdliner
+
+  type t = {
+    name: string;
+    default: bool;
+    doc: string;
+  }
+
+  let name t = t.name
+
+  let doc t = t.doc
+
+  let default t = t.default
+
+  let create ~doc ~default name = { name; default; doc }
+
+  let parse t =
+    let enable =
+      let d = Arg.info ~doc:(sprintf "Enable %s" t.doc)
+          ["enable-" ^ t.name] in
+      Arg.(value & flag & d) in
+    let disable =
+      let d = Arg.info ~doc:(sprintf "Disable %s" t.doc)
+          ["disable-" ^ t.name] in
+      Arg.(value & flag & d) in
+    let create enable disable =
+      let v = match enable, disable with
+        | true , false -> true
+        | false, true  -> false
+        | false, false -> t.default
+        | true , true  -> failwith "Invalid flag" in
+      (t, v) in
+    Term.(pure create $ enable $ disable)
+
+  let native =
+    create ~doc:"native code compilation." ~default:true "native"
+
+  let native_dynlink =
+    create ~doc:"native plugins for native code." ~default:true "native-dynlink"
+
+end
+
 module rec Dep: sig
   type t
   val unit: Unit.t -> t
   val units: Unit.t list -> t list
   val get_units: t list -> Unit.t list
+  val map_units: (Unit.t -> Unit.t) -> t list -> t list
   val lib: Lib.t -> t
   val libs: Lib.t list -> t list
   val get_libs: t list -> Lib.t list
@@ -88,6 +134,12 @@ end = struct
     List.fold_left (fun acc -> function Unit t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
+  let map_units f t =
+    List.map (function
+        | Unit t -> Unit (f t)
+        | x      -> x
+      ) t
+
   let get_libs t =
     List.fold_left (fun acc -> function Lib t -> t :: acc | _ -> acc) [] t
     |> List.rev
@@ -137,31 +189,40 @@ end
 
 and Unit: sig
   type t
+  val copy: t -> t
   val name: t -> string
   val dir: t -> string option
   val deps: t -> Dep.t list
   val lib: t -> Lib.t option
   val build_dir: t -> string option
-  val add_deps: t -> Dep.t list -> t
-  val with_lib: t -> Lib.t -> t
-  val with_build_dir: t -> string -> t
+  val add_deps: t -> Dep.t list -> unit
+  val set_lib: t -> Lib.t -> unit
+  val set_build_dir: t -> string -> unit
   val create: ?dir:string -> ?deps:Dep.t list -> string -> t
   val cmi: t -> string
   val cmo: t -> string
   val cmx: t -> string
   val o: t -> string
-  val generated_files: t -> (Env.Flag.t list * string) list
+  val file: t -> string -> string
+  val generated_files: t -> (Feature.t list * string) list
   val compflags: t -> Dep.resolver -> string list
   val p4oflags: t -> Dep.resolver -> string list
 end = struct
 
   type t = {
     dir: string option;
-    build_dir: string option;
-    deps: Dep.t list;
+    mutable build_dir: string option;
+    mutable deps: Dep.t list;
     name: string;
-    lib: Lib.t option;
+    mutable lib: Lib.t option;
   }
+
+  let copy t =
+    { dir = t.dir;
+      build_dir = t.build_dir;
+      deps = t.deps;
+      name = t.name;
+      lib = t.lib }
 
   let dir t = t.dir
 
@@ -173,14 +234,15 @@ end = struct
 
   let lib t = t.lib
 
-  let with_lib t lib =
-    { t with lib = Some lib; build_dir = Some (Lib.name lib) }
+  let set_lib t lib =
+    t.lib       <- Some lib;
+    t.build_dir <- Some (Lib.name lib)
 
-  let with_build_dir t build_dir =
-    { t with build_dir = Some build_dir }
+  let set_build_dir t build_dir =
+    t.build_dir <- Some build_dir
 
   let add_deps t deps =
-    { t with deps = t.deps @ deps }
+    t.deps <- t.deps @ deps
 
   let create ?dir ?(deps=[]) name =
     { dir; lib=None; build_dir=None; deps; name }
@@ -228,8 +290,8 @@ end = struct
   let generated_files t = [
     []               , cmi t;
     []               , cmo t;
-    [Env.Flag.native], o t;
-    [Env.Flag.native], cmx t;
+    [Feature.native], o t;
+    [Feature.native], cmx t;
   ]
 
 end
@@ -240,21 +302,21 @@ and Lib: sig
   val filename: t -> string
   val set_filename: t -> string -> unit
   val units: t -> Unit.t list
-  val flags: t -> Env.Flag.t list
-  val create: ?flags:Env.Flag.t list -> ?deps:Dep.t list -> Unit.t list -> string -> t
+  val features: t -> Feature.t list
+  val create: ?features:Feature.t list -> ?deps:Dep.t list -> Unit.t list -> string -> t
   val cma: t -> string
   val cmxa: t -> string
   val a: t -> string
   val cmxs: t -> string
-  val generated_files: t -> (Env.Flag.t list * string) list
+  val generated_files: t -> (Feature.t list * string) list
   val deps: t -> Dep.t list
 end = struct
 
   type t = {
     name: string;
-    mutable units: Unit.t list;
+    units: Unit.t list;
     mutable filename: string;
-    flags: Env.Flag.t list;
+    features: Feature.t list;
     deps : Dep.t list;
   }
 
@@ -267,14 +329,13 @@ end = struct
   let set_filename t f =
     t.filename <- f
 
-  let flags t = t.flags
+  let features t = t.features
 
-  let create ?(flags=[]) ?(deps=[]) units name =
-    let units = List.map (fun u -> Unit.add_deps u deps) units in
+  let create ?(features=[]) ?(deps=[]) units name =
     let filename = name in
-    let t = { name; units; flags; filename; deps } in
-    let units = List.map (fun u -> Unit.with_lib u t) units in
-    t.units <- units;
+    let t = { name; units; features; filename; deps } in
+    List.iter (fun u -> Unit.add_deps u deps) units;
+    List.iter (fun u -> Unit.set_lib u t) units;
     t
 
   let file t ext =
@@ -293,12 +354,12 @@ end = struct
     file t ".a"
 
   let generated_files t = [
-    t.flags                           , cma  t;
-    Env.Flag.native :: t.flags        , cmxa t;
-    Env.Flag.native :: t.flags        , a t;
-    Env.Flag.native_dynlink :: t.flags, cmxs t
+    t.features                          , cma  t;
+    Feature.native :: t.features        , cmxa t;
+    Feature.native :: t.features        , a t;
+    Feature.native_dynlink :: t.features, cmxs t
   ]
-    @ conmap (fun u -> Unit.generated_files u) t.units
+    @ conmap Unit.generated_files t.units
 
   let deps t =
     Lib.units t
@@ -310,16 +371,16 @@ end
 module Top = struct
 
   type t = {
-    deps  : Dep.t list;
-    name  : string;
-    custom: bool;
-    flags : Env.Flag.t list;
+    deps     : Dep.t list;
+    name     : string;
+    custom   : bool;
+    features : Feature.t list;
   }
 
-  let flags t = t.flags
+  let features t = t.features
 
-  let create ?(flags=[]) ?(custom=false) ?(deps=[]) name =
-    { deps; flags; name; custom }
+  let create ?(features=[]) ?(custom=false) ?(deps=[]) name =
+    { deps; features; name; custom }
 
   let name t = t.name
 
@@ -340,17 +401,17 @@ module Bin = struct
   type t = {
     deps: Dep.t list;
     name: string;
-    flags: Env.Flag.t list;
+    features: Feature.t list;
   }
 
   let name t = t.name
 
   let deps t = t.deps
 
-  let flags t = t.flags
+  let features t = t.features
 
-  let create ?(flags=[]) ?(deps=[]) name =
-    { deps; flags; name }
+  let create ?(features=[]) ?(deps=[]) name =
+    { deps; features; name }
 
   let byte t =
     t.name / t.name ^ ".byte"
@@ -360,14 +421,15 @@ module Bin = struct
 
   let generated_files t =
     [
-      []               , byte t;
-      [Env.Flag.native], native t;
+      []              , byte t;
+      [Feature.native], native t;
     ]
 
 end
 
 type t = {
   name: string;
+  version: string;
   libs: Lib.t list;
   bins: Bin.t list;
   tops: Top.t list;
@@ -375,18 +437,20 @@ type t = {
 
 let name t = t.name
 
+let version t = t.version
+
 let libs t = t.libs
 
 let bins t = t.bins
 
 let tops t = t.tops
 
-let create ?(libs=[]) ?(bins=[]) ?(tops=[]) name =
+let create ?(libs=[]) ?(bins=[]) ?(tops=[]) ?(version="not-set") name =
   List.iter (fun l ->
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)
     ) libs;
-  { name; libs; bins; tops }
+  { name; version; libs; bins; tops }
 
 (* dedup a list *)
 let dedup l =
@@ -399,8 +463,9 @@ let dedup l =
       else aux (x::acc) t in
   aux [] l
 
-let flags t =
-  let libs = conmap Lib.flags t.libs in
-  let tops = conmap Top.flags t.tops in
-  let bins = conmap Bin.flags t.bins in
-  dedup (libs @ tops @ bins)
+let features t =
+  let default = [Feature.native; Feature.native_dynlink] in
+  let libs = conmap Lib.features t.libs in
+  let tops = conmap Top.features t.tops in
+  let bins = conmap Bin.features t.bins in
+  dedup (default @ libs @ tops @ bins)

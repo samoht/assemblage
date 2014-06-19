@@ -35,33 +35,6 @@ let read () =
 let write t =
   OpamFile.OPAM.write (OpamFilename.of_string "opam") t
 
-let version t =
-  match read () with
-  | None   -> Git.version ()
-  | Some t ->
-    let git_version = match Git.version () with
-      | None   -> ""
-      | Some v -> "-" ^ v in
-    Some (OpamPackage.Version.to_string (OpamFile.OPAM.version t)
-          ^ git_version)
-
-let name t =
-  match read () with
-  | None   -> None
-  | Some t -> Some (OpamPackage.Name.to_string (OpamFile.OPAM.name t))
-
-(*
-let with_configure t flags =
-  let build = match OpamFile.OPAM.build t with
-    | ( (CString "opam", o) :: (CString "configure", c) :: _ , f) :: t ->
-      let flags = List.map (fun f ->
-          CString (sprintf "--%%{enable:%s}%%-%s" (Flag.name f) (Flag.name f)), None
-        ) flags in
-      ( (CString "opam", o) :: (CString "configure", c) :: flags, f) :: t
-    | l -> l in
-  OpamFile.OPAM.with_build t build
-*)
-
 module Install = struct
 
   type t = {
@@ -69,18 +42,23 @@ module Install = struct
     contents: string;
   }
 
-  let create ?(libs=[]) ?(bins=[]) ?(tops=[]) env =
-    let name = match Env.name env with
-      | None   -> "not-set"
-      | Some n -> n in
+  let opt = function
+    | [] -> ""
+    | _  -> "?"
+
+  let of_project ?(meta=true) t =
+    let name = Project.name t in
+    let libs = Project.libs t in
+    let bins = Project.bins t in
+    let tops = Project.tops t in
     let buf = Buffer.create 1024 in
     if libs <> [] then (
       bprintf buf "lib: [\n";
-      bprintf buf " \"%s/META\"" (Env.destdir env / name);
+      bprintf buf "  \"META\"";
       List.iter (fun l ->
           let files = Lib.generated_files l in
           List.iter (fun (flags, file) ->
-              if Env.enable env flags then bprintf buf "  \"%s\"\n" file
+              bprintf buf "  \"%s%s\"\n" (opt flags) file
             ) files;
         ) libs;
       bprintf buf "]\n");
@@ -89,13 +67,13 @@ module Install = struct
       List.iter (fun b ->
           let files = Bin.generated_files b in
           List.iter (fun (flags, file) ->
-              if Env.enable env flags then bprintf buf "  \"%s\"\n" file
+              bprintf buf "  \"%s%s\" {\"%s\"}\n" (opt flags) file (Bin.name b)
             ) files;
         ) bins;
       List.iter (fun t ->
           let files = Top.generated_files t in
           List.iter (fun (flags, file) ->
-              if Env.enable env flags then bprintf buf "  \"%s\"\n" file
+              bprintf buf "  \"%s%s\" {\"%s\"}\n" (opt flags) file (Top.name t)
             ) files;
         ) tops;
       bprintf buf "]\n";
@@ -103,18 +81,15 @@ module Install = struct
     let contents = Buffer.contents buf in
     { name; contents }
 
-  let write t =
-    let file = t.name ^ ".install" in
+  let write ?dir t =
+    let file =
+      let f = t.name ^ ".install" in
+      match dir with
+      | None   -> f
+      | Some d -> d / f in
     printf "\027[36m+ write %s\027[m\n" file;
     let oc = open_out file in
     output_string oc t.contents;
     close_out oc
-
-  let of_project t env =
-    let libs = Project.libs t in
-    let bins = Project.bins t in
-    let tops = Project.tops t in
-    let t = create ~libs ~bins ~tops env in
-    write t
 
 end
