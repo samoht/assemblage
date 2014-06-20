@@ -1,4 +1,5 @@
 (*
+ * Copyright (c) 2014 Daniel C. Bünzli.
  * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -26,25 +27,56 @@ let green_s = green "%s"
 let yellow_s = yellow "%s"
 let blue_s = blue "%s"
 
-let with_process_in cmd f =
-  let ic = Unix.open_process_in cmd in
-  try
-    let r = f ic in
-    ignore (Unix.close_process_in ic) ; r
-  with exn ->
-    ignore (Unix.close_process_in ic) ; raise exn
-
 let error fmt =
   ksprintf (fun str ->
      eprintf "%s: %s\n" (red_s "ERROR") str;
      exit 1
     ) fmt
 
+let read file =
+  try
+    let ic = open_in file in
+    let len = in_channel_length ic in
+    let s = String.create len in
+    really_input ic s 0 len;
+    close_in ic;
+    s
+  with Sys_error e ->
+    error "while reading %s: %s" file e
+
+let write file s =
+  try
+    let oc = open_out file in
+    output_string oc s;
+    close_out oc
+  with Sys_error e ->
+    error "while writing %s: %s" file e
+
+let temp () =
+  try
+    let file = Filename.temp_file (Filename.basename Sys.argv.(0)) "opam-configure" in
+    at_exit (fun () -> Sys.remove file);
+    file
+  with Sys_error e ->
+    error "while creating temp file: %s" e
+
+let exec fmt =
+  ksprintf (fun cmd ->
+      print_endline (blue "+ %s" cmd);
+      let i = Sys.command cmd in
+      if i <> 0 then error "`%s' exited with code %d" cmd i
+    ) fmt
+
+let read_in fmt =
+  ksprintf (fun cmd ->
+      let file = temp () in
+      exec "%s > %s" cmd file;
+      String.trim (read file)
+    ) fmt
+
+let (/) = Filename.concat
+
 let () =
   if not (Sys.file_exists "configure.ml") then error "missing configure.ml.";
-  let lib =
-    try with_process_in "opam config var tools:lib" input_line
-    with e -> error "%s" (Printexc.to_string e)
-  in
-  let i = Sys.command (sprintf "configure.top -I %s configure.ml" lib) in
-  if i <> 0 then error "configure.top: exit %d" i
+  let incl = read_in "opam config var lib" / "tools" in
+  exec "configure.top -I %s configure.ml" incl

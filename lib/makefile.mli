@@ -162,7 +162,7 @@ val create:
   Variable.t list -> Rule.t list -> t
 (** Create a Makefile. *)
 
-val of_project: ?destdir:string -> Project.t -> t
+val of_project: ?buildir:string -> Project.t -> t
 (** Generate a Makefile from a project description. *)
 
 val write: ?file:string -> t -> unit

@@ -32,7 +32,7 @@ module Install: sig
   (** OPAM install files. *)
   type t
 
-  val of_project: ?meta:bool -> Project.t -> t
+  val of_project: ?meta:bool -> ?buildir:string -> Project.t -> t
   (** Create an `.install` file. *)
 
   val write: ?dir:string -> t -> unit

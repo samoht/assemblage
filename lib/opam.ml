@@ -46,7 +46,7 @@ module Install = struct
     | [] -> ""
     | _  -> "?"
 
-  let of_project ?(meta=true) t =
+  let of_project ?(meta=true) ?(buildir="_build") t =
     let name = Project.name t in
     let libs = Project.libs t in
     let bins = Project.bins t in
@@ -54,11 +54,11 @@ module Install = struct
     let buf = Buffer.create 1024 in
     if libs <> [] then (
       bprintf buf "lib: [\n";
-      bprintf buf "  \"META\"";
+      bprintf buf "  \"META\"\n";
       List.iter (fun l ->
           let files = Lib.generated_files l in
           List.iter (fun (flags, file) ->
-              bprintf buf "  \"%s%s\"\n" (opt flags) file
+              bprintf buf "  \"%s%s\"\n" (opt flags) (buildir / file)
             ) files;
         ) libs;
       bprintf buf "]\n");
@@ -67,13 +67,15 @@ module Install = struct
       List.iter (fun b ->
           let files = Bin.generated_files b in
           List.iter (fun (flags, file) ->
-              bprintf buf "  \"%s%s\" {\"%s\"}\n" (opt flags) file (Bin.name b)
+              bprintf buf "  \"%s%s\" {\"%s\"}\n"
+                (opt flags) (buildir / file) (Bin.name b)
             ) files;
         ) bins;
       List.iter (fun t ->
           let files = Top.generated_files t in
           List.iter (fun (flags, file) ->
-              bprintf buf "  \"%s%s\" {\"%s\"}\n" (opt flags) file (Top.name t)
+              bprintf buf "  \"%s%s\" {\"%s\"}\n"
+                (opt flags) (buildir / file) (Top.name t)
             ) files;
         ) tops;
       bprintf buf "]\n";

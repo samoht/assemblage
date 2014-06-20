@@ -19,8 +19,8 @@ open Project
 
 let (/) = Filename.concat
 
-let p4o destdir = function
-  | `Destdir f  -> destdir / f
+let p4o buildir = function
+  | `Buildir f  -> buildir / f
   | `Pkgs names ->
     let names = String.concat " " names in
     sprintf
@@ -28,24 +28,24 @@ let p4o destdir = function
        -format \"-I %%d %%a\")"
       names
 
-let incl destdir = function
-  | `Destdir f  -> destdir / f
+let incl buildir = function
+  | `Buildir f  -> buildir / f
   | `Pkgs names ->
     let names = String.concat " "  (List.rev names) in
     sprintf
       "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d\")"
       names
 
-let bytlink destdir = function
-  | `Destdir f  -> destdir / f
+let bytlink buildir = function
+  | `Buildir f  -> buildir / f
   | `Pkgs names ->
     let names = String.concat " "  (List.rev names) in
     sprintf
       "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d %%a\")"
       names
 
-let natlink destdir = function
-  | `Destdir f  -> destdir / f
+let natlink buildir = function
+  | `Buildir f  -> buildir / f
   | `Pkgs names ->
     let names = String.concat " "  (List.rev names) in
     sprintf

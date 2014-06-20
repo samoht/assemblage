@@ -126,7 +126,7 @@ module rec Dep: sig
 
   (** {2 Misc} *)
 
-  type resolver = [`Destdir of string | `Pkgs of string list] -> string
+  type resolver = [`Buildir of string | `Pkgs of string list] -> string
   (** Resolve a list of package names into a list of command-line
       arguments. *)
 
@@ -162,18 +162,20 @@ and Unit: sig
       can be other exotic places (for instance the exec name, if the
       compilation unit is the main program file). *)
 
+  val for_pack: t -> string option
+  (** Return the (optional) pack the compilation unit is in. *)
+
   val add_deps: t -> Dep.t list -> unit
   (** Add more dependencies to the compilation unit. *)
 
-  val set_lib: t -> Lib.t -> unit
-  (** Set the library of the compilation unit. This also set the build
-      directory to be the name of the library. *)
-
-  val set_build_dir: t -> string -> unit
-  (** Set the build directory of the compilation unit. *)
-
   val create: ?dir:string -> ?deps:Dep.t list -> string -> t
   (** Create a compilation unit. *)
+
+  val pack: t list -> string -> t
+  (** Pack a collection of compilation units together. *)
+
+  val unpack: t -> t list
+  (** Return the (usually empty) list of packed compilation units. *)
 
   val cmi: t -> string
   (** Return the name of the compiled module interface. *)
@@ -189,8 +191,8 @@ and Unit: sig
   (** Return the name of the object file for the compilation unit. *)
 
   val file: t -> string -> string
-  (** Return the generated file with the given extension for the given
-      compilation unit. *)
+  (** [file t ext] is the generated file with the extension [ext] for
+       the compilation unit [t]. *)
 
   val generated_files: t -> (Feature.t list * string) list
   (** Return the list of generated files when the given conjonction of
@@ -205,6 +207,10 @@ and Unit: sig
   (** Return the computed pre-processing flags. The [resolver] function
       resolves a list of external syntax extensions into a list of
       command-line options for the linkers. *)
+
+  val prereqs: t -> [`byte | `native] -> string list
+  (** [prereqs t mode] is the list of prerequisites files to build, in
+      the given [mode], before building the compilation unit [t]. *)
 
 end
 
@@ -222,9 +228,6 @@ and Lib: sig
       but this could be updated when the library is put in a named
       project to [project.name]. *)
 
-  val set_filename: t -> string -> unit
-  (** Rename the library. *)
-
   val units: t -> Unit.t list
   (** Return the list of compilation units which defines the
       library. *)
@@ -234,6 +237,7 @@ and Lib: sig
 
   val create:
     ?features:Feature.t list ->
+    ?pack:bool ->
     ?deps:Dep.t list ->
     Unit.t list -> string -> t
   (** Create a library. *)
@@ -250,6 +254,10 @@ and Lib: sig
 
   val cmxs: t -> string
   (** Return the shared archive of the library. *)
+
+  val file: t -> string -> string
+  (** Return the generated file with the given extension for the given
+      compilation unit. *)
 
   val generated_files: t -> (Feature.t list * string) list
   (** Return the list of generated files for the given project
@@ -338,6 +346,10 @@ val version: t -> string
 val libs: t -> Lib.t list
 (** Return the list of libraries defined by the project. *)
 
+val p4os: t -> Lib.t list
+(** [p4os t] is the list of syntax extensions defined by the project
+    [t]. *)
+
 val bins: t -> Bin.t list
 (** Return the list of binaries defined by the project. *)
 
@@ -346,15 +358,15 @@ val tops: t -> Top.t list
 
 val create:
   ?libs:Lib.t list ->
+  ?p4os:Lib.t list ->
   ?bins:Bin.t list ->
   ?tops:Top.t list ->
   ?version:string ->
   string -> t
-(** [create ?libs ?bins ?tops ?version name] generates a project
-    description named [project]. The first library of the list [libs]
-    of libraries will be used as the toplevel ocamlfind package named
-    [project] -- any subsequent library named [lib] will be in the
-    subpackage named [project.lib]. *)
+(** [create ?libs ?p4os ?bins ?tops ?version name] is the project
+    description named [name], defining the libraries [libs], the
+    syntax extensions [p4os], the program binaries [bins] and the
+    top-level binaries [bins]. *)
 
 val features: t -> Feature.t list
 (** Return the features used in the project. *)

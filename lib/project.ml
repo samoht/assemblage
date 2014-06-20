@@ -95,7 +95,7 @@ module rec Dep: sig
   }
   val custom: custom -> t
   val get_customs: t list -> custom list
-  type resolver = [`Destdir of string | `Pkgs of string list] -> string
+  type resolver = [`Buildir of string | `Pkgs of string list] -> string
   val closure: t list -> t list
 end = struct
 
@@ -160,7 +160,7 @@ end = struct
     List.fold_left (fun acc -> function Custom t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
-  type resolver = [`Destdir of string | `Pkgs of string list] -> string
+  type resolver = [`Buildir of string | `Pkgs of string list] -> string
 
   let closure ts =
     let deps = Hashtbl.create 24 in
@@ -195,10 +195,13 @@ and Unit: sig
   val deps: t -> Dep.t list
   val lib: t -> Lib.t option
   val build_dir: t -> string option
+  val for_pack: t -> string option
   val add_deps: t -> Dep.t list -> unit
   val set_lib: t -> Lib.t -> unit
   val set_build_dir: t -> string -> unit
   val create: ?dir:string -> ?deps:Dep.t list -> string -> t
+  val pack: t list -> string -> t
+  val unpack: t -> t list
   val cmi: t -> string
   val cmo: t -> string
   val cmx: t -> string
@@ -207,22 +210,27 @@ and Unit: sig
   val generated_files: t -> (Feature.t list * string) list
   val compflags: t -> Dep.resolver -> string list
   val p4oflags: t -> Dep.resolver -> string list
+  val prereqs: t -> [`byte | `native] -> string list
 end = struct
 
   type t = {
+    name: string;
     dir: string option;
     mutable build_dir: string option;
     mutable deps: Dep.t list;
-    name: string;
     mutable lib: Lib.t option;
+    mutable for_pack: string option;
+    mutable pack: t list;
   }
 
-  let copy t =
-    { dir = t.dir;
+  let rec copy t =
+    { dir       = t.dir;
       build_dir = t.build_dir;
-      deps = t.deps;
-      name = t.name;
-      lib = t.lib }
+      deps      = t.deps;
+      name      = t.name;
+      lib       = t.lib;
+      for_pack  = t.for_pack;
+      pack      = List.map copy t.pack }
 
   let dir t = t.dir
 
@@ -234,6 +242,10 @@ end = struct
 
   let lib t = t.lib
 
+  let for_pack t = t.for_pack
+
+  let unpack t = t.pack
+
   let set_lib t lib =
     t.lib       <- Some lib;
     t.build_dir <- Some (Lib.name lib)
@@ -244,8 +256,25 @@ end = struct
   let add_deps t deps =
     t.deps <- t.deps @ deps
 
-  let create ?dir ?(deps=[]) name =
-    { dir; lib=None; build_dir=None; deps; name }
+  let create ?dir ?(deps=[]) name = {
+    name; dir; deps;
+    lib       = None;
+    build_dir = None;
+    for_pack  = None;
+    pack      = [];
+  }
+
+  let pack units name =
+    List.iter (fun u -> u.for_pack <- Some (String.capitalize name)) units;
+    {
+      name;
+      dir       = None;
+      lib       = None;
+      build_dir = None;
+      for_pack  = None;
+      deps      = [];
+      pack      = units;
+    }
 
   let p4oflags t (resolver:Dep.resolver) =
     let local = Dep.get_p4os (Unit.deps t) in
@@ -254,7 +283,7 @@ end = struct
     | []   , []     -> []
     | local, global ->
       let local = conmap (fun l ->
-          ["-I"; resolver (`Destdir (Lib.name l)); resolver (`Destdir (Lib.cma l))]
+          ["-I"; resolver (`Buildir (Lib.name l)); resolver (`Buildir (Lib.cma l))]
         ) local in
       let global = [
         resolver (`Pkgs global)
@@ -264,7 +293,7 @@ end = struct
   let compflags t (resolver:Dep.resolver) =
     let local = Dep.get_libs (Unit.deps t) in
     let local = conmap (fun l ->
-        ["-I";  resolver (`Destdir (Lib.name l))]
+        ["-I";  resolver (`Buildir (Lib.name l))]
       )local in
     let global = Dep.get_pkgs (Unit.deps t) in
     let global = match global with
@@ -294,6 +323,23 @@ end = struct
     [Feature.native], cmx t;
   ]
 
+  let prereqs t mode =
+    let units = Dep.get_units (Unit.deps t) in
+    let units = List.map (fun u ->
+        match mode with
+        | `native -> cmx u
+        | `byte   -> cmi u
+      ) units in
+    let libs = Dep.get_libs (Unit.deps t) in
+    let libs = List.map (fun l ->
+        match mode with
+        | `native -> Lib.cmxa l
+        | `byte   -> Lib.cma l
+      ) libs in
+    let p4os = Dep.get_p4os (Unit.deps t) in
+    let p4os = List.map Lib.cma p4os in
+    units @ libs @ p4os
+
 end
 
 and Lib: sig
@@ -303,11 +349,16 @@ and Lib: sig
   val set_filename: t -> string -> unit
   val units: t -> Unit.t list
   val features: t -> Feature.t list
-  val create: ?features:Feature.t list -> ?deps:Dep.t list -> Unit.t list -> string -> t
+  val create:
+    ?features:Feature.t list ->
+    ?pack:bool ->
+    ?deps:Dep.t list ->
+    Unit.t list -> string -> t
   val cma: t -> string
   val cmxa: t -> string
   val a: t -> string
   val cmxs: t -> string
+  val file: t -> string -> string
   val generated_files: t -> (Feature.t list * string) list
   val deps: t -> Dep.t list
 end = struct
@@ -317,7 +368,7 @@ end = struct
     units: Unit.t list;
     mutable filename: string;
     features: Feature.t list;
-    deps : Dep.t list;
+    deps: Dep.t list;
   }
 
   let name t = t.name
@@ -331,11 +382,11 @@ end = struct
 
   let features t = t.features
 
-  let create ?(features=[]) ?(deps=[]) units name =
-    let filename = name in
-    let t = { name; units; features; filename; deps } in
+  let create ?(features=[]) ?(pack=false) ?(deps=[]) units name =
+    let units' = if pack then [Unit.pack units name] else units in
+    let t = { name; units = units'; features; filename = name; deps } in
     List.iter (fun u -> Unit.add_deps u deps) units;
-    List.iter (fun u -> Unit.set_lib u t) units;
+    List.iter (fun u -> Unit.set_lib u t) (units' @ units);
     t
 
   let file t ext =
@@ -348,7 +399,7 @@ end = struct
     file t ".cmxa"
 
   let cmxs t =
-    file t ".cmxs"
+    file t  ".cmxs"
 
   let a t =
     file t ".a"
@@ -431,6 +482,7 @@ type t = {
   name: string;
   version: string;
   libs: Lib.t list;
+  p4os: Lib.t list;
   bins: Bin.t list;
   tops: Top.t list;
 }
@@ -441,16 +493,18 @@ let version t = t.version
 
 let libs t = t.libs
 
+let p4os t = t.p4os
+
 let bins t = t.bins
 
 let tops t = t.tops
 
-let create ?(libs=[]) ?(bins=[]) ?(tops=[]) ?(version="not-set") name =
+let create ?(libs=[]) ?(p4os=[]) ?(bins=[]) ?(tops=[]) ?(version="not-set") name =
   List.iter (fun l ->
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)
     ) libs;
-  { name; version; libs; bins; tops }
+  { name; version; libs; p4os; bins; tops }
 
 (* dedup a list *)
 let dedup l =
