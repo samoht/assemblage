@@ -4,7 +4,8 @@ set -ex
 
 ocamlbuild lib/git.cmo lib/env.cmo lib/project.cmo \
     lib/ocamlfind.cmo lib/opam.cmo lib/makefile.cmo \
-    lib/tools.cmo -package cmdliner -package opam
+    lib/tools.cmo \
+    -package cmdliner -package opam -package ocamlgraph
 
 ocamlmktop \
     $(ocamlfind query -r unix cmdliner opam -predicates byte -format "-I %d %a")  \

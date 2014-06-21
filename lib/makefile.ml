@@ -185,53 +185,83 @@ let buildir = "$(BUILDIR)"
 let echo_prereqs =
   sprintf "@echo '\027[36m== Building %s\027[m'" Rule.prereqs
 
-module rec U: sig
-  val rules    : Unit.t -> Rule.t list
-  val variables: Unit.t -> Variable.t list
+let resolver =
+  Ocamlfind.resolver (fun x -> buildir / x)
+
+module rec D: sig
+  val variables: Dep.t -> Variable.t list
+  val rules    : Dep.t -> Rule.t list
 end = struct
 
-  type ext = {
-    p4flags  : Variable.t option;
-    compflags: Variable.t;
-    prereqs  : [`native | `byte] -> string list;
-  }
+  let variables = function
+    | `Unit u -> U.variables u
+    | `Lib l
+    | `Pp l   -> L.variables l
+    | _       -> []
 
-  let p4oflags t =
-    match Project.Unit.p4oflags t (Ocamlfind.p4o buildir) with
+  let rules = function
+    | `Unit u -> U.rules u
+    | `Lib l
+    | `Pp l   -> L.rules l
+    | _       -> []
+
+end
+
+and U: sig
+  val rules      : Unit.t -> Rule.t list
+  val variables  : Unit.t -> Variable.t list
+  val pp_byte    : Unit.t -> Variable.t option
+  val pp_native  : Unit.t -> Variable.t option
+  val comp_byte  : Unit.t -> Variable.t
+  val comp_native: Unit.t -> Variable.t
+end = struct
+
+  let pp_byte t =
+    let var = "PP_BYTE" ^ Unit.name t in
+    match Flags.pp_byte (Unit.flags t resolver) with
     | [] -> None
-    | l  ->
-      let var = "P4FLAGS_" ^ Unit.name t in
-      Some (Variable.(var =?= `Strings l))
+    | l  -> Some (Variable.(var =?= `Strings l))
 
-  let compflags t =
-    let links = Unit.compflags t (Ocamlfind.incl buildir) in
-    let var = "COMPFLAGS_" ^ Unit.name t in
-    Variable.(var =?= `Strings links)
+  let pp_native t =
+    let var = "PP_NATIVE" ^ Unit.name t in
+    match Flags.pp_native (Unit.flags t resolver) with
+    | [] -> None
+    | l  -> Some (Variable.(var =?= `Strings l))
 
-  let process t =
-    let prereqs mode =
-      List.map (fun f -> buildir / f) (Unit.prereqs t mode) in
-    let compflags = compflags t in
-    let p4flags = p4oflags t in
-    { prereqs; compflags; p4flags }
+  let comp_byte t =
+    let var = "COMP_BYTE" ^ Unit.name t in
+    let flags = Flags.comp_byte (Unit.flags t resolver) in
+    Variable.(var =?= `Strings flags)
 
+  let comp_native t =
+    let var = "COMP_OPT" ^ Unit.name t in
+    let flags = Flags.comp_native (Unit.flags t resolver) in
+    Variable.(var =?= `Strings flags)
+
+  let variables t =
+    [ comp_byte t;
+      comp_native t;
+    ] @ (match pp_byte t with
+        | None   -> []
+        | Some l -> [l]
+      ) @ (match pp_native t with
+        | None   -> []
+        | Some l -> [l])
+
+  let preds t =
+    Dep.units (Unit.unpack t) @ Unit.deps t
+
+  (* XXX: handle native pp *)
   let rec rules t =
-    let x = process t in
-    let pp = match x.p4flags with
+    let pp = match pp_byte t with
       | None   -> ""
       | Some v -> sprintf "-pp '$(CAMLP4O) %s' " (Variable.name v) in
-    let incl = match Unit.build_dir t with
-      | None   -> ""
-      | Some l -> sprintf "-I %s " ("$(BUILDIR)" / l) in
     let for_pack = match Unit.for_pack t with
       | None   -> ""
       | Some p -> sprintf "-for-pack %s " p in
-    let flags = for_pack ^ incl ^ pp ^ Variable.name x.compflags in
-    let target ext = buildir / Unit.file t ext in
+    let flags = for_pack ^ pp in
+    let target ext = Unit.file t resolver ext in
     let source ext = Unit.dir t // Unit.name t ^ ext in
-    let deps =
-      let deps = Unit.deps t in
-      conmap L.rules (Dep.get_libs deps @ Dep.get_p4os deps) in
 
     match Unit.unpack t with
     | [] -> (* Normal compilation unit. *)
@@ -243,7 +273,7 @@ end = struct
             [Rule.create[target] [source] [
                 (match Unit.build_dir t with
                  | None   -> sprintf "mkdir -p %S" "$(BUILDIR)"
-                 | Some d -> sprintf "mkdir -p %s" ("$(BUILDIR)" / d));
+                 | Some d -> sprintf "mkdir -p %s" d);
                 sprintf "ln -sf $(shell pwd)/%s %s" source target
               ]]
           else [] in
@@ -252,186 +282,140 @@ end = struct
         let targets, prereqs =
           if Sys.file_exists (source ".mli") then [target ".cmi"], [target ".mli"]
           else [target ".cmo"; target ".cmi"], [target ".ml"] in
-        [Rule.create targets (prereqs @ x.prereqs `byte) [
-            sprintf "$(OCAMLC) -c %s %s" flags Rule.prereq
+        [Rule.create targets (prereqs @ Unit.prereqs t resolver`Byte) [
+            sprintf "$(OCAMLC) -c %s %s %s"
+              flags (Variable.name @@ comp_byte t) Rule.prereq
           ]] in
       let cmo = (* Generate cmos *)
         if Sys.file_exists (source ".mli") then
           [Rule.create [target ".cmo"]
-             (target ".ml" :: target ".cmi" :: x.prereqs `byte)
-             [sprintf "$(OCAMLC) -c %s %s" flags Rule.prereq]]
+             (target ".ml" :: target ".cmi" :: Unit.prereqs t resolver `Byte)
+             [sprintf "$(OCAMLC) -c %s %s %s"
+                flags (Variable.name @@ comp_byte t) Rule.prereq]]
         else
           [] in
       let cmx = (* Generate cmxs *)
         [Rule.create [target ".cmx"]
-           (target ".ml" :: target ".cmi" :: x.prereqs `native)
-           [sprintf "$(OCAMLOPT) -c %s %s" flags Rule.prereq]]
+           (target ".ml" :: target ".cmi" :: Unit.prereqs t resolver `Native)
+           [sprintf "$(OCAMLOPT) -c %s %s %s"
+              flags (Variable.name @@ comp_native t) Rule.prereq]]
       in
-      ln @ cmi @ cmo @ cmx @ deps
+      ln @ cmi @ cmo @ cmx
 
     | units -> (* Packed units *)
       let byte =
-        let cmo = List.map (fun u -> buildir / Unit.cmo u) units in
+        let cmo = List.map (fun u -> Unit.cmo u resolver) units in
         Rule.create [target ".cmo"; target ".cmi"] cmo [
           sprintf "$(OCAMLC) -pack %s %s -o %s" flags Rule.prereq Rule.target_member
         ] in
       let native =
-        let cmx = List.map (fun u -> buildir / Unit.cmx u) units in
+        let cmx = List.map (fun u -> Unit.cmx u resolver) units in
         Rule.create [target ".cmx"] cmx [
           sprintf "$(OCAMLOPT) -pack %s %s -o %s" flags Rule.prereq Rule.target_member
         ] in
-      byte :: native :: conmap rules units @ deps
-
-    let rec variables t =
-      let x = process t in
-      x.compflags
-      :: (match x.p4flags with
-       | None   -> []
-       | Some l -> [l])
-      @ conmap variables (Unit.unpack t)
+      byte :: native :: conmap U.rules units
 
 end
 
 and L: sig
-  val rules    : Lib.t -> Rule.t list
-  val variables: Lib.t -> Variable.t list
-  val variable : Lib.t -> string
+  val rules      : Lib.t -> Rule.t list
+  val variables  : Lib.t -> Variable.t list
+  val target     : Lib.t -> string
+  val link_byte  : Lib.t -> Variable.t
+  val link_native: Lib.t -> Variable.t
 end = struct
 
-  let variable t =
+  let target t =
     "lib-" ^ Lib.name t
 
+  let link_byte t =
+    let var = "LINK_BYTE_" ^ Lib.name t in
+    Variable.(var =?= `Strings (Flags.link_byte @@ Lib.flags t resolver))
+
+  let link_native t =
+    let var = "LINK_OPT_" ^ Lib.name t in
+    Variable.(var =?= `Strings (Flags.link_native @@ Lib.flags t resolver))
+
   let variables t =
-    let cma  = buildir / Lib.cma t in
-    let cmxa = buildir / Lib.cmxa t in
-    let cmxs = buildir / Lib.cmxs t in
+    let cma  = Lib.cma t resolver in
+    let cmxa = Lib.cmxa t resolver in
+    let cmxs = Lib.cmxs t resolver in
     let case = [
       [Variable.has_native; Variable.has_native_dynlink], `Strings [cma; cmxa; cmxs];
       [Variable.has_native]                             , `Strings [cma; cmxa];
       []                                                , `Strings [cma];
     ] in
-    [Variable.(variable t =?= `Case case)]
-    @ conmap U.variables (Lib.units t)
+    Variable.(target t =?= `Case case)
+    :: link_byte t
+    :: link_native t
+    :: conmap U.variables (Lib.units t)
+    @  conmap D.variables (Lib.deps t |> Dep.closure)
 
   let rules t =
     let byte =
-      let cmo = List.map (fun u -> buildir / Unit.cmo u) (Lib.units t) in
-      Rule.create [buildir / Lib.cma t] cmo [
-        sprintf "$(OCAMLC) -a %s -o %s" Rule.prereqs Rule.target
+      Rule.create [Lib.cma t resolver] (Lib.prereqs t resolver `Byte) [
+        sprintf "$(OCAMLC) -a %s -o %s" (Variable.name @@ link_byte t) Rule.target
       ] in
     let native mode =
       let file, mode = match mode with
-        | `shared  -> buildir / Lib.cmxs t, "-shared"
-        | `archive -> buildir / Lib.cmxa t, "-a" in
-      let cmx = List.map (fun u -> buildir / Unit.cmx u) (Lib.units t) in
-      Rule.create [file] cmx [
-        sprintf "$(OCAMLOPT) %s %s -o %s" mode Rule.prereqs Rule.target
+        | `shared  -> Lib.cmxs t resolver, "-shared"
+        | `archive -> Lib.cmxa t resolver, "-a" in
+      Rule.create [file] (Lib.prereqs t resolver `Native) [
+        sprintf "$(OCAMLOPT) %s %s -o %s"
+          mode (Variable.name @@ link_native t) Rule.target
       ] in
-    Rule.create [variable t] [sprintf "$(%s)" (variable t)] [echo_prereqs]
+    Rule.create [target t] [sprintf "$(%s)" (target t)] [echo_prereqs]
     :: byte
     :: native `archive
     :: native `shared
     :: conmap U.rules (Lib.units t)
-
-end
-
-module T: sig
-  val rules    : Top.t -> Rule.t list
-  val variables: Top.t -> Variable.t list
-  val variable : Top.t -> string
-end = struct
-
-  let variable t =
-    "top-" ^ Top.name t
-
-  let variables t =
-    let link =
-      Top.deps t
-      |> Dep.closure
-      |> Dep.get_pkgs
-      |> fun pkgs -> Ocamlfind.bytlink buildir (`Pkgs pkgs)
-    in
-    let units =
-      Top.deps t
-      |> Dep.get_units
-    in
-    let var = sprintf "LINKTOP_%s" (Top.name t)
-    in Variable.(var        =?= `String link)
-    :: Variable.(variable t =?= `String (buildir / Top.byte t))
-    :: conmap U.variables units
-
-  let rules t =
-    let cma =
-      Top.deps t
-      |> Dep.closure
-      |> Dep.get_libs
-      |> List.map (fun l -> buildir / Lib.cma l) in
-    let units =
-      Top.deps t
-      |> Dep.get_units
-    in
-    let link = sprintf "$(LINKTOP_%s)" (Top.name t) in
-    Rule.create [variable t] [sprintf "$(%s)" (variable t)] [echo_prereqs]
-    ::
-    Rule.create [buildir / Top.byte t] cma [
-      sprintf "mkdir -p %s" (buildir / Top.name t);
-      sprintf "$(OCAMLMKTOP) %s %s -o %s" link Rule.prereqs Rule.target
-    ]
-    ::
-    conmap U.rules units
+    @  conmap D.rules (Lib.deps t |> Dep.closure)
 
 end
 
 module B: sig
-  val rules    : Bin.t -> Rule.t list
-  val variables: Bin.t -> Variable.t list
-  val variable : Bin.t -> string
+  val rules      : Bin.t -> Rule.t list
+  val variables  : Bin.t -> Variable.t list
+  val target     : Bin.t -> string
+  val link_byte  : Bin.t -> Variable.t
+  val link_native: Bin.t -> Variable.t
 end = struct
 
-  let variable t =
+  let target t =
     "bin-" ^ Bin.name t
 
-  let bytvar t = "BYTLINKFLAGS_" ^ Bin.name t
-  let natvar t = "NATLINKFLAGS_" ^ Bin.name t
+  let link_byte t =
+    let var = "BIN_BYTE_" ^ Bin.name t in
+    Variable.(var =?= `Strings (Flags.link_byte @@ Bin.flags t resolver))
 
-  let variables t =
-    let pkgs =
-      Bin.deps t
-      |> Dep.closure
-      |> Dep.get_pkgs in
-    let bytlink = Ocamlfind.bytlink buildir (`Pkgs pkgs) in
-    let natlink = Ocamlfind.natlink buildir (`Pkgs pkgs) in
-    let units = Bin.deps t |> Dep.get_units
-    in Variable.(variable t =?= `Case [
-        [Variable.has_native], `Strings [buildir / Bin.byte t; buildir / Bin.native t];
-        []                   , `String  (buildir / Bin.byte t);
-      ])
-    :: Variable.(bytvar t   =?= `String bytlink)
-    :: Variable.(natvar t   =?= `String natlink)
-    :: conmap U.variables units
+  let link_native t =
+    let var = "BIN_OPT_" ^ Bin.name t in
+    Variable.(var =?= `Strings (Flags.link_native @@ Bin.flags t resolver))
+
+  let variables t = [
+    Variable.(target t =?= `Case [
+        [Variable.has_native], `Strings [Bin.byte t resolver; Bin.native t resolver];
+        []                   , `String  (Bin.byte t resolver);
+      ]);
+    link_byte t;
+    link_native t;
+  ]
 
   let rules t =
-    let deps = Bin.deps t |> Dep.closure in
-    let libs = Dep.get_libs deps in
-    let p4os = Dep.get_p4os deps in
-    let bytlibs = List.map (fun l -> buildir / Lib.cma l) (libs @ p4os) in
-    let natlibs = List.map (fun l -> buildir / Lib.cmxa l) libs in
-    let units = Bin.deps t |> Dep.get_units in
-    let bytunits = List.map (fun u -> buildir / Unit.cmo u) units in
-    let natunits = List.map (fun u -> buildir / Unit.cmx u) units in
-    Rule.create [variable t] [sprintf "$(%s)" (variable t)] [echo_prereqs]
+    Rule.create [target t] [sprintf "$(%s)" (target t)] [echo_prereqs]
     ::
-    Rule.create [buildir / Bin.byte t] (bytlibs @ bytunits) [
+    Rule.create [Bin.byte t resolver] (Bin.prereqs t resolver `Byte) [
       sprintf "mkdir -p %s" (buildir / Bin.name t);
-      sprintf "$(OCAMLC) $(%s) %s -o %s" (bytvar t) Rule.prereqs Rule.target;
+      sprintf "$(OCAMLC) %s -o %s" (Variable.name @@ link_byte t) Rule.target;
     ]
     ::
-    Rule.create [buildir / Bin.native t] (natlibs @ natunits) [
+    Rule.create [Bin.native t resolver] (Bin.prereqs t resolver `Native) [
       sprintf "mkdir -p %s" (buildir / Bin.name t);
-      sprintf "$(OCAMLOPT) $(%s) %s -o %s" (natvar t) Rule.prereqs Rule.target;
+      sprintf "$(OCAMLOPT) %s -o %s" (Variable.name @@ link_native t) Rule.target;
     ]
     ::
-    conmap L.rules libs @ conmap U.rules units
+    conmap L.rules (Bin.deps t |> fun d -> Dep.filter_libs d @ Dep.filter_pps d)
+    @ conmap U.rules (Dep.filter_units @@ Bin.deps t)
 
 end
 
@@ -450,29 +434,25 @@ let dedup l =
 
 let of_project ?(buildir="_build") t =
   let libs = Project.libs t in
-  let p4os = Project.p4os t in
+  let pps = Project.pps t in
   let bins = Project.bins t in
-  let tops = Project.tops t in
   let features = List.map Variable.has_feature (Project.features t) in
   let variables =
     dedup (
       Variable.(   "BUILDIR"    =?= `String buildir)
       :: Variable.("OCAMLOPT"   =?= `String "ocamlopt")
       :: Variable.("OCAMLC"     =?= `String "ocamlc")
-      :: Variable.("OCAMLMKTOP" =?= `String "ocamlmktop")
       :: Variable.("CAMLP4O"    =?= `String "camlp4o")
       :: features
       @  conmap L.variables libs
-      @  conmap L.variables p4os
+      @  conmap L.variables pps
       @  conmap B.variables bins
-      @  conmap T.variables tops
     ) in
   let rules =
     dedup (
       conmap L.rules libs
-      @ conmap L.rules p4os
+      @ conmap L.rules pps
       @ conmap B.rules bins
-      @ conmap T.rules tops
     ) in
   let main = Rule.create ~ext:true ~targets:["all"] ~prereqs:[] [
       sprintf "@echo '\027[32m== %s\027[m'"
@@ -480,10 +460,7 @@ let of_project ?(buildir="_build") t =
              sprintf "%s=%s" v.Variable.name (Variable.name v)
            ) features));
       sprintf "@$(MAKE) %s"
-        (String.concat " "
-           (List.map L.variable libs
-            @ List.map B.variable bins
-            @ List.map T.variable tops));
+        (String.concat " " (List.map L.target libs @ List.map B.target bins));
       sprintf "@echo '\027[32m== Done!\027[m'";
     ] in
   let clean = Rule.create ~ext:true ~targets:["clean"] ~prereqs:[] [

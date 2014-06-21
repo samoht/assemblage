@@ -19,38 +19,50 @@ open Project
 
 let (/) = Filename.concat
 
-let p4o buildir = function
-  | `Buildir f  -> buildir / f
-  | `Pkgs names ->
-    let names = String.concat " " names in
-    sprintf
-      "$(shell ocamlfind query %s -r -predicates syntax,preprocessor \
-       -format \"-I %%d %%a\")"
-      names
+let pp_byte names =
+  let names = String.concat " " names in
+  [sprintf
+    "$(shell ocamlfind query %s -r -predicates syntax,preprocessor \
+     -format \"-I %%d %%a\")"
+    names]
 
-let incl buildir = function
-  | `Buildir f  -> buildir / f
-  | `Pkgs names ->
-    let names = String.concat " "  (List.rev names) in
-    sprintf
-      "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d\")"
-      names
+let pp_native names =
+  let names = String.concat " " names in
+  [sprintf
+    "$(shell ocamlfind query %s -r -predicates syntax,preprocessor, native \
+     -format \"-I %%d %%a\")"
+    names]
 
-let bytlink buildir = function
-  | `Buildir f  -> buildir / f
-  | `Pkgs names ->
-    let names = String.concat " "  (List.rev names) in
-    sprintf
-      "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d %%a\")"
-      names
+let incl names=
+  let names = String.concat " "  (List.rev names) in
+  [sprintf
+    "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d\")"
+    names]
 
-let natlink buildir = function
-  | `Buildir f  -> buildir / f
-  | `Pkgs names ->
-    let names = String.concat " "  (List.rev names) in
-    sprintf
-      "$(shell ocamlfind query %s -r -predicates native -format \"-I %%d %%a\")"
-      names
+let comp_byte = incl
+
+let comp_native = incl
+
+let link_byte names =
+  let names = String.concat " "  (List.rev names) in
+  [sprintf
+    "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d %%a\")"
+    names]
+
+let link_native names =
+  let names = String.concat " "  (List.rev names) in
+  [sprintf
+    "$(shell ocamlfind query %s -r -predicates native -format \"-I %%d %%a\")"
+    names]
+
+let pkgs name =
+  Flags.create
+    ~pp_byte ~pp_native
+    ~comp_byte ~comp_native
+    ~link_byte ~link_native ()
+
+let resolver buildir =
+  Resolver.create ~buildir ~pkgs
 
 module META = struct
 
@@ -61,7 +73,7 @@ module META = struct
     let version = Project.version t in
     let buf = Buffer.create 1024 in
     let one lib =
-      let requires = Lib.deps lib |> Dep.get_pkgs |> String.concat " " in
+      let requires = Lib.deps lib |> Dep.filter_pkgs |> String.concat " " in
       bprintf buf "version  = \"%s\"\n" version;
       bprintf buf "requires = \"%s\"\n" requires;
       bprintf buf "archive(byte) = \"%s.cma\"\n" (Lib.name lib);

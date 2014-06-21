@@ -27,10 +27,10 @@ let green_s = green "%s"
 let yellow_s = yellow "%s"
 let blue_s = blue "%s"
 
-let error fmt =
+let error i fmt =
   ksprintf (fun str ->
      eprintf "%s: %s\n" (red_s "ERROR") str;
-     exit 1
+     exit i
     ) fmt
 
 let read file =
@@ -42,7 +42,7 @@ let read file =
     close_in ic;
     s
   with Sys_error e ->
-    error "while reading %s: %s" file e
+    error 1 "while reading %s: %s" file e
 
 let write file s =
   try
@@ -50,7 +50,7 @@ let write file s =
     output_string oc s;
     close_out oc
   with Sys_error e ->
-    error "while writing %s: %s" file e
+    error 1 "while writing %s: %s" file e
 
 let temp () =
   try
@@ -58,25 +58,26 @@ let temp () =
     at_exit (fun () -> Sys.remove file);
     file
   with Sys_error e ->
-    error "while creating temp file: %s" e
+    error 1 "while creating temp file: %s" e
 
 let exec fmt =
   ksprintf (fun cmd ->
       print_endline (blue "+ %s" cmd);
       let i = Sys.command cmd in
-      if i <> 0 then error "`%s' exited with code %d" cmd i
+      if i <> 0 then error i "`%s' exited with code %d" cmd i
     ) fmt
 
-let read_in fmt =
+let read_exec_output fmt =
   ksprintf (fun cmd ->
       let file = temp () in
       exec "%s > %s" cmd file;
-      String.trim (read file)
+      read file
     ) fmt
 
 let (/) = Filename.concat
 
 let () =
-  if not (Sys.file_exists "configure.ml") then error "missing configure.ml.";
-  let incl = read_in "opam config var lib" / "tools" in
-  exec "configure.top -I %s configure.ml" incl
+  if not (Sys.file_exists "configure.ml") then error 1 "missing configure.ml.";
+  let incl = String.trim (read_exec_output "opam config var lib" / "tools") in
+  Config.load_path := incl :: !Config.load_path;
+  Toploop.run_script Format.std_formatter "configure.ml" Sys.argv

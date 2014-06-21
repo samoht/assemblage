@@ -42,42 +42,39 @@ module Install = struct
     contents: string;
   }
 
-  let opt = function
-    | [] -> ""
-    | _  -> "?"
+  let opt f =
+    if f = Feature.true_ then ""
+    else "?"
 
   let of_project ?(meta=true) ?(buildir="_build") t =
     let name = Project.name t in
     let libs = Project.libs t in
     let bins = Project.bins t in
-    let tops = Project.tops t in
     let buf = Buffer.create 1024 in
+    let resolver =
+      Resolver.create ~buildir:(fun l -> buildir / l) ~pkgs:(fun _ -> Flags.empty) in
     if libs <> [] then (
       bprintf buf "lib: [\n";
       bprintf buf "  \"META\"\n";
       List.iter (fun l ->
-          let files = Lib.generated_files l in
-          List.iter (fun (flags, file) ->
-              bprintf buf "  \"%s%s\"\n" (opt flags) (buildir / file)
-            ) files;
+          let gens = Lib.generated_files l resolver in
+          List.iter (fun (flags, files) ->
+              List.iter (fun file ->
+                  bprintf buf "  \"%s%s\"\n" (opt flags) file
+                ) files;
+            ) gens;
         ) libs;
       bprintf buf "]\n");
-    if bins <> [] || tops <> [] then (
+    if bins <> [] then (
       bprintf buf "bin: [\n";
       List.iter (fun b ->
-          let files = Bin.generated_files b in
-          List.iter (fun (flags, file) ->
-              bprintf buf "  \"%s%s\" {\"%s\"}\n"
-                (opt flags) (buildir / file) (Bin.name b)
-            ) files;
+          let gens = Bin.generated_files b resolver in
+          List.iter (fun (flags, files) ->
+              List.iter (fun file ->
+                  bprintf buf "  \"%s%s\" {\"%s\"}\n" (opt flags) file (Bin.name b)
+                ) files;
+            ) gens;
         ) bins;
-      List.iter (fun t ->
-          let files = Top.generated_files t in
-          List.iter (fun (flags, file) ->
-              bprintf buf "  \"%s%s\" {\"%s\"}\n"
-                (opt flags) (buildir / file) (Top.name t)
-            ) files;
-        ) tops;
       bprintf buf "]\n";
     );
     let contents = Buffer.contents buf in

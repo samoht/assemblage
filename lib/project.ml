@@ -26,6 +26,73 @@ let (//) x y =
   | Some x -> Filename.concat x y
 
 
+module Flags = struct
+
+  type t = {
+    comp_byte  : string list -> string list;
+    comp_native: string list -> string list;
+    pp_byte    : string list -> string list;
+    pp_native  : string list -> string list;
+    link_byte  : string list -> string list;
+    link_native: string list -> string list;
+  }
+
+  type f = string list -> string list
+
+  let (@) f g =
+    { comp_byte   = (fun x -> f.comp_byte   @@ g.comp_byte   x);
+      comp_native = (fun x -> f.comp_native @@ g.comp_native x);
+      pp_byte     = (fun x -> f.pp_byte     @@ g.pp_byte     x);
+      pp_native   = (fun x -> f.pp_native   @@ g.pp_native   x);
+      link_byte   = (fun x -> f.link_byte   @@ g.link_byte   x);
+      link_native = (fun x -> f.link_native @@ g.link_native x);
+    }
+
+  let id x = x
+
+  let create
+      ?(comp_byte=id) ?(comp_native=id)
+      ?(pp_byte=id)   ?(pp_native=id)
+      ?(link_byte=id) ?(link_native=id)
+      () =
+    { comp_byte; comp_native;
+      pp_byte; pp_native;
+      link_byte; link_native }
+
+  let empty =
+    { comp_byte = id; comp_native = id;
+      pp_byte = id; pp_native = id;
+      link_byte = id; link_native = id }
+
+  let comp_byte t = t.comp_byte []
+
+  let comp_native t = t.comp_native []
+
+  let pp_byte t = t.pp_byte []
+
+  let pp_native t = t.pp_native []
+
+  let link_byte t = t.link_byte []
+
+  let link_native t = t.link_native []
+
+  let debug =
+    let f x = "-g" :: x in
+    { empty with
+      comp_byte   = f; comp_native = f;
+      link_byte   = f; link_native = f;
+    }
+
+  let bin_annot =
+    let f x = "-bin-annot" :: x in
+    { empty with comp_byte = f; comp_native = f }
+
+  let warn_error =
+    let f x = "-warn-error" :: "A" :: "-warn" :: "A" :: x in
+    { empty with comp_byte = f; comp_native = f }
+
+end
+
 module Feature = struct
 
   open Cmdliner
@@ -35,6 +102,45 @@ module Feature = struct
     default: bool;
     doc: string;
   }
+
+  type formula =
+    | True | False
+    | Atom of t
+    | Not of formula
+    | And of formula * formula
+    | Or of formula * formula
+
+  let atom t = Atom t
+
+  let atoms t =
+    let tbl = Hashtbl.create 10 in
+    let rec aux = function
+      | True
+      | False     -> ()
+      | Atom t    -> Hashtbl.replace tbl t true
+      | Not x     -> aux x
+      | And (x, y)
+      | Or (x, y) -> aux x; aux y in
+    aux t;
+    Hashtbl.fold (fun k _ acc -> k :: acc) tbl []
+
+  let rec eval tbl = function
+    | True       -> true
+    | False      -> false
+    | Atom t     -> (try List.assoc t tbl with Not_found -> false)
+    | Not f      -> not (eval tbl f)
+    | And (x, y) -> (eval tbl x) && (eval tbl y)
+    | Or (x, y)  -> (eval tbl x) || (eval tbl y)
+
+  let not f = Not f
+
+  let true_ = True
+
+  let false_ = False
+
+  let (&&) x y = And (x, y)
+
+  let (||) x y = Or (x, y)
 
   let name t = t.name
 
@@ -68,99 +174,133 @@ module Feature = struct
   let native_dynlink =
     create ~doc:"native plugins for native code." ~default:true "native-dynlink"
 
+  let annot =
+    create ~doc:"generation of binary annotations." ~default:true "annot"
+
+  let debug =
+    create ~doc:"generation of debug symbols." ~default:true "debug"
+
+  let warn_error =
+    create ~doc:"warning as errors." ~default:false "warn-error"
+
+end
+
+module Resolver = struct
+
+  type t = {
+    buildir: string -> string;
+    pkgs   : string list -> Flags.t;
+  }
+
+  let create ~buildir ~pkgs =
+    { buildir; pkgs }
+
+  let buildir t = t.buildir
+
+  let pkgs t = t.pkgs
+
 end
 
 module rec Dep: sig
-  type t
+  type t =
+    [ `Unit of Unit.t
+    | `Lib of Lib.t
+    | `Pp of Lib.t
+    | `Pkg_pp of string
+    | `Pkg of string
+    | `Bin of Bin.t ]
+  module Graph: Graph.Sig.I with type V.t = t
   val unit: Unit.t -> t
   val units: Unit.t list -> t list
-  val get_units: t list -> Unit.t list
-  val map_units: (Unit.t -> Unit.t) -> t list -> t list
+  val filter_units: t list -> Unit.t list
   val lib: Lib.t -> t
   val libs: Lib.t list -> t list
-  val get_libs: t list -> Lib.t list
+  val filter_libs: t list -> Lib.t list
   val pkg: string -> t
   val pkgs: string list -> t list
-  val get_pkgs: t list -> string list
-  val p4o: Lib.t -> t
-  val p4os: Lib.t list -> t list
-  val get_p4os: t list -> Lib.t list
-  val pkg_p4o: string -> t
-  val pkg_p4os: string list -> t list
-  val get_pkg_p4os: t list -> string list
-  type custom = {
-    inputs : string list;
-    outputs: string list;
-    recipe : string list
-  }
-  val custom: custom -> t
-  val get_customs: t list -> custom list
-  type resolver = [`Buildir of string | `Pkgs of string list] -> string
+  val filter_pkgs: t list -> string list
+  val pp: Lib.t -> t
+  val pps: Lib.t list -> t list
+  val filter_pps: t list -> Lib.t list
+  val pkg_pp: string -> t
+  val pkg_pps: string list -> t list
+  val filter_pkg_pps: t list -> string list
   val closure: t list -> t list
 end = struct
 
-  type custom = {
-    inputs: string list;
-    outputs: string list;
-    recipe: string list
-  }
-
   type t =
-    | Unit of Unit.t
-    | Lib of Lib.t
-    | P4o of Lib.t
-    | Pkg_p4o of string
-    | Pkg of string
-    | Custom of custom
+    [ `Unit of Unit.t
+    | `Lib of Lib.t
+    | `Pp of Lib.t
+    | `Pkg_pp of string
+    | `Pkg of string
+    | `Bin of Bin.t ]
 
-  let unit t = Unit t
+  module V = struct
+    type s = t
+    type t = s
+    let equal x y =
+      match x, y with
+      | `Unit x, `Unit y ->
+        Unit.name x = Unit.name y && Unit.build_dir x = Unit.build_dir y
+      | `Pp x    , `Pp y
+      | `Lib x   , `Lib y -> Lib.name x = Lib.name y
+      | `Pkg_pp x, `Pkg_pp y
+      | `Pkg x   , `Pkg y -> x = y
+      | `Bin x   , `Bin y -> Bin.name x = Bin.name y
+      | _ -> false
+    let compare x y =
+      if equal x y then 0
+      else match Hashtbl.hash x - Hashtbl.hash y with
+        | 0 ->
+          let n =
+            String.length (Marshal.to_string x [])
+            - String.length (Marshal.to_string y []) in
+          if n = 0 then failwith "Dep.compare" else n
+        | i -> i
+    let hash = Hashtbl.hash
+  end
+  module Graph = Graph.Imperative.Digraph.ConcreteBidirectional(V)
+
+  let unit t: t = `Unit t
   let units = List.map unit
 
-  let lib t = Lib t
+  let lib t: t = `Lib t
   let libs = List.map lib
 
-  let p4o t = P4o t
-  let p4os = List.map p4o
+  let pp t: t = `Pp t
+  let pps = List.map pp
 
-  let pkg_p4o t = Pkg_p4o t
-  let pkg_p4os = List.map pkg_p4o
+  let pkg_pp t: t = `Pkg_pp t
+  let pkg_pps = List.map pkg_pp
 
-  let pkg t = Pkg t
+  let pkg t: t = `Pkg t
   let pkgs = List.map pkg
 
-  let custom t = Custom t
-
-  let get_units t =
-    List.fold_left (fun acc -> function Unit t -> t :: acc | _ -> acc) [] t
+  let filter_units t =
+    List.fold_left (fun acc -> function `Unit t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
-  let map_units f t =
-    List.map (function
-        | Unit t -> Unit (f t)
-        | x      -> x
-      ) t
-
-  let get_libs t =
-    List.fold_left (fun acc -> function Lib t -> t :: acc | _ -> acc) [] t
+  let filter_libs t =
+    List.fold_left (fun acc -> function `Lib t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
-  let get_p4os t =
-    List.fold_left (fun acc -> function P4o t -> t :: acc | _ -> acc) [] t
+  let filter_pps t =
+    List.fold_left (fun acc -> function `Pp t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
-  let get_pkgs t =
-    List.fold_left (fun acc -> function Pkg t -> t :: acc | _ -> acc) [] t
+  let filter_pkgs t =
+    List.fold_left (fun acc -> function `Pkg t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
-  let get_pkg_p4os t =
-    List.fold_left (fun acc -> function Pkg_p4o t -> t :: acc | _ -> acc) [] t
+  let filter_pkg_pps t =
+    List.fold_left (fun acc -> function `Pkg_pp t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
-  let get_customs t =
-    List.fold_left (fun acc -> function Custom t -> t :: acc | _ -> acc) [] t
-    |> List.rev
-
-  type resolver = [`Buildir of string | `Pkgs of string list] -> string
+  type resolver = {
+    buildir: string -> string;
+    pkgs   : string list -> Flags.t;
+  }
 
   let closure ts =
     let deps = Hashtbl.create 24 in
@@ -174,10 +314,10 @@ end = struct
         else (
           Hashtbl.add deps h 0;
           match h with
-          | Unit u ->
+          | `Unit u ->
             let d' = Unit.deps u in
             aux acc (d' @ d)
-          | Lib l ->
+          | `Lib l ->
             let d' = Lib.deps l in
             aux acc (d' @ d)
           | _ -> Hashtbl.replace deps h 1; aux (h :: acc) t
@@ -199,18 +339,17 @@ and Unit: sig
   val add_deps: t -> Dep.t list -> unit
   val set_lib: t -> Lib.t -> unit
   val set_build_dir: t -> string -> unit
-  val create: ?dir:string -> ?deps:Dep.t list -> string -> t
-  val pack: t list -> string -> t
+  val create: ?flags:Flags.t -> ?dir:string -> ?deps:Dep.t list -> string -> t
+  val pack: ?flags:Flags.t -> t list -> string -> t
   val unpack: t -> t list
-  val cmi: t -> string
-  val cmo: t -> string
-  val cmx: t -> string
-  val o: t -> string
-  val file: t -> string -> string
-  val generated_files: t -> (Feature.t list * string) list
-  val compflags: t -> Dep.resolver -> string list
-  val p4oflags: t -> Dep.resolver -> string list
-  val prereqs: t -> [`byte | `native] -> string list
+  val cmi: t -> Resolver.t -> string
+  val cmo: t -> Resolver.t -> string
+  val cmx: t -> Resolver.t -> string
+  val o: t -> Resolver.t -> string
+  val file: t -> Resolver.t -> string -> string
+  val generated_files: t -> Resolver.t -> (Feature.formula * string list) list
+  val prereqs: t -> Resolver.t -> [`Byte | `Native] -> string list
+  val flags: t -> Resolver.t -> Flags.t
 end = struct
 
   type t = {
@@ -221,6 +360,7 @@ end = struct
     mutable lib: Lib.t option;
     mutable for_pack: string option;
     mutable pack: t list;
+    mutable flags: Flags.t;
   }
 
   let rec copy t =
@@ -230,7 +370,9 @@ end = struct
       name      = t.name;
       lib       = t.lib;
       for_pack  = t.for_pack;
-      pack      = List.map copy t.pack }
+      pack      = List.map copy t.pack;
+      flags     = t.flags;
+    }
 
   let dir t = t.dir
 
@@ -256,18 +398,21 @@ end = struct
   let add_deps t deps =
     t.deps <- t.deps @ deps
 
-  let create ?dir ?(deps=[]) name = {
-    name; dir; deps;
+  let create
+      ?(flags=Flags.empty)
+      ?dir ?(deps=[])
+      name = {
+    name; dir; deps; flags;
     lib       = None;
     build_dir = None;
     for_pack  = None;
     pack      = [];
   }
 
-  let pack units name =
+  let pack ?(flags=Flags.empty) units name =
     List.iter (fun u -> u.for_pack <- Some (String.capitalize name)) units;
     {
-      name;
+      name; flags;
       dir       = None;
       lib       = None;
       build_dir = None;
@@ -276,69 +421,91 @@ end = struct
       pack      = units;
     }
 
-  let p4oflags t (resolver:Dep.resolver) =
-    let local = Dep.get_p4os (Unit.deps t) in
-    let global = Dep.get_pkg_p4os (Unit.deps t) in
-    match local, global with
-    | []   , []     -> []
-    | local, global ->
-      let local = conmap (fun l ->
-          ["-I"; resolver (`Buildir (Lib.name l)); resolver (`Buildir (Lib.cma l))]
-        ) local in
-      let global = [
-        resolver (`Pkgs global)
-      ] in
-      local @ global
+  let flags t resolver =
+    let comp mode args =
+      let local = Dep.filter_libs (Unit.deps t) in
+      let local = conmap (fun l -> [
+            "-I"; Resolver.buildir resolver (Lib.name l);
+          ])local in
+      let global = Dep.filter_pkgs (Unit.deps t) in
+      let global = match global with
+        | [] -> []
+        | l  ->
+          let pkgs = Resolver.pkgs resolver global in
+          match mode with
+          | `Byte   -> Flags.comp_byte pkgs
+          | `Native -> Flags.comp_native pkgs in
+      args @ local @ global in
+    let comp_byte = comp `Byte in
+    let comp_native = comp `Native in
+    let pp mode args =
+      let local  = Dep.filter_pps     (Unit.deps t) in
+      let global = Dep.filter_pkg_pps (Unit.deps t) in
+      match local, global with
+      | []   , []     -> []
+      | local, global ->
+        let local = conmap (fun l -> [
+              "-I";
+              Resolver.buildir resolver (Lib.name l);
+              match mode with
+              | `Byte   -> Lib.cma  l resolver
+              | `Native -> Lib.cmxa l resolver
+            ]) local in
+        let global =
+          let pkgs = Resolver.pkgs resolver global in
+          match mode with
+          | `Byte   -> Flags.pp_byte pkgs
+          | `Native -> Flags.pp_native pkgs in
+        args @ local @ global in
+    let pp_byte = pp `Byte in
+    let pp_native = pp `Native in
+    Flags.create ~comp_byte ~comp_native ~pp_byte ~pp_native ()
 
-  let compflags t (resolver:Dep.resolver) =
-    let local = Dep.get_libs (Unit.deps t) in
-    let local = conmap (fun l ->
-        ["-I";  resolver (`Buildir (Lib.name l))]
-      )local in
-    let global = Dep.get_pkgs (Unit.deps t) in
-    let global = match global with
-      | [] -> []
-      | l  -> [ resolver (`Pkgs global) ] in
-    local @ global
+  let file t r ext =
+    Resolver.buildir r @@ Unit.build_dir t // Unit.name t ^ ext
 
-  let file t ext =
-    Unit.build_dir t // Unit.name t ^ ext
+  let cmi t r =
+    file t r ".cmi"
 
-  let cmi t =
-    file t ".cmi"
+  let cmo t r =
+    file t r ".cmo"
 
-  let cmo t =
-    file t ".cmo"
+  let cmx t r =
+    file t r ".cmx"
 
-  let cmx t =
-    file t ".cmx"
+  let o t r =
+    file t r ".o"
 
-  let o t =
-    file t ".o"
+  let cmt t r =
+    file t r ".cmt"
 
-  let generated_files t = [
-    []               , cmi t;
-    []               , cmo t;
-    [Feature.native], o t;
-    [Feature.native], cmx t;
-  ]
+  let cmti t r =
+    file t r ".cmti"
 
-  let prereqs t mode =
-    let units = Dep.get_units (Unit.deps t) in
+  let generated_files t resolver =
+    let mk f = f t resolver in
+    [
+      Feature.true_        , [mk cmi ; mk cmo ];
+      Feature.(atom native), [mk o   ; mk cmx ];
+      Feature.(atom annot) , [mk cmt ; mk cmti];
+    ]
+
+  let prereqs t resolver mode =
+    let units = Dep.filter_units (Unit.deps t) in
     let units = List.map (fun u ->
         match mode with
-        | `native -> cmx u
-        | `byte   -> cmi u
+        | `Native -> cmx u resolver
+        | `Byte   -> cmi u resolver
       ) units in
-    let libs = Dep.get_libs (Unit.deps t) in
+    let libs = Dep.filter_libs (Unit.deps t) in
     let libs = List.map (fun l ->
         match mode with
-        | `native -> Lib.cmxa l
-        | `byte   -> Lib.cma l
+        | `Native -> Lib.cmxa l resolver
+        | `Byte   -> Lib.cma  l resolver
       ) libs in
-    let p4os = Dep.get_p4os (Unit.deps t) in
-    let p4os = List.map Lib.cma p4os in
-    units @ libs @ p4os
+    let pps = Dep.filter_pps (Unit.deps t) in
+    let pps = List.map (fun l -> Lib.cma l resolver) pps in
+    units @ libs @ pps
 
 end
 
@@ -349,25 +516,29 @@ and Lib: sig
   val set_filename: t -> string -> unit
   val units: t -> Unit.t list
   val features: t -> Feature.t list
+  val deps: t -> Dep.t list
   val create:
-    ?features:Feature.t list ->
+    ?features:Feature.formula ->
+    ?flags:Flags.t ->
     ?pack:bool ->
     ?deps:Dep.t list ->
     Unit.t list -> string -> t
-  val cma: t -> string
-  val cmxa: t -> string
-  val a: t -> string
-  val cmxs: t -> string
-  val file: t -> string -> string
-  val generated_files: t -> (Feature.t list * string) list
-  val deps: t -> Dep.t list
+  val cma: t -> Resolver.t -> string
+  val cmxa: t -> Resolver.t -> string
+  val a: t -> Resolver.t -> string
+  val cmxs: t -> Resolver.t -> string
+  val file: t -> Resolver.t -> string -> string
+  val generated_files: t -> Resolver.t -> (Feature.formula * string list) list
+  val flags: t -> Resolver.t -> Flags.t
+  val prereqs: t -> Resolver.t -> [`Byte|`Native] -> string list
 end = struct
 
   type t = {
     name: string;
     units: Unit.t list;
     mutable filename: string;
-    features: Feature.t list;
+    features: Feature.formula;
+    mutable flags: Flags.t;
     deps: Dep.t list;
   }
 
@@ -380,111 +551,161 @@ end = struct
   let set_filename t f =
     t.filename <- f
 
-  let features t = t.features
+  let features t =
+    Feature.atoms t.features
 
-  let create ?(features=[]) ?(pack=false) ?(deps=[]) units name =
+  let create
+      ?(features=Feature.true_)
+      ?(flags=Flags.empty)
+      ?(pack=false) ?(deps=[]) units name =
     let units' = if pack then [Unit.pack units name] else units in
-    let t = { name; units = units'; features; filename = name; deps } in
+    let t = { name; units = units'; features; flags; filename = name; deps } in
     List.iter (fun u -> Unit.add_deps u deps) units;
     List.iter (fun u -> Unit.set_lib u t) (units' @ units);
     t
 
-  let file t ext =
-    Lib.name t / Lib.name t ^ ext
+  let file t r ext =
+    Resolver.buildir r @@ Lib.name t / Lib.name t ^ ext
 
-  let cma t =
-    file t ".cma"
+  let cma t r =
+    file t r ".cma"
 
-  let cmxa t =
-    file t ".cmxa"
+  let cmxa t r =
+    file t r ".cmxa"
 
-  let cmxs t =
-    file t  ".cmxs"
+  let cmxs t r =
+    file t r ".cmxs"
 
-  let a t =
-    file t ".a"
+  let a t r =
+    file t r ".a"
 
-  let generated_files t = [
-    t.features                          , cma  t;
-    Feature.native :: t.features        , cmxa t;
-    Feature.native :: t.features        , a t;
-    Feature.native_dynlink :: t.features, cmxs t
-  ]
-    @ conmap Unit.generated_files t.units
+  let generated_files t resolver =
+    let mk f = f t resolver in
+    [
+      t.features                                 , [mk cma]       ;
+      Feature.(atom native && t.features)        , [mk cmxa; mk a];
+      Feature.(atom native_dynlink && t.features), [mk cmxs]      ;
+    ]
+    @ conmap (fun u -> Unit.generated_files u resolver) t.units
 
   let deps t =
     Lib.units t
     |> List.map Unit.deps
     |> List.concat
 
-end
+  let flags t resolver =
+    t.flags
 
-module Top = struct
-
-  type t = {
-    deps     : Dep.t list;
-    name     : string;
-    custom   : bool;
-    features : Feature.t list;
-  }
-
-  let features t = t.features
-
-  let create ?(features=[]) ?(custom=false) ?(deps=[]) name =
-    { deps; features; name; custom }
-
-  let name t = t.name
-
-  let deps t = t.deps
-
-  let custom t = t.custom
-
-  let byte t =
-    t.name / t.name
-
-  let generated_files t =
-    [ [], byte t ]
+  let prereqs t resolver = function
+    | `Byte   ->
+      List.map (fun u -> Unit.cmo u resolver) (Lib.units t)
+    | `Native ->
+      List.map (fun u -> Unit.cmx u resolver) (Lib.units t)
 
 end
 
-module Bin = struct
+and Bin: sig
+  type t
+  val name: t -> string
+  val deps: t -> Dep.t list
+  val create:
+    ?features:Feature.formula ->
+    ?flags:Flags.t ->
+    ?deps:Dep.t list ->
+    string -> t
+  val toplevel:
+    ?features:Feature.formula ->
+    ?flags:Flags.t ->
+    ?custom:bool ->
+    ?deps:Dep.t list ->
+    string -> t
+  val byte: t -> Resolver.t -> string
+  val native: t -> Resolver.t -> string
+  val generated_files: t -> Resolver.t -> (Feature.formula * string list) list
+  val flags: t -> Resolver.t -> Flags.t
+  val prereqs: t -> Resolver.t -> [`Byte | `Native] -> string list
+  val features: t -> Feature.t list
+end = struct
 
   type t = {
     deps: Dep.t list;
     name: string;
-    features: Feature.t list;
+    features: Feature.formula;
+    flags: Flags.t;
   }
 
   let name t = t.name
 
   let deps t = t.deps
 
-  let features t = t.features
+  let features t =
+    Feature.atoms t.features
 
-  let create ?(features=[]) ?(deps=[]) name =
-    { deps; features; name }
+  let create
+      ?(features=Feature.true_)
+      ?(flags=Flags.empty)
+      ?(deps=[]) name =
+    { deps; flags; features; name }
 
-  let byte t =
-    t.name / t.name ^ ".byte"
+  let toplevel
+      ?(features=Feature.true_)
+      ?(flags=Flags.empty)
+      ?(custom=false)
+      ?deps name =
+    let features = Feature.(not (atom native) && features) in
+    let comp_byte args =
+      "-I +compiler-libs" :: args in
+    let link_byte args =
+      "-I +compiler-libs -linkall"
+      :: "ocamlcommon.cma ocamlbytecomp.cma ocamltoplevel.cma"
+      :: args @ ["topstart.cmo"]
+      @  if custom then ["-custom"] else [] in
+    let nflags = Flags.create ~comp_byte ~link_byte () in
+    let flags = Flags.(nflags @ flags) in
+    create ~features ~flags ?deps name
 
-  let native t =
-    t.name / t.name ^ ".native"
+  let byte t r =
+    Resolver.buildir r @@ t.name / t.name ^ ".byte"
 
-  let generated_files t =
+  let native t r =
+    Resolver.buildir r @@ t.name / t.name ^ ".native"
+
+  let generated_files t resolver =
+    let mk f = f t resolver in
     [
-      []              , byte t;
-      [Feature.native], native t;
+      t.features                         , [mk byte  ];
+      Feature.(atom native && t.features), [mk native];
     ]
+
+  (* XXX: handle native pps *)
+  let prereqs t resolver mode =
+    let alldeps = deps t |> Dep.closure in
+    let libs = Dep.filter_libs alldeps in
+    let pps = Dep.filter_pps alldeps in
+    let bytpps = List.map (fun l -> Lib.cma l resolver) pps in
+    let units = deps t |> Dep.filter_units in
+    match mode with
+    | `Byte   ->
+      let bytlibs  = List.map (fun l -> Lib.cma  l resolver) libs in
+      let bytunits = List.map (fun u -> Unit.cmo u resolver) units in
+      bytpps @ bytlibs @ bytunits
+    | `Native ->
+      let natlibs  = List.map (fun l -> Lib.cmxa l resolver) libs in
+      let natunits = List.map (fun u -> Unit.cmx u resolver) units in
+      bytpps @ natlibs @ natunits
+
+  let flags t resolver =
+    t.flags
 
 end
 
 type t = {
   name: string;
   version: string;
+  flags: Flags.t;
   libs: Lib.t list;
-  p4os: Lib.t list;
+  pps: Lib.t list;
   bins: Bin.t list;
-  tops: Top.t list;
 }
 
 let name t = t.name
@@ -493,18 +714,21 @@ let version t = t.version
 
 let libs t = t.libs
 
-let p4os t = t.p4os
+let pps t = t.pps
 
 let bins t = t.bins
 
-let tops t = t.tops
+let flags t = t.flags
 
-let create ?(libs=[]) ?(p4os=[]) ?(bins=[]) ?(tops=[]) ?(version="not-set") name =
+let create
+    ?(flags=Flags.empty)
+    ?(libs=[]) ?(pps=[]) ?(bins=[])
+    ?(version="not-set") name =
   List.iter (fun l ->
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)
     ) libs;
-  { name; version; libs; p4os; bins; tops }
+  { name; version; flags; libs; pps; bins }
 
 (* dedup a list *)
 let dedup l =
@@ -520,6 +744,6 @@ let dedup l =
 let features t =
   let default = [Feature.native; Feature.native_dynlink] in
   let libs = conmap Lib.features t.libs in
-  let tops = conmap Top.features t.tops in
+  let pps = conmap Lib.features t.pps in
   let bins = conmap Bin.features t.bins in
-  dedup (default @ libs @ tops @ bins)
+  dedup (default @ libs @ pps @ bins)

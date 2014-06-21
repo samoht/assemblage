@@ -19,17 +19,17 @@ let t = Unit.create ~dir ~deps:(Dep.units [m; f; o]) "tools"
 
 let lib = Lib.create [p; f; o; m; t] "tools"
 
-let top =
-  Top.create ~deps:[Dep.lib lib] "configure.top"
-
-let bin =
-  let main = Unit.create ~dir ~deps:[Dep.pkg "unix"; Dep.lib lib] "opam_configure" in
-  Bin.create ~deps:[Dep.unit main] "opam-configure"
+let bin = Bin.create ~deps:[Dep.lib lib] "configure.ml"
 
 (* The project *)
 
+let version = "0.1"
+
 let t =
-  create ~libs:[lib] ~tops:[top] ~bins:[bin] ~version:"0.1" "tools"
+  let version = version ^ match Git.version () with
+    | None   -> ""
+    | Some v -> "~" ^ v in
+  create ~libs:[lib] ~bins:[bin] ~version "tools"
 
 let () =
   Tools.generate t `Makefile

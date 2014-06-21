@@ -16,19 +16,8 @@
 
 (** Manage OCamlfind invocations. *)
 
-open Project
-
-val p4o: string -> Dep.resolver
-(** Resolve external syntax extensions. *)
-
-val incl: string -> Dep.resolver
-(** Resolve includes for external packages. *)
-
-val bytlink: string -> Dep.resolver
-(** Resolve bytecode compilation for external packages. *)
-
-val natlink: string -> Dep.resolver
-(** Resolve native code compilation for external packages. *)
+val resolver: (string -> string) -> Project.Resolver.t
+(** Resolve command-line arguments for ocamlfind packages. *)
 
 module META: sig
 

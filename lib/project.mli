@@ -16,12 +16,102 @@
 
 (** EDSL to describe OCaml projects. *)
 
+module Flags: sig
+
+  (** Command line arguments (ie. flags). *)
+
+  type t
+  (** Command-line arguments. *)
+
+  type f = string list -> string list
+  (** Command-line transformers. *)
+
+  val create:
+    ?comp_byte:f -> ?comp_native:f ->
+    ?pp_byte:f -> ?pp_native:f  ->
+    ?link_byte:f -> ?link_native:f ->
+    unit -> t
+  (** Create a basic command-line argument with the given
+      transformers. *)
+
+  val (@): t -> t -> t
+  (** Append command-line flags. *)
+
+  val comp_byte: t -> string list
+  (** The command-line arguments for compiling compilation units in
+      bytecode mode. *)
+
+  val comp_native: t -> string list
+  (** The command-line arguments for compiling compilation units in
+      native mode. *)
+
+  val pp_byte: t -> string list
+  (** The command-line arguments for pre-processing files in bytecode
+      mode. *)
+
+  val pp_native: t -> string list
+  (** The command-line arguments for pre-processing files in native
+      mode. *)
+
+  val link_byte: t -> string list
+  (** The command-line arguments to link compilation units in bytecode
+      mode. *)
+
+  val link_native: t -> string list
+  (** The command-line arguments to link compilation units in native
+      mode. *)
+
+  (** {2 Built-in flags} *)
+
+  val empty: t
+  (** Empty flags. *)
+
+  val debug: t
+  (** Add [-g]. *)
+
+  val bin_annot: t
+  (** Add [-bin-annot]. *)
+
+  val warn_error: t
+  (** Add [-warn-error]. *)
+
+end
+
 module Feature: sig
 
   (** Project features. *)
 
   type t
   (** Feature values. *)
+
+  type formula
+  (** Feature formulaes. *)
+
+  val atoms: formula -> t list
+  (** [atoms f] is the list of atoms appearing in the formula [f]. *)
+
+  val eval: (t * bool) list -> formula -> bool
+  (** [eval tbl f] evaluates the formula [f] given the truth table
+      [tbl]. If a feature [t] does not appear in [tbl] is is
+      considered as associated to [false]. *)
+
+  val true_: formula
+  (** The formula which is always [true]. *)
+
+  val false_: formula
+  (** The formula which is always [false]. *)
+
+  val atom: t -> formula
+  (** [atom t] is the formula containing the singleton feature [t]. *)
+
+  val not: formula -> formula
+  (** [not f] negates the formula [f]. *)
+
+  val (&&): formula -> formula -> formula
+  (** [f1 && f2] is the conjonction of [f1] and [f2]. *)
+
+  val (||): formula -> formula -> formula
+  (** [f1 || f2] is the disjonction of [f1] and [f2]. *)
 
   val name: t -> string
   (** The feature name. *)
@@ -44,14 +134,54 @@ module Feature: sig
   val native_dynlink: t
   (** Is dynlink for native code enabled ? *)
 
+  val annot: t
+  (** Generate annot files ? *)
+
+  val debug: t
+  (** Generate debug symbols ? *)
+
+  val warn_error: t
+  (** Consider warning as error. *)
+
+end
+
+module Resolver: sig
+
+  (** Dependency resolver. *)
+
+  type t
+  (** Resolver values. *)
+
+  val create: buildir:(string -> string) -> pkgs:(string list -> Flags.t) -> t
+  (** [create ~buildir ~pkgs] is the resolver which apply the function
+      [buildir] to resolve local libraries and resolves a set of
+      global package by applying [pkgs]. *)
+
+  val buildir: t -> string -> string
+  (** Resolve locally generated filename (by usually prepending the
+      build directory name). *)
+
+  val pkgs: t -> string list -> Flags.t
+  (** Resolve global package names into command-line flag
+      transformers. *)
+
 end
 
 module rec Dep: sig
 
   (** Library dependencies. *)
 
-  type t
+  type t =
+    [ `Unit of Unit.t
+    | `Lib of Lib.t
+    | `Pp of Lib.t
+    | `Pkg_pp of string
+    | `Pkg of string
+    | `Bin of Bin.t ]
   (** Dependency values. *)
+
+  module Graph: Graph.Sig.I with type V.t = t
+  (** Dependency graph. *)
 
   (** {2 Compilation units} *)
 
@@ -61,11 +191,9 @@ module rec Dep: sig
   val units: Unit.t list -> t list
   (** A list of compilation units. *)
 
-  val get_units: t list -> Unit.t list
-  (** Return the list of compilation unit in the dependency list. *)
-
-  val map_units: (Unit.t -> Unit.t) -> t list -> t list
-  (** Map a function over the compilation units. *)
+  val filter_units: t list -> Unit.t list
+  (** [filter_units deps] is the list of compilation unit in
+      [deps]. *)
 
   (** {2 Libraries} *)
 
@@ -75,60 +203,41 @@ module rec Dep: sig
   val libs: Lib.t list -> t list
   (** A list of local libraries. *)
 
-  val get_libs: t list -> Lib.t list
-  (** Return the list of local libraries in the dependency list. *)
+  val filter_libs: t list -> Lib.t list
+  (** [filter_libs deps] is the list of local libraries in [deps]. *)
 
   val pkg: string -> t
-  (** A globally installed package. *)
+  (** A globally installed library in a package. *)
 
   val pkgs: string list -> t list
-  (** A list of globally installed packages. *)
+  (** A list of globally installed libraries in packages. *)
 
-  val get_pkgs: t list -> string list
-  (** Return the list of globally installed packages in the dependency
-      list. *)
+  val filter_pkgs: t list -> string list
+  (** [filter_pkgs deps] is the list of globally installed libraries in
+      packages contained in [deps]. *)
 
   (** {2 Pre-processors} *)
 
-  val p4o: Lib.t -> t
-  (** A local syntax extension, using [camlp4o]. *)
+  val pp: Lib.t -> t
+  (** A local syntax extension. *)
 
-  val p4os: Lib.t list -> t list
-  (** A set of local syntax extensions, using [camlp4o]. *)
+  val pps: Lib.t list -> t list
+  (** A set of local syntax extensions. *)
 
-  val get_p4os: t list -> Lib.t list
-  (** Return the local extensions in the depency list. *)
+  val filter_pps: t list -> Lib.t list
+  (** [filter_pps deps] is the list of local extensions in [deps]. *)
 
-  val pkg_p4o: string -> t
+  val pkg_pp: string -> t
   (** A globally installed syntax extension. *)
 
-  val pkg_p4os: string list -> t list
+  val pkg_pps: string list -> t list
   (** A list of globally installed syntax extensions. *)
 
-  val get_pkg_p4os: t list -> string list
-  (** Return the list of globally installed syntax extension in the
-      dependency list. *)
+  val filter_pkg_pps: t list -> string list
+  (** [filter_pkg_pps] is the list of globally installed syntax
+      extension in [deps]. *)
 
-  (** {2 Custom generation rules} *)
-
-  type custom = {
-    inputs : string list;
-    outputs: string list;
-    recipe : string list
-  }
-  (** Custom rules. *)
-
-  val custom: custom -> t
-  (** Custom generation rule. *)
-
-  val get_customs: t list -> custom list
-  (** Return the list of custom rules. *)
-
-  (** {2 Misc} *)
-
-  type resolver = [`Buildir of string | `Pkgs of string list] -> string
-  (** Resolve a list of package names into a list of command-line
-      arguments. *)
+  (** {2 Dependency closure} *)
 
   val closure: t list -> t list
   (** Compute the transitive closure of dependencies. Try to keep the
@@ -146,71 +255,65 @@ and Unit: sig
   (** Copy the compilation unit. *)
 
   val name: t -> string
-  (** Return the compilation unit name. *)
+  (** The name of the compilation unit. *)
 
   val dir: t -> string option
-  (** Return the compilation unit directory. *)
+  (** The source directory of the compilation unit. *)
 
   val deps: t -> Dep.t list
-  (** Return the compilation unit dependencies. *)
+  (** The dependencies of the compilation unit. *)
 
   val lib: t -> Lib.t option
-  (** Return the library the compilation unit belongs to. *)
+  (** The library the compilation unit belongs to. *)
 
   val build_dir: t -> string option
-  (** Return the build directory. Usually it is the library name, but
-      can be other exotic places (for instance the exec name, if the
-      compilation unit is the main program file). *)
+  (** The build directory of the compilation unit. Usually it is the
+      library name, but can be other exotic places (for instance the
+      exec name, if the compilation unit is the main program file). *)
 
   val for_pack: t -> string option
-  (** Return the (optional) pack the compilation unit is in. *)
+  (** The (optional) pack the compilation unit is in. *)
 
-  val add_deps: t -> Dep.t list -> unit
-  (** Add more dependencies to the compilation unit. *)
-
-  val create: ?dir:string -> ?deps:Dep.t list -> string -> t
+  val create: ?flags:Flags.t -> ?dir:string -> ?deps:Dep.t list -> string -> t
   (** Create a compilation unit. *)
 
-  val pack: t list -> string -> t
+  val pack: ?flags:Flags.t -> t list -> string -> t
   (** Pack a collection of compilation units together. *)
 
   val unpack: t -> t list
-  (** Return the (usually empty) list of packed compilation units. *)
+  (** The (usually empty) list of packed compilation units. *)
 
-  val cmi: t -> string
-  (** Return the name of the compiled module interface. *)
+  val cmi: t -> Resolver.t -> string
+  (** The location of the generated compiled module interface. *)
 
-  val cmo: t -> string
-  (** Return the name of the compiled module object. *)
+  val cmo: t -> Resolver.t -> string
+  (** The location of the generated compiled module object. *)
 
-  val cmx: t -> string
-  (** Return the name of the extra information for native linking of
-      the compilation unit. *)
+  val cmx: t -> Resolver.t -> string
+  (** The location of the extra information for native linking of the
+      compilation unit. *)
 
-  val o: t -> string
-  (** Return the name of the object file for the compilation unit. *)
+  val o: t -> Resolver.t -> string
+  (** The location of the object file for the compilation unit. *)
 
-  val file: t -> string -> string
+  val file: t -> Resolver.t -> string -> string
   (** [file t ext] is the generated file with the extension [ext] for
        the compilation unit [t]. *)
 
-  val generated_files: t -> (Feature.t list * string) list
-  (** Return the list of generated files when the given conjonction of
-      features are enable. *)
+  val generated_files: t -> Resolver.t -> (Feature.formula * string list) list
+  (** [generated_files t r] is the list of generated files when the
+      given formula of features are enable. *)
 
-  val compflags: t -> Dep.resolver -> string list
-  (** Return the computed compilation flags. The [resolver] function
-      resolves a list of external library names into a list of command-line
-      options for the compilers. *)
+  val flags: t -> Resolver.t -> Flags.t
+  (** [flags t r] is the computed compilation flags, where [r]
+      resolves a dependency names into a list of command-line
+      flags. *)
 
-  val p4oflags: t -> Dep.resolver -> string list
-  (** Return the computed pre-processing flags. The [resolver] function
-      resolves a list of external syntax extensions into a list of
-      command-line options for the linkers. *)
-
-  val prereqs: t -> [`byte | `native] -> string list
-  (** [prereqs t mode] is the list of prerequisites files to build, in
-      the given [mode], before building the compilation unit [t]. *)
+  val prereqs: t -> Resolver.t -> [`Byte | `Native] -> string list
+  (** [prereqs t resolver mode] is the list of prerequisites files to
+      build, in the given [mode], before building the compilation unit
+      [t], where [resolver] is used to compute the location of
+      generated files. *)
 
 end
 
@@ -221,116 +324,113 @@ and Lib: sig
   type t
 
   val name: t -> string
-  (** Return the library name. *)
+  (** The library name. *)
 
   val filename: t -> string
-  (** Return the library filename. Usually, it is the same as [name],
-      but this could be updated when the library is put in a named
-      project to [project.name]. *)
+  (** The library filename. Usually, it is the same as [name], but
+      this could be updated when the library is put in a named project
+      to [project.name]. *)
 
   val units: t -> Unit.t list
-  (** Return the list of compilation units which defines the
-      library. *)
+  (** The list of compilation units which defines the library. *)
 
   val features: t -> Feature.t list
-  (** Return the features which enables the build of that library. *)
+  (** The features which enables the build of that library. *)
+
+  val deps: t -> Dep.t list
+  (** The list of dependencies of the compilation units in the
+      library. *)
 
   val create:
-    ?features:Feature.t list ->
+    ?features:Feature.formula ->
+    ?flags:Flags.t ->
     ?pack:bool ->
     ?deps:Dep.t list ->
     Unit.t list -> string -> t
   (** Create a library. *)
 
-  val cma: t -> string
-  (** Return the bytecode archive of the library. *)
+  val cma: t -> Resolver.t -> string
+  (** The location of the generated bytecode archive. *)
 
-  val cmxa: t -> string
-  (** Return the extra information about the native archive of the
-      library. *)
+  val cmxa: t -> Resolver.t -> string
+  (** The location of the extra information about the native
+      archive. *)
 
-  val a: t -> string
-  (** Return the native archive of the libray. *)
+  val a: t -> Resolver.t -> string
+  (** The location of the native archive. *)
 
-  val cmxs: t -> string
-  (** Return the shared archive of the library. *)
+  val cmxs: t -> Resolver.t -> string
+  (** The location of the shared archive. *)
 
-  val file: t -> string -> string
-  (** Return the generated file with the given extension for the given
-      compilation unit. *)
+  val file: t -> Resolver.t -> string -> string
+  (** [file t ext] is the generated file with the extension [ext] for
+       the library [t]. *)
 
-  val generated_files: t -> (Feature.t list * string) list
-  (** Return the list of generated files for the given project
-      configuration. *)
+  val generated_files: t -> Resolver.t -> (Feature.formula * string list) list
+  (** [generated_files t r] is the list of generated files when the
+      given formula of features are enable. *)
 
-  val deps: t -> Dep.t list
-  (** Return the list of dependencies of the compilation units in the
-      library. *)
+  val flags: t -> Resolver.t -> Flags.t
+  (** [flags t r] is the computed compilation flags, where [r]
+      resolves a dependency names into a list of command-line
+      flags. *)
 
-end
-
-module Top: sig
-
-  (** Build toplevels. *)
-
-  type t
-
-  val name: t -> string
-  (** Return the toplevel name. *)
-
-  val deps: t -> Dep.t list
-  (** Return the dependencies linked by the toplevel. *)
-
-  val features: t -> Feature.t list
-  (** Return the features which enables the build of that toplevel. *)
-
-  val custom: t -> bool
-  (** Should the toplevel be compiled with the [custom] option ? *)
-
-  val create:
-    ?features:Feature.t list ->
-    ?custom:bool ->
-    ?deps:Dep.t list ->
-    string -> t
-  (** Create a custom toplevel from a set of libraries. *)
-
-  val byte: t -> string
-  (** Return the name of the bytecode toplevel. *)
-
-  val generated_files: t -> (Feature.t list * string) list
-  (** Return the list of generated files for the given project
-      configuration. *)
+  val prereqs: t -> Resolver.t -> [`Byte | `Native] -> string list
+  (** [prereqs t resolver mode] is the list of prerequisites files to
+      build, in the given [mode], before building the compilation unit
+      [t], where [resolver] is used to compute the location of
+      generated files. *)
 
 end
 
-module Bin: sig
+and Bin: sig
 
   (** Build binaries. *)
 
   type t
 
   val name: t -> string
-  (** Return the binary name. *)
+  (** The binary name. *)
 
   val deps: t -> Dep.t list
-  (** Return the dependencies linked by the binary. *)
+  (** The dependencies linked by the binary. *)
 
   val create:
-    ?features:Feature.t list ->
+    ?features:Feature.formula ->
+    ?flags:Flags.t ->
     ?deps:Dep.t list ->
     string -> t
   (** Build a binary by linking a set of libraries and additional
       compilation units. *)
 
-  val byte: t -> string
-  (** Return the name of the byte-code binary. *)
+  val toplevel:
+    ?features:Feature.formula ->
+    ?flags:Flags.t ->
+    ?custom:bool ->
+    ?deps:Dep.t list ->
+    string -> t
+  (** Create a custom toplevel from a set of libraries. *)
 
-  val native: t -> string
-  (** Return the name of the native binary. *)
+  val byte: t -> Resolver.t -> string
+  (** The location of the generated byte-code binary. *)
 
-  val generated_files: t -> (Feature.t list * string) list
-  (** Return the list of generated files for the given project
-      configuration. *)
+  val native: t -> Resolver.t -> string
+  (** The location of the generated native binary. *)
+
+  val generated_files: t -> Resolver.t -> (Feature.formula * string list) list
+  (** [generated_files t r] is the list of generated files when the
+      given formula of features are enable. *)
+
+  val flags: t -> Resolver.t -> Flags.t
+  (** [flags t r] is the computed compilation flags, where [r]
+      resolves a dependency names into a list of command-line
+      flags. *)
+
+  val prereqs: t -> Resolver.t -> [`Byte | `Native] -> string list
+  (** [prereqs t resolver mode] is the list of prerequisites files to
+      build, in the given [mode], before building the compilation unit
+      [t], where [resolver] is used to compute the location of
+      generated files. *)
 
 end
 
@@ -346,27 +446,23 @@ val version: t -> string
 val libs: t -> Lib.t list
 (** Return the list of libraries defined by the project. *)
 
-val p4os: t -> Lib.t list
-(** [p4os t] is the list of syntax extensions defined by the project
+val pps: t -> Lib.t list
+(** [pps t] is the list of syntax extensions defined by the project
     [t]. *)
 
 val bins: t -> Bin.t list
 (** Return the list of binaries defined by the project. *)
 
-val tops: t -> Top.t list
-(** Return the list of toplevels defined by the project. *)
-
 val create:
+  ?flags:Flags.t ->
   ?libs:Lib.t list ->
-  ?p4os:Lib.t list ->
+  ?pps:Lib.t list ->
   ?bins:Bin.t list ->
-  ?tops:Top.t list ->
   ?version:string ->
   string -> t
-(** [create ?libs ?p4os ?bins ?tops ?version name] is the project
+(** [create ?libs ?pps ?bins ?version name] is the project
     description named [name], defining the libraries [libs], the
-    syntax extensions [p4os], the program binaries [bins] and the
-    top-level binaries [bins]. *)
+    syntax extensions [pps] and the program binaries [bins]. *)
 
 val features: t -> Feature.t list
 (** Return the features used in the project. *)
