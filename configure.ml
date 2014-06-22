@@ -17,7 +17,7 @@ let t = Unit.create ~dir ~deps:(Dep.units [m; f; o]) "tools"
 
 (* Build artifacts *)
 
-let lib = Lib.create [p; f; o; m; t] "tools"
+let lib = Lib.create [e; p; f; o; m; t] "tools"
 
 let bin = Bin.create ~deps:[Dep.lib lib] "configure.ml"
 

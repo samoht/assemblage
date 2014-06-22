@@ -19,43 +19,54 @@ open Project
 
 let (/) = Filename.concat
 
-let pp_byte names =
+let pp_byte names l =
   let names = String.concat " " names in
-  [sprintf
+  sprintf
     "$(shell ocamlfind query %s -r -predicates syntax,preprocessor \
      -format \"-I %%d %%a\")"
-    names]
+    names
+  :: l
 
-let pp_native names =
+let pp_native names l =
   let names = String.concat " " names in
-  [sprintf
+  sprintf
     "$(shell ocamlfind query %s -r -predicates syntax,preprocessor, native \
      -format \"-I %%d %%a\")"
-    names]
+    names
+  :: l
 
-let incl names=
+let incl names l =
   let names = String.concat " "  (List.rev names) in
-  [sprintf
+  sprintf
     "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d\")"
-    names]
+    names
+  :: l
 
 let comp_byte = incl
 
 let comp_native = incl
 
-let link_byte names =
+let link_byte names l =
   let names = String.concat " "  (List.rev names) in
-  [sprintf
+  sprintf
     "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d %%a\")"
-    names]
+    names
+  :: l
 
-let link_native names =
+let link_native names l =
   let names = String.concat " "  (List.rev names) in
-  [sprintf
+  sprintf
     "$(shell ocamlfind query %s -r -predicates native -format \"-I %%d %%a\")"
-    names]
+    names
+  :: l
 
-let pkgs name =
+let pkgs names =
+  let pp_byte     = pp_byte names in
+  let pp_native   = pp_native names in
+  let comp_byte   = comp_byte names in
+  let comp_native = comp_native names in
+  let link_byte   = link_byte names in
+  let link_native = link_native names in
   Flags.create
     ~pp_byte ~pp_native
     ~comp_byte ~comp_native

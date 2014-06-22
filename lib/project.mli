@@ -37,27 +37,27 @@ module Flags: sig
   val (@): t -> t -> t
   (** Append command-line flags. *)
 
-  val comp_byte: t -> string list
+  val comp_byte: t -> f
   (** The command-line arguments for compiling compilation units in
       bytecode mode. *)
 
-  val comp_native: t -> string list
+  val comp_native: t -> f
   (** The command-line arguments for compiling compilation units in
       native mode. *)
 
-  val pp_byte: t -> string list
+  val pp_byte: t -> f
   (** The command-line arguments for pre-processing files in bytecode
       mode. *)
 
-  val pp_native: t -> string list
+  val pp_native: t -> f
   (** The command-line arguments for pre-processing files in native
       mode. *)
 
-  val link_byte: t -> string list
+  val link_byte: t -> f
   (** The command-line arguments to link compilation units in bytecode
       mode. *)
 
-  val link_native: t -> string list
+  val link_native: t -> f
   (** The command-line arguments to link compilation units in native
       mode. *)
 
@@ -157,7 +157,7 @@ module Resolver: sig
       [buildir] to resolve local libraries and resolves a set of
       global package by applying [pkgs]. *)
 
-  val buildir: t -> string -> string
+  val build_dir: t -> string -> string
   (** Resolve locally generated filename (by usually prepending the
       build directory name). *)
 
@@ -179,6 +179,9 @@ module rec Dep: sig
     | `Pkg of string
     | `Bin of Bin.t ]
   (** Dependency values. *)
+
+  val id: t -> string
+  (** Unique name of the dependency. *)
 
   module Graph: Graph.Sig.I with type V.t = t
   (** Dependency graph. *)
@@ -251,6 +254,10 @@ and Unit: sig
 
   type t
 
+  val id: t -> string
+  (** Unique name of the compilation unit. This is the composition of
+      the [build_path] and the unit [name]. *)
+
   val copy: t -> t
   (** Copy the compilation unit. *)
 
@@ -263,13 +270,8 @@ and Unit: sig
   val deps: t -> Dep.t list
   (** The dependencies of the compilation unit. *)
 
-  val lib: t -> Lib.t option
+  val container: t -> [`Lib of Lib.t |`Bin of Bin.t]  option
   (** The library the compilation unit belongs to. *)
-
-  val build_dir: t -> string option
-  (** The build directory of the compilation unit. Usually it is the
-      library name, but can be other exotic places (for instance the
-      exec name, if the compilation unit is the main program file). *)
 
   val for_pack: t -> string option
   (** The (optional) pack the compilation unit is in. *)
@@ -315,6 +317,9 @@ and Unit: sig
       [t], where [resolver] is used to compute the location of
       generated files. *)
 
+  val build_dir: t -> Resolver.t -> string
+  (** The build directory of the compilation unit. *)
+
 end
 
 and Lib: sig
@@ -322,6 +327,10 @@ and Lib: sig
   (** Libraries. *)
 
   type t
+
+  val id: t -> string
+  (** Unique name of the library (to avoid name clashes with binaries
+      having the same name). *)
 
   val name: t -> string
   (** The library name. *)
@@ -381,6 +390,9 @@ and Lib: sig
       [t], where [resolver] is used to compute the location of
       generated files. *)
 
+  val build_dir: t -> Resolver.t -> string
+  (** The build directory of the library. *)
+
 end
 
 and Bin: sig
@@ -388,6 +400,10 @@ and Bin: sig
   (** Build binaries. *)
 
   type t
+
+  val id: t -> string
+  (** Unique name of the binary (to avoid name-clashes with library
+      having the same name). *)
 
   val name: t -> string
   (** The binary name. *)
@@ -431,6 +447,9 @@ and Bin: sig
       build, in the given [mode], before building the compilation unit
       [t], where [resolver] is used to compute the location of
       generated files. *)
+
+  val build_dir: t -> Resolver.t -> string
+  (** The build directory of the binary. *)
 
 end
 
