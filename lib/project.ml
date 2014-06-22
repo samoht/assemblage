@@ -49,10 +49,9 @@ module Flags = struct
     }
 
   let id x = x
-  let nimp x = "nimp" :: x
 
   let create
-      ?(comp_byte=nimp) ?(comp_native=id)
+      ?(comp_byte=id) ?(comp_native=id)
       ?(pp_byte=id)   ?(pp_native=id)
       ?(link_byte=id) ?(link_native=id)
       () =
@@ -440,7 +439,7 @@ end = struct
 
   (* XXX: memoize the function *)
   let flags t resolver =
-    let deps = Unit.deps t in
+    let deps = Unit.deps t |> Dep.closure in
     let comp mode args =
       (* XXX: handle depend units not in the same dirs *)
       let incl = sprintf "-I %s" (Unit.build_dir t resolver) in
@@ -457,7 +456,7 @@ end = struct
           match mode with
           | `Byte   -> Flags.comp_byte pkgs []
           | `Native -> Flags.comp_native pkgs [] in
-      args @ [libs] @ pkgs in
+      pkgs @ [libs] @ args in
     let comp_byte = comp `Byte in
     let comp_native = comp `Native in
     let pp mode args =
@@ -477,7 +476,7 @@ end = struct
           match mode with
           | `Byte   -> Flags.pp_byte pkgs []
           | `Native -> Flags.pp_native pkgs [] in
-        args @ libs @ pkgs in
+        pkgs @ libs @ args in
     let pp_byte = pp `Byte in
     let pp_native = pp `Native in
     Flags.create ~comp_byte ~comp_native ~pp_byte ~pp_native ()
@@ -623,7 +622,18 @@ end = struct
     |> List.concat
 
   let flags t resolver =
-    t.flags
+    let units = Lib.units t in
+    let link mode args =
+      (* XXX: handle depend units not in the same dirs *)
+      let units = List.map (fun u ->
+          match mode with
+          | `Byte   -> Unit.cmo u resolver
+          | `Native -> Unit.cmx u resolver
+        ) units in
+      units @ args in
+    let link_byte = link `Byte in
+    let link_native = link `Native in
+    Flags.create ~link_byte ~link_native ()
 
   let prereqs t resolver = function
     | `Byte   ->
@@ -704,7 +714,7 @@ end = struct
     Resolver.build_dir r @@ t.name / t.name ^ ".byte"
 
   let native t r =
-    Resolver.build_dir r @@ t.name / t.name ^ ".native"
+    Resolver.build_dir r @@ t.name / t.name ^ ".opt"
 
   let generated_files t resolver =
     let mk f = f t resolver in
@@ -731,7 +741,32 @@ end = struct
       bytpps @ natlibs @ natunits
 
   let flags t resolver =
-    t.flags
+    let units = Bin.deps t |> Dep.filter_units in
+    let deps  = Bin.deps t |> Dep.closure in
+    let link mode args =
+      let units = List.map (fun u ->
+          match mode with
+          | `Byte   -> Unit.cmo u resolver
+          | `Native -> Unit.cmx u resolver
+        ) units in
+      let libs = Dep.filter_libs deps in
+      let libs = List.map (fun l ->
+          match mode with
+          | `Byte   -> Lib.cma l resolver
+          | `Native -> Lib.cmxa l resolver
+        ) libs in
+      let pkgs = Dep.filter_pkgs deps in
+      let pkgs = match pkgs with
+        | [] -> []
+        | l  ->
+          let pkgs = Resolver.pkgs resolver pkgs in
+          match mode with
+          | `Byte   -> Flags.link_byte pkgs []
+          | `Native -> Flags.link_native pkgs [] in
+      pkgs @ libs @ units @  args in
+    let link_byte = link `Byte in
+    let link_native = link `Native in
+    Flags.create ~link_byte ~link_native ()
 
 end
 

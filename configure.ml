@@ -4,12 +4,13 @@ open Project
 
 let cmdliner = Dep.pkg "cmdliner"
 let opam     = Dep.pkg "opam"
+let graph    = Dep.pkg "ocamlgraph"
 
 (* Compilation units *)
 
 let dir = "lib"
-let e = Unit.create ~dir ~deps:[cmdliner]            "env"
-let p = Unit.create ~dir ~deps:[cmdliner]            "project"
+let p = Unit.create ~dir ~deps:[cmdliner; graph]     "project"
+let e = Unit.create ~dir ~deps:[Dep.unit p]          "env"
 let f = Unit.create ~dir ~deps:[Dep.unit p]          "ocamlfind"
 let o = Unit.create ~dir ~deps:[opam; Dep.unit p]    "opam"
 let m = Unit.create ~dir ~deps:(Dep.units [p; f])    "makefile"

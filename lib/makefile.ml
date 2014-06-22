@@ -58,6 +58,16 @@ module Variable = struct
   let name t =
     sprintf "$(%s)" t.name
 
+  let contents t = t.contents
+
+  let is_contents_empty t =
+    match t.contents with
+    | `String ""
+    | `Strings [] -> true
+    | `Strings l  -> List.for_all ((=) "") l
+    | `Case _
+    | `String _   -> false
+
   let generate buf ?(size=0) t =
     let string tab c =
       bprintf buf "%s%-.*s %s %s\n" tab (size - String.length tab) t.name t.assign c in
@@ -237,7 +247,8 @@ end = struct
       | Some (`Lib l) -> Some (varlib l)
       | Some (`Bin b) -> Some (varbin b) in
     match lib, fn (Unit.flags t resolver) [] with
-    | _     , [] -> lib
+    | None  , [] -> None
+    | Some l, [] -> if Variable.is_contents_empty l then None else Some l
     | None  , u  -> Some (Variable.(var =?= `Strings u))
     | Some _, u  -> Some (Variable.(var =?= `Strings (fn (Unit.flags t resolver) u)))
 
