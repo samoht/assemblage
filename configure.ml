@@ -10,7 +10,7 @@ let graph    = Dep.pkg "ocamlgraph"
 
 let dir = "lib"
 let p = Unit.create ~dir ~deps:[cmdliner; graph]     "project"
-let e = Unit.create ~dir ~deps:[Dep.unit p]          "env"
+let e = Unit.create ~dir ~deps:[Dep.unit p]          "build_env"
 let f = Unit.create ~dir ~deps:[Dep.unit p]          "ocamlfind"
 let o = Unit.create ~dir ~deps:[opam; Dep.unit p]    "opam"
 let m = Unit.create ~dir ~deps:(Dep.units [p; f])    "makefile"

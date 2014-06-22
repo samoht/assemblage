@@ -2,7 +2,7 @@
 
 set -ex
 
-ocamlbuild lib/git.cmo lib/env.cmo lib/project.cmo \
+ocamlbuild lib/git.cmo lib/build_env.cmo lib/project.cmo \
     lib/ocamlfind.cmo lib/opam.cmo lib/makefile.cmo \
     lib/tools.cmo \
     -package cmdliner -package opam -package ocamlgraph
@@ -10,6 +10,6 @@ ocamlbuild lib/git.cmo lib/env.cmo lib/project.cmo \
 ocamlmktop \
     $(ocamlfind query -r unix cmdliner opam -predicates byte -format "-I %d %a")  \
     -I _build/lib git.cmo project.cmo ocamlfind.cmo opam.cmo makefile.cmo \
-    env.cmo tools.cmo -o configure.top
+    build_env.cmo tools.cmo -o configure.top
 
 ./configure.top -I _build/lib configure.ml
