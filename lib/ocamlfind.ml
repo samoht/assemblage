@@ -19,49 +19,74 @@ open Project
 
 let (/) = Filename.concat
 
+
+let query
+    ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
+  let predicates = match predicates with
+    | None   -> ""
+    | Some p -> sprintf "-predicates %s " (String.concat "," p) in
+  let format = match format with
+    | None   -> ""
+    | Some f -> sprintf "-format \"%s\" " f in
+  let recursive = match recursive with
+    | true   -> "-r "
+    | false  -> "" in
+  let uniq = match uniq with
+    | true   -> " | uniq"
+    | false  -> "" in
+  let packages = String.concat " " packages in
+  Shell.exec_output "ocamlfind query %s%s%s%s%s%s"
+    recursive predicates format recursive packages uniq
+
 let pp_byte names l =
-  let names = String.concat " " names in
-  sprintf
-    "$(shell ocamlfind query %s -r -predicates syntax,preprocessor \
-     -format \"-I %%d %%a\")"
+  query
+    ~predicates:["syntax";"preprocessor"]
+    ~recursive:true
+    ~format:"%d/%a"
     names
-  :: l
+  @ l
 
 let pp_native names l =
-  let names = String.concat " " names in
-  sprintf
-    "$(shell ocamlfind query %s -r -predicates syntax,preprocessor, native \
-     -format \"-I %%d %%a\")"
+  query
+    ~predicates:["syntax";"preprocessor";"native"]
+    ~recursive:true
+    ~format:"%d/%a"
     names
-  :: l
+  @ l
 
 let comp_byte names l =
-  let names = String.concat " "  (List.rev names) in
-  sprintf
-    "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d\")"
+  query
+    ~predicates:["byte"]
+    ~format:"-I %d"
+    ~recursive:true
+    ~uniq:true
     names
-  :: l
+  @ l
 
 let comp_native names l =
-  let names = String.concat " "  (List.rev names) in
-  sprintf
-    "$(shell ocamlfind query %s -r -predicates native -format \"-I %%d\")"
+  query
+    ~predicates:["native"]
+    ~format:"-I %d"
+    ~recursive:true
+    ~uniq:true
     names
-  :: l
+  @ l
 
 let link_byte names l =
-  let names = String.concat " "  (List.rev names) in
-  sprintf
-    "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d %%a\")"
+  query
+    ~predicates:["byte"]
+    ~format:"%d/%a"
+    ~recursive:true
     names
-  :: l
+  @ l
 
 let link_native names l =
-  let names = String.concat " "  (List.rev names) in
-  sprintf
-    "$(shell ocamlfind query %s -r -predicates native -format \"-I %%d %%a\")"
+  query
+    ~predicates:["native"]
+    ~format:"%d/%a"
+    ~recursive:true
     names
-  :: l
+  @ l
 
 let pkgs names =
   let pp_byte     = pp_byte names in

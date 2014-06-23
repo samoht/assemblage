@@ -14,30 +14,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Manage OCamlfind invocations. *)
+open Printf
 
-val query:
-  ?predicates:string list ->
-  ?format:string ->
-  ?uniq:bool ->
-  ?recursive:bool ->
-  string list -> string list
-(** [ocamlfind_query ?predicates ?format packages] is the result of
-    executing [ocamlfind query] with the given parameters. *)
+let (/) = Filename.concat
 
-val resolver: (string -> string) -> Project.Resolver.t
-(** Resolve command-line arguments for ocamlfind packages. *)
-
-module META: sig
-
-  (** Generate META files. *)
-
-  type t
-
-  val of_project: Project.t -> t
-  (** Create a META file. *)
-
-  val write: ?dir:string -> t -> unit
-  (** Write a META file. *)
-
-end
+let () =
+  if not (Sys.file_exists "configure.ml") then
+    Shell.fatal_error 1 "missing configure.ml.";
+  let incl = match Shell.exec_output "opam config var lib" with
+    | [dir] -> dir / "tools"
+    | _     -> Shell.fatal_error 1 "Is opam installed ?" in
+  Config.load_path := incl :: !Config.load_path;
+  let _ = Toploop.run_script Format.std_formatter "configure.ml" Sys.argv
+  in ()

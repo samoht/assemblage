@@ -793,7 +793,7 @@ end = struct
     let link_byte args =
       ("-linkall" ^ if custom then " -custom" else "")
       :: args
-      @  ["topstart.cmo"] in
+      @  ["-I +compiler-libs topstart.cmo"] in
     let nflags = Flags.create ~link_byte () in
     let flags = Flags.(nflags @ flags) in
     create ~features ~flags ~deps units name

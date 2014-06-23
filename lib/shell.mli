@@ -1,4 +1,5 @@
 (*
+ * Copyright (c) 2014 Daniel C. Bünzli.
  * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -14,30 +15,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Manage OCamlfind invocations. *)
+(** Execution of shell commands *)
 
-val query:
-  ?predicates:string list ->
-  ?format:string ->
-  ?uniq:bool ->
-  ?recursive:bool ->
-  string list -> string list
-(** [ocamlfind_query ?predicates ?format packages] is the result of
-    executing [ocamlfind query] with the given parameters. *)
+val fatal_error: int -> ('a, unit, string, 'a) format4 -> 'a
+(** [fatal_error i msg] signals an error and stops the program with
+    the exit code [i]. *)
 
-val resolver: (string -> string) -> Project.Resolver.t
-(** Resolve command-line arguments for ocamlfind packages. *)
+val exec: ('a, unit, string, unit) format4 -> 'a
+(** Execute a shell command. *)
 
-module META: sig
-
-  (** Generate META files. *)
-
-  type t
-
-  val of_project: Project.t -> t
-  (** Create a META file. *)
-
-  val write: ?dir:string -> t -> unit
-  (** Write a META file. *)
-
-end
+val exec_output: ('a, unit, string, string list) format4 -> 'a
+(** Execute a shell command and returns its output. *)
