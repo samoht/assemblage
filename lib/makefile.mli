@@ -116,9 +116,12 @@ module Variable: sig
   type contents =
     [ `String of string
     | `Strings of string list
-    | `Case of (t list * contents) list ]
-  (** Contents can be either a string or case conditions. *)
-
+    | `Case of Project.Feature.formula
+               * (Project.Feature.formula * contents) list ]
+  (** Contents can be either a string or case conditions. The handler
+      case [a, \[(f,c) ...\]] enables cases where (a && f) is
+      realizable -- in that case [f] is the condition to enter the
+      case and [c] is the contents being executed. *)
 
   val (=:=): string -> contents ->  t
   (** VAR := x *)
@@ -141,12 +144,6 @@ module Variable: sig
 
   val files: string -> dir:string -> ext:string -> t
   (** VAR = $(wildcard <dir>/*.<ext>)  *)
-
-  val has_native: t
-  (** Is native code enabled. *)
-
-  val has_native_dynlink: t
-  (** Is native dynlink enabled. *)
 
   val has_feature: Project.Feature.t -> t
   (** Is the given feature enabled. *)

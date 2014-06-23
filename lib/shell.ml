@@ -60,8 +60,7 @@ let write file s =
 
 let temp () =
   try
-    let file = Filename.temp_file (Filename.basename Sys.argv.(0))
-        "opam-configure" in
+    let file = Filename.temp_file (Filename.basename Sys.argv.(0)) ".out" in
     at_exit (fun () -> Sys.remove file);
     file
   with Sys_error e ->
@@ -69,7 +68,7 @@ let temp () =
 
 let exec fmt =
   ksprintf (fun cmd ->
-      print_endline (blue "+ %s" cmd);
+      printf "%s %s\n" (yellow_s "=>") cmd;
       let i = Sys.command cmd in
       if i <> 0 then fatal_error i "`%s' exited with code %d" cmd i
     ) fmt

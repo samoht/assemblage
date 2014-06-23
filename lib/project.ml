@@ -110,6 +110,9 @@ module Feature = struct
     | And of formula * formula
     | Or of formula * formula
 
+  type cnf =
+    [ `False | `And of [ `P of t | `N of t ] list ]
+
   let atom t = Atom t
 
   let atoms t =
@@ -123,6 +126,44 @@ module Feature = struct
       | Or (x, y) -> aux x; aux y in
     aux t;
     Hashtbl.fold (fun k _ acc -> k :: acc) tbl []
+
+  let negate: cnf -> cnf = function
+    | `False  -> `And []
+    | `And [] -> `False
+    | `And l  -> `And (List.map (function `P t -> `N t | `N t -> `P t) l)
+
+  let (@) (x:cnf) (y:cnf) = match x, y with
+    | `False , _ | _, `False   -> `False
+    | `And [], x | x, `And [] -> x
+    | `And x , `And y  ->
+      let p = Hashtbl.create (List.length x + List.length y) in
+      let n = Hashtbl.create (List.length x + List.length y) in
+      let add = function
+        | `P x -> Hashtbl.replace p x true
+        | `N x -> Hashtbl.replace n x true in
+      List.iter add x;
+      List.iter add y;
+      try
+        let ps =
+          Hashtbl.fold (fun p _ acc ->
+              if Hashtbl.mem n p then raise Exit
+              else `P p :: acc
+            ) p [] in
+        let ns = Hashtbl.fold (fun n _ acc ->
+            if Hashtbl.mem p n then raise Exit
+            else `N n :: acc
+          ) n [] in
+        `And (ps @ ns)
+      with Exit ->
+        `False
+
+  let rec normalize: formula -> cnf = function
+    | True       -> `And []
+    | False      -> `False
+    | Atom x     -> `And [`P x]
+    | Not x      -> negate (normalize x)
+    | And (x, y) -> normalize x @ normalize y
+    | Or (x, y)  -> normalize (Not x) @ normalize (Not y)
 
   let rec eval tbl = function
     | True       -> true
@@ -626,10 +667,10 @@ and Lib: sig
   val filename: t -> string
   val set_filename: t -> string -> unit
   val units: t -> Unit.t list
-  val features: t -> Feature.t list
+  val available: t -> Feature.formula
   val deps: t -> Dep.t list
   val create:
-    ?features:Feature.formula ->
+    ?available:Feature.formula ->
     ?flags:Flags.t ->
     ?pack:bool ->
     ?deps:Dep.t list ->
@@ -649,7 +690,7 @@ end = struct
     name: string;
     units: Unit.t list;
     mutable filename: string;
-    features: Feature.formula;
+    available: Feature.formula;
     mutable flags: Flags.t;
     deps: Dep.t list;
   }
@@ -668,15 +709,14 @@ end = struct
   let set_filename t f =
     t.filename <- f
 
-  let features t =
-    Feature.atoms t.features
+  let available t = t.available
 
   let create
-      ?(features=Feature.true_)
+      ?(available=Feature.true_)
       ?(flags=Flags.empty)
       ?(pack=false) ?(deps=[]) units name =
     let units' = if pack then [Unit.pack units name] else units in
-    let t = { name; units = units'; features; flags; filename = name; deps } in
+    let t = { name; units = units'; available; flags; filename = name; deps } in
     List.iter (fun u -> Unit.add_deps u deps) units;
     List.iter (fun u -> Unit.set_lib u t) (units' @ units);
     t
@@ -699,9 +739,9 @@ end = struct
   let generated_files t resolver =
     let mk f = f t resolver in
     [
-      t.features                                 , [mk cma]       ;
-      Feature.(atom native && t.features)        , [mk cmxa; mk a];
-      Feature.(atom native_dynlink && t.features), [mk cmxs]      ;
+      t.available                                 , [mk cma]       ;
+      Feature.(atom native && t.available)        , [mk cmxa; mk a];
+      Feature.(atom native_dynlink && t.available), [mk cmxs]      ;
     ]
     @ conmap (fun u -> Unit.generated_files u resolver) t.units
 
@@ -732,12 +772,12 @@ and Bin: sig
   val units: t -> Unit.t list
   val deps: t -> Dep.t list
   val create:
-    ?features:Feature.formula ->
+    ?available:Feature.formula ->
     ?flags:Flags.t ->
     ?deps:Dep.t list ->
     Unit.t list -> string -> t
   val toplevel:
-    ?features:Feature.formula ->
+    ?available:Feature.formula ->
     ?flags:Flags.t ->
     ?custom:bool ->
     ?deps:Dep.t list ->
@@ -747,7 +787,7 @@ and Bin: sig
   val generated_files: t -> Resolver.t -> (Feature.formula * string list) list
   val flags: t -> Resolver.t -> Flags.t
   val prereqs: t -> Resolver.t -> [`Byte | `Native] -> string list
-  val features: t -> Feature.t list
+  val available: t -> Feature.formula
   val build_dir: t -> Resolver.t -> string
 end = struct
 
@@ -755,7 +795,7 @@ end = struct
     deps: Dep.t list;
     units: Unit.t list;
     name: string;
-    features: Feature.formula;
+    available: Feature.formula;
     flags: Flags.t;
   }
 
@@ -770,25 +810,24 @@ end = struct
 
   let deps t = t.deps
 
-  let features t =
-    Feature.atoms t.features
+  let available t = t.available
 
   let create
-      ?(features=Feature.true_)
+      ?(available=Feature.true_)
       ?(flags=Flags.empty)
       ?(deps=[])
       units name =
-    let t = { deps; flags; features; name; units } in
+    let t = { deps; flags; available; name; units } in
     List.iter (fun u -> Unit.set_bin u t) units;
     t
 
   let toplevel
-      ?(features=Feature.true_)
+      ?(available=Feature.true_)
       ?(flags=Flags.empty)
       ?(custom=false)
       ?(deps=[])
       units name =
-    let features = Feature.(not (atom native) && features) in
+    let available = Feature.(not (atom native)) in
     let deps = Dep.pkg "compiler-libs.toplevel" :: deps in
     let link_byte args =
       ("-linkall" ^ if custom then " -custom" else "")
@@ -796,7 +835,7 @@ end = struct
       @  ["-I +compiler-libs topstart.cmo"] in
     let nflags = Flags.create ~link_byte () in
     let flags = Flags.(nflags @ flags) in
-    create ~features ~flags ~deps units name
+    create ~available ~flags ~deps units name
 
   let byte t r =
     build_dir t r / t.name ^ ".byte"
@@ -807,8 +846,8 @@ end = struct
   let generated_files t resolver =
     let mk f = f t resolver in
     [
-      t.features                         , [mk byte  ];
-      Feature.(atom native && t.features), [mk native];
+      t.available                         , [mk byte  ];
+      Feature.(atom native && t.available), [mk native];
     ]
 
   (* XXX: handle native pps *)
@@ -885,7 +924,7 @@ let dedup l =
 
 let features t =
   let default = [Feature.native; Feature.native_dynlink] in
-  let libs = conmap Lib.features t.libs in
-  let pps = conmap Lib.features t.pps in
-  let bins = conmap Bin.features t.bins in
+  let libs = conmap (fun x -> Feature.atoms @@ Lib.available x) t.libs in
+  let pps  = conmap (fun x -> Feature.atoms @@ Lib.available x) t.pps  in
+  let bins = conmap (fun x -> Feature.atoms @@ Bin.available x) t.bins in
   dedup (default @ libs @ pps @ bins)

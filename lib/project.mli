@@ -87,7 +87,13 @@ module Feature: sig
   type formula
   (** Feature formulaes. *)
 
-  val atoms: formula -> t list
+  type cnf = [ `False | `And of [ `P of t | `N of t ] list ]
+  (** Conjonctive Normal Form. *)
+
+  val (@): cnf -> cnf -> cnf
+  (** Concatenation of CNF formulaes. *)
+
+  val normalize: formula -> cnf
   (** [atoms f] is the list of atoms appearing in the formula [f]. *)
 
   val eval: (t * bool) list -> formula -> bool
@@ -354,7 +360,7 @@ and Lib: sig
   val units: t -> Unit.t list
   (** The list of compilation units which defines the library. *)
 
-  val features: t -> Feature.t list
+  val available: t -> Feature.formula
   (** The features which enables the build of that library. *)
 
   val deps: t -> Dep.t list
@@ -362,7 +368,7 @@ and Lib: sig
       library. *)
 
   val create:
-    ?features:Feature.formula ->
+    ?available:Feature.formula ->
     ?flags:Flags.t ->
     ?pack:bool ->
     ?deps:Dep.t list ->
@@ -425,15 +431,18 @@ and Bin: sig
   val deps: t -> Dep.t list
   (** The dependencies linked by the binary. *)
 
+  val available: t -> Feature.formula
+  (** The features which enables the build of that library. *)
+
   val create:
-    ?features:Feature.formula ->
+    ?available:Feature.formula ->
     ?flags:Flags.t ->
     ?deps:Dep.t list ->
     Unit.t list -> string -> t
   (** Build a binary by linking a set of compilation units. *)
 
   val toplevel:
-    ?features:Feature.formula ->
+    ?available:Feature.formula ->
     ?flags:Flags.t ->
     ?custom:bool ->
     ?deps:Dep.t list ->
@@ -498,4 +507,4 @@ val create:
     syntax extensions [pps] and the program binaries [bins]. *)
 
 val features: t -> Feature.t list
-(** Return the features used in the project. *)
+(** Return the features used by the project. *)

@@ -19,24 +19,29 @@ open Project
 
 let (/) = Filename.concat
 
+let cache = Hashtbl.create 124
 
 let query
     ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
   let predicates = match predicates with
     | None   -> ""
-    | Some p -> sprintf "-predicates %s " (String.concat "," p) in
+    | Some p -> sprintf "-predicates %s" (String.concat "," p) in
   let format = match format with
     | None   -> ""
-    | Some f -> sprintf "-format \"%s\" " f in
+    | Some f -> sprintf "-format \"%s\"" f in
   let recursive = match recursive with
-    | true   -> "-r "
+    | true   -> "-r"
     | false  -> "" in
   let uniq = match uniq with
-    | true   -> " | uniq"
+    | true   -> "| uniq"
     | false  -> "" in
   let packages = String.concat " " packages in
-  Shell.exec_output "ocamlfind query %s%s%s%s%s%s"
-    recursive predicates format recursive packages uniq
+  let args = String.concat " " [recursive; predicates; format; recursive; packages; uniq] in
+  try Hashtbl.find cache args
+  with Not_found ->
+    let r = Shell.exec_output "ocamlfind query %s" args in
+    Hashtbl.add cache args r;
+    r
 
 let pp_byte names l =
   query

@@ -39,7 +39,7 @@ module Variable = struct
   and contents =
     [ `String of string
     | `Strings of string list
-    | `Case of (t list * contents) list ]
+    | `Case of Feature.formula * (Feature.formula * contents) list ]
 
   let (=:=) name contents =
     { name; contents; assign = ":=" }
@@ -68,32 +68,78 @@ module Variable = struct
     | `Case _
     | `String _   -> false
 
+  let has_feature f =
+    let var = String.uppercase (Feature.name f) in
+    for i = 0 to String.length var - 1 do
+      match var.[i] with
+      | '-' -> var.[i] <- '_'
+      | _   -> ()
+    done;
+    ("HAS_" ^ var) =?= `String (if Feature.default f then "1" else "0")
+
   let generate buf ?(size=0) t =
     let string tab c =
-      bprintf buf "%s%-.*s %s %s\n" tab (size - String.length tab) t.name t.assign c in
+      bprintf buf "%s%-.*s %s %s\n"
+        tab (size - String.length tab) t.name t.assign c in
     let rec contents tab = function
       | `String s   -> string tab s
       | `Strings ss ->
         let sep = " \\\n" ^ String.make (size + 4) ' ' in
         string tab (String.concat sep ss)
-      | `Case cases ->
-        let rec aux = function
-          | []                -> ()
-          | (vars, c) :: rest ->
-            if vars <> [] then (
-              bprintf buf "ifeq (";
-              List.iter (fun var -> bprintf buf "$(%s:1=)" var.name) vars;
-              bprintf buf ",)\n";
-            ) else bprintf buf "\n";
-            contents (tab ^ "  ") c;
-            if rest = [] then
-              bprintf buf "endif\n"
-            else (
-              bprintf buf "else ";
-              aux rest;
-            )
-        in
-        aux cases in
+      | `Case (available, cases) ->
+        let cases = List.filter (fun (f,_) ->
+            Feature.(normalize (available && f)) <> `False
+          ) cases in
+        let vars features =
+          match Feature.normalize features with
+          | `False  -> failwith "invalid handler case"
+          | `And l  ->
+            List.map (function
+                | `P f -> has_feature f, 1
+                | `N f -> has_feature f, 0
+              ) l in
+        let process = function
+          | []            -> ()
+          | [features, c] ->
+
+            (* A single case handler *)
+            begin match vars features with
+              | []   -> contents tab c
+              | vars ->
+                bprintf buf "ifeq (";
+                List.iter (fun (var, d) ->
+                    bprintf buf "$(%s:%d=)" var.name d) vars;
+                bprintf buf ",)\n";
+                contents (tab ^ "  ") c;
+                bprintf buf "endif\n"
+            end
+
+          | cases ->
+
+            (* Multiple case handlers. *)
+
+            let rec aux = function
+              | []                    -> ()
+              | (features, c) :: rest ->
+                match vars features with
+                | []  ->
+                  (* we assume that's the default case hanlder *)
+                  if rest <> [] then failwith "invalid default case";
+                  contents (tab ^ "  ") c;
+                  bprintf buf "endif\n"
+
+                | vars ->
+                  bprintf buf "ifeq (";
+                  List.iter (fun (var, d) ->
+                      bprintf buf "$(%s:%d=)" var.name d) vars;
+                  bprintf buf ",)\n";
+                  contents (tab ^ "  ") c;
+                  if List.length rest <= 1 then bprintf buf "else\n"
+                  else bprintf buf "else ";
+                  aux rest;
+            in
+            aux cases in
+        process cases in
     contents "" t.contents
 
   let generates buf ts =
@@ -110,21 +156,6 @@ module Variable = struct
   let files name ~dir ~ext =
     { name; assign = "=";
       contents = `String (sprintf "$(wildcard %s/*.%s)" dir ext) }
-
-  let has_feature f =
-    let var = String.uppercase (Feature.name f) in
-    for i = 0 to String.length var - 1 do
-      match var.[i] with
-      | '-' -> var.[i] <- '_'
-      | _   -> ()
-    done;
-    ("HAS_" ^ var) =?= `String (if Feature.default f then "1" else "0")
-
-  let has_native =
-    has_feature Feature.native
-
-  let has_native_dynlink =
-    has_feature Feature.native_dynlink
 
 end
 
@@ -207,6 +238,10 @@ let echo_prereqs =
 
 let resolver =
   Ocamlfind.resolver (fun x -> buildir / x)
+
+let native_dynlink_f = Feature.(atom native_dynlink && atom native)
+
+let native_f = Feature.(atom native)
 
 module rec D: sig
   val variables: Dep.t -> Variable.t list
@@ -371,11 +406,11 @@ end = struct
     let cma  = Lib.cma t resolver in
     let cmxa = Lib.cmxa t resolver in
     let cmxs = Lib.cmxs t resolver in
-    let case = [
-      [Variable.has_native; Variable.has_native_dynlink], `Strings [cma; cmxa; cmxs];
-      [Variable.has_native]                             , `Strings [cma; cmxa];
-      []                                                , `Strings [cma];
-    ] in
+    let case = Lib.available t, [
+        native_dynlink_f, `Strings [cma; cmxa; cmxs];
+        native_f        , `Strings [cma; cmxa];
+        Feature.true_   , `Strings [cma];
+      ] in
     Variable.(Lib.id t =?= `Case case)
     :: comp_byte t
     :: comp_native t
@@ -430,10 +465,10 @@ end = struct
   let pp_native   = flag "PP__O_" Flags.pp_native
 
   let variables t =
-    Variable.(Bin.id t =?= `Case [
-        [Variable.has_native], `Strings [Bin.byte t resolver; Bin.native t resolver];
-        []                   , `String  (Bin.byte t resolver);
-      ])
+    Variable.(Bin.id t =?= `Case (Bin.available t, [
+        native_f     , `Strings [Bin.byte t resolver; Bin.native t resolver];
+        Feature.true_, `String  (Bin.byte t resolver);
+      ]))
     :: comp_byte t
     :: comp_native t
     :: pp_byte t
