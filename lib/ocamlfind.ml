@@ -35,16 +35,19 @@ let pp_native names l =
     names
   :: l
 
-let incl names l =
+let comp_byte names l =
   let names = String.concat " "  (List.rev names) in
   sprintf
     "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d\")"
     names
   :: l
 
-let comp_byte = incl
-
-let comp_native = incl
+let comp_native names l =
+  let names = String.concat " "  (List.rev names) in
+  sprintf
+    "$(shell ocamlfind query %s -r -predicates native -format \"-I %%d\")"
+    names
+  :: l
 
 let link_byte names l =
   let names = String.concat " "  (List.rev names) in

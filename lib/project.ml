@@ -206,9 +206,9 @@ module rec Dep: sig
     [ `Unit of Unit.t
     | `Lib of Lib.t
     | `Pp of Lib.t
+    | `Bin of Bin.t
     | `Pkg_pp of string
-    | `Pkg of string
-    | `Bin of Bin.t ]
+    | `Pkg of string ]
   val id: t -> string
   module Graph: Graph.Sig.I with type V.t = t
   val unit: Unit.t -> t
@@ -227,15 +227,22 @@ module rec Dep: sig
   val pkg_pps: string list -> t list
   val filter_pkg_pps: t list -> string list
   val closure: t list -> t list
+  val deps: t -> t list
+  val comp_byte: t list -> string -> Resolver.t -> Flags.f
+  val comp_native: t list -> string -> Resolver.t -> Flags.f
+  val link_byte: t list -> Unit.t list -> Resolver.t -> Flags.f
+  val link_native: t list -> Unit.t list -> Resolver.t -> Flags.f
+  val pp_byte: t list -> Resolver.t -> Flags.f
+  val pp_native: t list -> Resolver.t -> Flags.f
 end = struct
 
   type t =
     [ `Unit of Unit.t
     | `Lib of Lib.t
     | `Pp of Lib.t
+    | `Bin of Bin.t
     | `Pkg_pp of string
-    | `Pkg of string
-    | `Bin of Bin.t ]
+    | `Pkg of string ]
 
   let id = function
     | `Unit u -> Unit.id u
@@ -334,6 +341,86 @@ end = struct
     in
     aux [] ts
 
+  let deps (t:t) = match t with
+    | `Unit u   -> Unit.deps u
+    | `Lib l
+    | `Pp l     -> Lib.deps l
+    | `Bin b    -> Bin.deps b
+    | `Pkg _
+    | `Pkg_pp _ -> []
+
+  let comp_flags mode (deps:t list) incl resolver args =
+    let incl = sprintf "-I %s" incl in
+    let libs = filter_libs deps in
+    let libs = List.map (fun l ->
+        sprintf "-I %s" (Lib.build_dir l resolver);
+      ) libs in
+    let libs = String.concat " " (incl :: libs) in
+    let pkgs = filter_pkgs deps in
+    let pkgs = match pkgs with
+      | [] -> []
+      | l  ->
+        let pkgs = Resolver.pkgs resolver pkgs in
+        match mode with
+        | `Byte   -> Flags.comp_byte pkgs []
+        | `Native -> Flags.comp_native pkgs [] in
+    pkgs @ [libs] @ args
+
+  let comp_byte = comp_flags `Byte
+
+  let comp_native = comp_flags `Native
+
+  let link_flags mode (deps:t list) units resolver args =
+    let units = List.map (fun u ->
+        let file = match mode with
+          | `Byte   -> Unit.cmo u resolver
+          | `Native -> Unit.cmx u resolver in
+        sprintf "-I %s %s" (Filename.dirname file) (Filename.basename file)
+      ) units in
+    let libs = filter_libs deps in
+    let libs = List.map (fun l ->
+        let file = match mode with
+          | `Byte   -> Lib.cma l resolver
+          | `Native -> Lib.cmxa l resolver in
+        sprintf "-I %s %s" (Filename.dirname file) (Filename.basename file)
+      ) libs in
+    let pkgs = filter_pkgs deps in
+    let pkgs = match pkgs with
+      | [] -> []
+      | l  ->
+        let pkgs = Resolver.pkgs resolver pkgs in
+        match mode with
+        | `Byte   -> Flags.link_byte pkgs []
+        | `Native -> Flags.link_native pkgs [] in
+    pkgs @ libs @ units @  args
+
+  let link_byte = link_flags `Byte
+
+  let link_native = link_flags `Native
+
+  let pp_flags mode (deps:t list) resolver args =
+    let libs = filter_pps deps in
+    let pkgs = filter_pkg_pps deps in
+    match libs, pkgs with
+    | [], [] -> []
+    | _ , _  ->
+      let libs = List.map (fun l ->
+          sprintf "-I %s %s" (Lib.build_dir l resolver)
+            (match mode with
+             | `Byte   -> Lib.cma  l resolver
+             | `Native -> Lib.cmxa l resolver)
+        ) libs in
+      let pkgs =
+        let pkgs = Resolver.pkgs resolver pkgs in
+        match mode with
+        | `Byte   -> Flags.pp_byte pkgs []
+        | `Native -> Flags.pp_native pkgs [] in
+      pkgs @ libs @ args
+
+  let pp_byte = pp_flags `Byte
+
+  let pp_native = pp_flags `Native
+
 end
 
 and Unit: sig
@@ -344,12 +431,19 @@ and Unit: sig
   val dir: t -> string option
   val deps: t -> Dep.t list
   val container: t -> [`Lib of Lib.t | `Bin of Bin.t] option
+  val ml: t -> bool
+  val mli: t -> bool
   val build_dir: t -> string option
   val for_pack: t -> string option
   val add_deps: t -> Dep.t list -> unit
   val set_lib: t -> Lib.t -> unit
   val set_bin: t -> Bin.t -> unit
-  val create: ?flags:Flags.t -> ?dir:string -> ?deps:Dep.t list -> string -> t
+  val create:
+    ?flags:Flags.t ->
+    ?generated:[`Both|`Ml|`Mli] ->
+    ?dir:string ->
+    ?deps:Dep.t list ->
+    string -> t
   val pack: ?flags:Flags.t -> t list -> string -> t
   val unpack: t -> t list
   val cmi: t -> Resolver.t -> string
@@ -371,7 +465,13 @@ end = struct
     mutable for_pack: string option;
     mutable pack: t list;
     mutable flags: Flags.t;
+    mli: bool;
+    ml: bool;
   }
+
+  let ml t = t.ml
+
+  let mli t = t.mli
 
   let id t =
     match t.container with
@@ -387,6 +487,8 @@ end = struct
       for_pack  = t.for_pack;
       pack      = List.map copy t.pack;
       flags     = t.flags;
+      ml        = t.ml;
+      mli       = t.mli;
     }
 
   let dir t = t.dir
@@ -418,13 +520,30 @@ end = struct
 
   let create
       ?(flags=Flags.empty)
+      ?generated
       ?dir ?(deps=[])
-      name = {
-    name; dir; deps; flags;
-    container = None;
-    for_pack  = None;
-    pack      = [];
-  }
+      name =
+    let mli = match generated with
+      | None      -> Sys.file_exists (dir // name ^ ".mli")
+      | Some `Both
+      | Some `Mli -> true
+      | Some `Ml  -> false in
+    let ml = match generated with
+      | None      -> Sys.file_exists (dir // name ^ ".ml")
+      | Some `Both
+      | Some `Ml  -> true
+      | Some `Mli -> false in
+    if not ml && not mli then (
+      eprintf "\027[31m[ERROR]\027[m Cannot find %s.ml or %s.mli, stopping.\n" name name;
+      exit 1;
+    );
+    {
+      name; dir; deps; flags;
+      container = None;
+      for_pack  = None;
+      pack      = [];
+      ml; mli;
+    }
 
   let pack ?(flags=Flags.empty) units name =
     List.iter (fun u -> u.for_pack <- Some (String.capitalize name)) units;
@@ -435,51 +554,9 @@ end = struct
       for_pack  = None;
       deps      = [];
       pack      = units;
+      ml        = false;
+      mli       = false;
     }
-
-  (* XXX: memoize the function *)
-  let flags t resolver =
-    let deps = Unit.deps t |> Dep.closure in
-    let comp mode args =
-      (* XXX: handle depend units not in the same dirs *)
-      let incl = sprintf "-I %s" (Unit.build_dir t resolver) in
-      let libs = Dep.filter_libs deps in
-      let libs = List.map (fun l ->
-          sprintf "-I %s" (Lib.build_dir l resolver);
-        ) libs in
-      let libs = String.concat " " (incl :: libs) in
-      let pkgs = Dep.filter_pkgs deps in
-      let pkgs = match pkgs with
-        | [] -> []
-        | l  ->
-          let pkgs = Resolver.pkgs resolver pkgs in
-          match mode with
-          | `Byte   -> Flags.comp_byte pkgs []
-          | `Native -> Flags.comp_native pkgs [] in
-      pkgs @ [libs] @ args in
-    let comp_byte = comp `Byte in
-    let comp_native = comp `Native in
-    let pp mode args =
-      let libs = Dep.filter_pps deps in
-      let pkgs = Dep.filter_pkg_pps deps in
-      match libs, pkgs with
-      | [], [] -> []
-      | _ , _  ->
-        let libs = List.map (fun l ->
-            sprintf "-I %s %s" (Lib.build_dir l resolver)
-              (match mode with
-               | `Byte   -> Lib.cma  l resolver
-               | `Native -> Lib.cmxa l resolver)
-          ) libs in
-        let pkgs =
-          let pkgs = Resolver.pkgs resolver pkgs in
-          match mode with
-          | `Byte   -> Flags.pp_byte pkgs []
-          | `Native -> Flags.pp_native pkgs [] in
-        pkgs @ libs @ args in
-    let pp_byte = pp `Byte in
-    let pp_native = pp `Native in
-    Flags.create ~comp_byte ~comp_native ~pp_byte ~pp_native ()
 
   let file t r ext =
     Unit.build_dir t r / Unit.name t ^ ext
@@ -527,6 +604,18 @@ end = struct
     let pps = Dep.filter_pps deps in
     let pps = List.map (fun l -> Lib.cma l resolver) pps in
     units @ libs @ pps
+
+
+  (* XXX: memoize the function *)
+  let flags t resolver =
+    let deps = Unit.deps t |> Dep.closure in
+    let incl = Unit.build_dir t resolver in
+    let comp_byte = Dep.comp_byte deps incl resolver in
+    let comp_native = Dep.comp_native deps incl resolver in
+    let pp_byte = Dep.pp_byte deps resolver in
+    let pp_native = Dep.pp_native deps resolver in
+    let t' = Flags.create ~comp_byte ~comp_native ~pp_byte ~pp_native () in
+    Flags.(t' @ t.flags)
 
 end
 
@@ -623,17 +712,10 @@ end = struct
 
   let flags t resolver =
     let units = Lib.units t in
-    let link mode args =
-      (* XXX: handle depend units not in the same dirs *)
-      let units = List.map (fun u ->
-          match mode with
-          | `Byte   -> Unit.cmo u resolver
-          | `Native -> Unit.cmx u resolver
-        ) units in
-      units @ args in
-    let link_byte = link `Byte in
-    let link_native = link `Native in
-    Flags.create ~link_byte ~link_native ()
+    let link_byte = Dep.link_byte [] units resolver in
+    let link_native = Dep.link_native [] units resolver in
+    let t' = Flags.create ~link_byte ~link_native () in
+    Flags.(t' @ t.flags)
 
   let prereqs t resolver = function
     | `Byte   ->
@@ -647,18 +729,19 @@ and Bin: sig
   type t
   val id: t -> string
   val name: t -> string
+  val units: t -> Unit.t list
   val deps: t -> Dep.t list
   val create:
     ?features:Feature.formula ->
     ?flags:Flags.t ->
     ?deps:Dep.t list ->
-    string -> t
+    Unit.t list -> string -> t
   val toplevel:
     ?features:Feature.formula ->
     ?flags:Flags.t ->
     ?custom:bool ->
     ?deps:Dep.t list ->
-    string -> t
+    Unit.t list -> string -> t
   val byte: t -> Resolver.t -> string
   val native: t -> Resolver.t -> string
   val generated_files: t -> Resolver.t -> (Feature.formula * string list) list
@@ -670,10 +753,13 @@ end = struct
 
   type t = {
     deps: Dep.t list;
+    units: Unit.t list;
     name: string;
     features: Feature.formula;
     flags: Flags.t;
   }
+
+  let units t = t.units
 
   let id t = "bin-" ^ t.name
 
@@ -690,31 +776,33 @@ end = struct
   let create
       ?(features=Feature.true_)
       ?(flags=Flags.empty)
-      ?(deps=[]) name =
-    { deps; flags; features; name }
+      ?(deps=[])
+      units name =
+    let t = { deps; flags; features; name; units } in
+    List.iter (fun u -> Unit.set_bin u t) units;
+    t
 
   let toplevel
       ?(features=Feature.true_)
       ?(flags=Flags.empty)
       ?(custom=false)
-      ?deps name =
+      ?(deps=[])
+      units name =
     let features = Feature.(not (atom native) && features) in
-    let comp_byte args =
-      "-I +compiler-libs" :: args in
+    let deps = Dep.pkg "compiler-libs.toplevel" :: deps in
     let link_byte args =
-      "-I +compiler-libs -linkall"
-      :: "ocamlcommon.cma ocamlbytecomp.cma ocamltoplevel.cma"
-      :: args @ ["topstart.cmo"]
-      @  if custom then ["-custom"] else [] in
-    let nflags = Flags.create ~comp_byte ~link_byte () in
+      ("-linkall" ^ if custom then " -custom" else "")
+      :: args
+      @  ["topstart.cmo"] in
+    let nflags = Flags.create ~link_byte () in
     let flags = Flags.(nflags @ flags) in
-    create ~features ~flags ?deps name
+    create ~features ~flags ~deps units name
 
   let byte t r =
-    Resolver.build_dir r @@ t.name / t.name ^ ".byte"
+    build_dir t r / t.name ^ ".byte"
 
   let native t r =
-    Resolver.build_dir r @@ t.name / t.name ^ ".opt"
+    build_dir t r / t.name ^ ".opt"
 
   let generated_files t resolver =
     let mk f = f t resolver in
@@ -725,11 +813,11 @@ end = struct
 
   (* XXX: handle native pps *)
   let prereqs t resolver mode =
+    let units = Bin.units t in
     let deps = deps t in
     let libs = Dep.filter_libs deps in
     let pps = Dep.filter_pps deps in
     let bytpps = List.map (fun l -> Lib.cma l resolver) pps in
-    let units = Dep.filter_units deps in
     match mode with
     | `Byte   ->
       let bytlibs  = List.map (fun l -> Lib.cma  l resolver) libs in
@@ -741,32 +829,15 @@ end = struct
       bytpps @ natlibs @ natunits
 
   let flags t resolver =
-    let units = Bin.deps t |> Dep.filter_units in
     let deps  = Bin.deps t |> Dep.closure in
-    let link mode args =
-      let units = List.map (fun u ->
-          match mode with
-          | `Byte   -> Unit.cmo u resolver
-          | `Native -> Unit.cmx u resolver
-        ) units in
-      let libs = Dep.filter_libs deps in
-      let libs = List.map (fun l ->
-          match mode with
-          | `Byte   -> Lib.cma l resolver
-          | `Native -> Lib.cmxa l resolver
-        ) libs in
-      let pkgs = Dep.filter_pkgs deps in
-      let pkgs = match pkgs with
-        | [] -> []
-        | l  ->
-          let pkgs = Resolver.pkgs resolver pkgs in
-          match mode with
-          | `Byte   -> Flags.link_byte pkgs []
-          | `Native -> Flags.link_native pkgs [] in
-      pkgs @ libs @ units @  args in
-    let link_byte = link `Byte in
-    let link_native = link `Native in
-    Flags.create ~link_byte ~link_native ()
+    let units = Bin.units t in
+    let incl = Bin.build_dir t resolver in
+    let comp_byte = Dep.comp_byte deps incl resolver in
+    let comp_native = Dep.comp_native deps incl resolver in
+    let link_byte = Dep.link_byte deps units resolver in
+    let link_native = Dep.link_native deps units resolver in
+    let t' = Flags.create ~link_byte ~link_native ~comp_byte ~comp_native () in
+    Flags.(t' @ t.flags)
 
 end
 

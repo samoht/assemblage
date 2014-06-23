@@ -261,10 +261,10 @@ end = struct
     let flags = fn (Unit.flags t resolver) global in
     Variable.(var =?= `Strings flags)
 
-  let pp_byte     = pp   "PP___BYT_" L.pp_byte     B.pp_byte     Flags.pp_byte
-  let pp_native   = pp   "PP___OPT_" L.pp_native   B.pp_native   Flags.pp_native
-  let comp_byte   = flag "COMP_BYT_" L.comp_byte   B.comp_byte   Flags.comp_byte
-  let comp_native = flag "COMP_NAT_" L.comp_native B.comp_native Flags.comp_native
+  let pp_byte     = pp   "PP__B_" L.pp_byte     B.pp_byte     Flags.pp_byte
+  let pp_native   = pp   "PP__O_" L.pp_native   B.pp_native   Flags.pp_native
+  let comp_byte   = flag "COMPB_" L.comp_byte   B.comp_byte   Flags.comp_byte
+  let comp_native = flag "COMPO_" L.comp_native B.comp_native Flags.comp_native
 
   let variables t =
     comp_byte t
@@ -294,26 +294,27 @@ end = struct
     match Unit.unpack t with
     | [] -> (* Normal compilation unit. *)
       let ln = (* link source file to target directory *)
-        let aux ext =
+        let aux exists ext =
           let source = source ext in
           let target = target ext in
-          if Sys.file_exists source then
+          if exists t then
             [Rule.create[target] [source] [
                 sprintf "mkdir -p %s" (Unit.build_dir t resolver);
                 sprintf "ln -sf $(shell pwd)/%s %s" source target
               ]]
           else [] in
-        aux ".ml" @ aux ".mli" in
+        aux Unit.ml ".ml" @ aux Unit.mli ".mli" in
       let cmi = (* generate cmis *)
         let targets, prereqs =
-          if Sys.file_exists (source ".mli") then [target ".cmi"], [target ".mli"]
-          else [target ".cmo"; target ".cmi"], [target ".ml"] in
+          if Unit.mli t then [target ".cmi"], [target ".mli"]
+          else if Unit.ml t then [target ".cmo"; target ".cmi"], [target ".ml"]
+          else [], [] in
         [Rule.create targets (prereqs @ Unit.prereqs t resolver`Byte) [
             sprintf "$(OCAMLC) -c %s%s %s"
               flags (Variable.name @@ comp_byte t) Rule.prereq
           ]] in
       let cmo = (* Generate cmos *)
-        if Sys.file_exists (source ".mli") then
+        if Unit.mli t && Unit.ml t then
           [Rule.create [target ".cmo"]
              (target ".ml" :: target ".cmi" :: Unit.prereqs t resolver `Byte)
              [sprintf "$(OCAMLC) -c %s%s %s"
@@ -355,16 +356,16 @@ and L: sig
 end = struct
 
   let flag prefix fn t =
-    let var   = prefix ^ Lib.name t in
+    let var   = prefix ^ Lib.id t in
     let flags = fn (Lib.flags t resolver) [] in
     Variable.(var =?= `Strings flags)
 
-  let comp_byte   = flag "COMP_BYT_" Flags.comp_byte
-  let comp_native = flag "COMP_OPT_" Flags.comp_native
-  let pp_byte     = flag "PP___BYT_" Flags.pp_byte
-  let pp_native   = flag "PP___OPT_" Flags.pp_native
-  let link_byte   = flag "LINK_BYT_" Flags.link_byte
-  let link_native = flag "LINK_OPT_" Flags.link_native
+  let comp_byte   = flag "COMPB_" Flags.comp_byte
+  let comp_native = flag "COMPO_" Flags.comp_native
+  let pp_byte     = flag "PP__B_" Flags.pp_byte
+  let pp_native   = flag "PP__O_" Flags.pp_native
+  let link_byte   = flag "LINKB_" Flags.link_byte
+  let link_native = flag "LINKO_" Flags.link_native
 
   let variables t =
     let cma  = Lib.cma t resolver in
@@ -417,16 +418,16 @@ and B: sig
 end = struct
 
   let flag prefix fn t =
-    let var   = prefix ^ Bin.name t in
+    let var   = prefix ^ Bin.id t in
     let flags = fn (Bin.flags t resolver) [] in
     Variable.(var =?= `Strings flags)
 
-  let comp_byte   = flag "BIN_COMP_BYT_" Flags.comp_byte
-  let comp_native = flag "BIN_COMP_OPT_" Flags.comp_native
-  let link_byte   = flag "BIN_LINK_BYT_" Flags.link_byte
-  let link_native = flag "BIN_LINK_OPT_" Flags.link_native
-  let pp_byte     = flag "BIN_PP___BYT_" Flags.pp_byte
-  let pp_native   = flag "BIN_PP___OPT_" Flags.pp_native
+  let comp_byte   = flag "COMPB_" Flags.comp_byte
+  let comp_native = flag "COMPO_" Flags.comp_native
+  let link_byte   = flag "LINKB_" Flags.link_byte
+  let link_native = flag "LINKO_" Flags.link_native
+  let pp_byte     = flag "PP__B_" Flags.pp_byte
+  let pp_native   = flag "PP__O_" Flags.pp_native
 
   let variables t =
     Variable.(Bin.id t =?= `Case [
@@ -439,23 +440,21 @@ end = struct
     :: pp_native t
     :: link_byte t
     :: link_native t
-    :: []
+    :: conmap U.variables (Bin.units t)
 
   let rules t =
     Rule.create [Bin.id t] [sprintf "$(%s)" (Bin.id t)] [echo_prereqs]
     ::
     Rule.create [Bin.byte t resolver] (Bin.prereqs t resolver `Byte) [
-      sprintf "mkdir -p %s" (buildir / Bin.name t);
+      sprintf "mkdir -p %s" (Bin.build_dir t resolver);
       sprintf "$(OCAMLC) %s -o %s" (Variable.name @@ link_byte t) Rule.target;
     ]
     ::
     Rule.create [Bin.native t resolver] (Bin.prereqs t resolver `Native) [
-      sprintf "mkdir -p %s" (buildir / Bin.name t);
+      sprintf "mkdir -p %s" (Bin.build_dir t resolver);
       sprintf "$(OCAMLOPT) %s -o %s" (Variable.name @@ link_native t) Rule.target;
     ]
-    ::
-    conmap L.rules (Bin.deps t |> fun d -> Dep.filter_libs d @ Dep.filter_pps d)
-    @ conmap U.rules (Dep.filter_units @@ Bin.deps t)
+    :: conmap U.rules (Bin.units t)
 
 end
 

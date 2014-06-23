@@ -80,4 +80,4 @@ let () =
   if not (Sys.file_exists "configure.ml") then error 1 "missing configure.ml.";
   let incl = String.trim (read_exec_output "opam config var lib" / "tools") in
   Config.load_path := incl :: !Config.load_path;
-  Toploop.run_script Format.std_formatter "configure.ml" Sys.argv
+  let _ = Toploop.run_script Format.std_formatter "configure.ml" Sys.argv in ()
