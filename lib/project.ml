@@ -230,6 +230,11 @@ module Feature = struct
   let warn_error =
     create ~doc:"warning as errors." ~default:false "warn-error"
 
+  let base = List.fold_left (fun set t -> Set.add t set) Set.empty [
+      native; native_dynlink;
+      debug; annot; warn_error;
+    ]
+
 end
 
 module Resolver = struct
@@ -939,9 +944,15 @@ let dedup l =
       else aux (x::acc) t in
   aux [] l
 
+let (++) = Feature.Set.union
+
+let unionmap fn t =
+  List.fold_left (fun set t ->
+      set ++ (fn t)
+    ) Feature.Set.empty t
+
 let features t =
-  let default = [Feature.native; Feature.native_dynlink] in
-  let libs = conmap (fun x -> Feature.atoms @@ Lib.available x) t.libs in
-  let pps  = conmap (fun x -> Feature.atoms @@ Lib.available x) t.pps  in
-  let bins = conmap (fun x -> Feature.atoms @@ Bin.available x) t.bins in
-  dedup (default @ libs @ pps @ bins)
+  let libs = unionmap (fun x -> Feature.atoms @@ Lib.available x) t.libs in
+  let pps  = unionmap (fun x -> Feature.atoms @@ Lib.available x) t.pps  in
+  let bins = unionmap (fun x -> Feature.atoms @@ Bin.available x) t.bins in
+  Feature.base ++ libs ++ pps ++ bins

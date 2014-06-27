@@ -511,7 +511,10 @@ let of_project ?(buildir="_build") t =
   let libs = Project.libs t in
   let pps = Project.pps t in
   let bins = Project.bins t in
-  let features = List.map Variable.has_feature (Project.features t) in
+  let features =
+    Project.features t
+    |> Feature.Set.elements
+    |> List.map Variable.has_feature in
   let variables =
     dedup (
       Variable.(   "BUILDIR"    =?= `String buildir)

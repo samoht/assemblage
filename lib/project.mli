@@ -149,11 +149,11 @@ module Feature: sig
   val warn_error: t
   (** Consider warning as error. *)
 
-  val base: t list
-  (** The list of base features. *)
-
   module Set: Set.S with type elt = t
   (** Set of features. *)
+
+  val base: Set.t
+  (** The base features. *)
 
 end
 
