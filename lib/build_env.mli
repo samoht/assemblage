@@ -53,10 +53,16 @@ val create:
   ?natlink: string list ->
   (** Addtional link flags passed to [ocamlopt]. *)
 
-  ?p4o: string list ->
-  (** Addition flags passed to the camlp4o preprocessor. *)
+  ?pp: string list ->
+  (** Addition flags passed to the pre-preprocessor. *)
 
-  ?destdir: string ->
+  ?includes: string list ->
+  (** List of directories to include when loading `configure.ml'. *)
+
+  ?auto_include: bool ->
+  (** Automatically include $(ocamlfind query tools). *)
+
+  ?build_dir: string ->
   (** Location of the generated files. [None] means the files stays in
       the same directory. *)
 
@@ -71,7 +77,7 @@ val create:
 val default: t
 (** Default project configuration. *)
 
-val parse: Feature.t list -> t Cmdliner.Term.t
+val parse: ?doc:string -> ?man:string list -> Feature.Set.t -> t
 (** Parse the arguments given on the command-line as a configuration
     value. *)
 
@@ -89,10 +95,10 @@ val comp: t -> string list
 val link: t -> string list
 (** Return the global command-line flags for linking. *)
 
-val p4o: t -> string list
-(** Return the global command-line option for the camlp4o preprocessor. *)
+val pp: t -> string list
+(** Return the global command-line option for the pre-preprocessor. *)
 
-val destdir: t -> string
+val build_dir: t -> string
 (** Return the directory where build artififacts are generated. *)
 
 val enable: t -> Feature.t list -> bool

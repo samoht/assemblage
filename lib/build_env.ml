@@ -71,8 +71,10 @@ type t = {
   link: string list;
   bytlink: string list;
   natlink: string list;
-  p4o: string list;
-  destdir: string;
+  pp: string list;
+  includes: string list;
+  auto_include: bool;
+  build_dir: string;
   name: string option;
   version: string option;
 }
@@ -87,14 +89,17 @@ let create
     ?(link=[])
     ?(bytlink=[])
     ?(natlink=[])
-    ?(p4o=[])
-    ?(destdir="_build")
+    ?(pp=[])
+    ?(includes=[])
+    ?(auto_include=true)
+    ?(build_dir="_build")
     ?name ?version
     () =
   { native; native_dynlink; features; comp; bytcomp; natcomp;
-    link; bytlink; natlink; p4o; destdir; name; version }
+    link; bytlink; natlink; pp; build_dir; auto_include; includes;
+    name; version }
 
-let destdir t = t.destdir
+let build_dir t = t.build_dir
 let native t = t.native
 let native_dynlink t = t.native && t.native_dynlink
 let features t = t.features
@@ -107,7 +112,7 @@ let link t = t.link
 let bytlink t = t.bytlink @ t.link
 let natlink t = t.natlink @ t.link
 
-let p4o t = t.p4o
+let pp t = t.pp
 
 let default = {
   native = true;
@@ -119,8 +124,10 @@ let default = {
   link = [];
   bytlink = [];
   natlink = [];
-  p4o = [];
-  destdir = "_build";
+  pp = [];
+  auto_include = true;
+  includes = [];
+  build_dir = "_build";
   name = None;
   version = None;
 }
@@ -135,7 +142,8 @@ let term_of_list list =
   let aux acc h = Term.(pure (fun f t -> f :: t) $ h $ acc) in
   List.fold_left aux (Term.pure []) list
 
-let parse flags =
+let term flags =
+  let flags = Feature.Set.elements flags in
   let flags = term_of_list (List.map Feature.parse flags) in
   let native = Feature.(parse native) in
   let native_dynlink = Feature.(parse native_dynlink) in
@@ -151,15 +159,15 @@ let parse flags =
               linkers."
         ~docv:"OPTIONS"["link"] in
     Arg.(value & opt (some string) None & doc) in
-  let p4o =
+  let pp =
     let doc = Arg.info
-        ~doc:"Additional options passed to the camlp4o pre-processor."
-        ~docv:"OPTIONS" ["p4o"] in
+        ~doc:"Additional options passed to the pre-processor."
+        ~docv:"OPTIONS" ["pp"] in
     Arg.(value & opt (some string) None & doc) in
-  let destdir =
+  let build_dir =
     let doc = Arg.info
         ~doc:"The name of the directory where built artifacts are created."
-        ~docv:"DIR" ["destdir"] in
+        ~docv:"DIR" ["build_dir"] in
     Arg.(value & opt string "_build" & doc) in
   let nam =
     let doc = Arg.info
@@ -171,13 +179,23 @@ let parse flags =
         ~doc:"The package version."
         ~docv:"VERSION" ["version"] in
     Arg.(value & opt (some string) None & doc) in
+  let includes =
+    let doc = Arg.info
+        ~doc:"A list of directories to includes."
+        ~docv:"DIRECTORY" ["I"] in
+    Arg.(value & opt (list string) [] & doc) in
+  let no_auto_include =
+    let doc = Arg.info
+        ~doc:"Do not auto-include of $(ocamlfind query tools)."
+        ["no-auto-include"] in
+    Arg.(value & flag & doc) in
 
   let list = function
     | None   -> []
     | Some l -> [l] in
 
   let create (_,native) (_,native_dynlink)
-      features comp link p4o destdir name version = {
+      features comp link pp includes no_auto_includes build_dir name version = {
     native = native;
     native_dynlink = native_dynlink;
     features;
@@ -187,40 +205,38 @@ let parse flags =
     link = list link;
     bytlink = [];
     natlink = [];
-    p4o = list p4o;
-    destdir;
+    pp = list pp;
+    includes; auto_include = not no_auto_includes;
+    build_dir;
     name;
     version;
   } in
   Term.(mk create $
-        native $ native_dynlink $ flags $ comp $ link $ p4o $ destdir $ nam $ version)
+        native $ native_dynlink $ flags $ comp $ link $ pp $
+        includes $ no_auto_include $ build_dir $ nam $ version)
 
 let name t = t.name
 
 let version t = t.version
 
-(*
-let parse ?version flags =
-  let doc = "opam-configure - helpers to manage and configure OCaml projects." in
-  let man = [
-    `S "DESCRIPTION";
-    `P "opam-configure is part of OCaml-tools, a collection of tools to \
-        manage and configure OCaml projects.";
-  ] in
-  let git_version = match Git.version () with
-    | None   -> ""
-    | Some v -> v in
-  let version = match version with
-    | None   -> git_version
-    | Some v -> v ^ git_version in
-  let info = Term.info "opam-configure"
-      ~version
+let parse ?doc ?man flags =
+  let name = Filename.basename Sys.argv.(0) in
+  let doc = name ^ " - helpers to manage and configure OCaml projects." in
+  let man =
+    `S "DESCRIPTION"
+    :: match man with
+    | Some m -> List.map (fun p -> `P p) m
+    | None   ->
+      [`P (name ^ " is part of OCaml-tools, a collection of tools to \
+                   manage and configure OCaml projects.")]
+  in
+  let info = Term.info Sys.argv.(0)
+      ~version:"0.1"
       ~sdocs:global_option_section
       ~doc
       ~man in
-  match Term.eval ((Conf.parse flags), info) with
+  match Term.eval (term flags, info) with
   | `Ok conf -> conf
   | `Version -> failwith "version"
   | `Help    -> failwith "help"
   | `Error _ -> exit 1
-*)

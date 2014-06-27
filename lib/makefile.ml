@@ -39,7 +39,7 @@ module Variable = struct
   and contents =
     [ `String of string
     | `Strings of string list
-    | `Case of Feature.formula * (Feature.formula * contents) list ]
+    | `Case of ((t * string) list * contents) list ]
 
   let (=:=) name contents =
     { name; contents; assign = ":=" }
@@ -77,69 +77,69 @@ module Variable = struct
     done;
     ("HAS_" ^ var) =?= `String (if Feature.default f then "1" else "0")
 
+  (* build one handler case *)
+  let one_case features contents =
+    match Feature.normalize features with
+    | `False  -> failwith "invalid handler case"
+    | `And l  ->
+      List.map (function
+          | `P f -> has_feature f, "1"
+          | `N f -> has_feature f, "0"
+        ) l,
+      contents
+
+  (* build the full handler cases *)
+  let case available cs: contents =
+    let cs = List.filter (fun (f,_) ->
+        Feature.(normalize (available && f)) <> `False
+      ) cs in
+    `Case (List.map (fun (f, c) -> one_case f c) cs)
+
   let generate buf ?(size=0) t =
     let string tab c =
       bprintf buf "%s%-.*s %s %s\n"
         tab (size - String.length tab) t.name t.assign c in
-    let rec contents tab = function
+    let rec contents tab (t:contents) = match t with
       | `String s   -> string tab s
       | `Strings ss ->
         let sep = " \\\n" ^ String.make (size + 4) ' ' in
         string tab (String.concat sep ss)
-      | `Case (available, cases) ->
-        let cases = List.filter (fun (f,_) ->
-            Feature.(normalize (available && f)) <> `False
-          ) cases in
-        let vars features =
-          match Feature.normalize features with
-          | `False  -> failwith "invalid handler case"
-          | `And l  ->
-            List.map (function
-                | `P f -> has_feature f, 1
-                | `N f -> has_feature f, 0
-              ) l in
-        let process = function
-          | []            -> ()
-          | [features, c] ->
+      | `Case []        -> ()
+      | `Case [vars, c] ->
+        (* A single case handler *)
+        begin match vars with
+          | []   -> contents tab c
+          | vars ->
+            bprintf buf "ifeq (";
+            List.iter (fun (var, b) ->
+                bprintf buf "$(%s:%s=)" var.name b) vars;
+            bprintf buf ",)\n";
+            contents (tab ^ "  ") c;
+            bprintf buf "endif\n"
+        end
+      | `Case cases ->
+        (* A full case handler *)
+        let rec aux = function
+          | []                -> ()
+          | (vars, c) :: rest ->
+            match vars with
+            | []  ->
+              (* we assume that's the default case hanlder *)
+              if rest <> [] then failwith "invalid default case";
+              contents (tab ^ "  ") c;
+              bprintf buf "endif\n"
 
-            (* A single case handler *)
-            begin match vars features with
-              | []   -> contents tab c
-              | vars ->
-                bprintf buf "ifeq (";
-                List.iter (fun (var, d) ->
-                    bprintf buf "$(%s:%d=)" var.name d) vars;
-                bprintf buf ",)\n";
-                contents (tab ^ "  ") c;
-                bprintf buf "endif\n"
-            end
-
-          | cases ->
-
-            (* Multiple case handlers. *)
-
-            let rec aux = function
-              | []                    -> ()
-              | (features, c) :: rest ->
-                match vars features with
-                | []  ->
-                  (* we assume that's the default case hanlder *)
-                  if rest <> [] then failwith "invalid default case";
-                  contents (tab ^ "  ") c;
-                  bprintf buf "endif\n"
-
-                | vars ->
-                  bprintf buf "ifeq (";
-                  List.iter (fun (var, d) ->
-                      bprintf buf "$(%s:%d=)" var.name d) vars;
-                  bprintf buf ",)\n";
-                  contents (tab ^ "  ") c;
-                  if List.length rest <= 1 then bprintf buf "else\n"
-                  else bprintf buf "else ";
-                  aux rest;
-            in
-            aux cases in
-        process cases in
+            | vars ->
+              bprintf buf "ifeq (";
+              List.iter (fun (var, b) ->
+                  bprintf buf "$(%s:%s=)" var.name b) vars;
+              bprintf buf ",)\n";
+              contents (tab ^ "  ") c;
+              if List.length rest <= 1 then bprintf buf "else\n"
+              else bprintf buf "else ";
+              aux rest;
+        in
+        aux cases in
     contents "" t.contents
 
   let generates buf ts =
@@ -406,12 +406,12 @@ end = struct
     let cma  = Lib.cma t resolver in
     let cmxa = Lib.cmxa t resolver in
     let cmxs = Lib.cmxs t resolver in
-    let case = Lib.available t, [
+    let cs = [
         native_dynlink_f, `Strings [cma; cmxa; cmxs];
         native_f        , `Strings [cma; cmxa];
         Feature.true_   , `Strings [cma];
       ] in
-    Variable.(Lib.id t =?= `Case case)
+    Variable.(Lib.id t =?= case (Lib.available t) cs)
     :: comp_byte t
     :: comp_native t
     :: pp_byte t
@@ -465,10 +465,11 @@ end = struct
   let pp_native   = flag "PP__O_" Flags.pp_native
 
   let variables t =
-    Variable.(Bin.id t =?= `Case (Bin.available t, [
-        native_f     , `Strings [Bin.byte t resolver; Bin.native t resolver];
-        Feature.true_, `String  (Bin.byte t resolver);
-      ]))
+    let cs = [
+      native_f     , `Strings [Bin.byte t resolver; Bin.native t resolver];
+      Feature.true_, `String  (Bin.byte t resolver);
+    ] in
+    Variable.(Bin.id t =?= case (Bin.available t) cs)
     :: comp_byte t
     :: comp_native t
     :: pp_byte t

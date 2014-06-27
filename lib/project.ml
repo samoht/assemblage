@@ -115,17 +115,23 @@ module Feature = struct
 
   let atom t = Atom t
 
+  module Set = Set.Make(struct
+      type s = t
+      type t = s
+      let compare x y = String.compare x.name y.name
+    end)
+
   let atoms t =
-    let tbl = Hashtbl.create 10 in
+    let set = ref Set.empty in
     let rec aux = function
       | True
       | False     -> ()
-      | Atom t    -> Hashtbl.replace tbl t true
+      | Atom t    -> set := Set.add t !set
       | Not x     -> aux x
       | And (x, y)
       | Or (x, y) -> aux x; aux y in
     aux t;
-    Hashtbl.fold (fun k _ acc -> k :: acc) tbl []
+    !set
 
   let negate: cnf -> cnf = function
     | `False  -> `And []
@@ -416,14 +422,14 @@ end = struct
         let file = match mode with
           | `Byte   -> Unit.cmo u resolver
           | `Native -> Unit.cmx u resolver in
-        sprintf "-I %s %s" (Filename.dirname file) (Filename.basename file)
+        sprintf "%s/%s" (Filename.dirname file) (Filename.basename file)
       ) units in
     let libs = filter_libs deps in
     let libs = List.map (fun l ->
         let file = match mode with
           | `Byte   -> Lib.cma l resolver
           | `Native -> Lib.cmxa l resolver in
-        sprintf "-I %s %s" (Filename.dirname file) (Filename.basename file)
+        sprintf "%s/%s" (Filename.dirname file) (Filename.basename file)
       ) libs in
     let pkgs = filter_pkgs deps in
     let pkgs = match pkgs with
@@ -784,6 +790,7 @@ and Bin: sig
     Unit.t list -> string -> t
   val byte: t -> Resolver.t -> string
   val native: t -> Resolver.t -> string
+  val is_toplevel: t -> bool
   val generated_files: t -> Resolver.t -> (Feature.formula * string list) list
   val flags: t -> Resolver.t -> Flags.t
   val prereqs: t -> Resolver.t -> [`Byte | `Native] -> string list
@@ -797,6 +804,7 @@ end = struct
     name: string;
     available: Feature.formula;
     flags: Flags.t;
+    toplevel: bool;
   }
 
   let units t = t.units
@@ -805,6 +813,8 @@ end = struct
 
   let build_dir t resolver =
     Resolver.build_dir resolver (id t)
+
+  let is_toplevel t = t.toplevel
 
   let name t = t.name
 
@@ -817,7 +827,7 @@ end = struct
       ?(flags=Flags.empty)
       ?(deps=[])
       units name =
-    let t = { deps; flags; available; name; units } in
+    let t = { deps; flags; available; name; units; toplevel = false } in
     List.iter (fun u -> Unit.set_bin u t) units;
     t
 
@@ -830,12 +840,13 @@ end = struct
     let available = Feature.(not (atom native)) in
     let deps = Dep.pkg "compiler-libs.toplevel" :: deps in
     let link_byte args =
-      ("-linkall" ^ if custom then " -custom" else "")
+      ("-linkall " ^ if custom then "-custom" else "")
       :: args
-      @  ["-I +compiler-libs topstart.cmo"] in
+      @ ["-I"; "+compiler-libs"; "topstart.cmo"] in
     let nflags = Flags.create ~link_byte () in
     let flags = Flags.(nflags @ flags) in
-    create ~available ~flags ~deps units name
+    let t = create ~available ~flags ~deps units name in
+    { t with toplevel = true }
 
   let byte t r =
     build_dir t r / t.name ^ ".byte"
@@ -901,6 +912,8 @@ let bins t = t.bins
 
 let flags t = t.flags
 
+let projects = ref []
+
 let create
     ?(flags=Flags.empty)
     ?(libs=[]) ?(pps=[]) ?(bins=[])
@@ -909,7 +922,11 @@ let create
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)
     ) libs;
-  { name; version; flags; libs; pps; bins }
+  let t = { name; version; flags; libs; pps; bins } in
+  projects := t :: !projects
+
+let list () =
+  !projects
 
 (* dedup a list *)
 let dedup l =

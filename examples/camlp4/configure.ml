@@ -1,6 +1,5 @@
-#directory "../../_build/lib/";;
-#directory "../../_build/tools/";;
-
+#use "topfind";;
+#require "tools";;
 open Project
 
 let t = Unit.create ~deps:[

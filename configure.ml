@@ -5,25 +5,33 @@ open Project
 let cmdliner = Dep.pkg "cmdliner"
 let opam     = Dep.pkg "opam"
 let graph    = Dep.pkg "ocamlgraph"
+let compiler = Dep.pkg "compiler-libs.toplevel"
 
 (* Compilation units *)
 
 let dir = "lib"
 let s = Unit.create ~dir                             "shell"
+let g = Unit.create ~dir                             "git"
 let p = Unit.create ~dir ~deps:[cmdliner; graph]     "project"
 let e = Unit.create ~dir ~deps:[Dep.unit p]          "build_env"
 let f = Unit.create ~dir ~deps:(Dep.units [s;p])     "ocamlfind"
 let o = Unit.create ~dir ~deps:[opam; Dep.unit p]    "opam"
 let m = Unit.create ~dir ~deps:(Dep.units [p; f])    "makefile"
-let t = Unit.create ~dir ~deps:(Dep.units [m; f; o]) "tools"
+let t = Unit.create ~dir ~deps:(compiler :: Dep.units [m; f; o])
+    "tools"
 
 (* Build artifacts *)
 
-let lib = Lib.create [s; p; e; f; o; m; t] "tools"
+let lib =
+  Lib.create [g; s; p; e; f; o; m; t] "tools"
 
-let bin =
-  let c = Unit.create ~dir:"bin" ~deps:[Dep.unit s] "configure" in
-  Bin.toplevel ~deps:[Dep.lib lib] [c] "configure.ml"
+let configure =
+  let c = Unit.create ~dir:"bin" ~deps:[Dep.lib lib] "configure" in
+  Bin.create [c] "configure.ml"
+
+let describe =
+  let c = Unit.create ~dir:"bin" ~deps:[Dep.lib lib] "describe" in
+  Bin.create [c] "describe.ml"
 
 (* The project *)
 
@@ -33,7 +41,4 @@ let t =
   let version = version ^ match Git.version () with
     | None   -> ""
     | Some v -> "~" ^ v in
-  create ~libs:[lib] ~bins:[bin] ~version "tools"
-
-let () =
-  Tools.generate t `Makefile
+  create ~libs:[lib] ~bins:[configure; describe] ~version "tools"

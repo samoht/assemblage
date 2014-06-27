@@ -116,12 +116,11 @@ module Variable: sig
   type contents =
     [ `String of string
     | `Strings of string list
-    | `Case of Project.Feature.formula
-               * (Project.Feature.formula * contents) list ]
+    | `Case of ((t * string) list * contents) list ]
   (** Contents can be either a string or case conditions. The handler
-      case [a, \[(f,c) ...\]] enables cases where (a && f) is
-      realizable -- in that case [f] is the condition to enter the
-      case and [c] is the contents being executed. *)
+      case [(v1,c1) ... (vn,cn) * action] is the case enabled cases
+      where all variables [vi] are equal to [ci]. In that case the
+      action [action] is performed. *)
 
   val (=:=): string -> contents ->  t
   (** VAR := x *)

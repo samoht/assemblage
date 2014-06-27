@@ -14,8 +14,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Main entry point. *)
+(** Main entry points. *)
+
+val process: ?file:string -> ?auto_include:bool -> ?includes:string list ->
+  (Project.t -> unit) -> unit
+(** [process ~file fn] reads and process the OCaml [file] in a
+    top-level environment, where the [tools] API has been loaded, and
+    apply [fn] to the projects registered as side-effects. *)
 
 val generate: Project.t -> [`Makefile] -> unit
 (** Generate the project files, using the given build system
     backend. *)
+
+val describe: Project.t -> unit
+(** Describe the project to stdout. *)

@@ -1,5 +1,6 @@
-1(*
+(*
  * Copyright (c) 2014 Daniel C. Bünzli.
+ * Copyright (c) 2014 Louis Gesbert
  * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -17,20 +18,57 @@
 
 open Printf
 
+let verbose =
+  try Sys.getenv "VERBOSE" <> ""
+  with Not_found -> false
 
-let red fmt = Printf.sprintf ("\027[31m"^^fmt^^"\027[m")
-let green fmt = Printf.sprintf ("\027[32m"^^fmt^^"\027[m")
-let yellow fmt = Printf.sprintf ("\027[33m"^^fmt^^"\027[m")
-let blue fmt = Printf.sprintf ("\027[36m"^^fmt^^"\027[m")
+let color_tri_state =
+  try match Sys.getenv "COLOR" with
+    | "always" -> `Always
+    | "never"  -> `Never
+    | _        -> `Auto
+  with
+  | Not_found  -> `Auto
 
-let red_s = red "%s"
-let green_s = green "%s"
-let yellow_s = yellow "%s"
-let blue_s = blue "%s"
+let with_color =
+  ref (color_tri_state = `Always)
+
+type text_style =
+  [ `bold
+  | `underline
+  | `black
+  | `red
+  | `green
+  | `yellow
+  | `blue
+  | `magenta
+  | `cyan
+  | `white ]
+
+let color (c: text_style) s =
+  if not !with_color then s else
+    let code = match c with
+      | `bold      -> "01"
+      | `underline -> "04"
+      | `black     -> "30"
+      | `red       -> "31"
+      | `green     -> "32"
+      | `yellow    -> "33"
+      | `blue      -> "1;34"
+      | `magenta   -> "35"
+      | `cyan      -> "36"
+      | `white     -> "37"
+    in
+    Printf.sprintf "\027[%sm%s\027[m" code s
+
+let show fmt =
+  ksprintf (fun str ->
+      printf "%s %s\n" (color `cyan "+") str
+    ) fmt
 
 let fatal_error i fmt =
   ksprintf (fun str ->
-     eprintf "%s: %s\n" (red_s "ERROR") str;
+     eprintf "%s: %s\n" (color `red "ERROR") str;
      exit i
     ) fmt
 
@@ -66,16 +104,16 @@ let temp () =
   with Sys_error e ->
     fatal_error 1 "while creating temp file: %s" e
 
-let exec fmt =
+let exec ?(verbose=verbose) fmt =
   ksprintf (fun cmd ->
-      printf "%s %s\n" (yellow_s "=>") cmd;
+      if verbose then printf "%s %s\n" (color `yellow "=>") cmd;
       let i = Sys.command cmd in
       if i <> 0 then fatal_error i "`%s' exited with code %d" cmd i
     ) fmt
 
-let exec_output fmt =
+let exec_output ?verbose fmt =
   ksprintf (fun cmd ->
       let file = temp () in
-      exec "%s > %s" cmd file;
+      exec ?verbose "%s > %s" cmd file;
       read file
     ) fmt

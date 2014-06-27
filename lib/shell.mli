@@ -17,12 +17,32 @@
 
 (** Execution of shell commands *)
 
-val fatal_error: int -> ('a, unit, string, 'a) format4 -> 'a
+val show: ('a, unit, string, unit) format4 -> 'a
+(** [show msg] outputs the given message on stdout. *)
+
+val fatal_error: int -> ('a, unit, string, 'b) format4 -> 'a
 (** [fatal_error i msg] signals an error and stops the program with
     the exit code [i]. *)
 
-val exec: ('a, unit, string, unit) format4 -> 'a
+val exec: ?verbose:bool -> ('a, unit, string, unit) format4 -> 'a
 (** Execute a shell command. *)
 
-val exec_output: ('a, unit, string, string list) format4 -> 'a
+val exec_output: ?verbose:bool -> ('a, unit, string, string list) format4 -> 'a
 (** Execute a shell command and returns its output. *)
+
+(** {2 Terminal Colors} *)
+
+type text_style =
+  [ `bold
+  | `underline
+  | `black
+  | `red
+  | `green
+  | `yellow
+  | `blue
+  | `magenta
+  | `cyan
+  | `white ]
+
+val color: text_style -> string -> string
+(** Colorize a string using the given style. *)
