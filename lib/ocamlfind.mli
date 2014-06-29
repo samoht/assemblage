@@ -16,6 +16,15 @@
 
 (** Manage OCamlfind invocations. *)
 
+val query_str:
+  ?predicates:string list ->
+  ?format:string ->
+  ?uniq:bool ->
+  ?recursive:bool ->
+  string list -> string
+(** [ocamlfind_query ?predicates ?format packages] is corresponding
+    `ocamlfind' command-line invocation. *)
+
 val query:
   ?predicates:string list ->
   ?format:string ->

@@ -285,7 +285,11 @@ end = struct
     | None  , [] -> None
     | Some l, [] -> if Variable.is_contents_empty l then None else Some l
     | None  , u  -> Some (Variable.(var =?= `Strings u))
-    | Some _, u  -> Some (Variable.(var =?= `Strings (fn (Unit.flags t resolver) u)))
+    | Some l, u  ->
+      if Variable.is_contents_empty l then
+        Some (Variable.(var =?= `Strings u))
+      else
+        Some (Variable.(var =?= `Strings (Variable.name l :: u)))
 
   let flag prefix varlib varbin fn t =
     let var    = prefix ^ Unit.id t in
@@ -507,13 +511,19 @@ let dedup l =
       ) in
   aux [] l
 
-let of_project ?(buildir="_build") t =
+let of_project ?(buildir="_build") ?(env=[]) t =
   let libs = Project.libs t in
   let pps = Project.pps t in
   let bins = Project.bins t in
   let features =
     Project.features t
     |> Feature.Set.elements
+    |> (fun t ->
+        List.map (fun elt ->
+            if List.mem_assoc elt env then
+              Feature.with_default elt (List.assoc elt env)
+            else elt
+          ) t)
     |> List.map Variable.has_feature in
   let variables =
     dedup (
@@ -546,8 +556,8 @@ let of_project ?(buildir="_build") t =
       sprintf "rm -rf $(BUILDIR)";
     ] in
   let install = Rule.create ~ext:true ~targets:["install"] ~prereqs:["all"] [
-      sprintf "@opam-installer --prefix $(shell opam config var prefix) %s.install"
-        (Project.name t)
+      sprintf "@opam-installer --prefix $(shell opam config var prefix) \
+               %s.install" (Project.name t)
     ] in
   create
     ~phony:["all"; "clean"]

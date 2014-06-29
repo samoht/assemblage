@@ -1,6 +1,3 @@
-#directory "../../_build/lib/";;
-#directory "../../_build/tools/";;
-
 open Project
 
 let a = Lib.create
@@ -13,4 +10,4 @@ let b =
   Lib.create [b; c] "lib2"
 
 let () =
-  Makefile.of_project (create ~libs:[a; b] ())
+  create ~libs:[a; b] "multi-libs"

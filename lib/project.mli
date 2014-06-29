@@ -128,6 +128,9 @@ module Feature: sig
   val default: t -> bool
   (** Default value. *)
 
+  val with_default: t -> bool -> t
+  (** Return the feature with an other default. *)
+
   val create: doc:string -> default:bool -> string -> t
   (** Create a feature. *)
 
@@ -442,6 +445,8 @@ and Bin: sig
 
   val create:
     ?available:Feature.formula ->
+    ?byte_only:bool ->
+    ?link_all:bool ->
     ?flags:Flags.t ->
     ?deps:Dep.t list ->
     Unit.t list -> string -> t
@@ -516,7 +521,7 @@ val create:
     [pps] and the program binaries [bins]. *)
 
 val list: unit -> t list
-(** Return the list of registered projects. *)
+(** Return the project lists. *)
 
 val features: t -> Feature.Set.t
 (** Return the features used by the project. *)

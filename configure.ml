@@ -17,7 +17,9 @@ let e = Unit.create ~dir ~deps:[Dep.unit p]          "build_env"
 let f = Unit.create ~dir ~deps:(Dep.units [s;p])     "ocamlfind"
 let o = Unit.create ~dir ~deps:[opam; Dep.unit p]    "opam"
 let m = Unit.create ~dir ~deps:(Dep.units [p; f])    "makefile"
-let t = Unit.create ~dir ~deps:(compiler :: Dep.units [m; f; o])
+let t =
+  Unit.create ~dir
+    ~deps:(compiler :: Dep.units [s; p; o; f; m; e])
     "tools"
 
 (* Build artifacts *)
@@ -27,17 +29,17 @@ let lib =
 
 let configure =
   let c = Unit.create ~dir:"bin" ~deps:[Dep.lib lib] "configure" in
-  Bin.create [c] "configure.ml"
+  Bin.create ~link_all:true ~byte_only:true [c] "configure.ml"
 
 let describe =
   let c = Unit.create ~dir:"bin" ~deps:[Dep.lib lib] "describe" in
-  Bin.create [c] "describe.ml"
+  Bin.create ~link_all:true ~byte_only:true [c] "describe.ml"
 
 (* The project *)
 
 let version = "0.1"
 
-let t =
+let () =
   let version = version ^ match Git.version () with
     | None   -> ""
     | Some v -> "~" ^ v in

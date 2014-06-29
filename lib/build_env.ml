@@ -73,7 +73,7 @@ type t = {
   natlink: string list;
   pp: string list;
   includes: string list;
-  auto_include: bool;
+  auto_load: bool;
   build_dir: string;
   name: string option;
   version: string option;
@@ -91,12 +91,12 @@ let create
     ?(natlink=[])
     ?(pp=[])
     ?(includes=[])
-    ?(auto_include=true)
+    ?(auto_load=true)
     ?(build_dir="_build")
     ?name ?version
     () =
   { native; native_dynlink; features; comp; bytcomp; natcomp;
-    link; bytlink; natlink; pp; build_dir; auto_include; includes;
+    link; bytlink; natlink; pp; build_dir; auto_load; includes;
     name; version }
 
 let build_dir t = t.build_dir
@@ -125,7 +125,7 @@ let default = {
   bytlink = [];
   natlink = [];
   pp = [];
-  auto_include = true;
+  auto_load = true;
   includes = [];
   build_dir = "_build";
   name = None;
@@ -183,11 +183,11 @@ let term flags =
     let doc = Arg.info
         ~doc:"A list of directories to includes."
         ~docv:"DIRECTORY" ["I"] in
-    Arg.(value & opt (list string) [] & doc) in
-  let no_auto_include =
+    Arg.(value & opt_all string [] & doc) in
+  let disable_auto_load =
     let doc = Arg.info
-        ~doc:"Do not auto-include of $(ocamlfind query tools)."
-        ["no-auto-include"] in
+        ~doc:"Do not auto-load of $(ocamlfind query tools)/tools.cma."
+        ["disable-auto-load-tools"] in
     Arg.(value & flag & doc) in
 
   let list = function
@@ -195,7 +195,7 @@ let term flags =
     | Some l -> [l] in
 
   let create (_,native) (_,native_dynlink)
-      features comp link pp includes no_auto_includes build_dir name version = {
+      features comp link pp includes disable_auto_load build_dir name version = {
     native = native;
     native_dynlink = native_dynlink;
     features;
@@ -206,21 +206,24 @@ let term flags =
     bytlink = [];
     natlink = [];
     pp = list pp;
-    includes; auto_include = not no_auto_includes;
+    includes; auto_load = not disable_auto_load;
     build_dir;
     name;
     version;
   } in
   Term.(mk create $
         native $ native_dynlink $ flags $ comp $ link $ pp $
-        includes $ no_auto_include $ build_dir $ nam $ version)
+        includes $ disable_auto_load $ build_dir $ nam $ version)
 
 let name t = t.name
 
 let version t = t.version
 
-let parse ?doc ?man flags =
-  let name = Filename.basename Sys.argv.(0) in
+let includes t = t.includes
+
+let auto_load t = t.auto_load
+
+let parse ?(name=Sys.argv.(0)) ?doc ?man flags =
   let doc = name ^ " - helpers to manage and configure OCaml projects." in
   let man =
     `S "DESCRIPTION"

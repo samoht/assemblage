@@ -19,78 +19,86 @@ open Project
 
 let (/) = Filename.concat
 
-let cache = Hashtbl.create 124
-
-let query
-    ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
+let query_str ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
   let predicates = match predicates with
     | None   -> ""
-    | Some p -> sprintf "-predicates %s" (String.concat "," p) in
+    | Some p -> sprintf "-predicates %s " (String.concat "," p) in
   let format = match format with
     | None   -> ""
-    | Some f -> sprintf "-format \"%s\"" f in
+    | Some f -> sprintf "-format \"%s\" " f in
   let recursive = match recursive with
-    | true   -> "-r"
+    | true   -> "-r "
     | false  -> "" in
   let uniq = match uniq with
-    | true   -> "| uniq"
+    | true   -> " | uniq"
     | false  -> "" in
   let packages = String.concat " " packages in
-  let args = String.concat " " [recursive; predicates; format; recursive; packages; uniq] in
-  try Hashtbl.find cache args
+  let args = String.concat "" [
+      recursive; predicates; format; recursive; packages; uniq
+    ] in
+  sprintf "ocamlfind query %s" args
+
+let cache = Hashtbl.create 124
+
+let query ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
+  let cmd = query_str ?predicates ?format ~uniq ~recursive packages in
+  try Hashtbl.find cache cmd
   with Not_found ->
-    let r = Shell.exec_output "ocamlfind query %s" args in
-    Hashtbl.add cache args r;
+    let r = Shell.exec_output "%s" cmd in
+    Hashtbl.add cache cmd r;
     r
 
+let shell cmd =
+  [sprintf "$(shell %s)" cmd]
+
 let pp_byte names l =
-  query
-    ~predicates:["syntax";"preprocessor"]
-    ~recursive:true
-    ~format:"%d/%a"
-    names
+  shell (query_str
+           ~predicates:["syntax";"preprocessor"]
+           ~recursive:true
+           ~format:"%d/%a"
+           names)
   @ l
 
 let pp_native names l =
-  query
-    ~predicates:["syntax";"preprocessor";"native"]
-    ~recursive:true
-    ~format:"%d/%a"
-    names
+  shell (query_str
+           ~predicates:["syntax";"preprocessor";"native"]
+           ~recursive:true
+           ~format:"%d/%a"
+           names)
   @ l
 
 let comp_byte names l =
-  query
-    ~predicates:["byte"]
-    ~format:"-I %d"
-    ~recursive:true
-    ~uniq:true
-    names
+  shell (query_str
+           ~predicates:["byte"]
+           ~format:"-I %d"
+           ~recursive:true
+           ~uniq:true
+           names)
   @ l
 
 let comp_native names l =
-  query
-    ~predicates:["native"]
-    ~format:"-I %d"
-    ~recursive:true
-    ~uniq:true
-    names
+  shell (query_str
+           ~predicates:["native"]
+           ~format:"-I %d"
+           ~recursive:true
+           ~uniq:true
+           names)
   @ l
 
 let link_byte names l =
-  query
-    ~predicates:["byte"]
-    ~format:"%d/%a"
-    ~recursive:true
-    names
+  shell (query_str
+           ~predicates:["byte"]
+           ~format:"%d/%a"
+           ~recursive:true
+           names)
   @ l
 
 let link_native names l =
-  query
-    ~predicates:["native"]
-    ~format:"%d/%a"
-    ~recursive:true
-    names
+  shell (query_str
+           ~predicates:["native"]
+           ~format:"%d/%a"
+           ~recursive:true
+           names)
   @ l
 
 let pkgs names =

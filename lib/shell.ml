@@ -31,7 +31,7 @@ let color_tri_state =
   | Not_found  -> `Auto
 
 let with_color =
-  ref (color_tri_state = `Always)
+  ref (color_tri_state <> `Never)
 
 type text_style =
   [ `bold
@@ -63,12 +63,12 @@ let color (c: text_style) s =
 
 let show fmt =
   ksprintf (fun str ->
-      printf "%s %s\n" (color `cyan "+") str
+      printf "%s %s\n%!" (color `cyan "+") str
     ) fmt
 
 let fatal_error i fmt =
   ksprintf (fun str ->
-     eprintf "%s: %s\n" (color `red "ERROR") str;
+     eprintf "%s: %s\n%!" (color `red "ERROR") str;
      exit i
     ) fmt
 

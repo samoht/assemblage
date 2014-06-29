@@ -87,6 +87,10 @@ module Flags = struct
     let f x = "-bin-annot" :: x in
     { empty with comp_byte = f; comp_native = f }
 
+  let linkall =
+    let f x = "-linkall" :: x in
+    { empty with link_byte = f; link_native = f }
+
   let warn_error =
     let f x = "-warn-error" :: "A" :: "-warn" :: "A" :: x in
     { empty with comp_byte = f; comp_native = f }
@@ -194,6 +198,9 @@ module Feature = struct
   let doc t = t.doc
 
   let default t = t.default
+
+  let with_default t default =
+    { t with default }
 
   let create ~doc ~default name = { name; default; doc }
 
@@ -784,6 +791,8 @@ and Bin: sig
   val deps: t -> Dep.t list
   val create:
     ?available:Feature.formula ->
+    ?byte_only:bool ->
+    ?link_all:bool ->
     ?flags:Flags.t ->
     ?deps:Dep.t list ->
     Unit.t list -> string -> t
@@ -829,9 +838,15 @@ end = struct
 
   let create
       ?(available=Feature.true_)
+      ?(byte_only=false)
+      ?(link_all=false)
       ?(flags=Flags.empty)
       ?(deps=[])
       units name =
+    let available =
+      if byte_only then Feature.(not (atom native) && available) else available in
+    let flags =
+      if link_all then Flags.(linkall @ flags) else flags in
     let t = { deps; flags; available; name; units; toplevel = false } in
     List.iter (fun u -> Unit.set_bin u t) units;
     t
@@ -845,12 +860,12 @@ end = struct
     let available = Feature.(not (atom native)) in
     let deps = Dep.pkg "compiler-libs.toplevel" :: deps in
     let link_byte args =
-      ("-linkall " ^ if custom then "-custom" else "")
-      :: args
-      @ ["-I"; "+compiler-libs"; "topstart.cmo"] in
+      args @ [
+        (if custom then "-custom " else "") ^ "-I +compiler-libs topstart.cmo"
+      ] in
     let nflags = Flags.create ~link_byte () in
     let flags = Flags.(nflags @ flags) in
-    let t = create ~available ~flags ~deps units name in
+    let t = create ~available ~flags ~link_all:true ~deps units name in
     { t with toplevel = true }
 
   let byte t r =
@@ -884,15 +899,15 @@ end = struct
       bytpps @ natlibs @ natunits
 
   let flags t resolver =
-    let deps  = Bin.deps t |> Dep.closure in
     let units = Bin.units t in
+    let deps  = (Bin.deps t @ Dep.units units) |> Dep.closure in
     let incl = Bin.build_dir t resolver in
     let comp_byte = Dep.comp_byte deps incl resolver in
     let comp_native = Dep.comp_native deps incl resolver in
     let link_byte = Dep.link_byte deps units resolver in
     let link_native = Dep.link_native deps units resolver in
     let t' = Flags.create ~link_byte ~link_native ~comp_byte ~comp_native () in
-    Flags.(t' @ t.flags)
+    Flags.(t.flags @ t')
 
 end
 
@@ -919,19 +934,18 @@ let flags t = t.flags
 
 let projects = ref []
 
+let list () = !projects
+
 let create
     ?(flags=Flags.empty)
     ?(libs=[]) ?(pps=[]) ?(bins=[])
-    ?(version="not-set") name =
+    ?(version="version-not-set") name =
   List.iter (fun l ->
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)
     ) libs;
   let t = { name; version; flags; libs; pps; bins } in
   projects := t :: !projects
-
-let list () =
-  !projects
 
 (* dedup a list *)
 let dedup l =

@@ -16,15 +16,17 @@
 
 (** Main entry points. *)
 
-val process: ?file:string -> ?auto_include:bool -> ?includes:string list ->
-  (Project.t -> unit) -> unit
+open Project
+
+val process: ?file:string -> ?name:string -> (t -> Build_env.t -> unit) -> unit
 (** [process ~file fn] reads and process the OCaml [file] in a
     top-level environment, where the [tools] API has been loaded, and
-    apply [fn] to the projects registered as side-effects. *)
+    apply [fn] to the projects registered as side-effects. By default,
+    [file] is `configure.ml' and [name] is [Sys.argv.(0)]. *)
 
-val generate: Project.t -> [`Makefile] -> unit
+val generate: t -> Build_env.t -> [`Makefile] -> unit
 (** Generate the project files, using the given build system
     backend. *)
 
-val describe: Project.t -> unit
+val describe: t -> Build_env.t -> unit
 (** Describe the project to stdout. *)

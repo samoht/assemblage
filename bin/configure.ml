@@ -17,4 +17,6 @@
 open Printf
 
 let () =
-  Tools.process (fun t -> Tools.generate t `Makefile)
+  Tools.process (fun t env ->
+      Tools.generate t env `Makefile
+    )

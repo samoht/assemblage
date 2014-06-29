@@ -14,4 +14,4 @@ ocamlc \
     -I _build/lib shell.cmo git.cmo project.cmo ocamlfind.cmo opam.cmo \
     makefile.cmo build_env.cmo tools.cmo bin/configure.ml -o configure.boot
 
-./configure.boot --disable-auto-include -I _build/lib
+./configure.boot --disable-auto-load-tools -I _build/lib --enable-warn-error

@@ -59,7 +59,7 @@ val create:
   ?includes: string list ->
   (** List of directories to include when loading `configure.ml'. *)
 
-  ?auto_include: bool ->
+  ?auto_load: bool ->
   (** Automatically include $(ocamlfind query tools). *)
 
   ?build_dir: string ->
@@ -77,7 +77,8 @@ val create:
 val default: t
 (** Default project configuration. *)
 
-val parse: ?doc:string -> ?man:string list -> Feature.Set.t -> t
+val parse: ?name:string -> ?doc:string -> ?man:string list ->
+  Feature.Set.t -> t
 (** Parse the arguments given on the command-line as a configuration
     value. *)
 
@@ -103,6 +104,16 @@ val build_dir: t -> string
 
 val enable: t -> Feature.t list -> bool
 (** Check if the given set of flags are all enabled. *)
+
+val includes: t -> string list
+(** Return the list of directories to include when loading `configure.ml'. *)
+
+val auto_load: t -> bool
+(** Automatically include $(shell ocamlfind query tools) before
+    loading `configure.ml'. *)
+
+val features: t -> (Feature.t * bool) list
+(** Return a list of feature with the values they are set to. *)
 
 val name: t -> string option
 (** Return the package name. *)

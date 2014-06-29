@@ -158,8 +158,12 @@ val create:
   Variable.t list -> Rule.t list -> t
 (** Create a Makefile. *)
 
-val of_project: ?buildir:string -> Project.t -> t
-(** Generate a Makefile from a project description. *)
+val of_project: ?buildir:string -> ?env:(Project.Feature.t * bool) list ->
+  Project.t -> t
+(** Generate a Makefile from a project description. The optional build
+    environment is used to set default values of variables. These
+    default values can then be easily overwriten in the generated
+    Makefile. *)
 
 val write: ?file:string -> t -> unit
 (** Generate a Makefile. *)

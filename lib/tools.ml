@@ -17,12 +17,26 @@
 open Printf
 open Project
 
-let process ?(file="configure.ml") ?(auto_include=true) ?(includes=[]) fn =
-  Shell.show "Loading %s [auto-include=%b includes=%s]"
-    (Shell.color `bold file) auto_include (String.concat ", " includes);
+let sys_argl = Array.to_list Sys.argv
+
+let auto_load () =
+  List.for_all ((<>) "--disable-auto-load-tools") sys_argl
+
+let includes () =
+  let rec aux acc = function
+    | []             -> List.rev acc
+    | "-I" :: h :: t -> aux (h::acc) t
+    | _ :: t         -> aux acc t in
+  aux [] sys_argl
+
+let process ?(file="configure.ml") ?(name=Sys.argv.(0)) fn =
+  let includes = includes () in
+  let auto_load = auto_load () in
+  Shell.show "Loading %s." (Shell.color `bold file);
   Toploop.initialize_toplevel_env ();
+  Toploop.set_paths ();
   let includes =
-    if auto_include then
+    if auto_load then
       includes @ Shell.exec_output "ocamlfind query -r tools"
     else
       includes in
@@ -39,29 +53,47 @@ let process ?(file="configure.ml") ?(auto_include=true) ?(includes=[]) fn =
             Feature.Set.union (Project.features t) acc
           ) Feature.Set.empty ts in
         let env = Build_env.parse features in
-        List.iter fn ts
+        List.iter (fun t -> fn t env) ts
 
-let generate t `Makefile =
-  Makefile.(write @@ of_project t);
+let generate t env `Makefile =
+  let features = Build_env.features env in
+  Makefile.(write @@ of_project t ~env:features);
   Ocamlfind.META.(write @@ of_project t);
   Opam.Install.(write @@ of_project t)
 
-let describe t =
-  let deps = function
+let describe t _env =
+  let deps x = match Dep.filter_pkgs x @ Dep.filter_pkg_pps x with
     | [] -> ""
-    | ds -> sprintf "[%s]" (String.concat " " (List.map Dep.id ds)) in
-  let unit u =
-    printf "    |- %s %s\n" (Unit.id u) (deps @@ Unit.deps u) in
-  let lib l =
-    printf "  | %s %s\n" (Shell.color `blue (Lib.id l)) (deps @@ Lib.deps l);
-    List.iter unit (Lib.units l) in
-  let pps l =
-    printf "  | %s %s\n" (Shell.color `magenta (Lib.id l)) (deps @@ Lib.deps l);
-    List.iter unit (Lib.units l) in
-  let bin b =
-    printf "  | %s %s\n" (Shell.color `yellow (Bin.id b)) (deps @@ Bin.deps b);
-    List.iter unit (Bin.units b)
+    | ds -> sprintf "[%s]" (String.concat " " ds) in
+  let unit i n u =
+    printf "  %s %s%s\n"
+      (if i = n then "└─"
+       else "├─")
+      (Unit.name u)
+      (match Unit.ml u, Unit.mli u with
+       | false, false -> assert false
+       | true , false -> ".ml"
+       | false, true  -> ".mli"
+       | true , true  -> ".{ml,mli}")
   in
+  let units l =
+    let n = List.length l - 1 in
+    List.iteri (fun i u ->
+        unit i n u
+      ) l in
+  let lib l =
+    printf "├─┬─ %s %s\n" (Shell.color `blue (Lib.id l)) (deps @@ Lib.deps l);
+    units (Lib.units l) in
+  let pps l =
+    printf "├─┬─ %s %s\n" (Shell.color `magenta (Lib.id l)) (deps @@ Lib.deps l);
+    units (Lib.units l) in
+  let bin b =
+    printf "├─┬─ %s %s\n" (Shell.color `yellow (Bin.id b)) (deps @@ Bin.deps b);
+    units (Bin.units b)
+  in
+  printf "\n%s %s %s\n\n"
+    (Shell.color `magenta "==>")
+    (Shell.color `underline (Project.name t)) (Project.version t);
   List.iter lib (Project.libs t);
   List.iter pps (Project.pps t);
   List.iter bin (Project.bins t)
