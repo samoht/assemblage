@@ -83,7 +83,7 @@ module Flags = struct
       link_byte   = f; link_native = f;
     }
 
-  let bin_annot =
+  let annot =
     let f x = "-bin-annot" :: x in
     { empty with comp_byte = f; comp_native = f }
 
@@ -223,25 +223,31 @@ module Feature = struct
       (t, v) in
     Term.(pure create $ enable $ disable)
 
-  let native =
+  let native_t =
     create ~doc:"native code compilation." ~default:true "native"
 
-  let native_dynlink =
+  let native_dynlink_t =
     create ~doc:"native plugins for native code." ~default:true "native-dynlink"
 
-  let annot =
+  let annot_t =
     create ~doc:"generation of binary annotations." ~default:true "annot"
 
-  let debug =
+  let debug_t =
     create ~doc:"generation of debug symbols." ~default:true "debug"
 
-  let warn_error =
+  let warn_error_t =
     create ~doc:"warning as errors." ~default:false "warn-error"
 
   let base = List.fold_left (fun set t -> Set.add t set) Set.empty [
-      native; native_dynlink;
-      debug; annot; warn_error;
+      native_t; native_dynlink_t;
+      debug_t; annot_t; warn_error_t;
     ]
+
+  let native = atom native_t
+  let native_dynlink = atom native_dynlink_t
+  let annot = atom annot_t
+  let warn_error = atom warn_error_t
+  let debug = atom debug_t
 
 end
 
@@ -642,9 +648,9 @@ end = struct
   let generated_files t resolver =
     let mk f = f t resolver in
     [
-      Feature.true_        , [mk cmi ; mk cmo ];
-      Feature.(atom native), [mk o   ; mk cmx ];
-      Feature.(atom annot) , [mk cmt ; mk cmti];
+      Feature.true_ , [mk cmi ; mk cmo ];
+      Feature.native, [mk o   ; mk cmx ];
+      Feature.annot , [mk cmt ; mk cmti];
     ]
 
   let prereqs t resolver mode =
@@ -758,9 +764,9 @@ end = struct
   let generated_files t resolver =
     let mk f = f t resolver in
     [
-      t.available                                 , [mk cma]       ;
-      Feature.(atom native && t.available)        , [mk cmxa; mk a];
-      Feature.(atom native_dynlink && t.available), [mk cmxs]      ;
+      t.available                            , [mk cma]       ;
+      Feature.(native         && t.available), [mk cmxa; mk a];
+      Feature.(native_dynlink && t.available), [mk cmxs]      ;
     ]
     @ conmap (fun u -> Unit.generated_files u resolver) t.units
 
@@ -845,7 +851,7 @@ end = struct
       ?(deps=[])
       units name =
     let available =
-      if byte_only then Feature.(not (atom native) && available) else available in
+      if byte_only then Feature.(not native && available) else available in
     let flags =
       if link_all then Flags.(linkall @ flags) else flags in
     let t = { deps; flags; available; name; units; toplevel = false } in
@@ -858,7 +864,7 @@ end = struct
       ?(custom=false)
       ?(deps=[])
       units name =
-    let available = Feature.(not (atom native)) in
+    let available = Feature.(not native) in
     let deps = Dep.pkg "compiler-libs.toplevel" :: deps in
     let link_byte args =
       args @ [
@@ -878,8 +884,8 @@ end = struct
   let generated_files t resolver =
     let mk f = f t resolver in
     [
-      t.available                         , [mk byte  ];
-      Feature.(atom native && t.available), [mk native];
+      t.available                    , [mk byte  ];
+      Feature.(native && t.available), [mk native];
     ]
 
   (* XXX: handle native pps *)
@@ -901,12 +907,12 @@ end = struct
 
   let flags t resolver =
     let units = Bin.units t in
-    let deps  = (Bin.deps t @ Dep.units units) |> Dep.closure in
+    let all_deps  = (Bin.deps t @ Dep.units units) |> Dep.closure in
     let incl = Bin.build_dir t resolver in
-    let comp_byte = Dep.comp_byte deps incl resolver in
-    let comp_native = Dep.comp_native deps incl resolver in
-    let link_byte = Dep.link_byte deps units resolver in
-    let link_native = Dep.link_native deps units resolver in
+    let comp_byte = Dep.comp_byte (Bin.deps t) incl resolver in
+    let comp_native = Dep.comp_native (Bin.deps t) incl resolver in
+    let link_byte = Dep.link_byte all_deps units resolver in
+    let link_native = Dep.link_native all_deps units resolver in
     let t' = Flags.create ~link_byte ~link_native ~comp_byte ~comp_native () in
     Flags.(t.flags @ t')
 

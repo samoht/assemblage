@@ -69,7 +69,7 @@ module Flags: sig
   val debug: t
   (** Add [-g]. *)
 
-  val bin_annot: t
+  val annot: t
   (** Add [-bin-annot]. *)
 
   val warn_error: t
@@ -137,19 +137,34 @@ module Feature: sig
   val parse: t -> (t * bool) Cmdliner.Term.t
   (** A cmldiner term which parses a feature. *)
 
-  val native: t
+  val native: formula
   (** Is native-code enabled ? *)
 
-  val native_dynlink: t
+  val native_t: t
+  (** Is native-code enabled ? *)
+
+  val native_dynlink: formula
   (** Is dynlink for native code enabled ? *)
 
-  val annot: t
+  val native_dynlink_t: t
+  (** Is dynlink for native code enabled ? *)
+
+  val annot: formula
   (** Generate annot files ? *)
 
-  val debug: t
+  val annot_t: t
+  (** Generate annot files ? *)
+
+  val debug: formula
   (** Generate debug symbols ? *)
 
-  val warn_error: t
+  val debug_t: t
+  (** Generate debug symbols ? *)
+
+  val warn_error: formula
+  (** Consider warning as error. *)
+
+  val warn_error_t: t
   (** Consider warning as error. *)
 
   module Set: Set.S with type elt = t

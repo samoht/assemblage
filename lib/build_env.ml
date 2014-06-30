@@ -62,8 +62,6 @@ let mk (fn:'a): 'a Term.t =
   Term.(pure (fun () -> fn) $ global)
 
 type t = {
-  native: bool;
-  native_dynlink: bool;
   features: (Feature.t * bool) list;
   comp: string list;
   bytcomp: string list;
@@ -80,8 +78,6 @@ type t = {
 }
 
 let create
-    ?(native=true)
-    ?(native_dynlink=true)
     ?(features=[])
     ?(comp=[])
     ?(bytcomp=[])
@@ -95,13 +91,11 @@ let create
     ?(build_dir="_build")
     ?name ?version
     () =
-  { native; native_dynlink; features; comp; bytcomp; natcomp;
+  { features; comp; bytcomp; natcomp;
     link; bytlink; natlink; pp; build_dir; auto_load; includes;
     name; version }
 
 let build_dir t = t.build_dir
-let native t = t.native
-let native_dynlink t = t.native && t.native_dynlink
 let features t = t.features
 
 let comp t = t.comp
@@ -115,8 +109,6 @@ let natlink t = t.natlink @ t.link
 let pp t = t.pp
 
 let default = {
-  native = true;
-  native_dynlink = true;
   features = [];
   comp = [];
   bytcomp = [];
@@ -145,8 +137,6 @@ let term_of_list list =
 let term flags =
   let flags = Feature.Set.elements flags in
   let flags = term_of_list (List.map Feature.parse flags) in
-  let native = Feature.(parse native) in
-  let native_dynlink = Feature.(parse native_dynlink) in
   let comp =
     let doc = Arg.info
         ~doc:"Additional options passed to both the native and bytecode the \
@@ -195,10 +185,8 @@ let term flags =
     | None   -> []
     | Some l -> [l] in
 
-  let create (_,native) (_,native_dynlink)
+  let create
       features comp link pp includes disable_auto_load build_dir name version = {
-    native = native;
-    native_dynlink = native_dynlink;
     features;
     comp = list comp;
     bytcomp = [];
@@ -212,9 +200,8 @@ let term flags =
     name;
     version;
   } in
-  Term.(mk create $
-        native $ native_dynlink $ flags $ comp $ link $ pp $
-        includes $ disable_auto_load $ build_dir $ nam $ version)
+  Term.(mk create $ flags $ comp $ link $ pp $ includes $ disable_auto_load
+        $ build_dir $ nam $ version)
 
 let name t = t.name
 

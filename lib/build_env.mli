@@ -24,13 +24,6 @@ type t
 
 val create:
 
-  ?native:bool ->
-  (** Enable native compilation. Default is [true]. *)
-
-  ?native_dynlink: bool ->
-  (** Enable compilation of native dynlink units. Default is
-      [true]. *)
-
   ?features:(Feature.t * bool) list ->
   (** Project features. *)
 
@@ -81,14 +74,6 @@ val parse: ?doc:string -> ?man:string list -> string -> Feature.Set.t -> t
 (** [parse name features] parse the arguments given on the
     command-line as a configuration value, for the project [name] with
     the possible features [features]. *)
-
-val native: t -> bool
-(** Check if the native compilers are enable in the given
-    configuration. *)
-
-val native_dynlink: t -> bool
-(** Check if the native dynlinker is enable in the given
-    configuration. *)
 
 val comp: t -> string list
 (** Return the global comand-line flags for compilation. *)

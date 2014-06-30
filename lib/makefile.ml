@@ -239,9 +239,9 @@ let echo_prereqs =
 let resolver =
   Ocamlfind.resolver (fun x -> buildir / x)
 
-let native_dynlink_f = Feature.(atom native_dynlink && atom native)
+let native_dynlink_f = Feature.(native_dynlink && native)
 
-let native_f = Feature.(atom native)
+let native_f = Feature.native
 
 module rec D: sig
   val variables: Dep.t -> Variable.t list
@@ -394,17 +394,21 @@ and L: sig
   val link_native: Lib.t -> Variable.t
 end = struct
 
-  let flag prefix fn t =
-    let var   = prefix ^ Lib.id t in
+  let flag prefix with_glob fn t =
+    let var   = prefix ^ "_" ^ Lib.id t in
+    let glob  = sprintf "$(%s)" prefix in
     let flags = fn (Lib.flags t resolver) [] in
-    Variable.(var =?= `Strings flags)
+    if with_glob then
+      Variable.(var =?= `Strings (glob :: flags))
+    else
+      Variable.(var =?= `Strings flags)
 
-  let comp_byte   = flag "COMPB_" Flags.comp_byte
-  let comp_native = flag "COMPO_" Flags.comp_native
-  let pp_byte     = flag "PP__B_" Flags.pp_byte
-  let pp_native   = flag "PP__O_" Flags.pp_native
-  let link_byte   = flag "LINKB_" Flags.link_byte
-  let link_native = flag "LINKO_" Flags.link_native
+  let comp_byte   = flag "COMPB" true  Flags.comp_byte
+  let comp_native = flag "COMPO" true  Flags.comp_native
+  let pp_byte     = flag "PP__B" false Flags.pp_byte
+  let pp_native   = flag "PP__O" false Flags.pp_native
+  let link_byte   = flag "LINKB" true  Flags.link_byte
+  let link_native = flag "LINKO" true  Flags.link_native
 
   let variables t =
     let cma  = Lib.cma t resolver in
@@ -456,17 +460,21 @@ and B: sig
   val link_native: Bin.t -> Variable.t
 end = struct
 
-  let flag prefix fn t =
-    let var   = prefix ^ Bin.id t in
+  let flag prefix with_glob fn t =
+    let var   = prefix ^ "_" ^ Bin.id t in
+    let glob  = sprintf "$(%s)" prefix in
     let flags = fn (Bin.flags t resolver) [] in
-    Variable.(var =?= `Strings flags)
+    if with_glob then
+      Variable.(var =?= `Strings (glob :: flags))
+    else
+      Variable.(var =?= `Strings flags)
 
-  let comp_byte   = flag "COMPB_" Flags.comp_byte
-  let comp_native = flag "COMPO_" Flags.comp_native
-  let link_byte   = flag "LINKB_" Flags.link_byte
-  let link_native = flag "LINKO_" Flags.link_native
-  let pp_byte     = flag "PP__B_" Flags.pp_byte
-  let pp_native   = flag "PP__O_" Flags.pp_native
+  let comp_byte   = flag "COMPB" true  Flags.comp_byte
+  let comp_native = flag "COMPO" true  Flags.comp_native
+  let link_byte   = flag "LINKB" true  Flags.link_byte
+  let link_native = flag "LINKO" true  Flags.link_native
+  let pp_byte     = flag "PP__B" false Flags.pp_byte
+  let pp_native   = flag "PP__O" false Flags.pp_native
 
   let variables t =
     let cs = [
@@ -511,6 +519,30 @@ let dedup l =
       ) in
   aux [] l
 
+let global_variables =
+  let debug = Variable.has_feature Feature.debug_t in
+  let annot = Variable.has_feature Feature.annot_t in
+  [
+    Variable.("COMPB" =+= `Case [
+        [debug, "1"], `Strings Flags.(comp_byte debug [])
+      ]);
+    Variable.("COMPB" =+= `Case [
+        [annot, "1"], `Strings Flags.(comp_byte annot [])
+      ]);
+    Variable.("LINKB" =+= `Case [
+        [debug, "1"], `Strings Flags.(link_byte debug [])
+      ]);
+   Variable.("COMPO" =+= `Case [
+        [debug, "1"], `Strings Flags.(comp_native debug [])
+      ]);
+    Variable.("COMPO" =+= `Case [
+        [annot, "1"], `Strings Flags.(comp_native annot [])
+      ]);
+    Variable.("LINKO" =+= `Case [
+        [debug, "1"], `Strings Flags.(link_native debug [])
+      ]);
+  ]
+
 let of_project ?(buildir="_build") ?(env=[]) t =
   let libs = Project.libs t in
   let pps = Project.pps t in
@@ -532,6 +564,7 @@ let of_project ?(buildir="_build") ?(env=[]) t =
       :: Variable.("OCAMLC"     =?= `String "ocamlc")
       :: Variable.("CAMLP4O"    =?= `String "camlp4o")
       :: features
+      @  global_variables
       @  conmap L.variables libs
       @  conmap L.variables pps
       @  conmap B.variables bins
