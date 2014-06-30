@@ -1,0 +1,94 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Shell.html">
+<link rel="next" href="Build_env.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Git" rel="Chapter" href="Git.html">
+<link title="Shell" rel="Chapter" href="Shell.html">
+<link title="Project" rel="Chapter" href="Project.html">
+<link title="Build_env" rel="Chapter" href="Build_env.html">
+<link title="Ocamlfind" rel="Chapter" href="Ocamlfind.html">
+<link title="Opam" rel="Chapter" href="Opam.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html">
+<link title="Tools" rel="Chapter" href="Tools.html"><title>Project</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Shell.html" title="Shell">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Build_env.html" title="Build_env">Next</a>
+</div>
+<h1>Module <a href="type_Project.html">Project</a></h1>
+
+<pre><span class="keyword">module</span> Project: <code class="code"><span class="keyword">sig</span></code> <a href="Project.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+EDSL to describe OCaml projects.<br>
+</div>
+<hr width="100%">
+
+<pre><span class="keyword">module</span> <a href="Project.Flags.html">Flags</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Project.Flags.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span class="keyword">module</span> <a href="Project.Feature.html">Feature</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Project.Feature.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span class="keyword">module</span> <a href="Project.Resolver.html">Resolver</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Project.Resolver.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span class="keyword">module</span> <a href="Project.Dep.html">Dep</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Project.Dep.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span class="keyword">module</span> <a href="Project.Unit.html">Unit</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Project.Unit.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span class="keyword">module</span> <a href="Project.Lib.html">Lib</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Project.Lib.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span class="keyword">module</span> <a href="Project.Bin.html">Bin</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Project.Bin.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span class="keyword">module</span> <a href="Project.Test.html">Test</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Project.Test.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info ">
+Project values.<br>
+</div>
+
+
+<pre><span id="VALname"><span class="keyword">val</span> name</span> : <code class="type"><a href="Project.html#TYPEt">t</a> -> string</code></pre><div class="info ">
+Return the project name.<br>
+</div>
+
+<pre><span id="VALversion"><span class="keyword">val</span> version</span> : <code class="type"><a href="Project.html#TYPEt">t</a> -> string</code></pre><div class="info ">
+Return the project version.<br>
+</div>
+
+<pre><span id="VALlibs"><span class="keyword">val</span> libs</span> : <code class="type"><a href="Project.html#TYPEt">t</a> -> <a href="Project.Lib.html#TYPEt">Lib.t</a> list</code></pre><div class="info ">
+Return the list of libraries defined by the project.<br>
+</div>
+
+<pre><span id="VALpps"><span class="keyword">val</span> pps</span> : <code class="type"><a href="Project.html#TYPEt">t</a> -> <a href="Project.Lib.html#TYPEt">Lib.t</a> list</code></pre><div class="info ">
+<code class="code">pps t</code> is the list of syntax extensions defined by the project
+    <code class="code">t</code>.<br>
+</div>
+
+<pre><span id="VALbins"><span class="keyword">val</span> bins</span> : <code class="type"><a href="Project.html#TYPEt">t</a> -> <a href="Project.Bin.html#TYPEt">Bin.t</a> list</code></pre><div class="info ">
+<code class="code">bins t</code> is the list of binaries defined by the project.<br>
+</div>
+
+<pre><span id="VALtests"><span class="keyword">val</span> tests</span> : <code class="type"><a href="Project.html#TYPEt">t</a> -> <a href="Project.Test.html#TYPEt">Test.t</a> list</code></pre><div class="info ">
+<code class="code">tests t</code> is the list of tests in the project.<br>
+</div>
+
+<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">?flags:<a href="Project.Flags.html#TYPEt">Flags.t</a> -><br>       ?libs:<a href="Project.Lib.html#TYPEt">Lib.t</a> list -><br>       ?pps:<a href="Project.Lib.html#TYPEt">Lib.t</a> list -><br>       ?bins:<a href="Project.Bin.html#TYPEt">Bin.t</a> list -><br>       ?tests:<a href="Project.Test.html#TYPEt">Test.t</a> list -><br>       ?css:string -> ?intro:string -> ?version:string -> string -> unit</code></pre><div class="info ">
+<code class="code">create ?libs ?pps ?bins ?version name</code> registers the project
+    named <code class="code">name</code>, defining the libraries <code class="code">libs</code>, the syntax extensions
+    <code class="code">pps</code> and the program binaries <code class="code">bins</code>.<br>
+</div>
+
+<pre><span id="VALlist"><span class="keyword">val</span> list</span> : <code class="type">unit -> <a href="Project.html#TYPEt">t</a> list</code></pre><div class="info ">
+Return the project lists.<br>
+</div>
+
+<pre><span id="VALfeatures"><span class="keyword">val</span> features</span> : <code class="type"><a href="Project.html#TYPEt">t</a> -> Feature.Set.t</code></pre><div class="info ">
+Return the features used by the project.<br>
+</div>
+
+<pre><span id="VALcss"><span class="keyword">val</span> css</span> : <code class="type"><a href="Project.html#TYPEt">t</a> -> string option</code></pre><div class="info ">
+The name of the CSS file for the project documentation.<br>
+</div>
+
+<pre><span id="VALintro"><span class="keyword">val</span> intro</span> : <code class="type"><a href="Project.html#TYPEt">t</a> -> string option</code></pre><div class="info ">
+The name of the intro file for the project documentation.<br>
+</div>
+</body></html>
