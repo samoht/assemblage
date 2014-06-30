@@ -16,15 +16,6 @@
 
 (** Manage OPAM files. *)
 
-open Project
-
-val version: unit -> string option
-(** Return the package version. If run in a Git repository, append the
-    current commit id. *)
-
-val name: unit -> string option
-(** Return the package name. *)
-
 type t
 (** An OPAM file. *)
 
@@ -34,25 +25,15 @@ val read: unit -> t option
 val write: t -> unit
 (** Write the OPAM file. *)
 
-val with_configure: t -> Flag.t list -> t
-(** Rewrite the configuration line to check for the given flags. *)
-
 module Install: sig
 
   (** OPAM install files. *)
   type t
 
-  val create:
-    ?libs:Lib.t list ->
-    ?bins:Bin.t list ->
-    ?tops:Top.t list ->
-    string -> Conf.t -> t
+  val of_project: ?meta:bool -> ?buildir:string -> Project.t -> t
   (** Create an `.install` file. *)
 
-  val write: t -> unit
+  val write: ?dir:string -> t -> unit
   (** Write an `.install` file. *)
-
-  val of_project: Project.t -> unit
-  (** Generate an `.install` file for the given project. *)
 
 end

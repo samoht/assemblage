@@ -16,19 +16,26 @@
 
 (** Manage OCamlfind invocations. *)
 
-open Project
+val query_str:
+  ?predicates:string list ->
+  ?format:string ->
+  ?uniq:bool ->
+  ?recursive:bool ->
+  string list -> string
+(** [ocamlfind_query ?predicates ?format packages] is corresponding
+    `ocamlfind' command-line invocation. *)
 
-val p4o: Dep.resolver
-(** Resolve external syntax extensions. *)
+val query:
+  ?predicates:string list ->
+  ?format:string ->
+  ?uniq:bool ->
+  ?recursive:bool ->
+  string list -> string list
+(** [ocamlfind_query ?predicates ?format packages] is the result of
+    executing [ocamlfind query] with the given parameters. *)
 
-val incl: Dep.resolver
-(** Resolve includes for external packages. *)
-
-val bytlink: Dep.resolver
-(** Resolve bytecode compilation for external packages. *)
-
-val natlink: Dep.resolver
-(** Resolve native code compilation for external packages. *)
+val resolver: (string -> string) -> Project.Resolver.t
+(** Resolve command-line arguments for ocamlfind packages. *)
 
 module META: sig
 
@@ -36,13 +43,10 @@ module META: sig
 
   type t
 
-  val create: version:string -> libs:Lib.t list -> Conf.t -> t option
+  val of_project: Project.t -> t
   (** Create a META file. *)
 
-  val write: t -> unit
+  val write: ?dir:string -> t -> unit
   (** Write a META file. *)
-
-  val of_project: Project.t -> unit
-  (** Generate a META file for the given project. *)
 
 end

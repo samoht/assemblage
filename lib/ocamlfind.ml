@@ -19,104 +19,137 @@ open Project
 
 let (/) = Filename.concat
 
-let p4o names =
-  let names = String.concat " " names in
-  [sprintf
-     "$(shell ocamlfind query %s -r -predicates syntax,preprocessor -format \"-I %%d %%a\")"
-     names]
+let query_str ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
+  let predicates = match predicates with
+    | None   -> ""
+    | Some p -> sprintf "-predicates %s " (String.concat "," p) in
+  let format = match format with
+    | None   -> ""
+    | Some f -> sprintf "-format \"%s\" " f in
+  let recursive = match recursive with
+    | true   -> "-r "
+    | false  -> "" in
+  let uniq = match uniq with
+    | true   -> " | uniq"
+    | false  -> "" in
+  let packages = String.concat " " packages in
+  let args = String.concat "" [
+      recursive; predicates; format; recursive; packages; uniq
+    ] in
+  sprintf "ocamlfind query %s" args
 
-let incl names =
-  let names = String.concat " "  (List.rev names) in
-  [sprintf
-     "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d\")"
-     names]
+let cache = Hashtbl.create 124
 
-let bytlink names =
-  let names = String.concat " "  (List.rev names) in
-  [sprintf
-     "$(shell ocamlfind query %s -r -predicates byte -format \"-I %%d %%a\")"
-     names]
+let query ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
+  let cmd = query_str ?predicates ?format ~uniq ~recursive packages in
+  try Hashtbl.find cache cmd
+  with Not_found ->
+    let r = Shell.exec_output "%s" cmd in
+    Hashtbl.add cache cmd r;
+    r
 
-let natlink names =
-  let names = String.concat " "  (List.rev names) in
-  [sprintf
-     "$(shell ocamlfind query %s -r -predicates native -format \"-I %%d %%a\")"
-     names]
+let shell cmd =
+  [sprintf "$(shell %s)" cmd]
+
+let pp_byte names l =
+  shell (query_str
+           ~predicates:["syntax";"preprocessor"]
+           ~recursive:true
+           ~format:"%d/%a"
+           names)
+  @ l
+
+let pp_native names l =
+  shell (query_str
+           ~predicates:["syntax";"preprocessor";"native"]
+           ~recursive:true
+           ~format:"%d/%a"
+           names)
+  @ l
+
+let comp_byte names l =
+  shell (query_str
+           ~predicates:["byte"]
+           ~format:"-I %d"
+           ~recursive:true
+           ~uniq:true
+           names)
+  @ l
+
+let comp_native names l =
+  shell (query_str
+           ~predicates:["native"]
+           ~format:"-I %d"
+           ~recursive:true
+           ~uniq:true
+           names)
+  @ l
+
+let link_byte names l =
+  shell (query_str
+           ~predicates:["byte"]
+           ~format:"%d/%a"
+           ~recursive:true
+           names)
+  @ l
+
+let link_native names l =
+  shell (query_str
+           ~predicates:["native"]
+           ~format:"%d/%a"
+           ~recursive:true
+           names)
+  @ l
+
+let pkgs names =
+  let pp_byte     = pp_byte names in
+  let pp_native   = pp_native names in
+  let comp_byte   = comp_byte names in
+  let comp_native = comp_native names in
+  let link_byte   = link_byte names in
+  let link_native = link_native names in
+  Flags.create
+    ~pp_byte ~pp_native
+    ~comp_byte ~comp_native
+    ~link_byte ~link_native ()
+
+let resolver buildir =
+  Resolver.create ~buildir ~pkgs
 
 module META = struct
 
-  type t = {
-    file: string;
-    contents: string;
-  }
-
-  let string_exists s fn =
-    let exists = ref false in
-    String.iter (fun c ->
-        exists := !exists || fn c
-      ) s;
-    !exists
-
-  let create ~version ~libs conf =
-    match libs with
-    | [] -> None
-    | _  ->
-      let others, main =
-        List.partition (fun l -> string_exists (Lib.name l) ((=) '.')) libs in
-      let main = match main with
-        | [m] -> m
-        | []  -> failwith "Missing toplevel library"
-        | _   -> failwith "Too many toplevel libraries" in
-      let others = List.map (fun l ->
-          let s = Lib.name l in
-          let i = String.rindex s '.' in
-          let p = String.sub s 0 i in
-          let r = String.sub s (i+1) (String.length s - i - 1) in
-          if p <> Lib.name main then
-            failwith (sprintf "%s: invalid library name, it should start with %s."
-                        s (Lib.name main))
-          else
-            (r, l)
-        ) others in
-      let buf = Buffer.create 1024 in
-      let aux lib =
-        let requires =
-          Lib.deps lib
-          |> Dep.get_pkgs
-          |> String.concat " " in
-        bprintf buf "version  = \"%s\"\n" version;
-        bprintf buf "requires = \"%s\"\n" requires;
-        bprintf buf "archive(byte) = \"%s.cma\"\n" (Lib.name lib);
-        bprintf buf "archive(byte, plugin) = \"%s.cma\"\n" (Lib.name lib);
-        if Conf.native conf then
-          bprintf buf "archive(native) = \"%s.cmxa\"\n" (Lib.name lib);
-        if Conf.native_dynlink conf then
-          bprintf buf "archive(native, plugin) = \"%s.cmxs\"\n" (Lib.name lib);
-        bprintf buf "exist_if = \"%s.cma\"\n" (Lib.name lib) in
-      aux main;
-      List.iter (fun (name, l) ->
-          bprintf buf "package \"%s\" (" name;
-          aux l;
-          bprintf buf ")\n"
-        ) others;
-      let contents = Buffer.contents buf in
-      let file = Conf.destdir conf / Lib.name main / "META" in
-      Some { file; contents }
-
-  let write t =
-    printf "\027[36m+ write %s\027[m\n" t.file;
-    let oc = open_out t.file in
-    output_string oc t.contents;
-    close_out oc
+  type t = string
 
   let of_project t =
-    let conf = Project.conf t in
     let libs = Project.libs t in
-    let version = match Project.version t with
-      | None   -> "version"
-      | Some v -> v in
-    match create ~version ~libs conf with
-    | None   -> ()
-    | Some t -> write t
+    let version = Project.version t in
+    let buf = Buffer.create 1024 in
+    let one lib =
+      let requires = Lib.deps lib |> Dep.filter_pkgs |> String.concat " " in
+      bprintf buf "version  = \"%s\"\n" version;
+      bprintf buf "requires = \"%s\"\n" requires;
+      bprintf buf "archive(byte) = \"%s.cma\"\n" (Lib.name lib);
+      bprintf buf "archive(byte, plugin) = \"%s.cma\"\n" (Lib.name lib);
+      bprintf buf "archive(native) = \"%s.cmxa\"\n" (Lib.name lib);
+      bprintf buf "archive(native, plugin) = \"%s.cmxs\"\n" (Lib.name lib);
+      bprintf buf "exist_if = \"%s.cma\"\n" (Lib.name lib) in
+    List.iteri (fun i lib ->
+        if i = 0 then one lib
+        else (
+          bprintf buf "package \"%s\" (" (Lib.name lib);
+          one lib;
+          bprintf buf ")\n"
+        )
+      ) libs;
+    Buffer.contents buf
+
+  let write ?dir t =
+    let file = match dir with
+      | None   -> "META"
+      | Some d -> d / "META" in
+    printf "\027[36m+ write %s\027[m\n" file;
+    let oc = open_out file in
+    output_string oc t;
+    close_out oc
 
 end

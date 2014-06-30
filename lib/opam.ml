@@ -16,7 +16,6 @@
 
 open Project
 open Printf
-open OpamTypes
 
 let (/) = Filename.concat
 
@@ -35,31 +34,6 @@ let read () =
 let write t =
   OpamFile.OPAM.write (OpamFilename.of_string "opam") t
 
-let version t =
-  match read () with
-  | None   -> Git.version ()
-  | Some t ->
-    let git_version = match Git.version () with
-      | None   -> ""
-      | Some v -> "-" ^ v in
-    Some (OpamPackage.Version.to_string (OpamFile.OPAM.version t)
-          ^ git_version)
-
-let name t =
-  match read () with
-  | None   -> None
-  | Some t -> Some (OpamPackage.Name.to_string (OpamFile.OPAM.name t))
-
-let with_configure t flags =
-  let build = match OpamFile.OPAM.build t with
-    | ( (CString "opam", o) :: (CString "configure", c) :: _ , f) :: t ->
-      let flags = List.map (fun f ->
-          CString (sprintf "--%%{enable:%s}%%-%s" (Flag.name f) (Flag.name f)), None
-        ) flags in
-      ( (CString "opam", o) :: (CString "configure", c) :: flags, f) :: t
-    | l -> l in
-  OpamFile.OPAM.with_build t build
-
 module Install = struct
 
   type t = {
@@ -67,53 +41,53 @@ module Install = struct
     contents: string;
   }
 
-  let create ?(libs=[]) ?(bins=[]) ?(tops=[]) name conf =
+  let opt f =
+    if f = Feature.true_ then ""
+    else "?"
+
+  let of_project ?(meta=true) ?(buildir="_build") t =
+    let name = Project.name t in
+    let libs = Project.libs t in
+    let bins = List.filter Project.Bin.install (Project.bins t) in
     let buf = Buffer.create 1024 in
+    let resolver =
+      Resolver.create ~buildir:(fun l -> buildir / l) ~pkgs:(fun _ -> Flags.empty) in
     if libs <> [] then (
       bprintf buf "lib: [\n";
-      bprintf buf " \"%s/META\"" (Conf.destdir conf / name);
+      if meta then bprintf buf "  \"META\"\n";
       List.iter (fun l ->
-          let files = Lib.generated_files l conf in
-          List.iter (fun f ->
-              bprintf buf "  \"%s\"\n" f
-            ) files;
+          let gens = Lib.generated_files l resolver in
+          List.iter (fun (flags, files) ->
+              List.iter (fun file ->
+                  bprintf buf "  \"%s%s\"\n" (opt flags) file
+                ) files;
+            ) gens;
         ) libs;
       bprintf buf "]\n");
-    if bins <> [] || tops <> [] then (
+    if bins <> [] then (
       bprintf buf "bin: [\n";
       List.iter (fun b ->
-          let files = Bin.generated_files b conf in
-          List.iter (fun f ->
-              bprintf buf "  \"%s\"\n" f
-            ) files;
+          let gens = Bin.generated_files b resolver in
+          List.iter (fun (flags, files) ->
+              List.iter (fun file ->
+                  bprintf buf "  \"%s%s\" {\"%s\"}\n" (opt flags) file (Bin.name b)
+                ) files;
+            ) gens;
         ) bins;
-      List.iter (fun t ->
-          let files = Top.generated_files t conf in
-          List.iter (fun f ->
-              bprintf buf "  \"%s\"\n" f
-            ) files;
-        ) tops;
       bprintf buf "]\n";
     );
     let contents = Buffer.contents buf in
     { name; contents }
 
-  let write t =
-    let file = t.name ^ ".install" in
+  let write ?dir t =
+    let file =
+      let f = t.name ^ ".install" in
+      match dir with
+      | None   -> f
+      | Some d -> d / f in
     printf "\027[36m+ write %s\027[m\n" file;
     let oc = open_out file in
     output_string oc t.contents;
     close_out oc
-
-  let of_project p =
-    let conf = Project.conf p in
-    let libs = Project.libs p in
-    let bins = Project.bins p in
-    let tops = Project.tops p in
-    let name = match name () with
-      | None   -> "not-set"
-      | Some n -> n in
-    let t = create ~libs ~bins ~tops name conf in
-    write t
 
 end

@@ -1,0 +1,119 @@
+(*
+ * Copyright (c) 2014 Daniel C. Bünzli.
+ * Copyright (c) 2014 Louis Gesbert
+ * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
+ *
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ *)
+
+open Printf
+
+let verbose =
+  try Sys.getenv "VERBOSE" <> ""
+  with Not_found -> false
+
+let color_tri_state =
+  try match Sys.getenv "COLOR" with
+    | "always" -> `Always
+    | "never"  -> `Never
+    | _        -> `Auto
+  with
+  | Not_found  -> `Auto
+
+let with_color =
+  ref (color_tri_state <> `Never)
+
+type text_style =
+  [ `bold
+  | `underline
+  | `black
+  | `red
+  | `green
+  | `yellow
+  | `blue
+  | `magenta
+  | `cyan
+  | `white ]
+
+let color (c: text_style) s =
+  if not !with_color then s else
+    let code = match c with
+      | `bold      -> "01"
+      | `underline -> "04"
+      | `black     -> "30"
+      | `red       -> "31"
+      | `green     -> "32"
+      | `yellow    -> "33"
+      | `blue      -> "1;34"
+      | `magenta   -> "35"
+      | `cyan      -> "36"
+      | `white     -> "37"
+    in
+    Printf.sprintf "\027[%sm%s\027[m" code s
+
+let show fmt =
+  ksprintf (fun str ->
+      printf "%s %s\n%!" (color `cyan "+") str
+    ) fmt
+
+let fatal_error i fmt =
+  ksprintf (fun str ->
+     eprintf "%s: %s\n%!" (color `red "ERROR") str;
+     exit i
+    ) fmt
+
+let read file =
+  try
+    let ic = open_in file in
+    let lines =
+      let lines = ref [] in
+      try while true do
+          lines := input_line ic :: !lines
+        done;
+        assert false
+      with End_of_file ->
+        List.rev !lines in
+    close_in ic;
+    lines
+  with Sys_error e ->
+    fatal_error 1 "while reading %s: %s" file e
+
+let write file s =
+  try
+    let oc = open_out file in
+    output_string oc s;
+    close_out oc
+  with Sys_error e ->
+    fatal_error 1 "while writing %s: %s" file e
+
+let temp () =
+  try
+    let file = Filename.temp_file (Filename.basename Sys.argv.(0)) ".out" in
+    at_exit (fun () -> Sys.remove file);
+    file
+  with Sys_error e ->
+    fatal_error 1 "while creating temp file: %s" e
+
+let exec ?(verbose=verbose) fmt =
+  ksprintf (fun cmd ->
+      if verbose then printf "%s %s\n" (color `yellow "=>") cmd;
+      let i = Sys.command cmd in
+      if i <> 0 then fatal_error i "`%s' exited with code %d" cmd i
+    ) fmt
+
+let exec_output ?verbose fmt =
+  ksprintf (fun cmd ->
+      let file = temp () in
+      exec ?verbose "%s > %s" cmd file;
+      read file
+    ) fmt

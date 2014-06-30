@@ -14,20 +14,5 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Main entry points. *)
-
-type tool = Project.t -> Build_env.t -> unit
-(** The signature of tools. *)
-
-val process: ?file:string -> string -> tool -> unit
-(** [process ~file name fn] reads and process the OCaml [file] in a
-    top-level environment, for the project called [name], and apply
-    [fn] to the projects registered as side-effects. *)
-
-val configure: [`Make] -> tool
-(** Configure the project by generating the build, META and .install
-    files, using the given build system backend (currently, only GNU
-    make is supported). *)
-
-val describe: tool
-(** Describe the project to stdout. *)
+let () =
+  Tools.process "describe.ml" Tools.describe

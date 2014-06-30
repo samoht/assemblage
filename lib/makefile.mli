@@ -22,17 +22,20 @@ module Rule: sig
   (** A rule value. *)
 
   val create:
-    name:string ->
+    ?ext:bool ->
     targets:string list ->
     prereqs:string list ->
     ?order_only_prereqs:string list ->
-    recipe:string list ->
+    string list ->
     t
   (** Generate a Makefile rule:
 
-      targets : inputs | order-only-inputs
+      targets : prereqs | prereqs-only-inputs
          recipe
          ...
+
+      If [ext] is set, the rule is extensible (ie. it uses [::]
+      instead of [:].
   *)
 
   val target: string
@@ -110,14 +113,23 @@ module Variable: sig
   val name: t -> string
   (** Variable name. *)
 
-  val (=): string -> string ->  t
-  (** VAR = x *)
+  type contents =
+    [ `String of string
+    | `Strings of string list
+    | `Case of ((t * string) list * contents) list ]
+  (** Contents can be either a string or case conditions. The handler
+      case [(v1,c1) ... (vn,cn) * action] is the case enabled cases
+      where all variables [vi] are equal to [ci]. In that case the
+      action [action] is performed. *)
 
-  val (:=): string -> string ->  t
+  val (=:=): string -> contents ->  t
   (** VAR := x *)
 
-  val (+=): string -> string -> t
+  val (=+=): string -> contents -> t
   (** VAR += x *)
+
+  val (=?=): string -> contents -> t
+  (** VAR ?= x *)
 
   val subst: t -> string -> input:string -> output:string -> t
     (** Create a new variable by sustituting the contents of an other one.
@@ -132,6 +144,9 @@ module Variable: sig
   val files: string -> dir:string -> ext:string -> t
   (** VAR = $(wildcard <dir>/*.<ext>)  *)
 
+  val has_feature: Project.Feature.t -> t
+  (** Is the given feature enabled. *)
+
 end
 
 type t
@@ -143,9 +158,15 @@ val create:
   Variable.t list -> Rule.t list -> t
 (** Create a Makefile. *)
 
-val of_project: ?file:string -> Project.t -> unit
-(** Generate a Makefile from a project description. Also generate the
-    META and .install files by reading the opam file of the project. *)
+val of_project:
+  ?buildir:string ->
+  flags:Project.Flags.t ->
+  features:(Project.Feature.t * bool) list ->
+  Project.t -> t
+(** Generate a Makefile from a project description. The optional build
+    environment is used to set default values of variables. These
+    default values can then be easily overwriten in the generated
+    Makefile. *)
 
 val write: ?file:string -> t -> unit
 (** Generate a Makefile. *)
