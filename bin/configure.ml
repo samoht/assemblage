@@ -17,6 +17,4 @@
 open Printf
 
 let () =
-  Tools.process (fun t env ->
-      Tools.generate t env `Makefile
-    )
+  Tools.process "configure.ml" (Tools.generate `Makefile)

@@ -205,12 +205,13 @@ module Feature = struct
   let create ~doc ~default name = { name; default; doc }
 
   let parse t =
+    let default = if t.default then "$(b,enable)" else "$(b,disable)" in
     let enable =
-      let d = Arg.info ~doc:(sprintf "Enable %s" t.doc)
+      let d = Arg.info ~doc:(sprintf "Enable %s (default is %s)." t.doc default)
           ["enable-" ^ t.name] in
       Arg.(value & flag & d) in
     let disable =
-      let d = Arg.info ~doc:(sprintf "Disable %s" t.doc)
+      let d = Arg.info ~doc:(sprintf "Disable %s (default is %s)." t.doc default)
           ["disable-" ^ t.name] in
       Arg.(value & flag & d) in
     let create enable disable =
@@ -939,7 +940,8 @@ let list () = !projects
 let create
     ?(flags=Flags.empty)
     ?(libs=[]) ?(pps=[]) ?(bins=[])
-    ?(version="version-not-set") name =
+    ?(version="version-not-set")
+    name =
   List.iter (fun l ->
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)

@@ -77,10 +77,10 @@ val create:
 val default: t
 (** Default project configuration. *)
 
-val parse: ?name:string -> ?doc:string -> ?man:string list ->
-  Feature.Set.t -> t
-(** Parse the arguments given on the command-line as a configuration
-    value. *)
+val parse: ?doc:string -> ?man:string list -> string -> Feature.Set.t -> t
+(** [parse name features] parse the arguments given on the
+    command-line as a configuration value, for the project [name] with
+    the possible features [features]. *)
 
 val native: t -> bool
 (** Check if the native compilers are enable in the given

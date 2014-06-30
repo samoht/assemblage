@@ -17,4 +17,4 @@
 open Printf
 
 let () =
-  Tools.process Tools.describe
+  Tools.process "describe.ml" Tools.describe

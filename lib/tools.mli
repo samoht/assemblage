@@ -16,17 +16,17 @@
 
 (** Main entry points. *)
 
-open Project
+type tool = Project.t -> Build_env.t -> unit
+(** The signature of tools. *)
 
-val process: ?file:string -> ?name:string -> (t -> Build_env.t -> unit) -> unit
-(** [process ~file fn] reads and process the OCaml [file] in a
-    top-level environment, where the [tools] API has been loaded, and
-    apply [fn] to the projects registered as side-effects. By default,
-    [file] is `configure.ml' and [name] is [Sys.argv.(0)]. *)
+val process: ?file:string -> string -> tool -> unit
+(** [process ~file name fn] reads and process the OCaml [file] in a
+    top-level environment, for the project called [name], and apply
+    [fn] to the projects registered as side-effects. *)
 
-val generate: t -> Build_env.t -> [`Makefile] -> unit
+val generate: [`Makefile] -> tool
 (** Generate the project files, using the given build system
     backend. *)
 
-val describe: t -> Build_env.t -> unit
+val describe: tool
 (** Describe the project to stdout. *)

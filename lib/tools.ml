@@ -17,6 +17,8 @@
 open Printf
 open Project
 
+type tool = t -> Build_env.t -> unit
+
 let sys_argl = Array.to_list Sys.argv
 
 let auto_load () =
@@ -29,7 +31,7 @@ let includes () =
     | _ :: t         -> aux acc t in
   aux [] sys_argl
 
-let process ?(file="configure.ml") ?(name=Sys.argv.(0)) fn =
+let process ?(file="configure.ml") name fn =
   let includes = includes () in
   let auto_load = auto_load () in
   Shell.show "Loading %s." (Shell.color `bold file);
@@ -52,10 +54,10 @@ let process ?(file="configure.ml") ?(name=Sys.argv.(0)) fn =
         let features = List.fold_left (fun acc t ->
             Feature.Set.union (Project.features t) acc
           ) Feature.Set.empty ts in
-        let env = Build_env.parse features in
+        let env = Build_env.parse name features in
         List.iter (fun t -> fn t env) ts
 
-let generate t env `Makefile =
+let generate `Makefile t env =
   let features = Build_env.features env in
   Makefile.(write @@ of_project t ~env:features);
   Ocamlfind.META.(write @@ of_project t);
@@ -66,15 +68,10 @@ let describe t _env =
     | [] -> ""
     | ds -> sprintf "[%s]" (String.concat " " ds) in
   let unit i n u =
-    printf "  %s %s%s\n"
-      (if i = n then "└─"
-       else "├─")
-      (Unit.name u)
-      (match Unit.ml u, Unit.mli u with
-       | false, false -> assert false
-       | true , false -> ".ml"
-       | false, true  -> ".mli"
-       | true , true  -> ".{ml,mli}")
+    let mk f ext = if f u then (Shell.color `bold @@ Unit.name u) ^ ext else "" in
+    let ml = mk Unit.ml ".ml" in
+    let mli = mk Unit.mli ".mli" in
+    printf "  %s %-25s%-25s\n" (if i = n then "└─" else "├─") ml mli
   in
   let units l =
     let n = List.length l - 1 in
@@ -88,11 +85,11 @@ let describe t _env =
     printf "├─┬─ %s %s\n" (Shell.color `magenta (Lib.id l)) (deps @@ Lib.deps l);
     units (Lib.units l) in
   let bin b =
-    printf "├─┬─ %s %s\n" (Shell.color `yellow (Bin.id b)) (deps @@ Bin.deps b);
+    printf "├─┬─ %s %s\n" (Shell.color `cyan (Bin.id b)) (deps @@ Bin.deps b);
     units (Bin.units b)
   in
   printf "\n%s %s %s\n\n"
-    (Shell.color `magenta "==>")
+    (Shell.color `yellow "==>")
     (Shell.color `underline (Project.name t)) (Project.version t);
   List.iter lib (Project.libs t);
   List.iter pps (Project.pps t);

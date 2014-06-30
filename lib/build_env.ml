@@ -181,12 +181,13 @@ let term flags =
     Arg.(value & opt (some string) None & doc) in
   let includes =
     let doc = Arg.info
-        ~doc:"A list of directories to includes."
+        ~doc:"A list of directories to includes when loading `configure.ml'."
         ~docv:"DIRECTORY" ["I"] in
     Arg.(value & opt_all string [] & doc) in
   let disable_auto_load =
     let doc = Arg.info
-        ~doc:"Do not auto-load of $(ocamlfind query tools)/tools.cma."
+        ~doc:"Do not auto-load of $(b,`ocamlfind query tools`/tools.cma) when \
+              loading `configure.ml'."
         ["disable-auto-load-tools"] in
     Arg.(value & flag & doc) in
 
@@ -223,23 +224,25 @@ let includes t = t.includes
 
 let auto_load t = t.auto_load
 
-let parse ?(name=Sys.argv.(0)) ?doc ?man flags =
-  let doc = name ^ " - helpers to manage and configure OCaml projects." in
+let parse ?doc ?man name flags =
+  let doc = match doc with
+    | None   -> "helpers to manage and configure OCaml projects."
+    | Some d -> d in
   let man =
     `S "DESCRIPTION"
     :: match man with
     | Some m -> List.map (fun p -> `P p) m
     | None   ->
-      [`P (name ^ " is part of OCaml-tools, a collection of tools to \
-                   manage and configure OCaml projects.")]
+      [`P "$(tname) is part of OCaml-tools, a collection of tools to \
+           manage and configure OCaml projects."]
   in
-  let info = Term.info Sys.argv.(0)
+  let info = Term.info name
       ~version:"0.1"
       ~sdocs:global_option_section
       ~doc
       ~man in
   match Term.eval (term flags, info) with
   | `Ok conf -> conf
-  | `Version -> failwith "version"
-  | `Help    -> failwith "help"
+  | `Version -> exit 0
+  | `Help    -> exit 0
   | `Error _ -> exit 1
