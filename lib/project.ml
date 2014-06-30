@@ -195,8 +195,6 @@ module Feature = struct
 
   let name t = t.name
 
-  let doc t = t.doc
-
   let default t = t.default
 
   let with_default t default =
@@ -241,10 +239,13 @@ module Feature = struct
   let test_t =
     create ~doc:"tests." ~default:false "test"
 
+  let doc_t =
+    create ~doc:"the generation of documentation." ~default:true "doc"
+
   let base = List.fold_left (fun set t -> Set.add t set) Set.empty [
       native_t; native_dynlink_t;
       debug_t; annot_t; warn_error_t;
-      test_t;
+      test_t; doc_t;
     ]
 
   let native = atom native_t
@@ -253,6 +254,7 @@ module Feature = struct
   let warn_error = atom warn_error_t
   let debug = atom debug_t
   let test = atom test_t
+  let doc = atom doc_t
 
 end
 
@@ -946,6 +948,8 @@ type t = {
   pps: Lib.t list;
   bins: Bin.t list;
   tests: Test.t list;
+  css: string option;
+  intro: string option;
 }
 
 let name t = t.name
@@ -960,20 +964,24 @@ let bins t = t.bins
 
 let tests t = t.tests
 
+let css t = t.css
+
+let intro t = t.intro
+
 let projects = ref []
 
 let list () = !projects
 
 let create
     ?(flags=Flags.empty)
-    ?(libs=[]) ?(pps=[]) ?(bins=[]) ?(tests=[])
+    ?(libs=[]) ?(pps=[]) ?(bins=[]) ?(tests=[]) ?css ?intro
     ?(version="version-not-set")
     name =
   List.iter (fun l ->
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)
     ) libs;
-  let t = { name; version; flags; libs; pps; bins; tests } in
+  let t = { name; version; flags; libs; pps; bins; tests; css; intro } in
   projects := t :: !projects
 
 let (++) = Feature.Set.union

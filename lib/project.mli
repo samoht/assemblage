@@ -122,9 +122,6 @@ module Feature: sig
   val name: t -> string
   (** The feature name. *)
 
-  val doc: t -> string
-  (** The feature documentation. *)
-
   val default: t -> bool
   (** Default value. *)
 
@@ -138,40 +135,33 @@ module Feature: sig
   (** A cmldiner term which parses a feature. *)
 
   val native: formula
-  (** Is native-code enabled ? *)
-
   val native_t: t
   (** Is native-code enabled ? *)
 
   val native_dynlink: formula
-  (** Is dynlink for native code enabled ? *)
-
   val native_dynlink_t: t
   (** Is dynlink for native code enabled ? *)
 
   val annot: formula
-  (** Generate annot files ? *)
-
   val annot_t: t
   (** Generate annot files ? *)
 
   val debug: formula
-  (** Generate debug symbols ? *)
-
   val debug_t: t
   (** Generate debug symbols ? *)
 
   val warn_error: formula
-  (** Consider warning as error. *)
-
   val warn_error_t: t
   (** Consider warning as error. *)
 
   val test: formula
-  (** Compile and run tests. *)
-
   val test_t: t
   (** Compile and run tests. *)
+
+  val doc: formula
+  val doc_t: t
+  (** Build the documentation. *)
+
 
   module Set: Set.S with type elt = t
   (** Set of features. *)
@@ -568,6 +558,8 @@ val create:
   ?pps:Lib.t list ->
   ?bins:Bin.t list ->
   ?tests:Test.t list ->
+  ?css:string ->
+  ?intro:string ->
   ?version:string ->
   string -> unit
 (** [create ?libs ?pps ?bins ?version name] registers the project
@@ -579,3 +571,9 @@ val list: unit -> t list
 
 val features: t -> Feature.Set.t
 (** Return the features used by the project. *)
+
+val css: t -> string option
+(** The name of the CSS file for the project documentation. *)
+
+val intro: t -> string option
+(** The name of the intro file for the project documentation. *)

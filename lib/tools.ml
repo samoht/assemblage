@@ -34,7 +34,11 @@ let includes () =
 let process ?(file="configure.ml") name fn =
   let includes = includes () in
   let auto_load = auto_load () in
-  Shell.show "Loading %s." (Shell.color `bold file);
+  Shell.show "Loading %s. %s"
+    (Shell.color `bold file)
+    (if auto_load then "" else
+       sprintf "[auto-load-tools: %s]"
+         (Shell.color `magenta (string_of_bool auto_load)));
   Toploop.initialize_toplevel_env ();
   Toploop.set_paths ();
   let includes =
@@ -57,7 +61,7 @@ let process ?(file="configure.ml") name fn =
         let env = Build_env.parse name features in
         List.iter (fun t -> fn t env) ts
 
-let generate `Makefile t env =
+let configure `Make t env =
   let features = Build_env.features env in
   let flags = Build_env.flags env in
   Makefile.(write @@ of_project t ~features ~flags);

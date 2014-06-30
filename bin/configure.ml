@@ -15,4 +15,4 @@
  *)
 
 let () =
-  Tools.process "configure.ml" (Tools.generate `Makefile)
+  Tools.process "configure.ml" (Tools.configure `Make)

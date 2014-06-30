@@ -517,6 +517,55 @@ module T = struct
 
 end
 
+module D = struct
+
+  let target l =
+    "doc-" ^ Lib.id l
+
+  let variables libs =
+    let has_doc = Variable.has_feature Feature.doc_t in
+    [Variable.("doc" =:= `Case [
+         [has_doc, "1"], `String (String.concat " " (List.map target libs));
+         []            , `Strings [];
+       ])]
+
+  let rules ?css ?intro libs =
+    Rule.create ~targets:["doc"] ~prereqs:["$(doc)"] []
+    :: List.map (fun l ->
+        Rule.create ~targets:[target l] ~prereqs:[Lib.id l] [
+          "mkdir -p html";
+          let files =
+            Lib.units l
+            |> List.map (fun u ->
+                "$(BUILDIR)" / Lib.id l /
+                if Unit.mli u then Unit.name u ^ ".mli"
+                else Unit.name u ^ ".ml")
+            |> String.concat " " in
+          let deps = Lib.deps l |> Dep.closure in
+          let libs =
+            deps
+            |> Dep.filter_libs
+            |> (fun d -> l :: d)
+            |> List.map (fun l -> sprintf "-I %s"
+                          (Resolver.build_dir resolver (Lib.id l)))
+            |> String.concat " " in
+          let pkgs =
+            deps
+            |> Dep.filter_pkgs
+            |> (fun pkgs -> Flags.comp_byte (Resolver.pkgs resolver pkgs) [])
+            |> String.concat " " in
+          let css = match css with
+            | None   -> ""
+            | Some f -> sprintf "-css-style %s " f in
+          let intro = match intro with
+            | None   -> ""
+            | Some i -> sprintf "-intro %s " i in
+          sprintf "$(OCAMLDOC) %s %s %s -short-functors \
+                   \ %s%s-colorize-code -html -d html" pkgs libs files css intro
+        ]) libs
+
+end
+
 (* dedup while keeping the initial order *)
 let dedup l =
   let saw = Hashtbl.create (List.length l) in
@@ -590,12 +639,14 @@ let of_project ?(buildir="_build") ~flags ~features t =
       :: Variable.("OCAMLOPT"   =?= `String "ocamlopt")
       :: Variable.("OCAMLC"     =?= `String "ocamlc")
       :: Variable.("CAMLP4O"    =?= `String "camlp4o")
+      :: Variable.("OCAMLDOC"   =?= `String "ocamldoc")
       :: features
       @  global_variables
       @  conmap L.variables libs
       @  conmap L.variables pps
       @  conmap B.variables bins
       @  T.variables tests
+      @  D.variables libs
     ) in
   let rules =
     dedup (
@@ -603,6 +654,7 @@ let of_project ?(buildir="_build") ~flags ~features t =
       @ conmap L.rules pps
       @ conmap B.rules bins
       @ T.rules tests
+      @ D.rules ?css:(Project.css t) ?intro:(Project.intro t) libs
     ) in
   let main = Rule.create ~ext:true ~targets:["all"] ~prereqs:[] [
       sprintf "@echo '\027[32m== %s\027[m'"
@@ -622,6 +674,6 @@ let of_project ?(buildir="_build") ~flags ~features t =
                %s.install" (Project.name t)
     ] in
   create
-    ~phony:["all"; "clean"; "test"]
+    ~phony:["all"; "clean"; "test"; "doc"]
     variables
     (main :: clean :: install :: rules)

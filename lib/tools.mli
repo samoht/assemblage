@@ -24,9 +24,10 @@ val process: ?file:string -> string -> tool -> unit
     top-level environment, for the project called [name], and apply
     [fn] to the projects registered as side-effects. *)
 
-val generate: [`Makefile] -> tool
-(** Generate the project files, using the given build system
-    backend. *)
+val configure: [`Make] -> tool
+(** Configure the project by generating the build, META and .install
+    files, using the given build system backend (currently, only GNU
+    make is supported). *)
 
 val describe: tool
 (** Describe the project to stdout. *)
