@@ -158,7 +158,10 @@ val create:
   Variable.t list -> Rule.t list -> t
 (** Create a Makefile. *)
 
-val of_project: ?buildir:string -> ?env:(Project.Feature.t * bool) list ->
+val of_project:
+  ?buildir:string ->
+  flags:Project.Flags.t ->
+  features:(Project.Feature.t * bool) list ->
   Project.t -> t
 (** Generate a Makefile from a project description. The optional build
     environment is used to set default values of variables. These

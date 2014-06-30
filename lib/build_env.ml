@@ -57,18 +57,10 @@ let mk (fn:'a): 'a Term.t =
 
 type t = {
   features: (Feature.t * bool) list;
-  comp: string list;
-  bytcomp: string list;
-  natcomp: string list;
-  link: string list;
-  bytlink: string list;
-  natlink: string list;
-  pp: string list;
+  flags: Flags.t;
   includes: string list;
   auto_load: bool;
   build_dir: string;
-  name: string option;
-  version: string option;
 }
 
 let create
@@ -83,39 +75,29 @@ let create
     ?(includes=[])
     ?(auto_load=true)
     ?(build_dir="_build")
-    ?name ?version
     () =
-  { features; comp; bytcomp; natcomp;
-    link; bytlink; natlink; pp; build_dir; auto_load; includes;
-    name; version }
+  let mk g l x = g @ l @ x in
+  let flags = Flags.create
+      ~comp_byte:(mk comp bytcomp)
+      ~comp_native:(mk comp natcomp)
+      ~link_byte:(mk link bytlink)
+      ~link_native:(mk link natlink)
+      ~pp_byte:(mk pp [])
+      ~pp_native:(mk pp [])
+      () in
+  { features; flags; build_dir; auto_load; includes }
 
 let build_dir t = t.build_dir
 let features t = t.features
 
-let comp t = t.comp
-let bytcomp t = t.bytcomp @ t.comp
-let natcomp t = t.natcomp @ t.comp
-
-let link t = t.link
-let bytlink t = t.bytlink @ t.link
-let natlink t = t.natlink @ t.link
-
-let pp t = t.pp
+let flags t = t.flags
 
 let default = {
   features = [];
-  comp = [];
-  bytcomp = [];
-  natcomp = [];
-  link = [];
-  bytlink = [];
-  natlink = [];
-  pp = [];
+  flags = Flags.empty;
   auto_load = true;
   includes = [];
   build_dir = "_build";
-  name = None;
-  version = None;
 }
 
 let enable t flags =
@@ -128,9 +110,9 @@ let term_of_list list =
   let aux acc h = Term.(pure (fun f t -> f :: t) $ h $ acc) in
   List.fold_left aux (Term.pure []) list
 
-let term flags =
-  let flags = Feature.Set.elements flags in
-  let flags = term_of_list (List.map Feature.parse flags) in
+let term features: t Cmdliner.Term.t =
+  let features = Feature.Set.elements features in
+  let features = term_of_list (List.map Feature.parse features) in
   let comp =
     let doc = Arg.info
         ~doc:"Additional options passed to both the native and bytecode the \
@@ -153,16 +135,6 @@ let term flags =
         ~doc:"The name of the directory where built artifacts are created."
         ~docv:"DIR" ["build_dir"] in
     Arg.(value & opt string "_build" & doc) in
-  let nam =
-    let doc = Arg.info
-        ~doc:"The package name."
-        ~docv:"NAME" ["name"] in
-    Arg.(value & opt (some string) None & doc) in
-  let version =
-    let doc = Arg.info
-        ~doc:"The package version."
-        ~docv:"VERSION" ["version"] in
-    Arg.(value & opt (some string) None & doc) in
   let includes =
     let doc = Arg.info
         ~doc:"A list of directories to includes when loading `configure.ml'."
@@ -180,32 +152,20 @@ let term flags =
     | Some l -> [l] in
 
   let create
-      features comp link pp includes disable_auto_load build_dir name version = {
-    features;
-    comp = list comp;
-    bytcomp = [];
-    natcomp = [];
-    link = list link;
-    bytlink = [];
-    natlink = [];
-    pp = list pp;
-    includes; auto_load = not disable_auto_load;
-    build_dir;
-    name;
-    version;
-  } in
-  Term.(mk create $ flags $ comp $ link $ pp $ includes $ disable_auto_load
-        $ build_dir $ nam $ version)
-
-let name t = t.name
-
-let version t = t.version
+      features comp link pp includes disable_auto_load build_dir =
+    let link = list link in
+    let comp = list comp in
+    let pp = list pp in
+    let auto_load = not disable_auto_load in
+    create ~features ~comp ~link ~pp ~includes ~auto_load ~build_dir () in
+  Term.(mk create $ features $ comp $ link $ pp $ includes $ disable_auto_load
+        $ build_dir)
 
 let includes t = t.includes
 
 let auto_load t = t.auto_load
 
-let parse ?doc ?man name flags =
+let parse ?doc ?man name features =
   let doc = match doc with
     | None   -> "helpers to manage and configure OCaml projects."
     | Some d -> d in
@@ -223,7 +183,7 @@ let parse ?doc ?man name flags =
       ~sdocs:global_option_section
       ~doc
       ~man in
-  match Term.eval (term flags, info) with
+  match Term.eval (term features, info) with
   | `Ok conf -> conf
   | `Version -> exit 0
   | `Help    -> exit 0

@@ -59,12 +59,6 @@ val create:
   (** Location of the generated files. [None] means the files stays in
       the same directory. *)
 
-  ?name:string ->
-  (** The package name. *)
-
-  ?version: string ->
-  (** The package version. *)
-
   unit -> t
 
 val default: t
@@ -75,18 +69,8 @@ val parse: ?doc:string -> ?man:string list -> string -> Feature.Set.t -> t
     command-line as a configuration value, for the project [name] with
     the possible features [features]. *)
 
-val comp: t -> string list
-val bytcomp: t -> string list
-val natcomp: t -> string list
-(** Return the global comand-line flags for compilation. *)
-
-val link: t -> string list
-val bytlink: t -> string list
-val natlink: t -> string list
-(** Return the global command-line flags for linking. *)
-
-val pp: t -> string list
-(** Return the global command-line option for the pre-preprocessor. *)
+val flags: t -> Flags.t
+(** Return the global comand-line flags. *)
 
 val build_dir: t -> string
 (** Return the directory where build artififacts are generated. *)
@@ -103,9 +87,3 @@ val auto_load: t -> bool
 
 val features: t -> (Feature.t * bool) list
 (** Return a list of feature with the values they are set to. *)
-
-val name: t -> string option
-(** Return the package name. *)
-
-val version: t -> string option
-(** Return the package version. *)

@@ -530,11 +530,18 @@ let dedup l =
       ) in
   aux [] l
 
-let global_variables =
+let global_variables flags =
   let debug = Variable.has_feature Feature.debug_t in
   let annot = Variable.has_feature Feature.annot_t in
   let warn_error = Variable.has_feature Feature.warn_error_t in
-  [
+  let mk fn n = match fn flags [] with
+    | [] -> []
+    | l  -> [Variable.(n =:= `Strings l)] in
+  mk Flags.comp_byte     "COMPB"
+  @ mk Flags.comp_native "COMPO"
+  @ mk Flags.link_byte   "LINLB"
+  @ mk Flags.link_native "LINKO"
+  @ [
     Variable.("COMPB" =+= `Case [
         [debug, "1"], `Strings Flags.(comp_byte debug [])
       ]);
@@ -561,7 +568,8 @@ let global_variables =
       ]);
   ]
 
-let of_project ?(buildir="_build") ?(env=[]) t =
+let of_project ?(buildir="_build") ~flags ~features t =
+  let global_variables = global_variables flags in
   let libs = Project.libs t in
   let pps = Project.pps t in
   let bins = Project.bins t in
@@ -571,8 +579,8 @@ let of_project ?(buildir="_build") ?(env=[]) t =
     |> Feature.Set.elements
     |> (fun t ->
         List.map (fun elt ->
-            if List.mem_assoc elt env then
-              Feature.with_default elt (List.assoc elt env)
+            if List.mem_assoc elt features then
+              Feature.with_default elt (List.assoc elt features)
             else elt
           ) t)
     |> List.map Variable.has_feature in
@@ -614,6 +622,6 @@ let of_project ?(buildir="_build") ?(env=[]) t =
                %s.install" (Project.name t)
     ] in
   create
-    ~phony:["all"; "clean"]
+    ~phony:["all"; "clean"; "test"]
     variables
     (main :: clean :: install :: rules)

@@ -59,7 +59,8 @@ let process ?(file="configure.ml") name fn =
 
 let generate `Makefile t env =
   let features = Build_env.features env in
-  Makefile.(write @@ of_project t ~env:features);
+  let flags = Build_env.flags env in
+  Makefile.(write @@ of_project t ~features ~flags);
   Ocamlfind.META.(write @@ of_project t);
   Opam.Install.(write @@ of_project t)
 
