@@ -40,7 +40,7 @@ let describe =
 let mk_test name =
   let dir = "examples/" ^ name in
   Test.create ~dir describe [
-    "--disable-auto-load";
+    "--disable-auto-load-tools";
     "-I"; Printf.sprintf "../../_build/%s" (Lib.id lib)
   ] name
 
