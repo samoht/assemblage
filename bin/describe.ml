@@ -14,7 +14,5 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Printf
-
 let () =
   Tools.process "describe.ml" Tools.describe

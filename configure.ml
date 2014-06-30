@@ -35,6 +35,18 @@ let describe =
   let c = Unit.create ~dir:"bin" ~deps:[Dep.lib lib] "describe" in
   Bin.create ~link_all:true ~byte_only:true [c] "describe.ml"
 
+(* Tests *)
+
+let mk_test name =
+  let dir = "examples/" ^ name in
+  Test.create ~dir describe [
+    "--disable-auto-load";
+    "-I"; Printf.sprintf "../../_build/%s" (Lib.id lib)
+  ] name
+
+let camlp4     = mk_test "camlp4"
+let multi_libs = mk_test "multi-libs"
+
 (* The project *)
 
 let version = "0.1"
@@ -43,4 +55,9 @@ let () =
   let version = version ^ match Git.version () with
     | None   -> ""
     | Some v -> "~" ^ v in
-  create ~libs:[lib] ~bins:[configure; describe] ~version "tools"
+  create
+    ~libs:[lib]
+    ~bins:[configure; describe]
+    ~tests:[camlp4; multi_libs]
+    ~version
+    "tools"

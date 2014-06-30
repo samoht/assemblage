@@ -92,7 +92,7 @@ module Flags = struct
     { empty with link_byte = f; link_native = f }
 
   let warn_error =
-    let f x = "-warn-error" :: "A" :: "-warn" :: "A" :: x in
+    let f x = "-warn-error A-44 -w A-44" :: x in
     { empty with comp_byte = f; comp_native = f }
 
 end
@@ -238,9 +238,13 @@ module Feature = struct
   let warn_error_t =
     create ~doc:"warning as errors." ~default:false "warn-error"
 
+  let test_t =
+    create ~doc:"tests." ~default:false "test"
+
   let base = List.fold_left (fun set t -> Set.add t set) Set.empty [
       native_t; native_dynlink_t;
       debug_t; annot_t; warn_error_t;
+      test_t;
     ]
 
   let native = atom native_t
@@ -248,6 +252,7 @@ module Feature = struct
   let annot = atom annot_t
   let warn_error = atom warn_error_t
   let debug = atom debug_t
+  let test = atom test_t
 
 end
 
@@ -293,7 +298,6 @@ module rec Dep: sig
   val pkg_pps: string list -> t list
   val filter_pkg_pps: t list -> string list
   val closure: t list -> t list
-  val deps: t -> t list
   val comp_byte: t list -> string -> Resolver.t -> Flags.f
   val comp_native: t list -> string -> Resolver.t -> Flags.f
   val link_byte: t list -> Unit.t list -> Resolver.t -> Flags.f
@@ -379,11 +383,6 @@ end = struct
     List.fold_left (fun acc -> function `Pkg_pp t -> t :: acc | _ -> acc) [] t
     |> List.rev
 
-  type resolver = {
-    buildir: string -> string;
-    pkgs   : string list -> Flags.t;
-  }
-
   let closure ts =
     let deps = Hashtbl.create 24 in
     let rec aux acc = function
@@ -407,14 +406,6 @@ end = struct
     in
     aux [] ts
 
-  let deps (t:t) = match t with
-    | `Unit u   -> Unit.deps u
-    | `Lib l
-    | `Pp l     -> Lib.deps l
-    | `Bin b    -> Bin.deps b
-    | `Pkg _
-    | `Pkg_pp _ -> []
-
   let comp_flags mode (deps:t list) incl resolver args =
     let incl = sprintf "-I %s" incl in
     let libs = filter_libs deps in
@@ -425,7 +416,7 @@ end = struct
     let pkgs = filter_pkgs deps in
     let pkgs = match pkgs with
       | [] -> []
-      | l  ->
+      | _  ->
         let pkgs = Resolver.pkgs resolver pkgs in
         match mode with
         | `Byte   -> Flags.comp_byte pkgs []
@@ -453,7 +444,7 @@ end = struct
     let pkgs = filter_pkgs deps in
     let pkgs = match pkgs with
       | [] -> []
-      | l  ->
+      | _  ->
         let pkgs = Resolver.pkgs resolver pkgs in
         match mode with
         | `Byte   -> Flags.link_byte pkgs []
@@ -499,7 +490,6 @@ and Unit: sig
   val container: t -> [`Lib of Lib.t | `Bin of Bin.t] option
   val ml: t -> bool
   val mli: t -> bool
-  val build_dir: t -> string option
   val for_pack: t -> string option
   val add_deps: t -> Dep.t list -> unit
   val set_lib: t -> Lib.t -> unit
@@ -800,6 +790,7 @@ and Bin: sig
     ?available:Feature.formula ->
     ?byte_only:bool ->
     ?link_all:bool ->
+    ?install:bool ->
     ?flags:Flags.t ->
     ?deps:Dep.t list ->
     Unit.t list -> string -> t
@@ -807,11 +798,13 @@ and Bin: sig
     ?available:Feature.formula ->
     ?flags:Flags.t ->
     ?custom:bool ->
+    ?install:bool ->
     ?deps:Dep.t list ->
     Unit.t list -> string -> t
   val byte: t -> Resolver.t -> string
   val native: t -> Resolver.t -> string
   val is_toplevel: t -> bool
+  val install: t -> bool
   val generated_files: t -> Resolver.t -> (Feature.formula * string list) list
   val flags: t -> Resolver.t -> Flags.t
   val prereqs: t -> Resolver.t -> [`Byte | `Native] -> string list
@@ -826,6 +819,7 @@ end = struct
     available: Feature.formula;
     flags: Flags.t;
     toplevel: bool;
+    install: bool;
   }
 
   let units t = t.units
@@ -837,6 +831,8 @@ end = struct
 
   let is_toplevel t = t.toplevel
 
+  let install t = t.install
+
   let name t = t.name
 
   let deps t = t.deps
@@ -847,6 +843,7 @@ end = struct
       ?(available=Feature.true_)
       ?(byte_only=false)
       ?(link_all=false)
+      ?(install=true)
       ?(flags=Flags.empty)
       ?(deps=[])
       units name =
@@ -854,7 +851,7 @@ end = struct
       if byte_only then Feature.(not native && available) else available in
     let flags =
       if link_all then Flags.(linkall @ flags) else flags in
-    let t = { deps; flags; available; name; units; toplevel = false } in
+    let t = { deps; flags; available; name; units; toplevel = false; install } in
     List.iter (fun u -> Unit.set_bin u t) units;
     t
 
@@ -862,9 +859,10 @@ end = struct
       ?(available=Feature.true_)
       ?(flags=Flags.empty)
       ?(custom=false)
+      ?install
       ?(deps=[])
       units name =
-    let available = Feature.(not native) in
+    let available = Feature.(not native && available) in
     let deps = Dep.pkg "compiler-libs.toplevel" :: deps in
     let link_byte args =
       args @ [
@@ -872,7 +870,7 @@ end = struct
       ] in
     let nflags = Flags.create ~link_byte () in
     let flags = Flags.(nflags @ flags) in
-    let t = create ~available ~flags ~link_all:true ~deps units name in
+    let t = create ~available ~flags ~link_all:true ~deps ?install units name in
     { t with toplevel = true }
 
   let byte t r =
@@ -918,6 +916,28 @@ end = struct
 
 end
 
+module Test = struct
+
+  type t = {
+    name: string;
+    bin: Bin.t;
+    dir: string option;
+    args: string list;
+  }
+
+  let create ?dir bin args name = { name; bin; dir; args }
+
+  let bin t = t.bin
+
+  let dir t = t.dir
+
+  let args t = t.args
+
+  let id t =
+    "test-" ^ t.name
+
+end
+
 type t = {
   name: string;
   version: string;
@@ -925,6 +945,7 @@ type t = {
   libs: Lib.t list;
   pps: Lib.t list;
   bins: Bin.t list;
+  tests: Test.t list;
 }
 
 let name t = t.name
@@ -937,7 +958,7 @@ let pps t = t.pps
 
 let bins t = t.bins
 
-let flags t = t.flags
+let tests t = t.tests
 
 let projects = ref []
 
@@ -945,26 +966,15 @@ let list () = !projects
 
 let create
     ?(flags=Flags.empty)
-    ?(libs=[]) ?(pps=[]) ?(bins=[])
+    ?(libs=[]) ?(pps=[]) ?(bins=[]) ?(tests=[])
     ?(version="version-not-set")
     name =
   List.iter (fun l ->
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)
     ) libs;
-  let t = { name; version; flags; libs; pps; bins } in
+  let t = { name; version; flags; libs; pps; bins; tests } in
   projects := t :: !projects
-
-(* dedup a list *)
-let dedup l =
-  let l = List.sort compare l in
-  let rec aux acc = function
-    | []             -> List.rev acc
-    | [x]            -> List.rev (x :: acc)
-    | x::(y::_ as t) ->
-      if x=y then aux acc t
-      else aux (x::acc) t in
-  aux [] l
 
 let (++) = Feature.Set.union
 

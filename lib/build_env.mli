@@ -76,9 +76,13 @@ val parse: ?doc:string -> ?man:string list -> string -> Feature.Set.t -> t
     the possible features [features]. *)
 
 val comp: t -> string list
+val bytcomp: t -> string list
+val natcomp: t -> string list
 (** Return the global comand-line flags for compilation. *)
 
 val link: t -> string list
+val bytlink: t -> string list
+val natlink: t -> string list
 (** Return the global command-line flags for linking. *)
 
 val pp: t -> string list

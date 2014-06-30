@@ -14,7 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Printf
 open Cmdliner
 open Project
 
@@ -35,11 +34,6 @@ type global = {
 let global = {
   verbose = false;
 }
-
-let debug fmt =
-  ksprintf (fun str ->
-      printf "+ %s\n" str
-    ) fmt
 
 let global =
   let verbose =
@@ -222,6 +216,7 @@ let parse ?doc ?man name flags =
     | None   ->
       [`P "$(tname) is part of OCaml-tools, a collection of tools to \
            manage and configure OCaml projects."]
+      @ help_sections
   in
   let info = Term.info name
       ~version:"0.1"

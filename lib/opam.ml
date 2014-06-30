@@ -16,7 +16,6 @@
 
 open Project
 open Printf
-open OpamTypes
 
 let (/) = Filename.concat
 
@@ -49,13 +48,13 @@ module Install = struct
   let of_project ?(meta=true) ?(buildir="_build") t =
     let name = Project.name t in
     let libs = Project.libs t in
-    let bins = Project.bins t in
+    let bins = List.filter Project.Bin.install (Project.bins t) in
     let buf = Buffer.create 1024 in
     let resolver =
       Resolver.create ~buildir:(fun l -> buildir / l) ~pkgs:(fun _ -> Flags.empty) in
     if libs <> [] then (
       bprintf buf "lib: [\n";
-      bprintf buf "  \"META\"\n";
+      if meta then bprintf buf "  \"META\"\n";
       List.iter (fun l ->
           let gens = Lib.generated_files l resolver in
           List.iter (fun (flags, files) ->

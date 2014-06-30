@@ -16,8 +16,6 @@
 
 (** Manage OPAM files. *)
 
-open Project
-
 type t
 (** An OPAM file. *)
 
