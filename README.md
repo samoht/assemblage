@@ -1,11 +1,13 @@
-### Assemblage
+## Assemblage
 
-> *Assemblage* is an artistic process. In the Programming Language
+
+
+> __Assemblage__ is an artistic process. In the Programming Language
    arts, it consists of making complex project compositions by putting
    together build artefacts.
 
-*Assemblage* provides a set of tools to configure, manage, and use
-OCaml projects.
+The *Assemblage* toolbox provides an API and a set of binaries to
+configure, manage, and use OCaml projects.
 
 ### Status
 
@@ -21,7 +23,7 @@ Using a project description, the tools can generate:
 - a `.install` to install the project; and
 - a `META` file to use the project.
 
-#### Dependency Tracking
+### Dependency Tracking
 
 Multiple kinds of dependencies are currently supported:
 
@@ -30,7 +32,7 @@ Multiple kinds of dependencies are currently supported:
 - global ocamlfind libraries
 - global ocamlfind syntax extensions (using `camlp4o`)
 
-#### Project Flags
+### Project Flags
 
 Every project is parametrized by a set of flags, which will determine sub-parts
 of the project to be built (and installed) or not. The flag can be enabled or
