@@ -21,12 +21,12 @@ let o = unit [opam; Dep.unit c; Dep.unit p]  "opam"
 let m = unit (Dep.units [p; f])              "makefile"
 let t =
   let deps = compiler :: Dep.units [s; p; o; f; m; e] in
-  unit deps "tools"
+  unit deps "assemblage"
 
 (* Build artifacts *)
 
 let lib =
-  Lib.create [g; s; p; e; f; c; o; m; t] "tools"
+  Lib.create [g; s; p; e; f; c; o; m; t] "assemblage"
 
 let configure =
   let c = Unit.create ~dir:"bin" ~deps:[Dep.lib lib] "configure" in
@@ -41,7 +41,7 @@ let describe =
 let mk_test name =
   let dir = "examples/" ^ name in
   Test.create ~dir describe [
-    "--disable-auto-load-tools";
+    "--disable-auto-load";
     "-I"; Printf.sprintf "../../_build/%s" (Lib.id lib)
   ] name
 
@@ -62,4 +62,4 @@ let () =
     ~tests:[camlp4; multi_libs]
     ~css:"style.css"
     ~version
-    "tools"
+    "assemblage"

@@ -14,5 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Assemblage
+
 let () =
-  Tools.process "describe.ml" Tools.describe
+  process "describe.ml" describe

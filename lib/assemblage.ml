@@ -22,7 +22,7 @@ type tool = t -> Build_env.t -> unit
 let sys_argl = Array.to_list Sys.argv
 
 let auto_load () =
-  List.for_all ((<>) "--disable-auto-load-tools") sys_argl
+  List.for_all ((<>) "--disable-auto-load") sys_argl
 
 let includes () =
   let rec aux acc = function
@@ -37,13 +37,13 @@ let process ?(file="configure.ml") name fn =
   Shell.show "Loading %s. %s"
     (Shell.color `bold file)
     (if auto_load then "" else
-       sprintf "[auto-load-tools: %s]"
+       sprintf "[auto-load: %s]"
          (Shell.color `magenta (string_of_bool auto_load)));
   Toploop.initialize_toplevel_env ();
   Toploop.set_paths ();
   let includes =
     if auto_load then
-      includes @ Shell.exec_output "ocamlfind query -r tools"
+      includes @ Shell.exec_output "ocamlfind query -r assemblage"
     else
       includes in
   List.iter Topdirs.dir_directory includes;

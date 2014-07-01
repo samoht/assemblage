@@ -1,6 +1,11 @@
-### OCaml-tools
+### Assemblage
 
-A set of tools to manage the configuration of OCaml projects.
+> *Assemblage* is an artistic process. In the Programming Language
+   arts, it consists of making complex project compositions by putting
+   together build artefacts.
+
+*Assemblage* provides a set of tools to configure, manage, and use
+OCaml projects.
 
 ### Status
 
@@ -15,22 +20,6 @@ Using a project description, the tools can generate:
 - a `Makefile` to build the project;
 - a `.install` to install the project; and
 - a `META` file to use the project.
-
-### Design principles
-
-Following the Bünzli principle, we are trying to design simple components
-which works well together. We have the following pieces:
-
-1. A *build system specification*, which maps an high-level project specification
-   to a build system
-
-2. A *build system*, which knows how to build artefacts
-
-3. A *build environment* (can be a human), which discovers available features
-
-4. A *builder*, which maps build environments to build artefacts
-
-5. An *installer*, which maps build artefacts to install locations
 
 #### Dependency Tracking
 
@@ -54,6 +43,4 @@ to configure an OCaml project using the state of OPAM in the user computer.
 ### Examples
 
 You can find few examples in the `examples/` directory, where projects are built using
-multiple local libraries and ocamlfind libraries and syntax extensions. To generate a
-Makefile for a given project, run `make` at the root of this repository and then
-simply run `../../configure.top configure.ml [-h]` at the root of each project examples.
+multiple local libraries and ocamlfind libraries and syntax extensions.
