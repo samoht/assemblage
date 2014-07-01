@@ -25,7 +25,7 @@ let (/) = Filename.concat
 
 let git file = ".git" / file
 
-let version () =
+let head () =
   match read (git "HEAD") with
   | None   -> None
   | Some s ->
@@ -38,3 +38,16 @@ let version () =
     match read (git reference) with
     | None      -> None
     | Some sha1 -> Some sha1
+
+let describe ?(chop_v=false) ?(branch="master") () =
+  if Shell.try_exec "git describe --always %s" branch then
+    match Shell.exec_output "git describe --always %s" branch with
+    | d::_ ->
+      let len = String.length d in
+      if chop_v && len > 0 && d.[0] = 'v' then
+        Some (String.sub d 1 (len - 2))
+      else
+        Some (String.sub d 0 (len - 1)) (* remove \n *)
+    | _ -> None
+  else
+    None

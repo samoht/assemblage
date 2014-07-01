@@ -322,7 +322,6 @@ module rec Dep: sig
     | `Pkg_pp of string
     | `Pkg of string ]
   val id: t -> string
-  module Graph: Graph.Sig.I with type V.t = t
   val unit: Unit.t -> t
   val units: Unit.t list -> t list
   val filter_units: t list -> Unit.t list
@@ -364,32 +363,6 @@ end = struct
     | `Bin b  -> Bin.id b
     | `Pkg_pp p
     | `Pkg p  -> "ext-" ^ p
-
-  module V = struct
-    type s = t
-    type t = s
-    let equal x y =
-      match x, y with
-      | `Unit x, `Unit y ->
-        Unit.name x = Unit.name y && Unit.build_dir x = Unit.build_dir y
-      | `Pp x    , `Pp y
-      | `Lib x   , `Lib y -> Lib.name x = Lib.name y
-      | `Pkg_pp x, `Pkg_pp y
-      | `Pkg x   , `Pkg y -> x = y
-      | `Bin x   , `Bin y -> Bin.name x = Bin.name y
-      | _ -> false
-    let compare x y =
-      if equal x y then 0
-      else match Hashtbl.hash x - Hashtbl.hash y with
-        | 0 ->
-          let n =
-            String.length (Marshal.to_string x [])
-            - String.length (Marshal.to_string y []) in
-          if n = 0 then failwith "Dep.compare" else n
-        | i -> i
-    let hash = Hashtbl.hash
-  end
-  module Graph = Graph.Imperative.Digraph.ConcreteBidirectional(V)
 
   let bin t: t = `Bin t
   let bins = List.map bin
@@ -528,6 +501,12 @@ end
 
 and Unit: sig
   type t
+  val create:
+    ?flags:Flags.t ->
+    ?generator:(Gen.t * [`Both|`ML|`MLI]) ->
+    ?dir:string ->
+    ?deps:Dep.t list ->
+    string -> t
   val id: t -> string
   val copy: t -> t
   val name: t -> string
@@ -540,12 +519,6 @@ and Unit: sig
   val add_deps: t -> Dep.t list -> unit
   val set_lib: t -> Lib.t -> unit
   val set_bin: t -> Bin.t -> unit
-  val create:
-    ?flags:Flags.t ->
-    ?generator:(Gen.t * [`Both|`ML|`MLI]) ->
-    ?dir:string ->
-    ?deps:Dep.t list ->
-    string -> t
   val generator: t -> (Gen.t * [`Both|`ML|`MLI]) option
   val pack: ?flags:Flags.t -> t list -> string -> t
   val unpack: t -> t list
@@ -731,6 +704,12 @@ end
 
 and Lib: sig
   type t
+  val create:
+    ?available:Feature.formula ->
+    ?flags:Flags.t ->
+    ?pack:bool ->
+    ?deps:Dep.t list ->
+    Unit.t list -> string -> t
   val id: t -> string
   val name: t -> string
   val filename: t -> string
@@ -738,12 +717,6 @@ and Lib: sig
   val units: t -> Unit.t list
   val available: t -> Feature.formula
   val deps: t -> Dep.t list
-  val create:
-    ?available:Feature.formula ->
-    ?flags:Flags.t ->
-    ?pack:bool ->
-    ?deps:Dep.t list ->
-    Unit.t list -> string -> t
   val cma: t -> Resolver.t -> string
   val cmxa: t -> Resolver.t -> string
   val a: t -> Resolver.t -> string
@@ -836,10 +809,6 @@ end
 
 and Bin: sig
   type t
-  val id: t -> string
-  val name: t -> string
-  val units: t -> Unit.t list
-  val deps: t -> Dep.t list
   val create:
     ?available:Feature.formula ->
     ?byte_only:bool ->
@@ -855,6 +824,10 @@ and Bin: sig
     ?install:bool ->
     ?deps:Dep.t list ->
     Unit.t list -> string -> t
+  val id: t -> string
+  val name: t -> string
+  val units: t -> Unit.t list
+  val deps: t -> Dep.t list
   val byte: t -> Resolver.t -> string
   val native: t -> Resolver.t -> string
   val is_toplevel: t -> bool
@@ -1057,13 +1030,24 @@ let generators t resolver =
 let create
     ?(flags=Flags.empty)
     ?(libs=[]) ?(pps=[]) ?(bins=[]) ?(tests=[]) ?css ?intro ?(doc_dir="doc")
-    ?(version="version-not-set")
+    ?version
     name =
+  let version = match version with
+    | Some v -> v
+    | None   ->
+      match Git.describe () with
+      | Some v -> v
+      | None   ->
+        match Git.head () with
+        | Some v -> v
+        | None   -> "version-not-set"
+  in
   List.iter (fun l ->
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)
     ) libs;
-  let t = { name; version; flags; libs; pps; bins; tests; css; intro; doc_dir } in
+  let t =
+    { name; version; flags; libs; pps; bins; tests; css; intro; doc_dir } in
   projects := t :: !projects
 
 let (++) = Feature.Set.union
@@ -1078,3 +1062,50 @@ let features t =
   let pps  = unionmap (fun x -> Feature.atoms @@ Lib.available x) t.pps  in
   let bins = unionmap (fun x -> Feature.atoms @@ Bin.available x) t.bins in
   Feature.base ++ libs ++ pps ++ bins
+
+module Graph = struct
+
+  module type S = sig
+    include Graph.Sig.I
+    val iter: (V.t -> unit) -> t -> unit
+    val fold: (V.t -> 'a -> 'a) -> t -> 'a -> 'a
+    val vertex: t -> V.t list
+  end
+
+  module Make (X: sig type t val id: t -> string end) = struct
+    module G = Graph.Imperative.Digraph.ConcreteBidirectional(struct
+        type t = X.t
+        let compare x y = String.compare (X.id x) (X.id y)
+        let equal x y = X.id x = X.id y
+        let hash x = Hashtbl.hash (X.id x)
+      end)
+    include G
+    include Graph.Topological.Make(G)
+    let vertex t =
+      fold (fun v acc -> v :: acc) t []
+      |> List.rev
+  end
+
+  module Dep  = Make(Dep)
+  module Unit = Make(Unit)
+  module Lib  = Make(Lib)
+  module Bin  = Make(Bin)
+
+end
+
+let units = Graph.Unit.create ()
+
+let unit ?(units=units) ?dir deps name =
+  let u = Unit.create ?dir ~deps name in
+  let () =
+    Graph.Unit.add_vertex units u;
+    Dep.filter_units deps
+    |> List.iter (fun u' -> Graph.Unit.add_edge units u' u) in
+  `Unit u
+
+let lib ?(units=units) name =
+  Lib.create (Graph.Unit.vertex units) name
+
+let pkg = Dep.pkg
+
+let pkg_pp = Dep.pkg_pp

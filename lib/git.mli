@@ -16,5 +16,8 @@
 
 (** Manage Git repositories. *)
 
-val version: unit -> string option
-(** Return the Git version of the current project. *)
+val head: unit -> string option
+(** [head ()] is the tip's SHA1 of the current project. *)
+
+val describe: ?chop_v:bool -> ?branch:string -> unit -> string option
+(** [desrcibe ()] is the output of {i git describe}. *)

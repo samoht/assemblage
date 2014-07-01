@@ -30,6 +30,9 @@ val exec: ?verbose:bool -> ('a, unit, string, unit) format4 -> 'a
 val exec_output: ?verbose:bool -> ('a, unit, string, string list) format4 -> 'a
 (** Execute a shell command and returns its output. *)
 
+val try_exec: ('a, unit, string, bool) format4 -> 'a
+(** Try to run a given command. *)
+
 val in_dir: string -> (unit -> 'a) -> 'a
 (** Execute a command in a given directory. *)
 

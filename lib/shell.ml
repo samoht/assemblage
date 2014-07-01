@@ -103,6 +103,12 @@ let exec ?(verbose=verbose) fmt =
       if i <> 0 then fatal_error i "`%s' exited with code %d" cmd i
     ) fmt
 
+let try_exec fmt =
+  ksprintf (fun cmd ->
+      let i = Sys.command (sprintf "%s &> /dev/null" cmd) in
+      i = 0
+    ) fmt
+
 let exec_output ?verbose fmt =
   ksprintf (fun cmd ->
       let file = temp () in

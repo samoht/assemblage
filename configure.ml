@@ -2,31 +2,31 @@ open Project
 
 (* OCamlfind packages *)
 
-let cmdliner = Dep.pkg    "cmdliner"
-let opam     = Dep.pkg    "opam"
-let graph    = Dep.pkg    "ocamlgraph"
-let compiler = Dep.pkg    "compiler-libs.toplevel"
-let optcomp  = Dep.pkg_pp "optcomp"
+let cmdliner = pkg    "cmdliner"
+let opam     = pkg    "opam"
+let graph    = pkg    "ocamlgraph"
+let compiler = pkg    "compiler-libs.toplevel"
+let optcomp  = pkg_pp "optcomp"
 
 (* Compilation units *)
 
-let unit deps name = Unit.create ~dir:"lib" ~deps name
-let s = unit []                              "shell"
-let g = unit []                              "git"
-let p = unit [cmdliner; graph]               "project"
-let e = unit [Dep.unit p]                    "build_env"
-let f = unit (Dep.units [s;p])               "ocamlfind"
-let c = unit [Dep.unit p; optcomp; compiler] "OCaml"
-let o = unit [opam; Dep.unit c; Dep.unit p]  "opam"
-let m = unit (Dep.units [p; f])              "makefile"
-let t =
-  let deps = compiler :: Dep.units [s; p; o; f; m; e] in
+let unit = unit ~dir:"lib"
+
+let shell      = unit []                           "shell"
+let git        = unit [shell]                      "git"
+let project    = unit [cmdliner; graph; git]       "project"
+let build_env  = unit [project]                    "build_env"
+let ocamlfind  = unit [shell; project]             "ocamlfind"
+let ocaml      = unit [project; optcomp; compiler] "OCaml"
+let opam       = unit [opam; ocamlfind; project]   "opam"
+let makefile   = unit [project; ocamlfind]         "makefile"
+let assemblage =
+  let deps = [compiler; shell; project; opam; ocamlfind; makefile; build_env] in
   unit deps "assemblage"
 
 (* Build artifacts *)
 
-let lib =
-  Lib.create [g; s; p; e; f; c; o; m; t] "assemblage"
+let lib = lib "assemblage"
 
 let configure =
   let c = Unit.create ~dir:"bin" ~deps:[Dep.lib lib] "configure" in
@@ -50,16 +50,9 @@ let multi_libs = mk_test "multi-libs"
 
 (* The project *)
 
-let version = "0.1"
-
 let () =
-  let version = version ^ match Git.version () with
-    | None   -> ""
-    | Some v -> "~" ^ v in
   create
     ~libs:[lib]
     ~bins:[configure; describe]
     ~tests:[camlp4; multi_libs]
-    ~css:"style.css"
-    ~version
     "assemblage"
