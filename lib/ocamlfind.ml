@@ -19,7 +19,9 @@ open Project
 
 let (/) = Filename.concat
 
-let query_str ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
+type mode = [`Direct|`Indirect|`Makefile]
+
+let query_indirect ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
   let predicates = match predicates with
     | None   -> ""
     | Some p -> sprintf "-predicates %s " (String.concat "," p) in
@@ -40,81 +42,87 @@ let query_str ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
 
 let cache = Hashtbl.create 124
 
-let query ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
-  let cmd = query_str ?predicates ?format ~uniq ~recursive packages in
+let query_direct ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
+  let cmd = query_indirect ?predicates ?format ~uniq ~recursive packages in
   try Hashtbl.find cache cmd
   with Not_found ->
-    let r = Shell.exec_output "%s" cmd in
+    let r = String.concat " " (Shell.exec_output "%s" cmd) in
     Hashtbl.add cache cmd r;
     r
 
-let shell cmd =
-  [sprintf "$(shell %s)" cmd]
+let query_makefile ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
+  sprintf "$(shell %s)"
+    (query_indirect ?predicates ?format ~uniq ~recursive packages)
 
-let pp_byte names l =
-  shell (query_str
-           ~predicates:["syntax";"preprocessor"]
-           ~recursive:true
-           ~format:"%d/%a"
-           names)
-  @ l
+let query ~mode = match mode with
+  | `Direct   -> query_direct
+  | `Indirect -> query_indirect
+  | `Makefile -> query_makefile
 
-let pp_native names l =
-  shell (query_str
-           ~predicates:["syntax";"preprocessor";"native"]
-           ~recursive:true
-           ~format:"%d/%a"
-           names)
-  @ l
+let pp_byte ~mode names l =
+  query ~mode
+    ~predicates:["syntax";"preprocessor"]
+    ~recursive:true
+    ~format:"%d/%a"
+    names
+  :: l
 
-let comp_byte names l =
-  shell (query_str
-           ~predicates:["byte"]
-           ~format:"-I %d"
-           ~recursive:true
-           ~uniq:true
-           names)
-  @ l
+let pp_native ~mode names l =
+  query ~mode
+    ~predicates:["syntax";"preprocessor";"native"]
+    ~recursive:true
+    ~format:"%d/%a"
+    names
+  :: l
 
-let comp_native names l =
-  shell (query_str
-           ~predicates:["native"]
-           ~format:"-I %d"
-           ~recursive:true
-           ~uniq:true
-           names)
-  @ l
+let comp_byte ~mode names l =
+  query ~mode
+    ~predicates:["byte"]
+    ~format:"-I %d"
+    ~recursive:true
+    ~uniq:true
+    names
+  :: l
 
-let link_byte names l =
-  shell (query_str
-           ~predicates:["byte"]
-           ~format:"%d/%a"
-           ~recursive:true
-           names)
-  @ l
+let comp_native ~mode names l =
+  query ~mode
+    ~predicates:["native"]
+    ~format:"-I %d"
+    ~recursive:true
+    ~uniq:true
+    names
+  :: l
 
-let link_native names l =
-  shell (query_str
-           ~predicates:["native"]
-           ~format:"%d/%a"
-           ~recursive:true
-           names)
-  @ l
+let link_byte ~mode names l =
+  query ~mode
+    ~predicates:["byte"]
+    ~format:"%d/%a"
+    ~recursive:true
+    names
+  :: l
 
-let pkgs names =
-  let pp_byte     = pp_byte names in
-  let pp_native   = pp_native names in
-  let comp_byte   = comp_byte names in
-  let comp_native = comp_native names in
-  let link_byte   = link_byte names in
-  let link_native = link_native names in
+let link_native ~mode names l =
+  query ~mode
+    ~predicates:["native"]
+    ~format:"%d/%a"
+    ~recursive:true
+    names
+  :: l
+
+let pkgs ~mode names =
+  let pp_byte     = pp_byte     ~mode names in
+  let pp_native   = pp_native   ~mode names in
+  let comp_byte   = comp_byte   ~mode names in
+  let comp_native = comp_native ~mode names in
+  let link_byte   = link_byte   ~mode names in
+  let link_native = link_native ~mode names in
   Flags.create
     ~pp_byte ~pp_native
     ~comp_byte ~comp_native
     ~link_byte ~link_native ()
 
-let resolver buildir =
-  Resolver.create ~buildir ~pkgs
+let resolver mode buildir =
+  Resolver.create ~buildir ~pkgs:(pkgs ~mode)
 
 module META = struct
 

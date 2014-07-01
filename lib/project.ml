@@ -92,7 +92,7 @@ module Flags = struct
     { empty with link_byte = f; link_native = f }
 
   let warn_error =
-    let f x = "-warn-error A-44 -w A-44" :: x in
+    let f x = "-warn-error A-44-4 -w A-44-4" :: x in
     { empty with comp_byte = f; comp_native = f }
 
 end
@@ -115,7 +115,7 @@ module Feature = struct
     | Or of formula * formula
 
   type cnf =
-    [ `False | `And of [ `P of t | `N of t ] list ]
+    [ `Conflict | `And of [ `P of t | `N of t ] list ]
 
   let atom t = Atom t
 
@@ -138,13 +138,13 @@ module Feature = struct
     !set
 
   let negate: cnf -> cnf = function
-    | `False  -> `And []
-    | `And [] -> `False
-    | `And l  -> `And (List.map (function `P t -> `N t | `N t -> `P t) l)
+    | `Conflict -> `And []
+    | `And []   -> `Conflict
+    | `And l    -> `And (List.map (function `P t -> `N t | `N t -> `P t) l)
 
   let (@) (x:cnf) (y:cnf) = match x, y with
-    | `False , _ | _, `False   -> `False
-    | `And [], x | x, `And [] -> x
+    | `Conflict , _ | _, `Conflict -> `Conflict
+    | `And []   , x | x, `And []   -> x
     | `And x , `And y  ->
       let p = Hashtbl.create (List.length x + List.length y) in
       let n = Hashtbl.create (List.length x + List.length y) in
@@ -165,11 +165,11 @@ module Feature = struct
           ) n [] in
         `And (ps @ ns)
       with Exit ->
-        `False
+        `Conflict
 
   let rec normalize: formula -> cnf = function
     | True       -> `And []
-    | False      -> `False
+    | False      -> `Conflict
     | Atom x     -> `And [`P x]
     | Not x      -> negate (normalize x)
     | And (x, y) -> normalize x @ normalize y
@@ -274,6 +274,46 @@ module Resolver = struct
 
 end
 
+module Gen = struct
+
+  type shell = {
+    dir : string;
+    prog: string;
+    args: string list;
+  }
+
+  type bash = {
+    bash_dir: string;
+    bash    : string;
+  }
+
+  type t =
+    | Func of (unit -> unit)
+    | Shell of shell
+    | Bash of bash
+
+  let shell ~dir prog args =
+    Shell { dir; prog; args }
+
+  let func fn =
+    Func fn
+
+  let bash ~dir fmt =
+    ksprintf (fun bash ->
+        let bash_dir = dir in
+        Bash { bash_dir; bash }
+      ) fmt
+
+  let run = function
+    | Func fn -> fn ()
+    | Shell s ->
+      let args = String.concat " " (s.prog :: s.args) in
+      Shell.in_dir s.dir (fun () -> Shell.exec "%s" args)
+    | Bash b  ->
+      Shell.in_dir b.bash_dir (fun () -> Shell.exec "%s" b.bash)
+
+end
+
 module rec Dep: sig
   type t =
     [ `Unit of Unit.t
@@ -293,6 +333,8 @@ module rec Dep: sig
   val pkg: string -> t
   val pkgs: string list -> t list
   val filter_pkgs: t list -> string list
+  val bin: Bin.t -> t
+  val bins: Bin.t list -> t list
   val pp: Lib.t -> t
   val pps: Lib.t list -> t list
   val filter_pps: t list -> Lib.t list
@@ -349,6 +391,9 @@ end = struct
     let hash = Hashtbl.hash
   end
   module Graph = Graph.Imperative.Digraph.ConcreteBidirectional(V)
+
+  let bin t: t = `Bin t
+  let bins = List.map bin
 
   let unit t: t = `Unit t
   let units = List.map unit
@@ -498,10 +543,11 @@ and Unit: sig
   val set_bin: t -> Bin.t -> unit
   val create:
     ?flags:Flags.t ->
-    ?generated:[`Both|`Ml|`Mli] ->
+    ?generator:(Gen.t * [`Both|`ML|`MLI]) ->
     ?dir:string ->
     ?deps:Dep.t list ->
     string -> t
+  val generator: t -> (Gen.t * [`Both|`ML|`MLI]) option
   val pack: ?flags:Flags.t -> t list -> string -> t
   val unpack: t -> t list
   val cmi: t -> Resolver.t -> string
@@ -523,6 +569,7 @@ end = struct
     mutable for_pack: string option;
     mutable pack: t list;
     mutable flags: Flags.t;
+    generator: (Gen.t * [`Both|`ML|`MLI]) option;
     mli: bool;
     ml: bool;
   }
@@ -530,6 +577,8 @@ end = struct
   let ml t = t.ml
 
   let mli t = t.mli
+
+  let generator t = t.generator
 
   let id t =
     match t.container with
@@ -547,6 +596,7 @@ end = struct
       flags     = t.flags;
       ml        = t.ml;
       mli       = t.mli;
+      generator = t.generator;
     }
 
   let dir t = t.dir
@@ -578,21 +628,23 @@ end = struct
 
   let create
       ?(flags=Flags.empty)
-      ?generated
+      ?generator
       ?dir ?(deps=[])
       name =
-    let mli = match generated with
+    let mli = match generator with
       | None      -> Sys.file_exists (dir // name ^ ".mli")
-      | Some `Both
-      | Some `Mli -> true
-      | Some `Ml  -> false in
-    let ml = match generated with
+      | Some (_, `Both)
+      | Some (_, `MLI) -> true
+      | Some (_, `ML)  -> false in
+    let ml = match generator with
       | None      -> Sys.file_exists (dir // name ^ ".ml")
-      | Some `Both
-      | Some `Ml  -> true
-      | Some `Mli -> false in
+      | Some (_, `Both)
+      | Some (_, `ML)  -> true
+      | Some (_, `MLI) -> false in
     if not ml && not mli then (
-      eprintf "\027[31m[ERROR]\027[m Cannot find %s.ml or %s.mli, stopping.\n" name name;
+      eprintf
+        "\027[31m[ERROR]\027[m Cannot find %s.ml or %s.mli, stopping.\n"
+        name name;
       exit 1;
     );
     {
@@ -600,7 +652,7 @@ end = struct
       container = None;
       for_pack  = None;
       pack      = [];
-      ml; mli;
+      ml; mli; generator;
     }
 
   let pack ?(flags=Flags.empty) units name =
@@ -614,6 +666,7 @@ end = struct
       pack      = units;
       ml        = false;
       mli       = false;
+      generator = None;
     }
 
   let file t r ext =
@@ -950,6 +1003,7 @@ type t = {
   tests: Test.t list;
   css: string option;
   intro: string option;
+  doc_dir: string;
 }
 
 let name t = t.name
@@ -966,22 +1020,51 @@ let tests t = t.tests
 
 let css t = t.css
 
+let doc_dir t = t.doc_dir
+
 let intro t = t.intro
 
 let projects = ref []
 
 let list () = !projects
 
+let generators t resolver =
+  let libs =
+    t.libs @ t.pps
+    |> Dep.libs
+    |> Dep.closure
+    |> Dep.filter_libs
+    |> conmap Lib.units in
+  let bins =
+    conmap Bin.units t.bins @
+    (t.bins
+     |> Dep.bins
+     |> Dep.closure
+     |> Dep.filter_libs
+     |> conmap Lib.units) in
+  List.fold_left (fun acc u ->
+      match Unit.generator u with
+      | None        -> acc
+      | Some (_, k) ->
+        let ml = match k with
+          | `ML | `Both -> [Unit.build_dir u resolver / Unit.name u ^ ".ml"]
+          | `MLI        -> [] in
+        let mli = match k with
+          | `MLI | `Both -> [Unit.build_dir u resolver / Unit.name u ^ ".mli"]
+          | `ML          -> [] in
+        ml @ mli @ acc
+    ) [] (libs @ bins)
+
 let create
     ?(flags=Flags.empty)
-    ?(libs=[]) ?(pps=[]) ?(bins=[]) ?(tests=[]) ?css ?intro
+    ?(libs=[]) ?(pps=[]) ?(bins=[]) ?(tests=[]) ?css ?intro ?(doc_dir="doc")
     ?(version="version-not-set")
     name =
   List.iter (fun l ->
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)
     ) libs;
-  let t = { name; version; flags; libs; pps; bins; tests; css; intro } in
+  let t = { name; version; flags; libs; pps; bins; tests; css; intro; doc_dir } in
   projects := t :: !projects
 
 let (++) = Feature.Set.union

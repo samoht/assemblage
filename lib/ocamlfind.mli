@@ -16,25 +16,27 @@
 
 (** Manage OCamlfind invocations. *)
 
-val query_str:
+type mode = [`Direct|`Indirect|`Makefile]
+(** The different invocation modes. [Direct] is the expanded
+    command-line, without any mention of `ocamlfind'
+    anymore. [Indirect] return the `ocamlfind' invocation to run to
+    get the right command-line, and [Makefile] is the same as
+    [Indirect], but quoted inside a {i $(shell ...)} string. *)
+
+val query:
+  mode:mode ->
   ?predicates:string list ->
   ?format:string ->
   ?uniq:bool ->
   ?recursive:bool ->
   string list -> string
-(** [ocamlfind_query ?predicates ?format packages] is corresponding
-    `ocamlfind' command-line invocation. *)
+(** [ocamlfind_query ~direct ?predicates ?format packages] is the
+    result of executing [ocamlfind query] with the given
+    parameters. If [direct] is set, call the `ocamlfind' commands
+    directly. Otherwise, return the ocamlfind to run to get the
+    expected result. *)
 
-val query:
-  ?predicates:string list ->
-  ?format:string ->
-  ?uniq:bool ->
-  ?recursive:bool ->
-  string list -> string list
-(** [ocamlfind_query ?predicates ?format packages] is the result of
-    executing [ocamlfind query] with the given parameters. *)
-
-val resolver: (string -> string) -> Project.Resolver.t
+val resolver: mode -> (string -> string) -> Project.Resolver.t
 (** Resolve command-line arguments for ocamlfind packages. *)
 
 module META: sig

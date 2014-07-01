@@ -64,19 +64,31 @@ let process ?(file="configure.ml") name fn =
 let configure `Make t env =
   let features = Build_env.features env in
   let flags = Build_env.flags env in
-  Makefile.(write @@ of_project t ~features ~flags);
+  let makefile = "Makefile" in
+  let build_dir = Build_env.build_dir env in
+  Makefile.(write @@ of_project t ~features ~flags ~makefile);
   Ocamlfind.META.(write @@ of_project t);
-  Opam.Install.(write @@ of_project t)
+  Opam.Install.(write @@ of_project ~build_dir t)
 
-let describe t _env =
+let describe t env =
   let deps x = match Dep.filter_pkgs x @ Dep.filter_pkg_pps x with
     | [] -> ""
-    | ds -> sprintf "[%s]" (String.concat " " ds) in
+    | ds -> sprintf "  ├─── [%s]\n"
+              (String.concat " " (List.map (Shell.color `bold) ds)) in
+  let modules ms =
+    let aux i n m =
+      printf "  %s %s\n"
+        (if i = n then "└───" else "├───") (Shell.color `cyan m) in
+    let n = List.length ms - 1 in
+    List.iteri (fun i m -> aux i n m) ms in
   let unit i n u =
-    let mk f ext = if f u then (Shell.color `bold @@ Unit.name u) ^ ext else "" in
+    let mk f ext =
+      if f u then (Shell.color `magenta @@ Unit.name u ^ ext) else "" in
     let ml = mk Unit.ml ".ml" in
     let mli = mk Unit.mli ".mli" in
-    printf "  %s %-25s%-25s\n" (if i = n then "└─" else "├─") ml mli
+    printf "  %s %-25s%-25s\n" (if i = n then "└─" else "├─") ml mli;
+    let build_dir = Build_env.build_dir env in
+    modules (OCaml.modules ~build_dir u)
   in
   let units l =
     let n = List.length l - 1 in
@@ -84,13 +96,13 @@ let describe t _env =
         unit i n u
       ) l in
   let lib l =
-    printf "├─┬─ %s %s\n" (Shell.color `blue (Lib.id l)) (deps @@ Lib.deps l);
+    printf "├─┬─ %s\n%s" (Shell.color `blue (Lib.id l)) (deps @@ Lib.deps l);
     units (Lib.units l) in
   let pps l =
-    printf "├─┬─ %s %s\n" (Shell.color `magenta (Lib.id l)) (deps @@ Lib.deps l);
+    printf "├─┬─ %s\n%s" (Shell.color `blue (Lib.id l)) (deps @@ Lib.deps l);
     units (Lib.units l) in
   let bin b =
-    printf "├─┬─ %s %s\n" (Shell.color `cyan (Bin.id b)) (deps @@ Bin.deps b);
+    printf "├─┬─ %s\n%s" (Shell.color `blue (Bin.id b)) (deps @@ Bin.deps b);
     units (Bin.units b)
   in
   printf "\n%s %s %s\n\n"

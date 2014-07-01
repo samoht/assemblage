@@ -45,13 +45,15 @@ module Install = struct
     if f = Feature.true_ then ""
     else "?"
 
-  let of_project ?(meta=true) ?(buildir="_build") t =
+  let of_project ?(meta=true) ~build_dir t =
     let name = Project.name t in
     let libs = Project.libs t in
     let bins = List.filter Project.Bin.install (Project.bins t) in
     let buf = Buffer.create 1024 in
     let resolver =
-      Resolver.create ~buildir:(fun l -> buildir / l) ~pkgs:(fun _ -> Flags.empty) in
+      Resolver.create
+        ~buildir:(fun l -> build_dir / l)
+        ~pkgs:(fun _ -> Flags.empty) in
     if libs <> [] then (
       bprintf buf "lib: [\n";
       if meta then bprintf buf "  \"META\"\n";
@@ -70,10 +72,42 @@ module Install = struct
           let gens = Bin.generated_files b resolver in
           List.iter (fun (flags, files) ->
               List.iter (fun file ->
-                  bprintf buf "  \"%s%s\" {\"%s\"}\n" (opt flags) file (Bin.name b)
+                  bprintf buf "  \"%s%s\" {\"%s\"}\n"
+                    (opt flags) file (Bin.name b)
                 ) files;
             ) gens;
         ) bins;
+      bprintf buf "]\n";
+    );
+    if libs <> [] then (
+      let mk fmt =
+        ksprintf (fun file ->
+            bprintf buf "  \"?%s/%s\"\n" (Project.doc_dir t) file
+          ) fmt in
+      bprintf buf "doc: [\n";
+      mk "index.html";
+      mk "index_attributes.html";
+      mk "index_class_types.html";
+      mk "index_classes.html";
+      mk "index_exceptions.html";
+      mk "index_methods.html";
+      mk "index_module_types.html";
+      mk "index_modules.html";
+      mk "index_types.html";
+      mk "index_values.html";
+      mk "style.css";
+      List.iter (fun l ->
+          let units = Lib.units l in
+          List.iter (fun u ->
+              let name = String.capitalize (Unit.name u) in
+              mk "%s.html" name;
+              mk "type_%s.html" name;
+              let modules = OCaml.modules ~build_dir u in
+              List.iter (fun m ->
+                  mk "%s.%s.html" name m
+                ) modules
+            ) units;
+        ) libs;
       bprintf buf "]\n";
     );
     let contents = Buffer.contents buf in

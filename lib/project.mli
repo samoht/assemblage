@@ -87,7 +87,7 @@ module Feature: sig
   type formula
   (** Feature formulaes. *)
 
-  type cnf = [ `False | `And of [ `P of t | `N of t ] list ]
+  type cnf = [ `Conflict | `And of [ `P of t | `N of t ] list ]
   (** Conjonctive Normal Form. *)
 
   val (@): cnf -> cnf -> cnf
@@ -193,6 +193,32 @@ module Resolver: sig
 
 end
 
+module Gen: sig
+
+  (** Generated source file. *)
+
+  type t
+  (** Generator values. *)
+
+  val func: (unit -> unit) -> t
+  (** [func fn] is a generator which produces some results by calling
+      [fn ()]. *)
+
+  val shell: dir:string -> string -> string list -> t
+  (** [shell ~dir cmd args] is a generator which produces some results
+      by calling [cmd args] in a shell running in the directory
+      [dir]. *)
+
+  val bash: dir:string -> ('a, unit, string, t) format4 -> 'a
+  (** [bash ~dir fmt] is a generator which produces some results by
+      calling [fmt] in a bash shell, running in the directory
+      [dir]. *)
+
+  val run: t -> unit
+  (** Run the generator. *)
+
+end
+
 module rec Dep: sig
 
   (** Library dependencies. *)
@@ -244,6 +270,14 @@ module rec Dep: sig
   val filter_pkgs: t list -> string list
   (** [filter_pkgs deps] is the list of globally installed libraries in
       packages contained in [deps]. *)
+
+  (** {2 Binaries} *)
+
+  val bin: Bin.t -> t
+  (** A local binary. *)
+
+  val bins: Bin.t list -> t list
+  (** A list of local binaries. *)
 
   (** {2 Pre-processors} *)
 
@@ -310,11 +344,17 @@ and Unit: sig
 
   val create:
     ?flags:Flags.t ->
-    ?generated:[`Both|`Ml|`Mli] ->
+    ?generator:(Gen.t * [`Both|`ML|`MLI]) ->
     ?dir:string ->
     ?deps:Dep.t list ->
     string -> t
   (** Create a compilation unit. *)
+
+  val generator: t -> (Gen.t * [`Both|`ML|`MLI]) option
+  (** [generated t] is either [None], which means that the source file
+      is not generated, or [Some (gen, kind)] when [gen] is the
+      generator of the source file and [kind ] is the kind of file
+      which is generated. *)
 
   val pack: ?flags:Flags.t -> t list -> string -> t
   (** Pack a collection of compilation units together. *)
@@ -560,6 +600,7 @@ val create:
   ?tests:Test.t list ->
   ?css:string ->
   ?intro:string ->
+  ?doc_dir:string ->
   ?version:string ->
   string -> unit
 (** [create ?libs ?pps ?bins ?version name] registers the project
@@ -577,3 +618,9 @@ val css: t -> string option
 
 val intro: t -> string option
 (** The name of the intro file for the project documentation. *)
+
+val doc_dir: t -> string
+(** Return the directory where the HTML documentation is generated. *)
+
+val generators: t -> Resolver.t -> string list
+(** Return the list of generated file from a custom generator. *)

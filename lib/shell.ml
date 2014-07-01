@@ -88,14 +88,6 @@ let read file =
   with Sys_error e ->
     fatal_error 1 "while reading %s: %s" file e
 
-let write file s =
-  try
-    let oc = open_out file in
-    output_string oc s;
-    close_out oc
-  with Sys_error e ->
-    fatal_error 1 "while writing %s: %s" file e
-
 let temp () =
   try
     let file = Filename.temp_file (Filename.basename Sys.argv.(0)) ".out" in
@@ -117,3 +109,17 @@ let exec_output ?verbose fmt =
       exec ?verbose "%s > %s" cmd file;
       read file
     ) fmt
+
+let in_dir dir fn =
+  let pwd = Sys.getcwd () in
+  try
+    if Sys.file_exists dir && Sys.is_directory dir then (
+      Sys.chdir dir;
+      let r = fn () in
+      Sys.chdir pwd;
+      r
+    ) else
+      failwith (sprintf "%s does not exist" dir)
+  with e ->
+    Sys.chdir pwd;
+    raise e

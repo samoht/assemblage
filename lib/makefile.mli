@@ -155,11 +155,12 @@ type t
 val create:
   ?header:string list ->
   ?phony:string list ->
-  Variable.t list -> Rule.t list -> t
+  string -> Variable.t list -> Rule.t list -> t
 (** Create a Makefile. *)
 
 val of_project:
   ?buildir:string ->
+  ?makefile:string ->
   flags:Project.Flags.t ->
   features:(Project.Feature.t * bool) list ->
   Project.t -> t
@@ -168,5 +169,5 @@ val of_project:
     default values can then be easily overwriten in the generated
     Makefile. *)
 
-val write: ?file:string -> t -> unit
+val write: t -> unit
 (** Generate a Makefile. *)

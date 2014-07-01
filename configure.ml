@@ -2,30 +2,31 @@ open Project
 
 (* OCamlfind packages *)
 
-let cmdliner = Dep.pkg "cmdliner"
-let opam     = Dep.pkg "opam"
-let graph    = Dep.pkg "ocamlgraph"
-let compiler = Dep.pkg "compiler-libs.toplevel"
+let cmdliner = Dep.pkg    "cmdliner"
+let opam     = Dep.pkg    "opam"
+let graph    = Dep.pkg    "ocamlgraph"
+let compiler = Dep.pkg    "compiler-libs.toplevel"
+let optcomp  = Dep.pkg_pp "optcomp"
 
 (* Compilation units *)
 
-let dir = "lib"
-let s = Unit.create ~dir                             "shell"
-let g = Unit.create ~dir                             "git"
-let p = Unit.create ~dir ~deps:[cmdliner; graph]     "project"
-let e = Unit.create ~dir ~deps:[Dep.unit p]          "build_env"
-let f = Unit.create ~dir ~deps:(Dep.units [s;p])     "ocamlfind"
-let o = Unit.create ~dir ~deps:[opam; Dep.unit p]    "opam"
-let m = Unit.create ~dir ~deps:(Dep.units [p; f])    "makefile"
+let unit deps name = Unit.create ~dir:"lib" ~deps name
+let s = unit []                              "shell"
+let g = unit []                              "git"
+let p = unit [cmdliner; graph]               "project"
+let e = unit [Dep.unit p]                    "build_env"
+let f = unit (Dep.units [s;p])               "ocamlfind"
+let c = unit [Dep.unit p; optcomp; compiler] "OCaml"
+let o = unit [opam; Dep.unit c; Dep.unit p]  "opam"
+let m = unit (Dep.units [p; f])              "makefile"
 let t =
-  Unit.create ~dir
-    ~deps:(compiler :: Dep.units [s; p; o; f; m; e])
-    "tools"
+  let deps = compiler :: Dep.units [s; p; o; f; m; e] in
+  unit deps "tools"
 
 (* Build artifacts *)
 
 let lib =
-  Lib.create [g; s; p; e; f; o; m; t] "tools"
+  Lib.create [g; s; p; e; f; c; o; m; t] "tools"
 
 let configure =
   let c = Unit.create ~dir:"bin" ~deps:[Dep.lib lib] "configure" in
@@ -59,5 +60,6 @@ let () =
     ~libs:[lib]
     ~bins:[configure; describe]
     ~tests:[camlp4; multi_libs]
+    ~css:"style.css"
     ~version
     "tools"

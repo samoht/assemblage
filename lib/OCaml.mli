@@ -14,26 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Manage OPAM files. *)
+(** Compiler-libs helpers. *)
 
-type t
-(** An OPAM file. *)
+open Project
 
-val read: unit -> t option
-(** Read the OPAM file of the project. *)
+val modules: build_dir:string -> Unit.t -> string list
+(** Return the list of submodules defined in the module. *)
 
-val write: t -> unit
-(** Write the OPAM file. *)
-
-module Install: sig
-
-  (** OPAM install files. *)
-  type t
-
-  val of_project: ?meta:bool -> build_dir:string -> Project.t -> t
-  (** Create an `.install` file. *)
-
-  val write: ?dir:string -> t -> unit
-  (** Write an `.install` file. *)
-
-end
+(*
+val refine_depends: Unit.t -> unit
+(** [refine_depends u] refines the dependency [deps] to a more precise
+    list of compilation units using side-effects. *)
+*)
