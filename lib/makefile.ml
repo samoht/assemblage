@@ -243,8 +243,8 @@ let native_dynlink_f = Feature.(native_dynlink && native)
 let native_f = Feature.native
 
 module rec U: sig
-  val rules      : comp -> Rule.t list
-  val variables  : comp -> Variable.t list
+  val rules    : comp -> Rule.t list
+  val variables: comp -> Variable.t list
 end = struct
 
   let pp prefix varlib varbin fn t =
@@ -277,8 +277,17 @@ end = struct
   let comp_byte   = flag "COMPB_" L.comp_byte   B.comp_byte   Flags.comp_byte
   let comp_native = flag "COMPO_" L.comp_native B.comp_native Flags.comp_native
 
+  let prereqs t = function
+    | `Byte   -> "DEPSB_" ^ Comp.id t
+    | `Native -> "DEPSO_" ^ Comp.id t
+
+  let prereqs_var t mode =
+    sprintf "$(%s)" (prereqs t mode)
+
   let variables t =
-    comp_byte t
+    Variable.(prereqs t `Byte =?= `Strings (Comp.prereqs t resolver `Byte))
+    :: Variable.(prereqs t `Native =?= `Strings (Comp.prereqs t resolver `Native))
+    :: comp_byte t
     :: comp_native t
     :: (match pp_byte t with
         | None   -> []
@@ -320,25 +329,21 @@ end = struct
           if Comp.mli t then [target ".cmi"], [target ".mli"]
           else if Comp.ml t then [target ".cmo"; target ".cmi"], [target ".ml"]
           else [], [] in
-        [Rule.create ~targets ~prereqs:(prereqs @ Comp.prereqs t resolver`Byte) [
+        [Rule.create ~targets ~prereqs:(prereqs @ [prereqs_var t `Byte]) [
             sprintf "$(OCAMLC) -c %s%s %s"
               flags (Variable.name @@ comp_byte t) Rule.prereq
           ]] in
       let cmo = (* Generate cmos *)
         if Comp.mli t && Comp.ml t then
           [Rule.create ~targets:[target ".cmo"]
-             ~prereqs:(target ".ml"
-                       :: target ".cmi"
-                       :: Comp.prereqs t resolver `Byte)
+             ~prereqs:[target ".ml"; target ".cmi"; prereqs_var t `Byte]
              [sprintf "$(OCAMLC) -c %s%s %s"
                 flags (Variable.name @@ comp_byte t) Rule.prereq]]
         else
           [] in
       let cmx = (* Generate cmxs *)
         [Rule.create ~targets:[target ".cmx"]
-           ~prereqs:(target ".ml"
-                     :: target ".cmi"
-                     :: Comp.prereqs t resolver `Native)
+           ~prereqs:[target ".ml"; target ".cmi"; prereqs_var t `Native]
            [sprintf "$(OCAMLOPT) -c %s%s %s"
               flags (Variable.name @@ comp_native t) Rule.prereq]]
       in
@@ -386,6 +391,13 @@ end = struct
   let link_byte   = flag "LINKB" true  Flags.link_byte
   let link_native = flag "LINKO" true  Flags.link_native
 
+  let prereqs t = function
+    | `Byte   -> "DEPSB_" ^ Lib.id t
+    | `Native -> "DEPSO_" ^ Lib.id t
+
+  let prereqs_var t mode =
+    sprintf "$(%s)" (prereqs t mode)
+
   let variables t =
     let cma  = Lib.cma t resolver in
     let cmxa = Lib.cmxa t resolver in
@@ -402,13 +414,15 @@ end = struct
     :: pp_native t
     :: link_byte t
     :: link_native t
+    :: Variable.(prereqs t `Byte =?= `Strings (Lib.prereqs t resolver `Byte))
+    :: Variable.(prereqs t `Native =?= `Strings (Lib.prereqs t resolver `Native))
     :: conmap U.variables (Lib.comps t)
 
   let rules t =
     let byte =
       Rule.create
         ~targets:[Lib.cma t resolver]
-        ~prereqs:(Lib.prereqs t resolver `Byte) [
+        ~prereqs:[prereqs_var t `Byte] [
         sprintf "$(OCAMLC) -a %s -o %s" (Variable.name @@ link_byte t) Rule.target
       ] in
     let native mode =
@@ -417,7 +431,7 @@ end = struct
         | `archive -> Lib.cmxa t resolver, "-a" in
       Rule.create
         ~targets:[file]
-        ~prereqs:(Lib.prereqs t resolver `Native) [
+        ~prereqs:[prereqs_var t `Native] [
         sprintf "$(OCAMLOPT) %s %s -o %s"
           mode (Variable.name @@ link_native t) Rule.target
       ] in
@@ -457,6 +471,13 @@ end = struct
   let pp_byte     = flag "PP__B" false Flags.pp_byte
   let pp_native   = flag "PP__O" false Flags.pp_native
 
+  let prereqs t = function
+    | `Byte   -> "DEPSB_" ^ Bin.id t
+    | `Native -> "DEPSO_" ^ Bin.id t
+
+  let prereqs_var t mode =
+    sprintf "$(%s)" (prereqs t mode)
+
   let variables t =
     let cs = [
       native_f     , `Strings [Bin.byte t resolver; Bin.native t resolver];
@@ -469,6 +490,8 @@ end = struct
     :: pp_native t
     :: link_byte t
     :: link_native t
+    :: Variable.(prereqs t `Byte   =?= `Strings (Bin.prereqs t resolver `Byte))
+    :: Variable.(prereqs t `Native =?= `Strings (Bin.prereqs t resolver `Native))
     :: conmap U.variables (Bin.comps t)
 
   let rules t =
@@ -479,14 +502,14 @@ end = struct
     ::
     Rule.create
       ~targets:[Bin.byte t resolver]
-      ~prereqs:(Bin.prereqs t resolver `Byte) [
+      ~prereqs:[prereqs_var t `Byte] [
       sprintf "mkdir -p %s" (Bin.build_dir t resolver);
       sprintf "$(OCAMLC) %s -o %s" (Variable.name @@ link_byte t) Rule.target;
     ]
     ::
     Rule.create
       ~targets:[Bin.native t resolver]
-      ~prereqs:(Bin.prereqs t resolver `Native) [
+      ~prereqs:[prereqs_var t `Native] [
       sprintf "mkdir -p %s" (Bin.build_dir t resolver);
       sprintf "$(OCAMLOPT) %s -o %s" (Variable.name @@ link_native t) Rule.target;
     ]
