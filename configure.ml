@@ -18,7 +18,7 @@ let feature    = comp [cmdliner]                   "feature"
 let action     = comp [shell]                      "action"
 let project    = comp [graph; git; resolver;
                        action; feature; flags]     "project"
-let build_env  = comp [project; cmdliner]          "build_env"
+let build_env  = comp [flags; feature; cmdliner]   "build_env"
 let ocamlfind  = comp [shell; project]             "ocamlfind"
 let ocaml      = comp [project; optcomp; compiler] "OCaml"
 let opam       = comp [opam; ocamlfind; project]   "opam"
