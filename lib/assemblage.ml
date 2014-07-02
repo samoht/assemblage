@@ -83,9 +83,9 @@ let describe t env =
     List.iteri (fun i m -> aux i n m) ms in
   let unit i n u =
     let mk f ext =
-      if f u then (Shell.color `magenta @@ Unit.name u ^ ext) else "" in
-    let ml = mk Unit.ml ".ml" in
-    let mli = mk Unit.mli ".mli" in
+      if f u then (Shell.color `magenta @@ Comp.name u ^ ext) else "" in
+    let ml = mk Comp.ml ".ml" in
+    let mli = mk Comp.mli ".mli" in
     printf "  %s %-25s%-25s\n" (if i = n then "└─" else "├─") ml mli;
     let build_dir = Build_env.build_dir env in
     modules (OCaml.modules ~build_dir u)
@@ -97,13 +97,13 @@ let describe t env =
       ) l in
   let lib l =
     printf "├─┬─ %s\n%s" (Shell.color `blue (Lib.id l)) (deps @@ Lib.deps l);
-    units (Lib.units l) in
+    units (Lib.comps l) in
   let pps l =
     printf "├─┬─ %s\n%s" (Shell.color `blue (Lib.id l)) (deps @@ Lib.deps l);
-    units (Lib.units l) in
+    units (Lib.comps l) in
   let bin b =
     printf "├─┬─ %s\n%s" (Shell.color `blue (Bin.id b)) (deps @@ Bin.deps b);
-    units (Bin.units b)
+    units (Bin.comps b)
   in
   printf "\n%s %s %s\n\n"
     (Shell.color `yellow "==>")

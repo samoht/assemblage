@@ -14,15 +14,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Compiler-libs helpers. *)
+(** Dependency resolver. *)
 
-open Project
+type t
+(** Resolver values. *)
 
-val modules: build_dir:string -> comp -> string list
-(** Return the list of submodules defined in the compilation unit. *)
+val create: buildir:(string -> string) -> pkgs:(string list -> Flags.t) -> t
+(** [create ~buildir ~pkgs] is the resolver which apply the function
+      [buildir] to resolve local libraries and resolves a set of
+      global package by applying [pkgs]. *)
 
-(*
-val refine_depends: Unit.t -> unit
-(** [refine_depends u] refines the dependency [deps] to a more precise
-    list of compilation units using side-effects. *)
-*)
+val build_dir: t -> string -> string
+(** Resolve locally generated filename (by usually prepending the
+    build directory name). *)
+
+val pkgs: t -> string list -> Flags.t
+(** Resolve global package names into command-line flags. *)

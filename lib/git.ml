@@ -1,4 +1,4 @@
-(*
+  (*
  * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any

@@ -52,22 +52,22 @@ end
 #endif
 
 (* XXX: read the cmt instead *)
-let modules ~build_dir unit =
+let modules ~build_dir comp =
   let resolver = Ocamlfind.resolver `Direct (fun f -> build_dir / f) in
   let () =
     let pp =
-      Unit.deps unit
+      Comp.deps comp
       |> Dep.closure
       |> Dep.filter_pkg_pps
       |> Resolver.pkgs resolver in
-    match Flags.pp_byte pp [] with
+    match Flags.pp_byte pp with
     | [] -> Clflags.preprocessor := None;
     | pp ->
       let pp = String.concat " " pp in
       Clflags.preprocessor := Some (sprintf "camlp4o %s" pp) in
   let aux = function
     | `ML ->
-      let file = Unit.dir unit // Unit.name unit ^ ".ml" in
+      let file = Comp.dir comp // Comp.name comp ^ ".ml" in
       let ast = Pparse.parse_implementation Format.err_formatter file in
       List.fold_left (fun acc { pstr_desc; _ } ->
           match pstr_desc with
@@ -87,7 +87,7 @@ let modules ~build_dir unit =
           | _ -> acc
         ) StringSet.empty ast
     | `MLI ->
-      let file = Unit.dir unit // Unit.name unit ^ ".mli" in
+      let file = Comp.dir comp // Comp.name comp ^ ".mli" in
       let ast = Pparse.parse_interface Format.err_formatter file in
       List.fold_left (fun acc { psig_desc; _ } ->
           match psig_desc with
@@ -107,7 +107,7 @@ let modules ~build_dir unit =
           | _ -> acc
         ) StringSet.empty ast in
   let set =
-    if Unit.mli unit then aux `MLI
-    else if Unit.ml unit then aux `ML
+    if Comp.mli comp then aux `MLI
+    else if Comp.ml comp then aux `ML
     else StringSet.empty in
   StringSet.elements set

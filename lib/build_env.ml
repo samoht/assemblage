@@ -15,7 +15,6 @@
  *)
 
 open Cmdliner
-open Project
 
 let global_option_section = "COMMON OPTIONS"
 let help_sections = [
@@ -76,14 +75,13 @@ let create
     ?(auto_load=true)
     ?(build_dir="_build")
     () =
-  let mk g l x = g @ l @ x in
   let flags = Flags.create
-      ~comp_byte:(mk comp bytcomp)
-      ~comp_native:(mk comp natcomp)
-      ~link_byte:(mk link bytlink)
-      ~link_native:(mk link natlink)
-      ~pp_byte:(mk pp [])
-      ~pp_native:(mk pp [])
+      ~comp_byte:  (comp @ bytcomp)
+      ~comp_native:(comp @ natcomp)
+      ~link_byte:  (link @ bytlink)
+      ~link_native:(link @ natlink)
+      ~pp_byte:    pp
+      ~pp_native:  pp
       () in
   { features; flags; build_dir; auto_load; includes }
 

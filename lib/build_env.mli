@@ -17,8 +17,6 @@
 (** Global project environment. The build environment (which can be an
     human) discover available feature. *)
 
-open Project
-
 type t
 (** Environment values. *)
 

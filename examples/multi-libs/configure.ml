@@ -1,12 +1,13 @@
 open Project
 
-let a = Lib.create
-    [ Unit.create ~dir:"a" ~deps:[Dep.pkg "ezjsonm"] "a"]
+let a =
+  Lib.create
+    [ Comp.create ~dir:"a" ~deps:[Dep.pkg "ezjsonm"] "a"]
     "lib1"
 
 let b =
-  let b = Unit.create ~dir:"b" ~deps:[Dep.lib a] "b" in
-  let c = Unit.create ~dir:"b" ~deps:[Dep.unit b] "c" in
+  let b = Comp.create ~dir:"b" ~deps:[`Lib a] "b" in
+  let c = Comp.create ~dir:"b" ~deps:[`Comp b] "c" in
   Lib.create [b; c] "lib2"
 
 let () =

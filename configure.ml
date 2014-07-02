@@ -10,31 +10,36 @@ let optcomp  = pkg_pp "optcomp"
 
 (* Compilation units *)
 
-let unit = unit ~dir:"lib"
-
-let shell      = unit []                           "shell"
-let git        = unit [shell]                      "git"
-let project    = unit [cmdliner; graph; git]       "project"
-let build_env  = unit [project]                    "build_env"
-let ocamlfind  = unit [shell; project]             "ocamlfind"
-let ocaml      = unit [project; optcomp; compiler] "OCaml"
-let opam       = unit [opam; ocamlfind; project]   "opam"
-let makefile   = unit [project; ocamlfind]         "makefile"
+let shell      = comp []                           "shell"
+let git        = comp [shell]                      "git"
+let flags      = comp []                           "flags"
+let resolver   = comp [flags]                      "resolver"
+let feature    = comp [cmdliner]                   "feature"
+let action     = comp [shell]                      "action"
+let project    = comp [graph; git; resolver;
+                       action; feature; flags]     "project"
+let build_env  = comp [project; cmdliner]          "build_env"
+let ocamlfind  = comp [shell; project]             "ocamlfind"
+let ocaml      = comp [project; optcomp; compiler] "OCaml"
+let opam       = comp [opam; ocamlfind; project]   "opam"
+let makefile   = comp [project; ocamlfind]         "makefile"
 let assemblage =
   let deps = [compiler; shell; project; opam; ocamlfind; makefile; build_env] in
-  unit deps "assemblage"
+  comp deps "assemblage"
 
 (* Build artifacts *)
 
-let lib = lib "assemblage"
+let lib =
+  lib "assemblage"
 
 let configure =
-  let c = Unit.create ~dir:"bin" ~deps:[Dep.lib lib] "configure" in
-  Bin.create ~link_all:true ~byte_only:true [c] "configure.ml"
+  bin ~link_all:true ~byte_only:true [`Lib lib] ["configure"] "configure.ml"
 
 let describe =
-  let c = Unit.create ~dir:"bin" ~deps:[Dep.lib lib] "describe" in
-  Bin.create ~link_all:true ~byte_only:true [c] "describe.ml"
+  bin ~link_all:true ~byte_only:true [`Lib lib] ["describe"] "describe.ml"
+
+let configure_js =
+  js describe
 
 (* Tests *)
 

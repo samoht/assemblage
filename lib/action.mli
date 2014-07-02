@@ -14,15 +14,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Compiler-libs helpers. *)
+(** Actions to generated source files. *)
 
-open Project
+type t
+(** Generator values. *)
 
-val modules: build_dir:string -> comp -> string list
-(** Return the list of submodules defined in the compilation unit. *)
+val func: (unit -> unit) -> t
+(** [func fn] is a generator which produces some results by calling
+    [fn ()]. *)
 
-(*
-val refine_depends: Unit.t -> unit
-(** [refine_depends u] refines the dependency [deps] to a more precise
-    list of compilation units using side-effects. *)
-*)
+val shell: dir:string -> string -> string list -> t
+(** [shell ~dir cmd args] is a generator which produces some results
+    by calling [cmd args] in a shell running in the directory
+    [dir]. *)
+
+val bash: dir:string -> ('a, unit, string, t) format4 -> 'a
+(** [bash ~dir fmt] is a generator which produces some results by
+    calling [fmt] in a bash shell, running in the directory
+    [dir]. *)
+
+val run: t -> unit
+(** Run the generator. *)

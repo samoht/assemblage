@@ -14,15 +14,40 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Compiler-libs helpers. *)
+open Printf
 
-open Project
+type shell = {
+  dir : string;
+  prog: string;
+  args: string list;
+}
 
-val modules: build_dir:string -> comp -> string list
-(** Return the list of submodules defined in the compilation unit. *)
+type bash = {
+  bash_dir: string;
+  bash    : string;
+}
 
-(*
-val refine_depends: Unit.t -> unit
-(** [refine_depends u] refines the dependency [deps] to a more precise
-    list of compilation units using side-effects. *)
-*)
+type t =
+  | Func of (unit -> unit)
+  | Shell of shell
+  | Bash of bash
+
+let shell ~dir prog args =
+  Shell { dir; prog; args }
+
+let func fn =
+  Func fn
+
+let bash ~dir fmt =
+  ksprintf (fun bash ->
+      let bash_dir = dir in
+      Bash { bash_dir; bash }
+    ) fmt
+
+let run = function
+  | Func fn -> fn ()
+  | Shell s ->
+    let args = String.concat " " (s.prog :: s.args) in
+    Shell.in_dir s.dir (fun () -> Shell.exec "%s" args)
+  | Bash b  ->
+    Shell.in_dir b.bash_dir (fun () -> Shell.exec "%s" b.bash)

@@ -97,9 +97,9 @@ module Install = struct
       mk "index_values.html";
       mk "style.css";
       List.iter (fun l ->
-          let units = Lib.units l in
+          let units = Lib.comps l in
           List.iter (fun u ->
-              let name = String.capitalize (Unit.name u) in
+              let name = String.capitalize (Comp.name u) in
               mk "%s.html" name;
               mk "type_%s.html" name;
               let modules = OCaml.modules ~build_dir u in

@@ -14,15 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Compiler-libs helpers. *)
+type t = {
+  buildir: string -> string;
+  pkgs   : string list -> Flags.t;
+}
 
-open Project
+let create ~buildir ~pkgs =
+  { buildir; pkgs }
 
-val modules: build_dir:string -> comp -> string list
-(** Return the list of submodules defined in the compilation unit. *)
+let build_dir t = t.buildir
 
-(*
-val refine_depends: Unit.t -> unit
-(** [refine_depends u] refines the dependency [deps] to a more precise
-    list of compilation units using side-effects. *)
-*)
+let pkgs t = t.pkgs

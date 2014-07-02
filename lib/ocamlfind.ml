@@ -59,55 +59,49 @@ let query ~mode = match mode with
   | `Indirect -> query_indirect
   | `Makefile -> query_makefile
 
-let pp_byte ~mode names l =
-  query ~mode
+let pp_byte ~mode names =
+  [query ~mode
     ~predicates:["syntax";"preprocessor"]
     ~recursive:true
     ~format:"%d/%a"
-    names
-  :: l
+    names]
 
-let pp_native ~mode names l =
-  query ~mode
+let pp_native ~mode names =
+  [query ~mode
     ~predicates:["syntax";"preprocessor";"native"]
     ~recursive:true
     ~format:"%d/%a"
-    names
-  :: l
+    names]
 
-let comp_byte ~mode names l =
-  query ~mode
+let comp_byte ~mode names =
+  [query ~mode
     ~predicates:["byte"]
     ~format:"-I %d"
     ~recursive:true
     ~uniq:true
-    names
-  :: l
+    names]
 
-let comp_native ~mode names l =
-  query ~mode
+let comp_native ~mode names =
+  [query ~mode
     ~predicates:["native"]
     ~format:"-I %d"
     ~recursive:true
     ~uniq:true
-    names
-  :: l
+    names]
 
-let link_byte ~mode names l =
-  query ~mode
+let link_byte ~mode names =
+  [query ~mode
     ~predicates:["byte"]
     ~format:"%d/%a"
     ~recursive:true
-    names
-  :: l
+    names]
 
-let link_native ~mode names l =
-  query ~mode
+let link_native ~mode names =
+  [query ~mode
     ~predicates:["native"]
     ~format:"%d/%a"
     ~recursive:true
-    names
-  :: l
+    names]
 
 let pkgs ~mode names =
   let pp_byte     = pp_byte     ~mode names in
