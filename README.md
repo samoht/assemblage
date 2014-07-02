@@ -43,5 +43,48 @@ to configure an OCaml project using the state of OPAM in the user computer.
 
 ### Examples
 
+There are currently two tools installed by *Assemblage*: `configure.ml` and
+`describe.ml`. `configure.ml` reads a project description and generates the
+files to build, install and use the project. `describe.ml` displays a summary
+of the project:
+
+```shell
+$ thomas@piana:~/git/assemblage$ describe.ml
++ Loading configure.ml.
+
+==> assemblage c65ac8
+
+├─┬─ lib-assemblage
+  ├─── [cmdliner cmdliner ocamlgraph compiler-libs.toplevel opam compiler-libs.toplevel optcomp]
+  ├─ flags.ml         flags.mli
+  ├─ shell.ml         shell.mli
+  ├─ feature.ml       feature.mli
+  └─── Set
+  ├─ resolver.ml      resolver.mli
+  ├─ git.ml           git.mli
+  ├─ action.ml        action.mli
+  ├─ build_env.ml     build_env.mli
+  ├─ project.ml       project.mli
+  ├─── Bin
+  ├─── Comp
+  ├─── Dep
+  ├─── JS
+  ├─── Lib
+  └─── Test
+  ├─ ocamlfind.ml     ocamlfind.mli
+  └─── META
+  ├─ OCaml.ml         OCaml.mli
+  ├─ opam.ml          opam.mli
+  └─── Install
+  ├─ makefile.ml      makefile.mli
+  ├─── Rule
+  └─── Variable
+  └─ assemblage.ml    assemblage.mli
+├─┬─ bin-configure.ml
+  └─ configure.ml
+├─┬─ bin-describe.ml
+  └─ describe.ml
+```
+
 You can find few examples in the `examples/` directory, where projects are built using
 multiple local libraries and ocamlfind libraries and syntax extensions.
