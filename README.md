@@ -1,10 +1,9 @@
 ## Assemblage
 
-
-
-> __Assemblage__ is an artistic process. In the Programming Language
-   arts, it consists of making complex project compositions by putting
-   together build artefacts.
+> __Assemblage__ is an artistic process. In the visual arts, it
+  consists of making three-dimensional or two-dimensional artistic
+  compositions by putting together found objects.
+  [wikipedia](http://en.wikipedia.org/wiki/Assemblage_(art))
 
 The *Assemblage* toolbox provides an API and a set of binaries to
 configure, manage, and use OCaml projects.
