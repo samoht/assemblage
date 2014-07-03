@@ -19,21 +19,6 @@ open Printf
 
 let (/) = Filename.concat
 
-type t = OpamFile.OPAM.t
-
-let read () =
-  let opam = OpamFilename.of_string "opam" in
-  let opam_opam = OpamFilename.of_string "opam/opam" in
-  if OpamFilename.exists opam then
-    Some (OpamFile.OPAM.read opam)
-  else if OpamFilename.exists opam_opam then
-    Some (OpamFile.OPAM.read opam_opam)
-  else
-    None
-
-let write t =
-  OpamFile.OPAM.write (OpamFilename.of_string "opam") t
-
 module Install = struct
 
   type t = {
@@ -52,7 +37,7 @@ module Install = struct
     let buf = Buffer.create 1024 in
     let resolver =
       Resolver.create
-        ~buildir:(fun l -> build_dir / l)
+        ~build_dir
         ~pkgs:(fun _ -> Flags.empty) in
     if libs <> [] then (
       bprintf buf "lib: [\n";

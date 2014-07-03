@@ -16,15 +16,6 @@
 
 (** Manage OPAM files. *)
 
-type t
-(** An OPAM file. *)
-
-val read: unit -> t option
-(** Read the OPAM file of the project. *)
-
-val write: t -> unit
-(** Write the OPAM file. *)
-
 module Install: sig
 
   (** OPAM install files. *)

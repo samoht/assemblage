@@ -2,7 +2,7 @@
 
 set -ex
 
-ocamlbuild -pkgs cmdliner,opam,ocamlgraph,compiler-libs \
+ocamlbuild -pkgs cmdliner,ocamlgraph,compiler-libs \
     -pp camlp4o,`ocamlfind query optcomp -r -predicates syntax,preprocessor -format "%d/%a"` \
     lib/shell.cmo lib/git.cmo lib/flags.cmo lib/resolver.cmo \
     lib/feature.cmo lib/action.cmo \
@@ -10,7 +10,7 @@ ocamlbuild -pkgs cmdliner,opam,ocamlgraph,compiler-libs \
     lib/opam.cmo lib/makefile.cmo lib/assemblage.cmo
 
 ocamlc -linkall \
-    `ocamlfind query -r unix cmdliner opam compiler-libs.toplevel \
+    `ocamlfind query -r unix cmdliner compiler-libs.toplevel \
       -predicates byte -format "-I %d %a"`  \
     -I _build/lib shell.cmo git.cmo flags.cmo resolver.cmo \
     feature.cmo action.cmo project.cmo ocamlfind.cmo OCaml.cmo \

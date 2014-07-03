@@ -3,7 +3,6 @@ open Project
 (* OCamlfind packages *)
 
 let cmdliner = pkg    "cmdliner"
-let opam     = pkg    "opam"
 let graph    = pkg    "ocamlgraph"
 let compiler = pkg    "compiler-libs.toplevel"
 let optcomp  = pkg_pp "optcomp"
@@ -21,7 +20,7 @@ let project    = comp [graph; git; resolver;
 let build_env  = comp [flags; feature; cmdliner]   "build_env"
 let ocamlfind  = comp [shell; project]             "ocamlfind"
 let ocaml      = comp [project; optcomp; compiler] "OCaml"
-let opam       = comp [opam; ocamlfind; project]   "opam"
+let opam       = comp [ocamlfind; project]         "opam"
 let makefile   = comp [project; ocamlfind]         "makefile"
 let assemblage =
   let deps = [compiler; shell; project; opam; ocamlfind; makefile; build_env] in
