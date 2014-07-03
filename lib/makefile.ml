@@ -242,13 +242,22 @@ let native_dynlink_f = Feature.(native_dynlink && native)
 
 let native_f = Feature.native
 
+let comp_byte = "comp-byte"
+let comp_opt  = "comp-opt"
+let link_byte = "link-byte"
+let link_opt  = "link-opt"
+let pp_byte   = "pp-byte"
+let pp_opt    = "pp-opt"
+let deps_byte = "deps-byte"
+let deps_opt  = "deps-opt"
+
 module rec U: sig
   val rules    : comp -> Rule.t list
   val variables: comp -> Variable.t list
 end = struct
 
-  let pp prefix varlib varbin fn t =
-    let var    = prefix ^ Comp.id t in
+  let pp suffix varlib varbin fn t =
+    let var = Comp.id t ^ "." ^ suffix in
     let lib = match Comp.container t with
       | None          -> None
       | Some (`Lib l) -> Some (varlib l)
@@ -263,8 +272,8 @@ end = struct
       else
         Some (Variable.(var =?= `Strings (Variable.name l :: u)))
 
-  let flag prefix varlib varbin fn t =
-    let var    = prefix ^ Comp.id t in
+  let flag suffix varlib varbin fn t =
+    let var    = Comp.id t ^ "." ^ suffix in
     let global = match Comp.container t with
       | None          -> []
       | Some (`Lib l) -> [Variable.name (varlib l)]
@@ -272,14 +281,14 @@ end = struct
     let flags = fn (Comp.flags t resolver) @ global in
     Variable.(var =?= `Strings flags)
 
-  let pp_byte     = pp   "PP__B_" L.pp_byte     B.pp_byte     Flags.pp_byte
-  let pp_native   = pp   "PP__O_" L.pp_native   B.pp_native   Flags.pp_native
-  let comp_byte   = flag "COMPB_" L.comp_byte   B.comp_byte   Flags.comp_byte
-  let comp_native = flag "COMPO_" L.comp_native B.comp_native Flags.comp_native
+  let pp_byte     = pp   pp_byte   L.pp_byte     B.pp_byte     Flags.pp_byte
+  let pp_native   = pp   pp_opt    L.pp_native   B.pp_native   Flags.pp_native
+  let comp_byte   = flag comp_byte L.comp_byte   B.comp_byte   Flags.comp_byte
+  let comp_native = flag comp_opt  L.comp_native B.comp_native Flags.comp_native
 
   let prereqs t = function
-    | `Byte   -> "DEPSB_" ^ Comp.id t
-    | `Native -> "DEPSO_" ^ Comp.id t
+    | `Byte   -> Comp.id t ^ "." ^ deps_byte
+    | `Native -> Comp.id t ^ "." ^ deps_opt
 
   let prereqs_var t mode =
     sprintf "$(%s)" (prereqs t mode)
@@ -375,25 +384,25 @@ and L: sig
   val pp_native  : Lib.t -> Variable.t
 end = struct
 
-  let flag prefix with_glob fn t =
-    let var   = prefix ^ "_" ^ Lib.id t in
-    let glob  = sprintf "$(%s)" prefix in
+  let flag suffix with_glob fn t =
+    let var   = Lib.id t ^ "." ^ suffix in
+    let glob  = sprintf "$(%s)" suffix in
     let flags = fn (Lib.flags t resolver) in
     if with_glob then
       Variable.(var =?= `Strings (glob :: flags))
     else
       Variable.(var =?= `Strings flags)
 
-  let comp_byte   = flag "COMPB" true  Flags.comp_byte
-  let comp_native = flag "COMPO" true  Flags.comp_native
-  let pp_byte     = flag "PP__B" false Flags.pp_byte
-  let pp_native   = flag "PP__O" false Flags.pp_native
-  let link_byte   = flag "LINKB" true  Flags.link_byte
-  let link_native = flag "LINKO" true  Flags.link_native
+  let comp_byte   = flag comp_byte true  Flags.comp_byte
+  let comp_native = flag comp_opt  true  Flags.comp_native
+  let pp_byte     = flag pp_byte   false Flags.pp_byte
+  let pp_native   = flag pp_opt    false Flags.pp_native
+  let link_byte   = flag link_byte true  Flags.link_byte
+  let link_native = flag link_opt  true  Flags.link_native
 
   let prereqs t = function
-    | `Byte   -> "DEPSB_" ^ Lib.id t
-    | `Native -> "DEPSO_" ^ Lib.id t
+    | `Byte   -> Lib.id t ^ "." ^ deps_byte
+    | `Native -> Lib.id t ^ "." ^ deps_opt
 
   let prereqs_var t mode =
     sprintf "$(%s)" (prereqs t mode)
@@ -455,25 +464,25 @@ and B: sig
   val pp_native  : Bin.t -> Variable.t
 end = struct
 
-  let flag prefix with_glob fn t =
-    let var   = prefix ^ "_" ^ Bin.id t in
-    let glob  = sprintf "$(%s)" prefix in
+  let flag suffix with_glob fn t =
+    let var   = Bin.id t ^ "." ^ suffix in
+    let glob  = sprintf "$(%s)" suffix in
     let flags = fn (Bin.flags t resolver) in
     if with_glob then
       Variable.(var =?= `Strings (glob :: flags))
     else
       Variable.(var =?= `Strings flags)
 
-  let comp_byte   = flag "COMPB" true  Flags.comp_byte
-  let comp_native = flag "COMPO" true  Flags.comp_native
-  let link_byte   = flag "LINKB" true  Flags.link_byte
-  let link_native = flag "LINKO" true  Flags.link_native
-  let pp_byte     = flag "PP__B" false Flags.pp_byte
-  let pp_native   = flag "PP__O" false Flags.pp_native
+  let comp_byte   = flag comp_byte true  Flags.comp_byte
+  let comp_native = flag comp_opt  true  Flags.comp_native
+  let link_byte   = flag link_byte true  Flags.link_byte
+  let link_native = flag link_opt  true  Flags.link_native
+  let pp_byte     = flag pp_byte   false Flags.pp_byte
+  let pp_native   = flag pp_opt    false Flags.pp_native
 
   let prereqs t = function
-    | `Byte   -> "DEPSB_" ^ Bin.id t
-    | `Native -> "DEPSO_" ^ Bin.id t
+    | `Byte   -> Bin.id t ^ "." ^ deps_byte
+    | `Native -> Bin.id t ^ "." ^ deps_opt
 
   let prereqs_var t mode =
     sprintf "$(%s)" (prereqs t mode)
@@ -636,33 +645,33 @@ let global_variables flags =
   let mk fn n = match fn flags with
     | [] -> []
     | l  -> [Variable.(n =:= `Strings l)] in
-  mk Flags.comp_byte     "COMPB"
-  @ mk Flags.comp_native "COMPO"
-  @ mk Flags.link_byte   "LINLB"
-  @ mk Flags.link_native "LINKO"
+  mk Flags.comp_byte     comp_byte
+  @ mk Flags.comp_native comp_opt
+  @ mk Flags.link_byte   link_byte
+  @ mk Flags.link_native link_opt
   @ [
-    Variable.("COMPB" =+= `Case [
+    Variable.(comp_byte =+= `Case [
         [debug, "1"], `Strings Flags.(comp_byte debug)
       ]);
-    Variable.("COMPB" =+= `Case [
+    Variable.(comp_byte =+= `Case [
         [annot, "1"], `Strings Flags.(comp_byte annot)
       ]);
-    Variable.("COMPB" =+= `Case [
+    Variable.(comp_byte =+= `Case [
         [warn_error, "1"], `Strings Flags.(comp_byte warn_error)
       ]);
-    Variable.("LINKB" =+= `Case [
+    Variable.(link_byte =+= `Case [
         [debug, "1"], `Strings Flags.(link_byte debug)
       ]);
-    Variable.("COMPO" =+= `Case [
+    Variable.(comp_opt =+= `Case [
         [debug, "1"], `Strings Flags.(comp_native debug)
       ]);
-    Variable.("COMPO" =+= `Case [
+    Variable.(comp_opt =+= `Case [
         [annot, "1"], `Strings Flags.(comp_native annot)
       ]);
-    Variable.("COMPB" =+= `Case [
+    Variable.(comp_opt =+= `Case [
         [warn_error, "1"], `Strings Flags.(comp_native warn_error)
       ]);
-    Variable.("LINKO" =+= `Case [
+    Variable.(link_opt =+= `Case [
         [debug, "1"], `Strings Flags.(link_native debug)
       ]);
   ]
