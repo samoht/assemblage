@@ -594,6 +594,28 @@ module D = struct
 
 end
 
+module J = struct
+
+  let variables = function
+    | []  -> [Variable.("js" =:= `Strings [])]
+    | jss ->
+      let has_js = Variable.has_feature Feature.js_t in
+      [Variable.("js" =:= `Case [
+           [has_js, "1"], `String (String.concat " " (List.map JS.id jss));
+           []           , `Strings [];
+         ])]
+
+  let rules jss =
+    Rule.create ~targets:["js"] ~prereqs:["$(js)"] []
+    :: List.map (fun j ->
+        Rule.create ~targets:[JS.id j] ~prereqs:(JS.prereqs j resolver `Byte) [
+          sprintf "$(JS_OF_OCAML) %s %s"
+            (String.concat " " (Flags.link_byte (JS.flags j resolver)))
+            Rule.prereq
+        ]) jss
+
+end
+
 (* dedup while keeping the initial order *)
 let dedup l =
   let saw = Hashtbl.create (List.length l) in
@@ -651,6 +673,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
   let pps = Project.pps t in
   let bins = Project.bins t in
   let tests = Project.tests t in
+  let jss = Project.jss t in
   let features =
     Project.features t
     |> Feature.Set.elements
@@ -663,11 +686,12 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
     |> List.map Variable.has_feature in
   let variables =
     dedup (
-      Variable.(   "BUILDIR"    =?= `String buildir)
-      :: Variable.("OCAMLOPT"   =?= `String "ocamlopt")
-      :: Variable.("OCAMLC"     =?= `String "ocamlc")
-      :: Variable.("CAMLP4O"    =?= `String "camlp4o")
-      :: Variable.("OCAMLDOC"   =?= `String "ocamldoc")
+      Variable.(   "BUILDIR"     =?= `String buildir)
+      :: Variable.("OCAMLOPT"    =?= `String "ocamlopt")
+      :: Variable.("OCAMLC"      =?= `String "ocamlc")
+      :: Variable.("CAMLP4O"     =?= `String "camlp4o")
+      :: Variable.("OCAMLDOC"    =?= `String "ocamldoc")
+      :: Variable.("JS_OF_OCAML" =?= `String "js_of_ocaml")
       :: features
       @  global_variables
       @  conmap L.variables libs
@@ -675,6 +699,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
       @  conmap B.variables bins
       @  T.variables tests
       @  D.variables libs
+      @  J.variables jss
     ) in
   let rules =
     dedup (
@@ -686,6 +711,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
         ?css:(Project.doc_css t)
         ?intro:(Project.doc_intro t)
         ~dir:(Project.doc_dir t) libs
+      @ J.rules jss
     ) in
   let main = Rule.create ~ext:true ~targets:["all"] ~prereqs:[] [
       sprintf "@echo '\027[32m== %s\027[m'"
@@ -713,5 +739,5 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
                %s.install" (Project.name t)
     ] in
   create
-    ~phony:["all"; "clean"; "test"; "doc"; "distclean"]
+    ~phony:["all"; "clean"; "test"; "doc"; "distclean"; "js"]
     makefile variables (main :: clean :: distclean :: install :: rules)
