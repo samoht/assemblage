@@ -71,43 +71,39 @@ let configure `Make t env =
   Opam.Install.(write @@ of_project ~build_dir t)
 
 let describe t env =
-  let deps x = match Dep.filter_pkgs x @ Dep.filter_pkg_pps x with
+  let print_deps x = match Dep.filter_pkgs x @ Dep.filter_pkg_pps x with
     | [] -> ""
     | ds -> sprintf "  ├─── [%s]\n"
               (String.concat " " (List.map (Shell.color `bold) ds)) in
-  let modules ms =
+  let print_modules last ms =
     let aux i n m =
       printf "  %s %s\n"
-        (if i = n then "└───" else "├───") (Shell.color `cyan m) in
+        (if last && i = n then "└───" else "├───") (Shell.color `cyan m) in
     let n = List.length ms - 1 in
     List.iteri (fun i m -> aux i n m) ms in
-  let unit i n u =
+  let print_units us =
+    let aux i n u =
     let mk f ext =
       if f u then (Shell.color `magenta @@ Comp.name u ^ ext) else "" in
     let ml = mk Comp.ml ".ml" in
     let mli = mk Comp.mli ".mli" in
     printf "  %s %-25s%-25s\n" (if i = n then "└─" else "├─") ml mli;
     let build_dir = Build_env.build_dir env in
-    modules (OCaml.modules ~build_dir u)
-  in
-  let units l =
-    let n = List.length l - 1 in
-    List.iteri (fun i u ->
-        unit i n u
-      ) l in
-  let lib l =
-    printf "├─┬─ %s\n%s" (Shell.color `blue (Lib.id l)) (deps @@ Lib.deps l);
-    units (Lib.comps l) in
-  let pps l =
-    printf "├─┬─ %s\n%s" (Shell.color `blue (Lib.id l)) (deps @@ Lib.deps l);
-    units (Lib.comps l) in
-  let bin b =
-    printf "├─┬─ %s\n%s" (Shell.color `blue (Bin.id b)) (deps @@ Bin.deps b);
-    units (Bin.comps b)
-  in
+    print_modules (i=n) (OCaml.modules ~build_dir u)
+    in
+    let n = List.length us - 1 in
+    List.iteri (fun i u -> aux i n u) us in
+  let print_top id deps comps ls =
+    let aux l =
+      printf "└─┬─ %s\n%s"
+        (Shell.color `blue (id l)) (print_deps @@ deps l);
+      print_units (comps l) in
+    List.iter aux ls in
+  let print_libs = print_top Lib.id Lib.deps Lib.comps in
+  let print_bins = print_top Bin.id Bin.deps Bin.comps in
   printf "\n%s %s %s\n\n"
     (Shell.color `yellow "==>")
     (Shell.color `underline (Project.name t)) (Project.version t);
-  List.iter lib (Project.libs t);
-  List.iter pps (Project.pps t);
-  List.iter bin (Project.bins t)
+  print_libs (Project.libs t);
+  print_libs (Project.pps t);
+  print_bins (Project.bins t)

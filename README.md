@@ -52,14 +52,14 @@ of the project:
 $ thomas@piana:~/git/assemblage$ describe.ml
 + Loading configure.ml.
 
-==> assemblage c65ac8
+==> assemblage cc5a19
 
-├─┬─ lib-assemblage
+└─┬─ lib-assemblage
   ├─── [cmdliner cmdliner ocamlgraph compiler-libs.toplevel opam compiler-libs.toplevel optcomp]
   ├─ flags.ml         flags.mli
   ├─ shell.ml         shell.mli
   ├─ feature.ml       feature.mli
-  └─── Set
+  ├─── Set
   ├─ resolver.ml      resolver.mli
   ├─ git.ml           git.mli
   ├─ action.ml        action.mli
@@ -70,19 +70,19 @@ $ thomas@piana:~/git/assemblage$ describe.ml
   ├─── Dep
   ├─── JS
   ├─── Lib
-  └─── Test
+  ├─── Test
   ├─ ocamlfind.ml     ocamlfind.mli
-  └─── META
+  ├─── META
   ├─ OCaml.ml         OCaml.mli
   ├─ opam.ml          opam.mli
-  └─── Install
+  ├─── Install
   ├─ makefile.ml      makefile.mli
   ├─── Rule
-  └─── Variable
+  ├─── Variable
   └─ assemblage.ml    assemblage.mli
-├─┬─ bin-configure.ml
+└─┬─ bin-configure.ml
   └─ configure.ml
-├─┬─ bin-describe.ml
+└─┬─ bin-describe.ml
   └─ describe.ml
 ```
 
