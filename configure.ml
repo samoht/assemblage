@@ -38,9 +38,6 @@ let configure =
 let describe =
   bin ~link_all:true ~byte_only:true [`Lib lib] ["describe"] "describe.ml"
 
-let describe_js =
-  js describe []
-
 (* Tests *)
 
 let mk_test name =
@@ -60,5 +57,4 @@ let () =
     ~libs:[lib]
     ~bins:[configure; describe]
     ~tests:[camlp4; multi_libs]
-    ~jss:[describe_js]
     "assemblage"
