@@ -53,7 +53,7 @@ end
 
 (* XXX: read the cmt instead *)
 let modules ~build_dir comp =
-  let resolver = Ocamlfind.resolver `Direct (fun f -> build_dir / f) in
+  let resolver = Ocamlfind.resolver `Direct build_dir in
   let () =
     let pp =
       Comp.deps comp

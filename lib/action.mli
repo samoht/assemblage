@@ -19,16 +19,19 @@
 type t
 (** Generator values. *)
 
+val none: t
+(** No action. *)
+
 val func: (unit -> unit) -> t
 (** [func fn] is a generator which produces some results by calling
-    [fn ()]. *)
+    [fn build_dir]. *)
 
-val shell: dir:string -> string -> string list -> t
+val shell: ?dir:string -> string -> string list -> t
 (** [shell ~dir cmd args] is a generator which produces some results
     by calling [cmd args] in a shell running in the directory
     [dir]. *)
 
-val bash: dir:string -> ('a, unit, string, t) format4 -> 'a
+val bash: ?dir:string -> ('a, unit, string, t) format4 -> 'a
 (** [bash ~dir fmt] is a generator which produces some results by
     calling [fmt] in a bash shell, running in the directory
     [dir]. *)

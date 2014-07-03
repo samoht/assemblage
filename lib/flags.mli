@@ -37,6 +37,7 @@ val create:
   ?comp_byte:s -> ?comp_native:s ->
   ?pp_byte:s -> ?pp_native:s ->
   ?link_byte:s -> ?link_native:s ->
+  ?c:s ->
   unit -> t
 (** Create a full command-line argument using the the given single
     command-line arguments. *)
@@ -68,6 +69,9 @@ val link_native: t -> s
 (** The command-line arguments to link compilation units in native
     mode. *)
 
+val c: t -> s
+(** The command-line arguments to pass to the C compiler. *)
+
 (** {2 Built-in flags} *)
 
 val empty: t
@@ -84,3 +88,16 @@ val warn_error: t
 
 val linkall: t
 (** Add [-linkall]. *)
+
+val thread: t
+(** Add [-thread]. *)
+
+val cclib: string list -> t
+(** Add [-cclib] flags to the linker. *)
+
+val ccopt: string list -> t
+(** Add [-ccopt] flags to the compiler and the linker. *)
+
+val stub: string -> t
+(** [stub dir] Add {i -cclib -l[dir -dllib -l[dir]} to the
+    bytecode compilation options. *)

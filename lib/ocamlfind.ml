@@ -115,8 +115,8 @@ let pkgs ~mode names =
     ~comp_byte ~comp_native
     ~link_byte ~link_native ()
 
-let resolver mode buildir =
-  Resolver.create ~buildir ~pkgs:(pkgs ~mode)
+let resolver mode build_dir =
+  Resolver.create ~build_dir ~pkgs:(pkgs ~mode)
 
 module META = struct
 

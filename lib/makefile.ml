@@ -236,7 +236,7 @@ let echo_prereqs =
   sprintf "@echo '\027[36m== Building %s\027[m'" Rule.prereqs
 
 let resolver =
-  Ocamlfind.resolver `Makefile (fun x -> buildir / x)
+  Ocamlfind.resolver `Makefile buildir
 
 let native_dynlink_f = Feature.(native_dynlink && native)
 
@@ -622,6 +622,20 @@ module J = struct
             (String.concat " " (Flags.link_byte (JS.flags j resolver)))
             Rule.prereq
         ]) jss
+
+end
+
+module C = struct
+
+  let _variables cs r =
+    [Variable.("c" =:= `Strings (List.map (fun t -> C.dll_so t r) cs))]
+
+  let _rules cs r =
+    Rule.create ~targets:["c"] ~prereqs:["$(c)"] []
+    :: List.map (fun c ->
+        Rule.create ~targets:[C.dll_so c r] ~prereqs:[]
+          [sprintf "$(OCAMLMKLIB) -o %s" Rule.target]
+      ) cs
 
 end
 

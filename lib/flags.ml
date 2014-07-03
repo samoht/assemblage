@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Printf
+
 type s = string list
 
 type t = {
@@ -23,6 +25,7 @@ type t = {
   pp_native  : s;
   link_byte  : s;
   link_native: s;
+  c          : s;
 }
 
 let (@) f g = {
@@ -32,21 +35,25 @@ let (@) f g = {
   pp_native   = f.pp_native   @ g.pp_native  ;
   link_byte   = f.link_byte   @ g.link_byte  ;
   link_native = f.link_native @ g.link_native;
+  c           = f.c           @ g.c          ;
 }
 
 let create
     ?(comp_byte=[]) ?(comp_native=[])
     ?(pp_byte=[])   ?(pp_native=[])
     ?(link_byte=[]) ?(link_native=[])
+    ?(c=[])
     () =
   { comp_byte; comp_native;
     pp_byte; pp_native;
-    link_byte; link_native }
+    link_byte; link_native;
+    c; }
 
 let empty =
   { comp_byte = []; comp_native = [];
     pp_byte = []; pp_native = [];
-    link_byte = []; link_native = [] }
+    link_byte = []; link_native = [];
+    c = ["-fPIC -Wall -O3"]; }
 
 let comp_byte t = t.comp_byte
 
@@ -60,11 +67,14 @@ let link_byte t = t.link_byte
 
 let link_native t = t.link_native
 
+let c t = t.c
+
 let debug =
   let f = ["-g"] in
   { empty with
     comp_byte   = f; comp_native = f;
     link_byte   = f; link_native = f;
+    c = ["-fPIC -Wall -g"];
   }
 
 let annot =
@@ -78,3 +88,27 @@ let linkall =
 let warn_error =
   let f = ["-warn-error A-44-4 -w A-44-4"] in
   { empty with comp_byte = f; comp_native = f }
+
+let thread =
+  let f = ["-thread"] in
+  { empty with
+    comp_byte = f; comp_native = f;
+    link_byte = f; link_native = f; }
+
+let cclib args =
+  let f = List.map (sprintf "-cclib %s") args in
+  { empty with
+    link_byte = f; link_native = f; c = args;
+  }
+
+let ccopt args =
+  let f = List.map (sprintf "-ccopt %s") args in
+  { empty with
+    comp_byte = f; comp_native = f;
+    link_byte = f; link_native = f;
+    c = args;
+  }
+
+let stub dir =
+  let f = [sprintf "-cclib -l%s -dllib -l%s" dir dir] in
+  { empty with link_byte = f; }

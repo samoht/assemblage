@@ -17,37 +17,48 @@
 open Printf
 
 type shell = {
-  dir : string;
-  prog: string;
-  args: string list;
+  s_dir : string option;
+  s_prog: string;
+  s_args: string list;
 }
 
 type bash = {
-  bash_dir: string;
-  bash    : string;
+  b_dir: string option;
+  b_cmd: string;
 }
 
 type t =
   | Func of (unit -> unit)
   | Shell of shell
   | Bash of bash
+  | ANone
 
-let shell ~dir prog args =
-  Shell { dir; prog; args }
+let shell ?dir prog args =
+  Shell { s_dir = dir; s_prog = prog; s_args = args }
 
 let func fn =
   Func fn
 
-let bash ~dir fmt =
-  ksprintf (fun bash ->
-      let bash_dir = dir in
-      Bash { bash_dir; bash }
+let none =
+  ANone
+
+let bash ?dir fmt =
+  ksprintf (fun b_cmd ->
+      let b_dir = dir in
+      Bash { b_dir; b_cmd }
     ) fmt
 
-let run = function
+let run t = match t with
   | Func fn -> fn ()
   | Shell s ->
-    let args = String.concat " " (s.prog :: s.args) in
-    Shell.in_dir s.dir (fun () -> Shell.exec "%s" args)
+    let args = String.concat " " (s.s_prog :: s.s_args) in
+    begin match s.s_dir with
+      | None   -> Shell.exec "%s" args
+      | Some d -> Shell.in_dir d (fun () -> Shell.exec "%s" args)
+    end
   | Bash b  ->
-    Shell.in_dir b.bash_dir (fun () -> Shell.exec "%s" b.bash)
+    begin match b.b_dir with
+      | None   -> Shell.exec "%s" b.b_cmd
+      | Some d -> Shell.in_dir d (fun () -> Shell.exec "%s" b.b_cmd)
+    end
+  | ANone -> ()

@@ -19,14 +19,14 @@
 type t
 (** Resolver values. *)
 
-val create: buildir:(string -> string) -> pkgs:(string list -> Flags.t) -> t
+val create: build_dir:string -> pkgs:(string list -> Flags.t) -> t
 (** [create ~buildir ~pkgs] is the resolver which apply the function
       [buildir] to resolve local libraries and resolves a set of
       global package by applying [pkgs]. *)
 
 val build_dir: t -> string -> string
-(** Resolve locally generated filename (by usually prepending the
-    build directory name). *)
+(** Resolve locally generated filename by prepending the build
+    directory name. *)
 
 val pkgs: t -> string list -> Flags.t
 (** Resolve global package names into command-line flags. *)

@@ -22,7 +22,8 @@ type dep =
   | `Pp of lib
   | `Bin of bin
   | `Pkg_pp of string
-  | `Pkg of string ]
+  | `Pkg of string
+  | `C of c ]
 
 and comp = {
   u_name             : string;
@@ -32,7 +33,7 @@ and comp = {
   mutable u_for_pack : string option;
   mutable u_pack     : comp list;
   mutable u_flags    : Flags.t;
-  u_action           : (Action.t * [`Both|`ML|`MLI]) option;
+  u_action           : ((Resolver.t -> Action.t) * [`Both|`ML|`MLI]) option;
   u_mli              : bool;
   u_ml               : bool;
 }
@@ -56,6 +57,13 @@ and bin = {
   b_install  : bool;
 }
 
+and c = {
+  c_dir  : string option;
+  c_name : string;
+  c_flags: Flags.t;
+  c_deps : dep list;
+}
+
 type test = {
   t_name: string;
   t_bin: bin;
@@ -77,6 +85,7 @@ type t = {
   bins: bin list;
   tests: test list;
   jss: js list;
+  cs: c list;
   doc_css: string option;
   doc_intro: string option;
   doc_dir: string;
@@ -134,6 +143,8 @@ let rec comp_id t =
 and lib_id t = "lib-" ^ t.l_name
 
 and bin_id t = "bin-" ^ t.b_name
+
+let c_id t = "c-" ^ t.c_name
 
 let comp_deps t = t.u_deps
 
@@ -209,6 +220,7 @@ module Dep = struct
     | `Lib l
     | `Pp l   -> lib_id l
     | `Bin b  -> bin_id b
+    | `C c    -> c_id c
     | `Pkg_pp p
     | `Pkg p  -> "ext-" ^ p
 
@@ -656,6 +668,41 @@ module Bin = struct
 
 end
 
+
+module C = struct
+
+  type t = c
+
+  let name t = t.c_name
+  let id = c_id
+
+  module Graph = Graph(struct type t = c let id = id end)
+
+  let create ?dir ?(deps=[]) ?(flags=Flags.empty) name =
+    { c_dir     = dir;
+      c_name    = name;
+      c_flags   = flags;
+      c_deps    = deps; }
+
+  let build_dir t r =
+    Resolver.build_dir r (id t)
+
+  let file t r ext =
+    build_dir t r / t.c_name ^ ext
+
+
+  let dll_so t r =
+    build_dir t r / "dll" ^ t.c_name ^ "_stubs.so"
+
+  let prereqs _t _r _mode =
+    []
+
+  let deps t = []
+  let generated_files t r =
+    [Feature.true_, [dll_so t r]]
+
+end
+
 module Test = struct
 
   type t = test
@@ -695,7 +742,6 @@ module Test = struct
   let dir t = t.t_dir
 
   let args t = t.t_args
-
 end
 
 module JS = struct
@@ -758,6 +804,8 @@ let tests t = t.tests
 
 let jss t = t.jss
 
+let cs t = t.cs
+
 let comps t =
   let deps =
     conmap Lib.deps t.libs
@@ -804,7 +852,8 @@ let generated_from_custom_actions t resolver =
 
 let create
     ?(flags=Flags.empty)
-    ?(libs=[]) ?(pps=[]) ?(bins=[]) ?(tests=[]) ?(jss=[])
+    ?(libs=[]) ?(pps=[]) ?(bins=[]) ?(tests=[])
+    ?(jss=[]) ?(cs=[])
     ?doc_css ?doc_intro  ?(doc_dir="doc")
     ?version
     name =
@@ -823,7 +872,8 @@ let create
         Lib.set_filename l (name ^ "." ^ Lib.name l)
     ) libs;
   let t =
-    { name; version; flags; libs; pps; bins; tests; jss;
+    { name; version; flags; libs; pps; bins; tests;
+      jss; cs;
       doc_css; doc_intro; doc_dir } in
   projects := t :: !projects
 
@@ -840,32 +890,103 @@ let features t =
   let bins = unionmap (fun x -> Feature.atoms @@ Bin.available x) t.bins in
   Feature.base ++ libs ++ pps ++ bins
 
-let comp_tbl = Hashtbl.create 8
-let main = "main"
-let find name =
-  try Hashtbl.find comp_tbl name
-  with Not_found ->
-    let g = Comp.Graph.create () in
-    Hashtbl.add comp_tbl name g;
-    g
+module Bag = struct
 
-let comp ?(bag=main) ?(dir="lib") deps name =
-  let g = find bag in
-  let u = Comp.create ~dir ~deps name in
-  let () =
+  let comp_tbl = Hashtbl.create 8
+
+  let default = "main"
+
+  let find bag =
+    try Hashtbl.find comp_tbl bag
+    with Not_found ->
+      let g = Comp.Graph.create () in
+      Hashtbl.add comp_tbl bag g;
+      g
+
+  let add bag u deps =
+    let g = find bag in
     Comp.Graph.add_vertex g u;
     Dep.filter_comps deps
-    |> List.iter (fun u' -> Comp.Graph.add_edge g u' u) in
+    |> List.iter (fun u' -> Comp.Graph.add_edge g u' u)
+
+end
+
+let comp ?(bag=Bag.default) ?(dir="lib") deps name =
+  let u = Comp.create ~dir ~deps name in
+  Bag.add bag u deps;
   `Comp u
 
-let lib ?(bag=main) name =
-  let g = find bag in
+let lib ?(bag=Bag.default) name =
+  let g = Bag.find bag in
   Lib.create (Comp.Graph.vertex g) name
 
 let bin ?byte_only ?link_all ?install ?(dir="bin") deps comps name =
   let comps = List.map (Comp.create ~dir ~deps) comps in
   Bin.create ?byte_only ?link_all ?install comps name
 
+let c ?(dir="stubs") libs name =
+  let flags = List.fold_left (fun acc lib ->
+      Flags.(stub lib @ acc)
+    ) Flags.empty libs in
+  C.create ~dir ~flags name
+
 let pkg = Dep.pkg
 
 let pkg_pp = Dep.pkg_pp
+
+(* Ctypes stub-generation *)
+
+let output_generator_ml headers name r =
+  let buf = Buffer.create 1024 in
+  let p fmt = bprintf buf fmt in
+  let modul = String.capitalize name in
+  p "let c_headers = [";
+  List.iter (p "  \"#include <%s.h>\";") headers;
+  p "]";
+  p "";
+  p "let main () =";
+  p "  let ml_out = open_out \"%s_stubs.ml\"" (Resolver.build_dir r name);
+  p "  and c_out = open_out \"%s_stubs.c\"" (Resolver.build_dir r name);
+  p "  let ml_fmt = Format.formatter_of_out_channel ml_out";
+  p "  and c_fmt = Format.formatter_of_out_channel c_out in";
+  p "  List.iter (Format.fprintf c_fmt \"%%s@\n\") c_headers";
+  p "  Cstubs.write_c c_fmt ~prefix:\"%s_stub_\" (module %s_bindings.Bindings);"
+    name modul;
+  p "  Cstubs.write_ml ml_fmt ~prefix:\"%s_stub_\" (module %s_bindings.Bindings);"
+    name modul;
+  p "  Format.pp_print_flush ml_fmt ();";
+  p "Format.pp_print_flush c_fmt ();";
+  p "close_out ml_out;";
+  p "close_out c_out";
+  let oc = open_out (Resolver.build_dir r @@ name ^ "_generator.ml") in
+  output_string oc (Buffer.contents buf);
+  close_out oc
+
+(*
+
+let stubs ?(bag=Bag.default) ?dir ?(headers=[]) ?(cflags=[]) deps name =
+
+  (* 1. compile the module. *)
+  let deps = `Pkg "ctypes.stubs" :: deps in
+  let bindings = Comp.create ?dir ~deps name in
+
+  (* 2. Generate and compile the generator. *)
+  let name_generator = name ^ "_generator" in
+  let generator =
+    let action r = Action.func (fun () ->
+        output_generator_ml headers name r
+      ) in
+    let comp =
+      Comp.create ~action:(action, `ML) ?dir ~deps:[`Comp bindings]
+        name_generator in
+    Bin.create ~install:false [comp] name_generator in
+
+  (* 3. Generate and compile the stubs. *)
+  let stubs =
+    let flags = Flags.cclib cflags in
+    let name_stubs = name ^ "_stubs" in
+    let action r =
+      Action.shell (Resolver.build_dir r name_generator) [] in
+    Comp.create ~action:(action, `ML) ~deps:[`Pkg "ctypes.stubs"; `Comp bindings] name_stubs in
+
+  Bag.add gefind bag in*)

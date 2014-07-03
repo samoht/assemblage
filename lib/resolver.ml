@@ -14,14 +14,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+let (/) = Filename.concat
+
 type t = {
-  buildir: string -> string;
-  pkgs   : string list -> Flags.t;
+  build_dir: string;
+  pkgs     : string list -> Flags.t;
 }
 
-let create ~buildir ~pkgs =
-  { buildir; pkgs }
+let create ~build_dir ~pkgs =
+  { build_dir; pkgs }
 
-let build_dir t = t.buildir
+let build_dir t dir = t.build_dir / dir
 
 let pkgs t = t.pkgs

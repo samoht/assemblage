@@ -36,13 +36,17 @@ type test
 type js
 (** Description of js_of_ocaml build artifacts. *)
 
+type c
+(** C stubs. *)
+
 type dep =
   [ `Comp of comp
   | `Lib of lib
   | `Pp of lib
   | `Pkg_pp of string
   | `Pkg of string
-  | `Bin of bin ]
+  | `Bin of bin
+  | `C of c ]
 (** Values representing the dependencies. [`Lib] are local libraries,
     [`Pp] are local pre-processors. [`Pkg] are globally installed
     packages (managed using {i ocamlfind}, [`Pkg_pp] are globally
@@ -56,6 +60,16 @@ val comp: ?bag:string -> ?dir:string -> dep list -> string -> dep
     dependencies [deps] and the cname [name]. The name is the same as
     the filename, without its extension.  By default, [dir] is set to
     {i lib/} and [bag] is {i "main"}. *)
+
+val c: Flags.t -> string -> dep
+(** [c flags name] is the C file [name.c], which need the flags
+    [flags] to be compiled. *)
+
+val stubs:
+  ?bag:string -> ?dir:string -> ?headers:string list -> ?cflags:string list ->
+  string list -> string -> dep
+(** [stubs name] is the C stub generations, using Ctypes, of the
+    compilation unit [name]. *)
 
 val lib: ?bag:string -> string -> lib
 (** Build a library from a bag of compilation units. By default, use
@@ -82,7 +96,8 @@ val pkg_pp: string -> dep
 val create:
   ?flags:Flags.t ->
   ?libs:lib list -> ?pps:lib list ->
-  ?bins:bin list -> ?tests:test list -> ?jss:js list ->
+  ?bins:bin list -> ?tests:test list ->
+  ?jss:js list -> ?cs:c list ->
   ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
   ?version:string -> string -> unit
 (** [create ?libs ?pps ?bins ?version name] registers the project
@@ -129,6 +144,9 @@ val tests: t -> test list
 val jss: t -> js list
 (** [jss t] is the list of [js_of_ocaml] generated files in the
     project. *)
+
+val cs: t -> c list
+(** [cs t] is the list of C stubs in the project. *)
 
 val list: unit -> t list
 (** Return the project already registered. *)
@@ -207,7 +225,7 @@ module Comp: sig
 
   val create:
     ?flags:Flags.t ->
-    ?action:(Action.t * [`Both|`ML|`MLI]) ->
+    ?action:((Resolver.t -> Action.t) * [`Both|`ML|`MLI]) ->
     ?dir:string ->
     ?deps:dep list ->
     string -> t
@@ -355,6 +373,20 @@ module JS: sig
 
   val js: t -> Resolver.t -> string
   (** The location of the generated javascript artifacts. *)
+
+end
+
+module C: sig
+
+  (** C files. *)
+
+  include S with type t = c
+
+  val create: ?dir:string -> ?flags:Flags.t -> string -> t
+  (** Create a C object file. *)
+
+  val dll_so: t -> Resolver.t -> string
+  (** The location of the generated [.so] file. *)
 
 end
 
