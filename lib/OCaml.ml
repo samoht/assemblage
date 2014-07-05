@@ -58,7 +58,7 @@ let modules ~build_dir comp =
     let pp =
       Comp.deps comp
       |> Dep.closure
-      |> Dep.filter_pkg_pps
+      |> Dep.(filter pkg_pp)
       |> Resolver.pkgs resolver in
     match Flags.pp_byte pp with
     | [] -> Clflags.preprocessor := None;

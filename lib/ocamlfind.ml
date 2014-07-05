@@ -123,11 +123,11 @@ module META = struct
   type t = string
 
   let of_project t =
-    let libs = Project.libs t in
+    let libs = Dep.(filter lib @@ Project.contents t) in
     let version = Project.version t in
     let buf = Buffer.create 1024 in
     let one lib =
-      let requires = Lib.deps lib |> Dep.filter_pkgs |> String.concat " " in
+      let requires = Lib.deps lib |> Dep.(filter pkg) |> String.concat " " in
       bprintf buf "version  = \"%s\"\n" version;
       bprintf buf "requires = \"%s\"\n" requires;
       bprintf buf "archive(byte) = \"%s.cma\"\n" (Lib.name lib);

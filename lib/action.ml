@@ -17,48 +17,30 @@
 open Printf
 
 type shell = {
-  s_dir : string option;
-  s_prog: string;
-  s_args: string list;
+  dir: string option;
+  cmd: string;
 }
 
-type bash = {
-  b_dir: string option;
-  b_cmd: string;
-}
+type t = shell option
 
-type t =
-  | Func of (unit -> unit)
-  | Shell of shell
-  | Bash of bash
-  | ANone
+let none = None
 
-let shell ?dir prog args =
-  Shell { s_dir = dir; s_prog = prog; s_args = args }
-
-let func fn =
-  Func fn
-
-let none =
-  ANone
-
-let bash ?dir fmt =
-  ksprintf (fun b_cmd ->
-      let b_dir = dir in
-      Bash { b_dir; b_cmd }
+let create ?dir fmt =
+  ksprintf (fun cmd ->
+      Some { dir; cmd }
     ) fmt
 
-let run t = match t with
-  | Func fn -> fn ()
-  | Shell s ->
-    let args = String.concat " " (s.s_prog :: s.s_args) in
-    begin match s.s_dir with
-      | None   -> Shell.exec "%s" args
-      | Some d -> Shell.in_dir d (fun () -> Shell.exec "%s" args)
+let run = function
+  | None -> ()
+  | Some s ->
+    begin match s.dir with
+      | None   -> Shell.exec "%s" s.cmd
+      | Some d -> Shell.in_dir d (fun () -> Shell.exec "%s" s.cmd)
     end
-  | Bash b  ->
-    begin match b.b_dir with
-      | None   -> Shell.exec "%s" b.b_cmd
-      | Some d -> Shell.in_dir d (fun () -> Shell.exec "%s" b.b_cmd)
-    end
-  | ANone -> ()
+
+let action = function
+  | None   -> None
+  | Some s ->
+    Some (match s.dir with
+        | None   -> s.cmd
+        | Some d -> sprintf "cd %s && %s" d s.cmd)

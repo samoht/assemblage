@@ -319,20 +319,22 @@ end = struct
 
     match Comp.unpack t with
     | [] -> (* Normal compilation unit. *)
-      let () = match Comp.action t with
-        | Some (g, _) -> Action.run g
-        | None        -> () in
       let ln = (* link source file to target directory *)
-        let aux exists ext =
-          let source = source ext in
-          let target = target ext in
-          if exists t then
-            [Rule.create ~targets:[target] ~prereqs:[source] [
-                sprintf "mkdir -p %s" (Comp.build_dir t resolver);
-                sprintf "ln -sf $(shell pwd)/%s %s" source target
-              ]]
-          else [] in
-        aux Comp.ml ".ml" @ aux Comp.mli ".mli" in
+        match Comp.generated t with
+        | false ->
+          let aux exists ext =
+            let source = source ext in
+            let target = target ext in
+            if exists t then
+              [Rule.create ~targets:[target] ~prereqs:[source] [
+                  sprintf "mkdir -p %s" (Comp.build_dir t resolver);
+                  sprintf "ln -sf $(shell pwd)/%s %s" source target
+                ]]
+            else [] in
+          aux Comp.ml ".ml" @ aux Comp.mli ".mli"
+        | true ->
+          let gens = Dep.(filter gen @@ Comp.deps t) in
+          conmap G.rule gens in
       let cmi = (* generate cmis *)
         let targets, prereqs =
           if Comp.mli t then [target ".cmi"], [target ".mli"]
@@ -526,6 +528,14 @@ end = struct
 
 end
 
+and G: sig
+  val rule: gen -> Rule.t list
+  val variable: gen -> Variable.t list
+end = struct
+  let rule _ = failwith "TODO"
+  let variable _ = failwith "TODO"
+end
+
 module T = struct
 
   let variables ts =
@@ -539,17 +549,20 @@ module T = struct
   let rules ts =
     Rule.create ~targets:["test"] ~prereqs:["$(test)"] []
     :: List.map (fun t ->
-        Rule.create ~targets:[Test.id t] ~prereqs:[Bin.id (Test.bin t)] [
+        Rule.create
+          ~targets:[Test.id t]
+          ~prereqs:(Test.prereqs t resolver `Byte) (
           let dir = match Test.dir t with
             | None   -> ""
             | Some d -> sprintf "cd %s &&" d in
-          let bin = match Test.dir t with
-            | None   -> Bin.byte (Test.bin t) resolver
-            | Some _ -> Sys.getcwd () / Bin.byte (Test.bin t) resolver
-          in
-          let args = Test.args t in
-          String.concat " " [dir; bin; String.concat " " args]
-        ]) ts
+          List.map (function
+              | `Shell cmd       -> String.concat " " [dir; cmd]
+              | `Bin (bin, args) ->
+                let bin = Sys.getcwd () / Bin.byte bin resolver in
+                String.concat " " [dir; bin; String.concat " " args]
+            ) (Test.commands t)
+        )
+      ) ts
 
 end
 

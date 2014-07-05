@@ -109,6 +109,8 @@ let ccopt args =
     c = args;
   }
 
-let stub dir =
-  let f = [sprintf "-cclib -l%s -dllib -l%s" dir dir] in
-  { empty with link_byte = f; }
+let stub s =
+  { empty with
+    link_byte   = [sprintf "-cclib -l%s -dllib -l%s" s s];
+    link_native = [sprintf "-cclib -l%s" s]
+  }

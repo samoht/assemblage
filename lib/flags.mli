@@ -99,5 +99,5 @@ val ccopt: string list -> t
 (** Add [-ccopt] flags to the compiler and the linker. *)
 
 val stub: string -> t
-(** [stub dir] Add {i -cclib -l[dir -dllib -l[dir]} to the
-    bytecode compilation options. *)
+(** [stub s] Add {i -cclib -l[s] -dllib -l[s]} to the bytecode linking
+    options and {i -cclib -l[s]} to the native linking options. *)

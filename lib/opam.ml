@@ -32,8 +32,9 @@ module Install = struct
 
   let of_project ?(meta=true) ~build_dir t =
     let name = Project.name t in
-    let libs = Project.libs t in
-    let bins = List.filter Project.Bin.install (Project.bins t) in
+    let libs = Dep.(filter lib @@ Project.contents t) in
+    let bins =
+      List.filter Project.Bin.install Dep.(filter bin @@ Project.contents t) in
     let buf = Buffer.create 1024 in
     let resolver =
       Resolver.create

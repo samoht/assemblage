@@ -14,7 +14,36 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Main entry points. *)
+(** The Assemblage Library. *)
+
+(** [Assemblage] provides a simple embedded domain specific language
+    to describe [OCaml] {{!project}projects}. It also provides simple
+    {{!tools}tools} to configure, manage, install and use OCaml
+    projects.
+
+    Describing a project is eventually leads to describe its build
+    artifacts. The exact mapping betweem project elements and those
+    build artifacts depends on the presence or absence of
+    {{!features}features}. Examples of such features are weather to
+    compile and run the tests (user-defined feature), the presence of
+    the native compiler (system-dependant feature), compiling a
+    library using [async] or [lwt] as a backend (environment-dependant
+    feature), ...
+
+    Finally, generating build artifacts means refining the project
+    description into concrete {{!flags}command-line arguments} to pass
+    to the different compilers ([ocamlc], [ocamlopt]) on the different
+    compilation and linking phases.
+
+    {e Release %%VERSION%% - %%AUTHOR%% } *)
+
+(** {1:project Project} *)
+
+(** {1:features Features} *)
+
+(** {1:flags Flags} *)
+
+(** {1:tools Tools} *)
 
 type tool = Project.t -> Build_env.t -> unit
 (** The signature of tools. *)
@@ -31,3 +60,6 @@ val configure: [`Make] -> tool
 
 val describe: tool
 (** Describe the project to stdout. *)
+
+val timestamp: string
+(** Timestamp to write in the generated files. *)

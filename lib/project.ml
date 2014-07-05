@@ -23,7 +23,10 @@ type dep =
   | `Bin of bin
   | `Pkg_pp of string
   | `Pkg of string
-  | `C of c ]
+  | `C of c
+  | `JS of js
+  | `Test of test
+  | `Gen of gen ]
 
 and comp = {
   u_name             : string;
@@ -33,7 +36,7 @@ and comp = {
   mutable u_for_pack : string option;
   mutable u_pack     : comp list;
   mutable u_flags    : Flags.t;
-  u_action           : ((Resolver.t -> Action.t) * [`Both|`ML|`MLI]) option;
+  u_generated        : bool;
   u_mli              : bool;
   u_ml               : bool;
 }
@@ -58,37 +61,45 @@ and bin = {
 }
 
 and c = {
-  c_dir  : string option;
-  c_name : string;
-  c_flags: Flags.t;
-  c_deps : dep list;
+  c_dir       : string option;
+  c_name      : string;
+  c_link_flags: string list;
+  c_deps      : dep list;
+  c_generated : bool;
 }
 
-type test = {
-  t_name: string;
-  t_bin: bin;
-  t_dir: string option;
-  t_args: string list;
+and test = {
+  t_name     : string;
+  t_dir      : string option;
+  t_commands : test_command list;
+  t_deps     : dep list;
 }
 
-type js = {
-  j_bin: bin;
+and js = {
+  j_bin : bin;
   j_args: string list;
 }
 
+and test_command =
+  [ `Bin of bin * string list
+  | `Shell of string ]
+
+and gen = {
+  g_name        : string;
+  mutable g_comp: comp option;
+  g_action      : (Resolver.t -> Action.t);
+  g_deps        : dep list;
+  g_files       : [`Both|`ML|`MLI];
+}
+
 type t = {
-  name: string;
-  version: string;
-  flags: Flags.t;
-  libs: lib list;
-  pps: lib list;
-  bins: bin list;
-  tests: test list;
-  jss: js list;
-  cs: c list;
-  doc_css: string option;
+  name     : string;
+  version  : string;
+  flags    : Flags.t;
+  deps     : dep list;
+  doc_css  : string option;
   doc_intro: string option;
-  doc_dir: string;
+  doc_dir  : string;
 }
 
 module type G = sig
@@ -145,6 +156,15 @@ and lib_id t = "lib-" ^ t.l_name
 and bin_id t = "bin-" ^ t.b_name
 
 let c_id t = "c-" ^ t.c_name
+
+let test_id t =
+  "test-" ^ t.t_name
+
+let js_id t =
+  bin_id t.j_bin ^ "-js"
+
+let gen_id t =
+  "gen-" ^ t.g_name
 
 let comp_deps t = t.u_deps
 
@@ -215,7 +235,7 @@ module Dep = struct
 
   type t = dep
 
-  let id = function
+  let id: dep -> string = function
     | `Comp u -> comp_id u
     | `Lib l
     | `Pp l   -> lib_id l
@@ -223,46 +243,36 @@ module Dep = struct
     | `C c    -> c_id c
     | `Pkg_pp p
     | `Pkg p  -> "ext-" ^ p
+    | `Test t -> test_id t
+    | `JS js  -> js_id js
+    | `Gen g  -> gen_id g
 
   module Graph = Graph(struct type t = dep let id = id end)
 
-  let bin t: t = `Bin t
-  let bins = List.map bin
+  let comp = function `Comp x -> Some x  | _ -> None
 
-  let comp t: t = `Comp t
-  let comps = List.map comp
+  let lib = function `Lib x -> Some x | _ -> None
 
-  let lib t: t = `Lib t
-  let libs = List.map lib
+  let pp = function `Pp x -> Some x | _ -> None
 
-  let pp t: t = `Pp t
-  let pps = List.map pp
+  let pkg = function `Pkg x -> Some x | _ -> None
 
-  let pkg_pp t: t = `Pkg_pp t
-  let pkg_pps = List.map pkg_pp
+  let pkg_pp = function `Pkg_pp x -> Some x | _ -> None
 
-  let pkg t: t = `Pkg t
-  let pkgs = List.map pkg
+  let bin = function `Bin x -> Some x | _ -> None
 
-  let filter_comps t =
-    List.fold_left (fun acc -> function `Comp t -> t :: acc | _ -> acc) [] t
-    |> List.rev
+  let test = function `Test x -> Some x | _ -> None
 
-  let filter_libs t =
-    List.fold_left (fun acc -> function `Lib t -> t :: acc | _ -> acc) [] t
-    |> List.rev
+  let js = function `JS x -> Some x | _ -> None
 
-  let filter_pps t =
-    List.fold_left (fun acc -> function `Pp t -> t :: acc | _ -> acc) [] t
-    |> List.rev
+  let gen = function `Gen x -> Some x | _ -> None
 
-  let filter_pkgs t =
-    List.fold_left (fun acc -> function `Pkg t -> t :: acc | _ -> acc) [] t
-    |> List.rev
-
-  let filter_pkg_pps t =
-    List.fold_left (fun acc -> function `Pkg_pp t -> t :: acc | _ -> acc) [] t
-    |> List.rev
+  let filter fn l =
+    List.fold_left (fun acc x ->
+        match fn x with
+        | None   -> acc
+        | Some x -> x :: acc
+      ) [] l
 
   let closure ts =
     let deps = Hashtbl.create 24 in
@@ -289,12 +299,12 @@ module Dep = struct
 
   let comp_flags mode (deps:t list) incl resolver =
     let incl = sprintf "-I %s" incl in
-    let libs = filter_libs deps in
+    let libs = filter lib deps in
     let libs = List.map (fun l ->
         sprintf "-I %s" (lib_build_dir l resolver);
       ) libs in
     let libs = String.concat " " (incl :: libs) in
-    let pkgs = filter_pkgs deps in
+    let pkgs = filter pkg deps in
     let pkgs = match pkgs with
       | [] -> []
       | _  ->
@@ -315,14 +325,14 @@ module Dep = struct
           | `Native -> Comp_file.cmx u resolver in
         sprintf "%s/%s" (Filename.dirname file) (Filename.basename file)
       ) comps in
-    let libs = filter_libs deps in
+    let libs = filter lib deps in
     let libs = List.map (fun l ->
         let file = match mode with
           | `Byte   -> Lib_file.cma l resolver
           | `Native -> Lib_file.cmxa l resolver in
         sprintf "%s/%s" (Filename.dirname file) (Filename.basename file)
       ) libs in
-    let pkgs = filter_pkgs deps in
+    let pkgs = filter pkg deps in
     let pkgs = match pkgs with
       | [] -> []
       | _  ->
@@ -337,8 +347,8 @@ module Dep = struct
   let link_native = link_flags `Native
 
   let pp_flags mode (deps:t list) resolver =
-    let libs = filter_pps deps in
-    let pkgs = filter_pkg_pps deps in
+    let libs = filter pp deps in
+    let pkgs = filter pkg_pp deps in
     match libs, pkgs with
     | [], [] -> []
     | _ , _  ->
@@ -373,8 +383,8 @@ module Comp = struct
 
   let mli t = t.u_mli
 
-  let action t =
-    t.u_action
+  let generated t =
+    t.u_generated
 
   let rec copy t =
     { u_dir       = t.u_dir;
@@ -386,7 +396,7 @@ module Comp = struct
       u_flags     = t.u_flags;
       u_ml        = t.u_ml;
       u_mli       = t.u_mli;
-      u_action    = t.u_action;
+      u_generated = t.u_generated;
     }
 
   let dir t = t.u_dir
@@ -414,32 +424,36 @@ module Comp = struct
 
   let create
       ?(flags=Flags.empty)
-      ?action
       ?dir ?(deps=[])
       name =
-    let mli = match action with
-      | None      -> Sys.file_exists (dir // name ^ ".mli")
-      | Some (_, `Both)
-      | Some (_, `MLI) -> true
-      | Some (_, `ML)  -> false in
-    let ml = match action with
-      | None      -> Sys.file_exists (dir // name ^ ".ml")
-      | Some (_, `Both)
-      | Some (_, `ML)  -> true
-      | Some (_, `MLI) -> false in
+    let gens = Dep.(filter gen deps) in
+    let mli = match gens with
+      | [] -> Sys.file_exists (dir // name ^ ".mli")
+      | _  -> List.exists (fun g -> g.g_files = `Both || g.g_files = `MLI) gens in
+    let ml = match gens with
+      | [] -> Sys.file_exists (dir // name ^ ".ml")
+      | _  -> List.exists (fun g -> g.g_files = `Both || g.g_files = `ML) gens in
     if not ml && not mli then (
       eprintf
         "\027[31m[ERROR]\027[m Cannot find %s.ml or %s.mli, stopping.\n"
         name name;
       exit 1;
     );
-    {
+    let t = {
       u_name = name; u_dir = dir ; u_deps = deps; u_flags = flags;
       u_container = None;
       u_for_pack  = None;
       u_pack      = [];
-      u_ml = ml; u_mli = mli; u_action = action;
-    }
+      u_generated = gens <> [];
+      u_ml = ml; u_mli = mli;
+    } in
+    List.iter (fun g ->
+        let g = match g.g_comp with
+          | None   -> g
+          | Some _ -> { g with g_comp = None } in
+        g.g_comp <- Some t
+      ) gens;
+    t
 
   let pack ?(flags=Flags.empty) comps name =
     List.iter (fun u -> u.u_for_pack <- Some (String.capitalize name)) comps;
@@ -452,7 +466,7 @@ module Comp = struct
       u_pack      = comps;
       u_ml        = false;
       u_mli       = false;
-      u_action    = None;
+      u_generated = false;
     }
 
   include Comp_file
@@ -467,19 +481,19 @@ module Comp = struct
 
   let prereqs t resolver mode =
     let deps = deps t in
-    let comps = Dep.filter_comps deps in
+    let comps = Dep.(filter comp deps) in
     let comps = List.map (fun u ->
         match mode with
         | `Native -> cmx u resolver
         | `Byte   -> cmi u resolver
       ) comps in
-    let libs = Dep.filter_libs deps in
+    let libs = Dep.(filter lib deps) in
     let libs = List.map (fun l ->
         match mode with
         | `Native -> Lib_file.cmxa l resolver
         | `Byte   -> Lib_file.cma  l resolver
       ) libs in
-    let pps = Dep.filter_pps deps in
+    let pps = Dep.(filter pp deps) in
     let pps = List.map (fun l -> Lib_file.cma l resolver) pps in
     comps @ libs @ pps
 
@@ -613,7 +627,7 @@ module Bin = struct
       ?(deps=[])
       comps name =
     let available = Feature.(not native && available) in
-    let deps = Dep.pkg "compiler-libs.toplevel" :: deps in
+    let deps = `Pkg "compiler-libs.toplevel" :: deps in
     let link_byte = [
       (if custom then "-custom " else "") ^ "-I +compiler-libs topstart.cmo"
     ] in
@@ -642,8 +656,8 @@ module Bin = struct
   let prereqs t resolver mode =
     let comps = comps t in
     let deps = deps t in
-    let libs = Dep.filter_libs deps in
-    let pps = Dep.filter_pps deps in
+    let libs = Dep.(filter lib deps) in
+    let pps = Dep.(filter pp deps) in
     let bytpps = List.map (fun l -> Lib.cma l resolver) pps in
     match mode with
     | `Byte   ->
@@ -657,7 +671,7 @@ module Bin = struct
 
   let flags t resolver =
     let comps = comps t in
-    let all_deps  = (deps t @ Dep.comps comps) |> Dep.closure in
+    let all_deps  = (deps t @ List.map (fun x -> `Comp x) comps) |> Dep.closure in
     let incl = build_dir t resolver in
     let comp_byte = Dep.comp_byte (deps t) incl resolver in
     let comp_native = Dep.comp_native (deps t) incl resolver in
@@ -668,6 +682,59 @@ module Bin = struct
 
 end
 
+module Gen = struct
+
+  type t = gen
+
+  let id = gen_id
+
+  let name t = t.g_name
+
+  let deps t = t.g_deps
+
+  module Graph = Graph (struct type t = gen let id = id end)
+
+  let create ?(deps=[]) ?action g_files g_name =
+    let g_action = match action with
+      | None   -> (fun _ -> Action.none)
+      | Some a -> a in
+    { g_name; g_comp = None; g_files; g_action; g_deps = deps }
+
+  let copy t =
+     { t with g_comp = None }
+
+  let build_dir t r =
+    match t.g_comp with
+    | None   -> Resolver.build_dir r ""
+    | Some u -> comp_build_dir u r
+
+  let prereqs t r mode =
+    let bins = Dep.(filter bin t.g_deps) in
+    List.map (fun b -> match mode with
+        | `Byte   -> Bin.byte b r
+        | `Native -> Bin.native b r
+      ) bins
+
+  let flags _t _r = Flags.empty
+
+  let file t r ext =
+    build_dir t r / t.g_name ^ ext
+
+  let ml t r =
+    file t r ".ml"
+
+  let mli t r =
+    file t r ".mli"
+
+  let generated_files t r = [
+    Feature.true_,
+    match t.g_files with
+    | `Both -> [ml t r; mli t r]
+    | `ML   -> [ml t r]
+    | `MLI  -> [mli t r]
+  ]
+
+end
 
 module C = struct
 
@@ -678,11 +745,12 @@ module C = struct
 
   module Graph = Graph(struct type t = c let id = id end)
 
-  let create ?dir ?(deps=[]) ?(flags=Flags.empty) name =
-    { c_dir     = dir;
-      c_name    = name;
-      c_flags   = flags;
-      c_deps    = deps; }
+  let create ?dir ?(generated=false) ?(link_flags=[]) ?(deps=[]) name =
+    { c_dir        = dir;
+      c_name       = name;
+      c_link_flags = link_flags;
+      c_deps       = deps;
+      c_generated  = generated; }
 
   let build_dir t r =
     Resolver.build_dir r (id t)
@@ -697,26 +765,37 @@ module C = struct
   let prereqs _t _r _mode =
     []
 
-  let deps t = []
+  let deps _t = []
+
   let generated_files t r =
     [Feature.true_, [dll_so t r]]
+
+  let flags _t _r = Flags.empty
 
 end
 
 module Test = struct
 
+  type command = test_command
+
   type t = test
 
-  let id t =
-    "test-" ^ t.t_name
+  let id = test_id
 
   let name t = t.t_name
 
   module Graph = Graph(struct type t = test let id = id end)
 
-  let prereqs t r = function
-    | `Byte   -> [Bin.byte t.t_bin r]
-    | `Native -> [Bin.native t.t_bin r]
+  let prereqs t r mode =
+    let aux = function
+      | `Shell _      -> []
+      | `Bin (bin, _) ->
+        match mode with
+        | `Byte   -> [Bin.byte bin r]
+        | `Native -> [Bin.native bin r] in
+    List.fold_left (fun acc cmd ->
+        aux cmd @ acc
+      ) [] t.t_commands
 
   let flags _t _r = Flags.empty
 
@@ -728,20 +807,23 @@ module Test = struct
   let build_dir _t _r =
     failwith "TODO"
 
-  let deps t = [`Bin t.t_bin]
+  let deps t =
+    let aux = function
+      | `Shell _      -> []
+      | `Bin (bin, _) -> [`Bin bin] in
+    t.t_deps @ conmap aux t.t_commands
 
-  let create ?dir bin args name = {
-    t_name = name;
-    t_bin  = bin;
-    t_dir  = dir;
-    t_args = args;
+  let create ?dir ?(deps=[]) commands name = {
+    t_name     = name;
+    t_dir      = dir;
+    t_commands = commands;
+    t_deps     = deps;
   }
 
-  let bin t = t.t_bin
+  let commands t = t.t_commands
 
   let dir t = t.t_dir
 
-  let args t = t.t_args
 end
 
 module JS = struct
@@ -754,8 +836,7 @@ module JS = struct
   let name t =
     Bin.name (bin t)
 
-  let id t =
-    Bin.id (bin t) ^ "-js"
+  let id = js_id
 
   module Graph = Graph(struct type t = js let id = id end)
 
@@ -787,31 +868,13 @@ module JS = struct
 
 end
 
-let js = JS.create
-
+let js t r = `JS (JS.create t r)
 
 let name t = t.name
 
 let version t = t.version
 
-let libs t = t.libs
-
-let pps t = t.pps
-
-let bins t = t.bins
-
-let tests t = t.tests
-
-let jss t = t.jss
-
-let cs t = t.cs
-
-let comps t =
-  let deps =
-    conmap Lib.deps t.libs
-    @ conmap Lib.deps t.pps
-    @ conmap Bin.deps t.bins in
-  Dep.closure deps |> Dep.filter_comps
+let contents t = t.deps
 
 let doc_css t = t.doc_css
 
@@ -823,40 +886,25 @@ let projects = ref []
 
 let list () = !projects
 
-let generated_from_custom_actions t resolver =
-  let libs =
-    t.libs @ t.pps
-    |> Dep.libs
-    |> Dep.closure
-    |> Dep.filter_libs
-    |> conmap Lib.comps in
-  let bins =
-    conmap Bin.comps t.bins @
-    (t.bins
-     |> Dep.bins
-     |> Dep.closure
-     |> Dep.filter_libs
-     |> conmap Lib.comps) in
+let generated_from_custom_generators t resolver =
+  let comps = Dep.(filter comp t.deps) in
   List.fold_left (fun acc u ->
-      match Comp.action u with
-      | None        -> acc
-      | Some (_, k) ->
-        let ml = match k with
-          | `ML | `Both -> [Comp.build_dir u resolver / Comp.name u ^ ".ml"]
-          | `MLI        -> [] in
-        let mli = match k with
-          | `MLI | `Both -> [Comp.build_dir u resolver / Comp.name u ^ ".mli"]
-          | `ML          -> [] in
+      if Comp.generated u then acc
+      else
+        let ml = match Comp.ml u with
+          | true  -> [Comp.build_dir u resolver / Comp.name u ^ ".ml"]
+          | false -> [] in
+        let mli = match Comp.mli u with
+          | true  -> [Comp.build_dir u resolver / Comp.name u ^ ".mli"]
+          | false -> [] in
         ml @ mli @ acc
-    ) [] (libs @ bins)
+    ) [] comps
 
 let create
     ?(flags=Flags.empty)
-    ?(libs=[]) ?(pps=[]) ?(bins=[]) ?(tests=[])
-    ?(jss=[]) ?(cs=[])
     ?doc_css ?doc_intro  ?(doc_dir="doc")
     ?version
-    name =
+    deps name =
   let version = match version with
     | Some v -> v
     | None   ->
@@ -867,13 +915,14 @@ let create
         | Some v -> v
         | None   -> "version-not-set"
   in
+  let deps = Dep.closure deps in
+  let libs = Dep.(filter lib deps) in
   List.iter (fun l ->
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)
     ) libs;
   let t =
-    { name; version; flags; libs; pps; bins; tests;
-      jss; cs;
+    { name; version; flags; deps;
       doc_css; doc_intro; doc_dir } in
   projects := t :: !projects
 
@@ -885,9 +934,15 @@ let unionmap fn t =
     ) Feature.Set.empty t
 
 let features t =
-  let libs = unionmap (fun x -> Feature.atoms @@ Lib.available x) t.libs in
-  let pps  = unionmap (fun x -> Feature.atoms @@ Lib.available x) t.pps  in
-  let bins = unionmap (fun x -> Feature.atoms @@ Bin.available x) t.bins in
+  let libs =
+    let libs = Dep.(filter lib t.deps) in
+    unionmap (fun x -> Feature.atoms @@ Lib.available x) libs in
+  let pps  =
+    let pps = Dep.(filter pp t.deps) in
+    unionmap (fun x -> Feature.atoms @@ Lib.available x) pps in
+  let bins =
+    let bins = Dep.(filter bin t.deps) in
+    unionmap (fun x -> Feature.atoms @@ Bin.available x) bins in
   Feature.base ++ libs ++ pps ++ bins
 
 module Bag = struct
@@ -906,7 +961,7 @@ module Bag = struct
   let add bag u deps =
     let g = find bag in
     Comp.Graph.add_vertex g u;
-    Dep.filter_comps deps
+    Dep.(filter comp deps)
     |> List.iter (fun u' -> Comp.Graph.add_edge g u' u)
 
 end
@@ -916,77 +971,69 @@ let comp ?(bag=Bag.default) ?(dir="lib") deps name =
   Bag.add bag u deps;
   `Comp u
 
+let generated ?deps ?action f name =
+  let g = Gen.create ?deps ?action f name in
+  `Gen g
+
 let lib ?(bag=Bag.default) name =
   let g = Bag.find bag in
-  Lib.create (Comp.Graph.vertex g) name
+  let l = Lib.create (Comp.Graph.vertex g) name in
+  `Lib l
 
 let bin ?byte_only ?link_all ?install ?(dir="bin") deps comps name =
   let comps = List.map (Comp.create ~dir ~deps) comps in
-  Bin.create ?byte_only ?link_all ?install comps name
+  let b = Bin.create ?byte_only ?link_all ?install comps name in
+  `Bin b
 
-let c ?(dir="stubs") libs name =
-  let flags = List.fold_left (fun acc lib ->
-      Flags.(stub lib @ acc)
-    ) Flags.empty libs in
-  C.create ~dir ~flags name
+let c ?(dir="stubs") ?(link_flags=[]) libs name =
+  let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
+  let c = C.create ~dir ~link_flags name in
+  `C c
 
-let pkg = Dep.pkg
+let pkg x = `Pkg x
 
-let pkg_pp = Dep.pkg_pp
+let pkg_pp x = `Pkg_pp x
 
 (* Ctypes stub-generation *)
 
-let output_generator_ml headers name r =
-  let buf = Buffer.create 1024 in
-  let p fmt = bprintf buf fmt in
-  let modul = String.capitalize name in
-  p "let c_headers = [";
-  List.iter (p "  \"#include <%s.h>\";") headers;
-  p "]";
-  p "";
-  p "let main () =";
-  p "  let ml_out = open_out \"%s_stubs.ml\"" (Resolver.build_dir r name);
-  p "  and c_out = open_out \"%s_stubs.c\"" (Resolver.build_dir r name);
-  p "  let ml_fmt = Format.formatter_of_out_channel ml_out";
-  p "  and c_fmt = Format.formatter_of_out_channel c_out in";
-  p "  List.iter (Format.fprintf c_fmt \"%%s@\n\") c_headers";
-  p "  Cstubs.write_c c_fmt ~prefix:\"%s_stub_\" (module %s_bindings.Bindings);"
-    name modul;
-  p "  Cstubs.write_ml ml_fmt ~prefix:\"%s_stub_\" (module %s_bindings.Bindings);"
-    name modul;
-  p "  Format.pp_print_flush ml_fmt ();";
-  p "Format.pp_print_flush c_fmt ();";
-  p "close_out ml_out;";
-  p "close_out c_out";
-  let oc = open_out (Resolver.build_dir r @@ name ^ "_generator.ml") in
-  output_string oc (Buffer.contents buf);
-  close_out oc
+let cstubs ?bag ?dir ?(headers=[]) ?(cflags=[]) ?(clibs=[]) deps name: dep =
 
-(*
-
-let stubs ?(bag=Bag.default) ?dir ?(headers=[]) ?(cflags=[]) deps name =
-
-  (* 1. compile the module. *)
+  (* 1. compile the bindings. *)
   let deps = `Pkg "ctypes.stubs" :: deps in
-  let bindings = Comp.create ?dir ~deps name in
+  let name_bindings = name ^ "_bindings" in
+  let bindings = comp ?bag ?dir deps name_bindings in
 
   (* 2. Generate and compile the generator. *)
   let name_generator = name ^ "_generator" in
   let generator =
-    let action r = Action.func (fun () ->
-        output_generator_ml headers name r
-      ) in
-    let comp =
-      Comp.create ~action:(action, `ML) ?dir ~deps:[`Comp bindings]
-        name_generator in
-    Bin.create ~install:false [comp] name_generator in
+    let action r =
+      let headers = match headers with
+        | [] -> ""
+        | hs -> sprintf "--headers %s " (String.concat "," hs) in
+      Action.create ~dir:(Resolver.build_dir r "") "ctypes-gen %s" headers
+    in
+    let gen = generated ~action `ML name_generator in
+    let comp = Comp.create ~deps:[gen; bindings] name_generator in
+    let bin =
+      Bin.create ~install:false [comp] name_generator in
+    `Bin bin in
 
   (* 3. Generate and compile the stubs. *)
-  let stubs =
-    let flags = Flags.cclib cflags in
-    let name_stubs = name ^ "_stubs" in
+  let name_stubs = name ^ "_stubs" in
+  let ml_stubs =
     let action r =
-      Action.shell (Resolver.build_dir r name_generator) [] in
-    Comp.create ~action:(action, `ML) ~deps:[`Pkg "ctypes.stubs"; `Comp bindings] name_stubs in
-
-  Bag.add gefind bag in*)
+      Action.create ~dir:(Resolver.build_dir r "") "./%s.byte" name_generator in
+    let gen = generated ~deps:[generator] ~action `ML name_stubs in
+    comp ?bag [gen] name_stubs in
+  let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
+  let c_stubs =
+    let c = C.create ~generated:true ~deps:[generator] ~link_flags name_stubs in
+    `C c in
+  let flags = Flags.(cclib link_flags @ stub name_stubs) in
+  let gen = generated ~deps:[generator] `ML name in
+  let comp = comp ?bag [bindings; ml_stubs; c_stubs; gen] name in
+  let comp = match Dep.comp comp with
+    | Some c -> c
+    | None   -> assert false in
+  let lib = Lib.create ~flags [comp] name in
+  `Lib lib

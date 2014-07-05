@@ -37,6 +37,9 @@ let configure =
 let describe =
   bin ~link_all:true ~byte_only:true [`Lib lib] ["describe"] "describe.ml"
 
+let ctypes_gen =
+  bin [cmdliner] ["ctypes_gen"] "ctypes-gen"
+
 (* Tests *)
 
 let mk_test name =
@@ -54,6 +57,6 @@ let multi_libs = mk_test "multi-libs"
 let () =
   create
     ~libs:[lib]
-    ~bins:[configure; describe]
+    ~bins:[configure; describe; ctypes_gen]
     ~tests:[camlp4; multi_libs]
     "assemblage"

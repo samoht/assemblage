@@ -39,6 +39,9 @@ type js
 type c
 (** C stubs. *)
 
+type gen
+(** Generated source code. *)
+
 type dep =
   [ `Comp of comp
   | `Lib of lib
@@ -46,7 +49,10 @@ type dep =
   | `Pkg_pp of string
   | `Pkg of string
   | `Bin of bin
-  | `C of c ]
+  | `C of c
+  | `JS of js
+  | `Test of test
+  | `Gen of gen ]
 (** Values representing the dependencies. [`Lib] are local libraries,
     [`Pp] are local pre-processors. [`Pkg] are globally installed
     packages (managed using {i ocamlfind}, [`Pkg_pp] are globally
@@ -61,29 +67,34 @@ val comp: ?bag:string -> ?dir:string -> dep list -> string -> dep
     the filename, without its extension.  By default, [dir] is set to
     {i lib/} and [bag] is {i "main"}. *)
 
-val c: Flags.t -> string -> dep
-(** [c flags name] is the C file [name.c], which need the flags
-    [flags] to be compiled. *)
+val generated: ?deps:dep list -> ?action:(Resolver.t -> Action.t) ->
+  [`Both|`ML|`MLI] -> string -> dep
+(** Generated OCaml source file(s). *)
 
-val stubs:
-  ?bag:string -> ?dir:string -> ?headers:string list -> ?cflags:string list ->
-  string list -> string -> dep
-(** [stubs name] is the C stub generations, using Ctypes, of the
+val c: ?dir:string -> ?link_flags:string list -> string list -> string -> dep
+(** [c libs name] is the C file [name.c], which need the C libraries
+    [libs] to be compiled. *)
+
+val cstubs:
+  ?bag:string -> ?dir:string -> ?headers:string list ->
+  ?cflags:string list -> ?clibs:string list ->
+  dep list -> string -> dep
+(** [stubs deps name] is the C stub generations, using Ctypes, of the
     compilation unit [name]. *)
 
-val lib: ?bag:string -> string -> lib
+val lib: ?bag:string -> string -> dep
 (** Build a library from a bag of compilation units. By default, use
     all the compilation unit registered in the {i "main"} bag. *)
 
 val bin:
   ?byte_only:bool -> ?link_all:bool -> ?install:bool -> ?dir:string ->
-  dep list -> string list -> string -> bin
+  dep list -> string list -> string -> dep
 (** [bin deps units name] is the binary [name] obtained by compiling
     the compilation units [units], with the dependencies [deps]. By
     default, the source files are located into {i bin/} (this is
     controled by the value of [dir]). *)
 
-val js: bin -> string list -> js
+val js: bin -> string list -> dep
 (** [js bin args] is the decription of a javascript artefact generated
     by [js_of_ocaml]. *)
 
@@ -95,14 +106,12 @@ val pkg_pp: string -> dep
 
 val create:
   ?flags:Flags.t ->
-  ?libs:lib list -> ?pps:lib list ->
-  ?bins:bin list -> ?tests:test list ->
-  ?jss:js list -> ?cs:c list ->
   ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
-  ?version:string -> string -> unit
-(** [create ?libs ?pps ?bins ?version name] registers the project
-    named [name], defining the libraries [libs], the syntax extensions
-    [pps] and the program binaries [bins]. *)
+  ?version:string ->
+  dep list -> string -> unit
+(** [create deps name] registers the project named [name], defining
+    the libraries, binaries and tests defined by the transitive
+    closure of objects in [deps]. *)
 
 val name: t -> string
 (** Return the project name. *)
@@ -122,36 +131,13 @@ val doc_intro: t -> string option
 val doc_dir: t -> string
 (** Return the directory where the HTML documentation is generated. *)
 
-val comps: t -> comp list
-(** [unit t] is the list of compilation units in the project [t]. The
-    list is sorted in compilation order. *)
-
-val libs: t -> lib list
-(** [libs t] is the list of libraries in the project [t]. The list is
-    sorted in compilation order. *)
-
-val pps: t -> lib list
-(** [pps t] is the list of syntax extensions in the project [t]. The
-    list is sorted in compilation order. *)
-
-val bins: t -> bin list
-(** [bins t] is the list of binaries defined by the project [t]. The
-    list is sorted in compilation order. *)
-
-val tests: t -> test list
-(** [tests t] is the list of tests in the project. *)
-
-val jss: t -> js list
-(** [jss t] is the list of [js_of_ocaml] generated files in the
-    project. *)
-
-val cs: t -> c list
-(** [cs t] is the list of C stubs in the project. *)
+val contents: t -> dep list
+(** Return the project contents. *)
 
 val list: unit -> t list
 (** Return the project already registered. *)
 
-val generated_from_custom_actions: t -> Resolver.t -> string list
+val generated_from_custom_generators: t -> Resolver.t -> string list
 (** Return the list of generated file from a custom action
     generators. *)
 
@@ -217,6 +203,21 @@ module type S = sig
 
 end
 
+module Gen: sig
+
+  (** Source file generator. *)
+
+  include S with type t = gen
+
+  val create: ?deps:dep list -> ?action:(Resolver.t -> Action.t) ->
+    [`Both|`ML|`MLI]-> string -> t
+  (** Generate source files, using the given action. *)
+
+  val copy: t -> t
+  (** Copy the generator if it needs to run in an other directory. *)
+
+end
+
 module Comp: sig
 
   (** Signature for compilation units. *)
@@ -225,10 +226,8 @@ module Comp: sig
 
   val create:
     ?flags:Flags.t ->
-    ?action:((Resolver.t -> Action.t) * [`Both|`ML|`MLI]) ->
     ?dir:string ->
-    ?deps:dep list ->
-    string -> t
+    ?deps:dep list -> string -> t
   (** Create a compilation unit. *)
 
   val copy: t -> t
@@ -249,11 +248,10 @@ module Comp: sig
   val for_pack: t -> string option
   (** The (optional) pack the compilation unit is in. *)
 
-  val action: t -> (Action.t * [`Both|`ML|`MLI]) option
-  (** [generated t] is either [None], which means that the source file
-      is not generated, or [Some (gen, kind)] when [action] is the
-      action to perform to generate the source file and [kind ] is the
-      kind of file which is generated. *)
+  val generated: t -> bool
+  (** [generator t] is either [None], which means that the source file
+      is not generated, or [Some files] when the source files [files]
+      of the compilation unit are generated. *)
 
   val pack: ?flags:Flags.t -> t list -> string -> t
   (** Pack a collection of compilation units together. *)
@@ -286,8 +284,7 @@ module Lib: sig
     ?available:Feature.formula ->
     ?flags:Flags.t ->
     ?pack:bool ->
-    ?deps:dep list ->
-    comp list -> string -> t
+    ?deps:dep list -> comp list -> string -> t
   (** Create a library. *)
 
   val filename: t -> string
@@ -382,7 +379,8 @@ module C: sig
 
   include S with type t = c
 
-  val create: ?dir:string -> ?flags:Flags.t -> string -> t
+  val create: ?dir:string -> ?generated:bool -> ?link_flags:string list ->
+    ?deps:dep list -> string -> t
   (** Create a C object file. *)
 
   val dll_so: t -> Resolver.t -> string
@@ -397,17 +395,18 @@ module Test: sig
   include S with type t = test
   (** Test values. *)
 
-  val create: ?dir:string -> bin -> string list -> string -> t
-  (** Create a test. *)
+  type command =
+    [ `Bin of bin * string list
+    | `Shell of string ]
 
-  val bin: t -> bin
-  (** The binary name. *)
+  val create: ?dir:string -> ?deps:dep list -> command list -> string -> t
+  (** Create a test. *)
 
   val dir: t -> string option
   (** The directory where to run the test. *)
 
-  val args: t -> string list
-  (** The arguments to pass to the test program. *)
+  val commands: t -> command list
+  (** The list of commands to run the test. *)
 
 end
 
@@ -420,67 +419,35 @@ module Dep: sig
   module Graph: G with type V.t = dep
   (** The dependency graph. *)
 
-  (** {2 Compilation units} *)
+  val comp: t -> comp option
+  (** Is the dependency a compilation unit? *)
 
-  val comp: comp -> t
-  (** A compilation unit in the same project. *)
+  val lib: t -> lib option
+  (** Is the dependency a local library? *)
 
-  val comps: comp list -> t list
-  (** A list of compilation units. *)
+  val pkg: t -> string option
+  (** Is the dependency a globally installed library in a package? *)
 
-  val filter_comps: t list -> comp list
-  (** [filter_comps deps] is the list of compilation unit in
-      [deps]. *)
+  val pp: t -> lib option
+  (** Is the dependency a local syntax extension. *)
 
-  (** {2 Libraries} *)
+  val pkg_pp: t -> string option
+  (** Is the dependency a globally installed syntax extension. *)
 
-  val lib: lib -> t
-  (** A local library. *)
+  val bin: t -> bin option
+  (** Is the dependency a binary. *)
 
-  val libs: lib list -> t list
-  (** A list of local libraries. *)
+  val gen: t -> gen option
+(** Is the dependency a generated source file. *)
 
-  val filter_libs: t list -> lib list
-  (** [filter_libs deps] is the list of local libraries in [deps]. *)
+  val js: t -> js option
+  (** Is the dependency a js_of_ocaml binary? *)
 
-  val pkg: string -> t
-  (** A globally installed library in a package. *)
+  val test: t -> test option
+  (** Is the dependency a test? *)
 
-  val pkgs: string list -> t list
-  (** A list of globally installed libraries in packages. *)
-
-  val filter_pkgs: t list -> string list
-  (** [filter_pkgs deps] is the list of globally installed libraries in
-      packages contained in [deps]. *)
-
-  (** {2 Binaries} *)
-
-  val bin: bin -> t
-  (** A local binary. *)
-
-  val bins: bin list -> t list
-  (** A list of local binaries. *)
-
-  (** {2 Pre-processors} *)
-
-  val pp: lib -> t
-  (** A local syntax extension. *)
-
-  val pps: lib list -> t list
-  (** A set of local syntax extensions. *)
-
-  val filter_pps: t list -> lib list
-  (** [filter_pps deps] is the list of local extensions in [deps]. *)
-
-  val pkg_pp: string -> t
-  (** A globally installed syntax extension. *)
-
-  val pkg_pps: string list -> t list
-  (** A list of globally installed syntax extensions. *)
-
-  val filter_pkg_pps: t list -> string list
-  (** [filter_pkg_pps] is the list of globally installed syntax
-      extension in [deps]. *)
+  val filter: (dep -> 'a option) -> dep list -> 'a list
+  (** Filter a list of dependencies. *)
 
   (** {2 Dependency closure} *)
 
