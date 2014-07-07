@@ -32,6 +32,7 @@ let mk_test name =
     test_bin describe args;
     test_bin configure args;
     test_shell "make";
+    test_shell "make distclean";
   ] name
 
 let camlp4     = mk_test "camlp4"
