@@ -17,6 +17,106 @@
 open Printf
 open Project
 
+module Bag = struct
+
+  let comp_tbl = Hashtbl.create 8
+
+  let default = "main"
+
+  let find bag =
+    try Hashtbl.find comp_tbl bag
+    with Not_found ->
+      let g = CU.Graph.create () in
+      Hashtbl.add comp_tbl bag g;
+      g
+
+  let add bag u deps =
+    let g = find bag in
+    CU.Graph.add_vertex g u;
+    Component.(filter cu) deps
+    |> List.iter (fun u' -> CU.Graph.add_edge g u' u)
+
+end
+
+let projects_list = ref []
+
+let projects () =
+  !project_list
+
+let comp ?(bag=Bag.default) ?(dir="lib") deps name =
+  let u = CU.create ~dir ~deps name in
+  Bag.add bag u deps;
+  `CU u
+
+let generated ?deps ?action f name =
+  let g = Gen.create ?deps ?action f name in
+  `Gen g
+
+let lib ?(bag=Bag.default) name =
+  let g = Bag.find bag in
+  let l = Lib.create (CU.Graph.vertex g) name in
+  `Lib l
+
+let bin ?byte_only ?link_all ?install ?(dir="bin") deps comps name =
+  let comps = List.map (CU.create ~dir ~deps) comps in
+  let b = Bin.create ?byte_only ?link_all ?install comps name in
+  `Bin b
+
+let c ?(dir="stubs") ?(link_flags=[]) libs name =
+  let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
+  let c = C.create ~dir ~link_flags name in
+  `C c
+
+let js t r = `JS (JS.create t r)
+
+let pkg x = `Pkg x
+
+let pkg_pp x = `Pkg_pp x
+
+(* Ctypes stub-generation *)
+
+let cstubs ?bag ?dir ?(headers=[]) ?(cflags=[]) ?(clibs=[]) deps name =
+
+  (* 1. compile the bindings. *)
+  let deps = `Pkg "ctypes.stubs" :: deps in
+  let name_bindings = name ^ "_bindings" in
+  let bindings = comp ?bag ?dir deps name_bindings in
+
+  (* 2. Generate and compile the generator. *)
+  let name_generator = name ^ "_generator" in
+  let generator =
+    let action r =
+      let headers = match headers with
+        | [] -> ""
+        | hs -> sprintf "--headers %s " (String.concat "," hs) in
+      Action.create ~dir:(Resolver.build_dir r "") "ctypes-gen %s" headers
+    in
+    let gen = generated ~action `ML name_generator in
+    let comp = CU.create ~deps:[gen; bindings] name_generator in
+    let bin =
+      Bin.create ~install:false [comp] name_generator in
+    `Bin bin in
+
+  (* 3. Generate and compile the stubs. *)
+  let name_stubs = name ^ "_stubs" in
+  let ml_stubs =
+    let action r =
+      Action.create ~dir:(Resolver.build_dir r "") "./%s.byte" name_generator in
+    let gen = generated ~deps:[generator] ~action `ML name_stubs in
+    comp ?bag [gen] name_stubs in
+  let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
+  let c_stubs =
+    let c = C.create ~generated:true ~deps:[generator] ~link_flags name_stubs in
+    `C c in
+  let flags = Flags.(cclib link_flags @ stub name_stubs) in
+  let gen = generated ~deps:[generator] `ML name in
+  let comp = comp ?bag [bindings; ml_stubs; c_stubs; gen] name in
+  let comp = match Component.cu comp with
+    | Some c -> c
+    | None   -> assert false in
+  let lib = Lib.create ~flags [comp] name in
+  `Lib lib
+
 let timestamp =
   let t = Unix.gettimeofday () in
   let months = [| "Jan"; "Feb"; "Mar"; "Apr"; "May"; "Jun";
@@ -84,7 +184,7 @@ let configure `Make t env =
   Opam.Install.(write @@ of_project ~build_dir t)
 
 let describe t env =
-  let print_deps x = match Dep.filter_pkgs x @ Dep.filter_pkg_pps x with
+  let print_deps x = match Dep.(filter pkg x) @ Dep.(filter pkg_pp x) with
     | [] -> ""
     | ds -> sprintf "  ├─── [%s]\n"
               (String.concat " " (List.map (Shell.color `bold) ds)) in
@@ -117,6 +217,7 @@ let describe t env =
   printf "\n%s %s %s\n\n"
     (Shell.color `yellow "==>")
     (Shell.color `underline (Project.name t)) (Project.version t);
-  print_libs (Project.libs t);
-  print_libs (Project.pps t);
-  print_bins (Project.bins t)
+  let contents = Project.contents t in
+  print_libs Dep.(filter lib contents);
+  print_libs Dep.(filter pp contents);
+  print_bins Dep.(filter bin contents)

@@ -36,6 +36,9 @@ type cnf = [ `Conflict | `And of [ `P of t | `N of t ] list ]
 module Set: Set.S with type elt = t
 (** Set of features. *)
 
+val (++): Set.t -> Set.t -> Set.t
+(** Union of feature sets. *)
+
 val (@): cnf -> cnf -> cnf
 (** Concatenation of CNF formulaes. *)
 

@@ -39,6 +39,113 @@
 
 (** {1:project Project} *)
 
+type t
+(** The type for descriptions of full OCaml projects. *)
+
+type comp
+(** The type for description of compilation units. *)
+
+type lib
+(** The type for description of of libraries. *)
+
+type bin
+(** The type for description of binaries. *)
+
+type test
+(** The type for description of tests. *)
+
+type js
+(** The type for description of [js_of_ocaml] artifacts. *)
+
+type c
+(** The type for description of C source files. *)
+
+type gen
+(** The type for generated OCaml source code. *)
+
+type component =
+  [ `Comp of comp
+  | `Lib of lib
+  | `Pp of lib
+  | `Pkg_pp of string
+  | `Pkg of string
+  | `Bin of bin
+  | `C of c
+  | `JS of js
+  | `Test of test
+  | `Gen of gen ]
+(** The type for all the possible component descriptions. A [`Comp c]
+    is a local compilation unit, [`Lib l] are local libraries, [`Pp p]
+    are local pre-processors and [`Bin] are local binaries.
+
+    [`Pkg p] are globally installed packages and [`Pkg_pp] are
+    globally installed pre-processor packages, both usually managed by
+    {i ocamlfind}, *)
+
+(** {2 Basic API} *)
+
+val comp: ?bag:string -> ?dir:string ->
+  component list -> string -> [`Comp of comp]
+(** [comp ~lib ~dir deps name] is the compilation unit in the bag of
+    compilation units [bag], located in the directory [dir], which the
+    dependencies [deps] and the cname [name]. The name is the same as
+    the filename, without its extension.  By default, [dir] is set to
+    {i lib/} and [bag] is {i "main"}. *)
+
+val generated: ?action:(Resolver.t -> Action.t) ->
+  component list -> [`Both|`ML|`MLI] -> string -> [`Gen of gen]
+(** Generated OCaml source file(s). *)
+
+val c: ?dir:string -> ?link_flags:string list ->
+  component list -> string list -> string -> [`C c]
+(** [c libs name] is the C file [name.c], which need the C libraries
+    [libs] to be compiled. *)
+
+val cstubs:
+  ?bag:string -> ?dir:string -> ?headers:string list ->
+  ?cflags:string list -> ?clibs:string list ->
+  descr list -> string -> [`Lib of lib]
+(** [stubs deps name] is the C stub generations, using Ctypes, of the
+    compilation unit [name]. *)
+
+val lib: ?bag:string -> string -> [`Lib of lib]
+(** Build a library from a bag of compilation units. By default, use
+    all the compilation unit registered in the {i "main"} bag. *)
+
+val bin:
+  ?byte_only:bool -> ?link_all:bool -> ?install:bool -> ?dir:string ->
+  descr list -> string list -> string -> [`Bin of bin]
+(** [bin deps units name] is the binary [name] obtained by compiling
+    the compilation units [units], with the dependencies [deps]. By
+    default, the source files are located into {i bin/} (this is
+    controled by the value of [dir]). *)
+
+val js: bin -> string list -> [`JS of js]
+(** [js bin args] is the decription of a javascript artefact generated
+    by [js_of_ocaml]. *)
+
+val pkg: string -> [`Pkg of string]
+(** An external package. *)
+
+val pkg_pp: string -> [`Pkg_pp of string]
+(** An external pre-processor. *)
+
+val create:
+  ?flags:Flags.t ->
+  ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
+  ?version:string ->
+  dep list -> string -> unit
+(** [create deps name] registers the project named [name], defining
+    the libraries, binaries and tests defined by the transitive
+    closure of objects in [deps]. *)
+
+val list: unit -> t list
+(** Return the project already registered. *)
+
+val generated_from_custom_generators: t -> Resolver.t -> string list
+(** Return the list of generated file from a custom action
+    generators. *)
+
 (** {1:features Features} *)
 
 (** {1:flags Flags} *)

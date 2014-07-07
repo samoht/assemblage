@@ -1,4 +1,4 @@
-open Project
+open Assemblage
 
 (* OCamlfind packages *)
 
@@ -32,10 +32,10 @@ let lib =
   lib "assemblage"
 
 let configure =
-  bin ~link_all:true ~byte_only:true [`Lib lib] ["configure"] "configure.ml"
+  bin ~link_all:true ~byte_only:true [lib] ["configure"] "configure.ml"
 
 let describe =
-  bin ~link_all:true ~byte_only:true [`Lib lib] ["describe"] "describe.ml"
+  bin ~link_all:true ~byte_only:true [lib] ["describe"] "describe.ml"
 
 let ctypes_gen =
   bin [cmdliner] ["ctypes_gen"] "ctypes-gen"
@@ -44,10 +44,15 @@ let ctypes_gen =
 
 let mk_test name =
   let dir = "examples/" ^ name in
-  Test.create ~dir describe [
+  let args = [
     "--disable-auto-load";
-    "-I"; Printf.sprintf "../../_build/%s" (Lib.id lib)
-  ] name
+    "-I"; Printf.sprintf "../../_build/%s" (id lib)
+  ] in
+  Test.create ~dir [
+    `Bin (describe,  args);
+    `Bin (configure, args);
+    `Shell "make"
+  ]
 
 let camlp4     = mk_test "camlp4"
 let multi_libs = mk_test "multi-libs"

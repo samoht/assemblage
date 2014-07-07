@@ -41,6 +41,8 @@ module Set = Set.Make(struct
     let compare x y = String.compare x.name y.name
   end)
 
+let (++) = Set.union
+
 let atoms t =
   let set = ref Set.empty in
   let rec aux = function

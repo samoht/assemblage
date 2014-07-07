@@ -16,8 +16,8 @@
 
 open Printf
 
-type dep =
-  [ `Comp of comp
+type component =
+  [ `CU of cu
   | `Lib of lib
   | `Pp of lib
   | `Bin of bin
@@ -28,31 +28,31 @@ type dep =
   | `Test of test
   | `Gen of gen ]
 
-and comp = {
-  u_name             : string;
-  u_dir              : string option;
-  mutable u_deps     : dep list;
-  mutable u_container: [`Lib of lib | `Bin of bin] option;
-  mutable u_for_pack : string option;
-  mutable u_pack     : comp list;
-  mutable u_flags    : Flags.t;
-  u_generated        : bool;
-  u_mli              : bool;
-  u_ml               : bool;
+and cu = {
+  cu_name             : string;
+  cu_dir              : string option;
+  mutable cu_deps     : component list;
+  mutable cu_container: [`Lib of lib | `Bin of bin] option;
+  mutable cu_for_pack : string option;
+  mutable cu_pack     : cu list;
+  mutable cu_flags    : Flags.t;
+  cu_generated        : bool;
+  cu_mli              : bool;
+  cu_ml               : bool;
 }
 
 and lib = {
   l_name            : string;
-  l_comps           : comp list;
+  l_comps           : cu list;
   mutable l_filename: string;
   l_available       : Feature.formula;
   mutable l_flags   : Flags.t;
-  l_deps            : dep list;
+  l_deps            : component list;
 }
 
 and bin = {
-  b_deps     : dep list;
-  b_comps    : comp list;
+  b_deps     : component list;
+  b_comps    : cu list;
   b_name     : string;
   b_available: Feature.formula;
   b_flags    : Flags.t;
@@ -64,7 +64,7 @@ and c = {
   c_dir       : string option;
   c_name      : string;
   c_link_flags: string list;
-  c_deps      : dep list;
+  c_deps      : component list;
   c_generated : bool;
 }
 
@@ -72,7 +72,7 @@ and test = {
   t_name     : string;
   t_dir      : string option;
   t_commands : test_command list;
-  t_deps     : dep list;
+  t_deps     : component list;
 }
 
 and js = {
@@ -86,20 +86,20 @@ and test_command =
 
 and gen = {
   g_name        : string;
-  mutable g_comp: comp option;
+  mutable g_comp: cu option;
   g_action      : (Resolver.t -> Action.t);
-  g_deps        : dep list;
+  g_deps        : component list;
   g_files       : [`Both|`ML|`MLI];
 }
 
 type t = {
-  name     : string;
-  version  : string;
-  flags    : Flags.t;
-  deps     : dep list;
-  doc_css  : string option;
-  doc_intro: string option;
-  doc_dir  : string;
+  name      : string;
+  version   : string;
+  flags     : Flags.t;
+  components: component list;
+  doc_css   : string option;
+  doc_intro : string option;
+  doc_dir   : string;
 }
 
 module type G = sig
@@ -111,14 +111,15 @@ end
 
 module type S = sig
   type t
+  type component
   val id: t -> string
   val name: t -> string
-  val deps: t -> dep list
+  val deps: t -> component list
+  val build_dir: t -> Resolver.t -> string
   val file: t -> Resolver.t -> string -> string
   val generated_files: t -> Resolver.t -> (Feature.formula * string list) list
   val flags: t -> Resolver.t -> Flags.t
   val prereqs: t -> Resolver.t -> [`Byte | `Native] -> string list
-  val build_dir: t -> Resolver.t -> string
   module Graph: G with type V.t = t
 end
 
@@ -145,52 +146,427 @@ let (//) x y =
   | None   -> y
   | Some x -> Filename.concat x y
 
-let rec comp_id t =
-  match t.u_container with
-  | None          -> t.u_name
-  | Some (`Lib l) -> lib_id l ^ "-" ^ t.u_name
-  | Some (`Bin b) -> bin_id b ^ "-" ^ t.u_name
+module rec Component: sig
+  include S with type t = component and type component = component
+  val cu: t -> cu option
+  val lib: t -> lib option
+  val pkg: t -> string option
+  val pp: t -> lib option
+  val pkg_pp: t -> string option
+  val bin: t -> bin option
+  val c: t -> c option
+  val js: t -> js option
+  val gen: t -> gen option
+  val test: t -> test option
+  val filter: (t -> 'a option) -> t list -> 'a list
+  val closure: t list -> t list
+  (* not exported *)
+  val comp_byte: t list -> string -> Resolver.t -> string list
+  val comp_native: t list -> string -> Resolver.t -> string list
+  val pp_byte: t list -> Resolver.t -> string list
+  val pp_native: t list -> Resolver.t -> string list
+  val link_byte: t list -> cu list -> Resolver.t -> string list
+  val link_native: t list -> cu list -> Resolver.t -> string list
+end = struct
 
-and lib_id t = "lib-" ^ t.l_name
+  type t = component
 
-and bin_id t = "bin-" ^ t.b_name
+  type component = t
 
-let c_id t = "c-" ^ t.c_name
+  let id: t -> string = function
+    | `CU cu  -> CU.id cu
+    | `Lib l
+    | `Pp l   -> Lib.id l
+    | `Bin b  -> Bin.id b
+    | `C c    -> C.id c
+    | `Pkg_pp p
+    | `Pkg p  -> Pkg.id p
+    | `Test t -> Test.id t
+    | `JS js  -> JS.id js
+    | `Gen g  -> Gen.id g
 
-let test_id t =
-  "test-" ^ t.t_name
+  module Graph = Graph(struct type t = component let id = id end)
 
-let js_id t =
-  bin_id t.j_bin ^ "-js"
+  let name: t -> string = function
+    | `CU cu  -> CU.name cu
+    | `Lib l
+    | `Pp l   -> Lib.name l
+    | `Bin b  -> Bin.name b
+    | `C c    -> C.name c
+    | `Pkg_pp p
+    | `Pkg p  -> Pkg.name p
+    | `Test t -> Test.name t
+    | `JS js  -> JS.name js
+    | `Gen g  -> Gen.name g
 
-let gen_id t =
-  "gen-" ^ t.g_name
+  let prereqs: t -> Resolver.t -> [`Byte|`Native] -> string list = function
+    | `CU cu  -> CU.prereqs cu
+    | `Lib l
+    | `Pp l   -> Lib.prereqs l
+    | `Bin b  -> Bin.prereqs b
+    | `C c    -> C.prereqs c
+    | `Pkg_pp p
+    | `Pkg p  -> Pkg.prereqs p
+    | `Test t -> Test.prereqs t
+    | `JS js  -> JS.prereqs js
+    | `Gen g  -> Gen.prereqs g
 
-let comp_deps t = t.u_deps
+  let flags: t -> Resolver.t -> Flags.t = function
+    | `CU cu  -> CU.flags cu
+    | `Lib l
+    | `Pp l   -> Lib.flags l
+    | `Bin b  -> Bin.flags b
+    | `C c    -> C.flags c
+    | `Pkg_pp p
+    | `Pkg p  -> Pkg.flags p
+    | `Test t -> Test.flags t
+    | `JS js  -> JS.flags js
+    | `Gen g  -> Gen.flags g
 
-let lib_deps t =
-  t.l_comps
-  |> conmap comp_deps
+  let generated_files: t -> Resolver.t -> (Feature.formula * string list) list
+    = function
+    | `CU cu  -> CU.generated_files cu
+    | `Lib l
+    | `Pp l   -> Lib.generated_files l
+    | `Bin b  -> Bin.generated_files b
+    | `C c    -> C.generated_files c
+    | `Pkg_pp p
+    | `Pkg p  -> Pkg.generated_files p
+    | `Test t -> Test.generated_files t
+    | `JS js  -> JS.generated_files js
+    | `Gen g  -> Gen.generated_files g
 
-let bin_deps t =
-  t.b_deps
+  let file: t -> Resolver.t -> string -> string = function
+    | `CU cu  -> CU.file cu
+    | `Lib l
+    | `Pp l   -> Lib.file l
+    | `Bin b  -> Bin.file b
+    | `C c    -> C.file c
+    | `Pkg_pp p
+    | `Pkg p  -> Pkg.file p
+    | `Test t -> Test.file t
+    | `JS js  -> JS.file js
+    | `Gen g  -> Gen.file g
 
-let rec comp_build_dir t resolver =
-  match t.u_container with
-  | None          -> Resolver.build_dir resolver ""
-  | Some (`Lib l) -> lib_build_dir l resolver
-  | Some (`Bin b) -> bin_build_dir b resolver
+  let build_dir: t -> Resolver.t -> string = function
+    | `CU cu  -> CU.build_dir cu
+    | `Lib l
+    | `Pp l   -> Lib.build_dir l
+    | `Bin b  -> Bin.build_dir b
+    | `C c    -> C.build_dir c
+    | `Pkg_pp p
+    | `Pkg p  -> Pkg.build_dir p
+    | `Test t -> Test.build_dir t
+    | `JS js  -> JS.build_dir js
+    | `Gen g  -> Gen.build_dir g
 
-and lib_build_dir t resolver =
-  Resolver.build_dir resolver (lib_id t)
+  let deps: t -> t list = function
+    | `CU cu  -> CU.deps cu
+    | `Lib l
+    | `Pp l   -> Lib.deps l
+    | `Bin b  -> Bin.deps b
+    | `C c    -> C.deps c
+    | `Pkg_pp p
+    | `Pkg p  -> Pkg.deps p
+    | `Test t -> Test.deps t
+    | `JS js  -> JS.deps js
+    | `Gen g  -> Gen.deps g
 
-and bin_build_dir t resolver =
-  Resolver.build_dir resolver (bin_id t)
+  let cu _ = (*function `CU x -> Some x  | _ -> None*) failwith "TODO"
 
-module Comp_file = struct
+  let lib _ = (*function `Lib x -> Some x | _ -> None*) failwith "TODO"
+
+  let pp _ = (*function `Pp x -> Some x | _ -> None*) failwith "TODO"
+
+  let pkg _ = (*function `Pkg x -> Some x | _ -> None*) failwith "TODO"
+
+  let pkg_pp _ = (*function `Pkg_pp x -> Some x | _ -> None*) failwith "TODO"
+
+  let bin _ = (*function `Bin x -> Some x | _ -> None*)failwith "TODO"
+
+  let test _ = (*function `Test x -> Some x | _ -> None*)failwith "TODO"
+
+  let js _ = (*function `JS x -> Some x | _ -> None*)failwith "TODO"
+
+  let c _ = (*function `C c -> Some c | _ -> None*)failwith "TODO"
+
+  let gen _ = (*function `Gen x -> Some x | _ -> None*)failwith "TODO"
+
+  let filter fn l =
+    List.fold_left (fun acc x ->
+        match fn x with
+        | None   -> acc
+        | Some x -> x :: acc
+      ) [] l
+
+  let closure (ts:t list): t list =
+    let deps = Hashtbl.create 24 in
+    let rec aux acc = function
+      | []          -> List.rev acc
+      | h :: t as d ->
+        if Hashtbl.mem deps h then
+          match Hashtbl.find deps h with
+          | 0 -> Hashtbl.replace deps h 1; aux (h :: acc) t
+          | _ -> aux acc t
+        else (
+          Hashtbl.add deps h 0;
+          match h with
+          | `CU cu ->
+            let d' = CU.deps cu in
+            aux acc (d' @ d)
+          | `Lib l ->
+            let d' = Lib.deps l in
+            aux acc (d' @ d)
+          | _ -> Hashtbl.replace deps h 1; aux (h :: acc) t
+        )
+    in
+    aux [] ts
+
+  let comp_flags mode (deps:t list) incl resolver =
+    let incl = sprintf "-I %s" incl in
+    let libs = filter lib deps in
+    let libs = List.map (fun l ->
+        sprintf "-I %s" (Lib.build_dir l resolver);
+      ) libs in
+    let libs = String.concat " " (incl :: libs) in
+    let pkgs = filter pkg deps in
+    let pkgs = match pkgs with
+      | [] -> []
+      | _  ->
+        let pkgs = Resolver.pkgs resolver pkgs in
+        match mode with
+        | `Byte   -> Flags.comp_byte pkgs
+        | `Native -> Flags.comp_native pkgs in
+    pkgs @ [libs]
+
+  let comp_byte _ = (*comp_flags `Byte*) failwith "TODO"
+
+  let comp_native _ = (*comp_flags `Native*) failwith "TODO"
+
+  let link_flags mode (deps:t list) comps resolver =
+    let comps = List.map (fun u ->
+        let file = match mode with
+          | `Byte   -> CU.cmo u resolver
+          | `Native -> CU.cmx u resolver in
+        sprintf "%s/%s" (Filename.dirname file) (Filename.basename file)
+      ) comps in
+    let libs = filter lib deps in
+    let libs = List.map (fun l ->
+        let file = match mode with
+          | `Byte   -> Lib.cma l resolver
+          | `Native -> Lib.cmxa l resolver in
+        sprintf "%s/%s" (Filename.dirname file) (Filename.basename file)
+      ) libs in
+    let pkgs = filter pkg deps in
+    let pkgs = match pkgs with
+      | [] -> []
+      | _  ->
+        let pkgs = Resolver.pkgs resolver pkgs in
+        match mode with
+        | `Byte   -> Flags.link_byte pkgs
+        | `Native -> Flags.link_native pkgs in
+    pkgs @ libs @ comps
+
+  let link_byte _ = (*link_flags `Byte*) failwith "TODO"
+
+  let link_native _ = (*link_flags `Native*) failwith "TODO"
+
+  let pp_flags mode (deps:t list) resolver =
+    let libs = filter pp deps in
+    let pkgs = filter pkg_pp deps in
+    match libs, pkgs with
+    | [], [] -> []
+    | _ , _  ->
+      let libs = List.map (fun l ->
+          sprintf "-I %s %s" (Lib.build_dir l resolver)
+            (match mode with
+             | `Byte   -> Lib.cma  l resolver
+             | `Native -> Lib.cmxa l resolver)
+        ) libs in
+      let pkgs =
+        let pkgs = Resolver.pkgs resolver pkgs in
+        match mode with
+        | `Byte   -> Flags.pp_byte pkgs
+        | `Native -> Flags.pp_native pkgs in
+      pkgs @ libs
+
+  let pp_byte _ = (*pp_flags `Byte*) failwith "TODO"
+
+  let pp_native _ = (*pp_flags `Native*) failwith "TODO"
+
+end
+
+and Pkg: sig
+  include S with type t = string and type component = Component.t
+end = struct
+
+  type t = string
+
+  type tmp = component
+  type component = tmp
+
+  let id t = "pkg-" ^ t
+
+  module Graph = Graph(struct type t = string let id = id end)
+
+  let name t = t
+
+  let prereqs _t _r _mode = []
+
+  let flags t r =
+    Resolver.pkgs r [t]
+
+  let build_dir _t _r =
+    failwith "Pkg.build_dir"
+
+  let deps _t = []
+
+  let generated_files _t _r = []
+
+  let file _t _r _ext =
+    failwith "Pkg.file"
+
+end
+
+and CU: sig
+  include S with type t = cu and type component = Component.t
+  val create:
+    ?flags:Flags.t ->
+    ?dir:string ->
+    ?deps:Component.t list -> string -> t
+  val copy: t -> t
+  val dir: t -> string option
+  val container: t -> [`Lib of Lib.t |`Bin of Bin.t]  option
+  val mli: t -> bool
+  val ml: t -> bool
+  val for_pack: t -> string option
+  val generated: t -> bool
+  val pack: ?flags:Flags.t -> t list -> string -> t
+  val unpack: t -> t list
+  val cmi: t -> Resolver.t -> string
+  val cmo: t -> Resolver.t -> string
+  val cmx: t -> Resolver.t -> string
+  val o: t -> Resolver.t -> string
+  (* not expored *)
+  val set_lib_container: t -> Lib.t -> unit
+  val set_bin_container: t -> Bin.t -> unit
+  val add_deps: t -> Component.t list -> unit
+end = struct
+
+  type t = cu
+
+  type tmp = component
+  type component = tmp
+
+  let id t =
+    match t.cu_container with
+    | None          -> t.cu_name
+    | Some (`Lib l) -> Lib.id l ^ "-" ^ t.cu_name
+    | Some (`Bin b) -> Bin.id b ^ "-" ^ t.cu_name
+
+  module Graph = Graph(struct type t = cu let id = id end)
+
+  let ml t = t.cu_ml
+
+  let mli t = t.cu_mli
+
+  let generated t =
+    t.cu_generated
+
+  let rec copy t =
+    { cu_dir       = t.cu_dir;
+      cu_deps      = t.cu_deps;
+      cu_name      = t.cu_name;
+      cu_container = t.cu_container;
+      cu_for_pack  = t.cu_for_pack;
+      cu_pack      = List.map copy t.cu_pack;
+      cu_flags     = t.cu_flags;
+      cu_ml        = t.cu_ml;
+      cu_mli       = t.cu_mli;
+      cu_generated = t.cu_generated;
+    }
+
+  let dir t = t.cu_dir
+
+  let build_dir t resolver =
+    match t.cu_container with
+    | None          -> Resolver.build_dir resolver ""
+    | Some (`Lib l) -> Lib.build_dir l resolver
+    | Some (`Bin b) -> Bin.build_dir b resolver
+
+  let name t = t.cu_name
+
+  let deps t = t.cu_deps
+
+  let container t = t.cu_container
+
+  let for_pack t = t.cu_for_pack
+
+  let unpack t = t.cu_pack
+
+  let set_lib_container t lib =
+    t.cu_container <- Some (`Lib lib)
+
+  let set_bin_container t bin =
+    t.cu_container <- Some (`Bin bin)
+
+  let add_deps t deps =
+    t.cu_deps <- t.cu_deps @ deps
+
+  let create
+      ?(flags=Flags.empty)
+      ?dir ?(deps=[])
+      name =
+    let gens = Component.(filter gen) deps in
+    let mli = match gens with
+      | [] -> Sys.file_exists (dir // name ^ ".mli")
+      | _  -> List.exists (fun g -> g.g_files = `Both || g.g_files = `MLI) gens in
+    let ml = match gens with
+      | [] -> Sys.file_exists (dir // name ^ ".ml")
+      | _  -> List.exists (fun g -> g.g_files = `Both || g.g_files = `ML) gens in
+    if not ml && not mli then (
+      eprintf
+        "\027[31m[ERROR]\027[m Cannot find %s.ml or %s.mli, stopping.\n"
+        name name;
+      exit 1;
+    );
+    let t = {
+      cu_name      = name;
+      cu_dir       = dir ;
+      cu_deps      = deps;
+      cu_flags     = flags;
+      cu_container = None;
+      cu_for_pack  = None;
+      cu_pack      = [];
+      cu_generated = gens <> [];
+      cu_ml        = ml;
+      cu_mli       = mli;
+    } in
+    List.iter (fun g ->
+        let g = match g.g_comp with
+          | None   -> g
+          | Some _ -> { g with g_comp = None } in
+        g.g_comp <- Some t
+      ) gens;
+    t
+
+  let pack ?(flags=Flags.empty) comps name =
+    List.iter (fun u -> u.cu_for_pack <- Some (String.capitalize name)) comps;
+    {
+      cu_name      = name;
+      cu_flags     = flags;
+      cu_dir       = None;
+      cu_container = None;
+      cu_for_pack  = None;
+      cu_deps      = [];
+      cu_pack      = comps;
+      cu_ml        = false;
+      cu_mli       = false;
+      cu_generated = false;
+    }
 
   let file t r ext =
-    comp_build_dir t r / t.u_name ^ ext
+    build_dir t r / t.cu_name ^ ext
 
   let cmi t r =
     file t r ".cmi"
@@ -210,12 +586,108 @@ module Comp_file = struct
   let cmti t r =
     file t r ".cmti"
 
+  let generated_files t resolver =
+    let mk f = f t resolver in
+    [
+      Feature.true_ , [mk cmi ; mk cmo ];
+      Feature.native, [mk o   ; mk cmx ];
+      Feature.annot , [mk cmt ; mk cmti];
+    ]
+
+  let prereqs t resolver mode =
+    let deps = deps t in
+    let comps = Component.(filter cu) deps in
+    let comps = List.map (fun u ->
+        match mode with
+        | `Native -> cmx u resolver
+        | `Byte   -> cmi u resolver
+      ) comps in
+    let libs = Component.(filter lib) deps in
+    let libs = List.map (fun l ->
+        match mode with
+        | `Native -> Lib.cmxa l resolver
+        | `Byte   -> Lib.cma  l resolver
+      ) libs in
+    let pps = Component.(filter pp) deps in
+    let pps = List.map (fun l -> Lib.cma l resolver) pps in
+    comps @ libs @ pps
+
+  (* XXX: memoize the function *)
+  let flags t resolver =
+    let deps = deps t |> Component.closure in
+    let incl = build_dir t resolver in
+    let comp_byte = Component.comp_byte deps incl resolver in
+    let comp_native = Component.comp_native deps incl resolver in
+    let pp_byte = Component.pp_byte deps resolver in
+    let pp_native = Component.pp_native deps resolver in
+    let t' = Flags.create ~comp_byte ~comp_native ~pp_byte ~pp_native () in
+    Flags.(t' @ t.cu_flags)
+
 end
 
-module Lib_file = struct
+and Lib: sig
+  include S with type t = lib and type component = Component.t
+  val create:
+    ?available:Feature.formula ->
+    ?flags:Flags.t ->
+    ?pack:bool ->
+    ?deps:Component.t list -> CU.t list -> string -> t
+  val filename: t -> string
+  val compilation_units: t -> CU.t list
+  val available: t -> Feature.formula
+  val cma: t -> Resolver.t -> string
+  val cmxa: t -> Resolver.t -> string
+  val a: t -> Resolver.t -> string
+  val cmxs: t -> Resolver.t -> string
+  (* not exported *)
+  val set_filename: t -> string -> unit
+end = struct
+
+  type t = lib
+
+  type tmp = component
+  type component = tmp
+
+  let id t = "lib-" ^ t.l_name
+
+  module Graph = Graph(struct type t = lib let id = id end)
+
+  let deps t =
+    t.l_comps
+    |> conmap CU.deps
+
+  let name t = t.l_name
+
+  let build_dir t resolver =
+    Resolver.build_dir resolver (id t)
+
+  let compilation_units t = t.l_comps
+
+  let filename t = t.l_filename
+
+  let set_filename t f =
+    t.l_filename <- f
+
+  let available t = t.l_available
+
+  let create
+      ?(available=Feature.true_)
+      ?(flags=Flags.empty)
+      ?(pack=false) ?(deps=[]) comps name =
+    let comps' = if pack then [CU.pack comps name] else comps in
+    let t = {
+      l_name      = name;
+      l_comps     = comps';
+      l_available = available;
+      l_flags     = flags;
+      l_filename  = name;
+      l_deps      = deps } in
+    List.iter (fun u -> CU.add_deps u deps) comps;
+    List.iter (fun u -> CU.set_lib_container u t) (comps' @ comps);
+    t
 
   let file t r ext =
-    lib_build_dir t r / t.l_name ^ ext
+    build_dir t r / t.l_name ^ ext
 
   let cma t r =
     file t r ".cma"
@@ -229,328 +701,6 @@ module Lib_file = struct
   let a t r =
     file t r ".a"
 
-end
-
-module Dep = struct
-
-  type t = dep
-
-  let id: dep -> string = function
-    | `Comp u -> comp_id u
-    | `Lib l
-    | `Pp l   -> lib_id l
-    | `Bin b  -> bin_id b
-    | `C c    -> c_id c
-    | `Pkg_pp p
-    | `Pkg p  -> "ext-" ^ p
-    | `Test t -> test_id t
-    | `JS js  -> js_id js
-    | `Gen g  -> gen_id g
-
-  module Graph = Graph(struct type t = dep let id = id end)
-
-  let comp = function `Comp x -> Some x  | _ -> None
-
-  let lib = function `Lib x -> Some x | _ -> None
-
-  let pp = function `Pp x -> Some x | _ -> None
-
-  let pkg = function `Pkg x -> Some x | _ -> None
-
-  let pkg_pp = function `Pkg_pp x -> Some x | _ -> None
-
-  let bin = function `Bin x -> Some x | _ -> None
-
-  let test = function `Test x -> Some x | _ -> None
-
-  let js = function `JS x -> Some x | _ -> None
-
-  let gen = function `Gen x -> Some x | _ -> None
-
-  let filter fn l =
-    List.fold_left (fun acc x ->
-        match fn x with
-        | None   -> acc
-        | Some x -> x :: acc
-      ) [] l
-
-  let closure ts =
-    let deps = Hashtbl.create 24 in
-    let rec aux acc = function
-      | []          -> List.rev acc
-      | h :: t as d ->
-        if Hashtbl.mem deps h then
-          match Hashtbl.find deps h with
-          | 0 -> Hashtbl.replace deps h 1; aux (h :: acc) t
-          | _ -> aux acc t
-        else (
-          Hashtbl.add deps h 0;
-          match h with
-          | `Comp u ->
-            let d' = comp_deps u in
-            aux acc (d' @ d)
-          | `Lib l ->
-            let d' = lib_deps l in
-            aux acc (d' @ d)
-          | _ -> Hashtbl.replace deps h 1; aux (h :: acc) t
-        )
-    in
-    aux [] ts
-
-  let comp_flags mode (deps:t list) incl resolver =
-    let incl = sprintf "-I %s" incl in
-    let libs = filter lib deps in
-    let libs = List.map (fun l ->
-        sprintf "-I %s" (lib_build_dir l resolver);
-      ) libs in
-    let libs = String.concat " " (incl :: libs) in
-    let pkgs = filter pkg deps in
-    let pkgs = match pkgs with
-      | [] -> []
-      | _  ->
-        let pkgs = Resolver.pkgs resolver pkgs in
-        match mode with
-        | `Byte   -> Flags.comp_byte pkgs
-        | `Native -> Flags.comp_native pkgs in
-    pkgs @ [libs]
-
-  let comp_byte = comp_flags `Byte
-
-  let comp_native = comp_flags `Native
-
-  let link_flags mode (deps:t list) comps resolver =
-    let comps = List.map (fun u ->
-        let file = match mode with
-          | `Byte   -> Comp_file.cmo u resolver
-          | `Native -> Comp_file.cmx u resolver in
-        sprintf "%s/%s" (Filename.dirname file) (Filename.basename file)
-      ) comps in
-    let libs = filter lib deps in
-    let libs = List.map (fun l ->
-        let file = match mode with
-          | `Byte   -> Lib_file.cma l resolver
-          | `Native -> Lib_file.cmxa l resolver in
-        sprintf "%s/%s" (Filename.dirname file) (Filename.basename file)
-      ) libs in
-    let pkgs = filter pkg deps in
-    let pkgs = match pkgs with
-      | [] -> []
-      | _  ->
-        let pkgs = Resolver.pkgs resolver pkgs in
-        match mode with
-        | `Byte   -> Flags.link_byte pkgs
-        | `Native -> Flags.link_native pkgs in
-    pkgs @ libs @ comps
-
-  let link_byte = link_flags `Byte
-
-  let link_native = link_flags `Native
-
-  let pp_flags mode (deps:t list) resolver =
-    let libs = filter pp deps in
-    let pkgs = filter pkg_pp deps in
-    match libs, pkgs with
-    | [], [] -> []
-    | _ , _  ->
-      let libs = List.map (fun l ->
-          sprintf "-I %s %s" (lib_build_dir l resolver)
-            (match mode with
-             | `Byte   -> Lib_file.cma  l resolver
-             | `Native -> Lib_file.cmxa l resolver)
-        ) libs in
-      let pkgs =
-        let pkgs = Resolver.pkgs resolver pkgs in
-        match mode with
-        | `Byte   -> Flags.pp_byte pkgs
-        | `Native -> Flags.pp_native pkgs in
-      pkgs @ libs
-
-  let pp_byte = pp_flags `Byte
-
-  let pp_native = pp_flags `Native
-
-end
-
-module Comp = struct
-
-  type t = comp
-
-  let id = comp_id
-
-  module Graph = Graph(struct type t = comp let id = id end)
-
-  let ml t = t.u_ml
-
-  let mli t = t.u_mli
-
-  let generated t =
-    t.u_generated
-
-  let rec copy t =
-    { u_dir       = t.u_dir;
-      u_deps      = t.u_deps;
-      u_name      = t.u_name;
-      u_container = t.u_container;
-      u_for_pack  = t.u_for_pack;
-      u_pack      = List.map copy t.u_pack;
-      u_flags     = t.u_flags;
-      u_ml        = t.u_ml;
-      u_mli       = t.u_mli;
-      u_generated = t.u_generated;
-    }
-
-  let dir t = t.u_dir
-
-  let build_dir t = comp_build_dir t
-
-  let name t = t.u_name
-
-  let deps = comp_deps
-
-  let container t = t.u_container
-
-  let for_pack t = t.u_for_pack
-
-  let unpack t = t.u_pack
-
-  let set_lib t lib =
-    t.u_container <- Some (`Lib lib)
-
-  let set_bin t bin =
-    t.u_container <- Some (`Bin bin)
-
-  let add_deps t deps =
-    t.u_deps <- t.u_deps @ deps
-
-  let create
-      ?(flags=Flags.empty)
-      ?dir ?(deps=[])
-      name =
-    let gens = Dep.(filter gen deps) in
-    let mli = match gens with
-      | [] -> Sys.file_exists (dir // name ^ ".mli")
-      | _  -> List.exists (fun g -> g.g_files = `Both || g.g_files = `MLI) gens in
-    let ml = match gens with
-      | [] -> Sys.file_exists (dir // name ^ ".ml")
-      | _  -> List.exists (fun g -> g.g_files = `Both || g.g_files = `ML) gens in
-    if not ml && not mli then (
-      eprintf
-        "\027[31m[ERROR]\027[m Cannot find %s.ml or %s.mli, stopping.\n"
-        name name;
-      exit 1;
-    );
-    let t = {
-      u_name = name; u_dir = dir ; u_deps = deps; u_flags = flags;
-      u_container = None;
-      u_for_pack  = None;
-      u_pack      = [];
-      u_generated = gens <> [];
-      u_ml = ml; u_mli = mli;
-    } in
-    List.iter (fun g ->
-        let g = match g.g_comp with
-          | None   -> g
-          | Some _ -> { g with g_comp = None } in
-        g.g_comp <- Some t
-      ) gens;
-    t
-
-  let pack ?(flags=Flags.empty) comps name =
-    List.iter (fun u -> u.u_for_pack <- Some (String.capitalize name)) comps;
-    {
-      u_name = name; u_flags = flags;
-      u_dir       = None;
-      u_container = None;
-      u_for_pack  = None;
-      u_deps      = [];
-      u_pack      = comps;
-      u_ml        = false;
-      u_mli       = false;
-      u_generated = false;
-    }
-
-  include Comp_file
-
-  let generated_files t resolver =
-    let mk f = f t resolver in
-    [
-      Feature.true_ , [mk cmi ; mk cmo ];
-      Feature.native, [mk o   ; mk cmx ];
-      Feature.annot , [mk cmt ; mk cmti];
-    ]
-
-  let prereqs t resolver mode =
-    let deps = deps t in
-    let comps = Dep.(filter comp deps) in
-    let comps = List.map (fun u ->
-        match mode with
-        | `Native -> cmx u resolver
-        | `Byte   -> cmi u resolver
-      ) comps in
-    let libs = Dep.(filter lib deps) in
-    let libs = List.map (fun l ->
-        match mode with
-        | `Native -> Lib_file.cmxa l resolver
-        | `Byte   -> Lib_file.cma  l resolver
-      ) libs in
-    let pps = Dep.(filter pp deps) in
-    let pps = List.map (fun l -> Lib_file.cma l resolver) pps in
-    comps @ libs @ pps
-
-  (* XXX: memoize the function *)
-  let flags t resolver =
-    let deps = deps t |> Dep.closure in
-    let incl = build_dir t resolver in
-    let comp_byte = Dep.comp_byte deps incl resolver in
-    let comp_native = Dep.comp_native deps incl resolver in
-    let pp_byte = Dep.pp_byte deps resolver in
-    let pp_native = Dep.pp_native deps resolver in
-    let t' = Flags.create ~comp_byte ~comp_native ~pp_byte ~pp_native () in
-    Flags.(t' @ t.u_flags)
-
-end
-
-module Lib = struct
-
-  type t = lib
-
-  let id = lib_id
-
-  module Graph = Graph(struct type t = lib let id = id end)
-
-  let deps = lib_deps
-
-  let name t = t.l_name
-
-  let build_dir = lib_build_dir
-
-  let comps t = t.l_comps
-
-  let filename t = t.l_filename
-
-  let set_filename t f =
-    t.l_filename <- f
-
-  let available t = t.l_available
-
-  let create
-      ?(available=Feature.true_)
-      ?(flags=Flags.empty)
-      ?(pack=false) ?(deps=[]) comps name =
-    let comps' = if pack then [Comp.pack comps name] else comps in
-    let t = {
-      l_name      = name;
-      l_comps     = comps';
-      l_available = available;
-      l_flags     = flags;
-      l_filename  = name;
-      l_deps      = deps } in
-    List.iter (fun u -> Comp.add_deps u deps) comps;
-    List.iter (fun u -> Comp.set_lib u t) (comps' @ comps);
-    t
-
-  include Lib_file
-
   let generated_files t resolver =
     let mk f = f t resolver in
     [
@@ -558,32 +708,59 @@ module Lib = struct
       Feature.(native         && t.l_available), [mk cmxa; mk a];
       Feature.(native_dynlink && t.l_available), [mk cmxs]      ;
     ]
-    @ conmap (fun u -> Comp.generated_files u resolver) t.l_comps
+    @ conmap (fun u -> CU.generated_files u resolver) t.l_comps
 
   let flags t resolver =
-    let comps = comps t in
-    let link_byte = Dep.link_byte [] comps resolver in
-    let link_native = Dep.link_native [] comps resolver in
+    let comps = compilation_units t in
+    let link_byte = Component.link_byte [] comps resolver in
+    let link_native = Component.link_native [] comps resolver in
     let t' = Flags.create ~link_byte ~link_native () in
     Flags.(t' @ t.l_flags)
 
   let prereqs t resolver = function
-    | `Byte   -> List.map (fun u -> Comp.cmo u resolver) (comps t)
-    | `Native -> List.map (fun u -> Comp.cmx u resolver) (comps t)
+    | `Byte   -> List.map (fun u -> CU.cmo u resolver) (compilation_units t)
+    | `Native -> List.map (fun u -> CU.cmx u resolver) (compilation_units t)
 
 end
 
-module Bin = struct
+and Bin: sig
+  include S with type t = bin and type component = Component.t
+  val create:
+    ?available:Feature.formula ->
+    ?byte_only:bool ->
+    ?link_all:bool ->
+    ?install:bool ->
+    ?flags:Flags.t ->
+    ?deps:Component.t list ->
+    CU.t list -> string -> t
+  val toplevel:
+    ?available:Feature.formula ->
+    ?flags:Flags.t ->
+    ?custom:bool ->
+    ?install:bool ->
+    ?deps:Component.t list ->
+    CU.t list -> string -> t
+  val compilation_units: t -> CU.t list
+  val available: t -> Feature.formula
+  val is_toplevel: t -> bool
+  val install: t -> bool
+  val byte: t -> Resolver.t -> string
+  val native: t -> Resolver.t -> string
+end = struct
 
   type t = bin
 
-  let id = bin_id
+  type tmp = component
+  type component = tmp
+
+  let id t = "bin-" ^ t.b_name
 
   module Graph = Graph(struct type t = bin let id = id end)
 
-  let comps t = t.b_comps
+  let compilation_units t = t.b_comps
 
-  let build_dir = bin_build_dir
+  let build_dir t resolver =
+    Resolver.build_dir resolver (id t)
 
   let is_toplevel t = t.b_toplevel
 
@@ -591,7 +768,7 @@ module Bin = struct
 
   let name t = t.b_name
 
-  let deps = bin_deps
+  let deps t = t.b_deps
 
   let available t = t.b_available
 
@@ -616,7 +793,7 @@ module Bin = struct
       b_toplevel  = false;
       b_install   = install
     } in
-    List.iter (fun u -> Comp.set_bin u t) comps;
+    List.iter (fun u -> CU.set_bin_container u t) comps;
     t
 
   let toplevel
@@ -654,39 +831,48 @@ module Bin = struct
 
   (* XXX: handle native pps *)
   let prereqs t resolver mode =
-    let comps = comps t in
+    let comps = compilation_units t in
     let deps = deps t in
-    let libs = Dep.(filter lib deps) in
-    let pps = Dep.(filter pp deps) in
+    let libs = Component.(filter lib) deps in
+    let pps = Component.(filter pp) deps in
     let bytpps = List.map (fun l -> Lib.cma l resolver) pps in
     match mode with
     | `Byte   ->
       let bytlibs  = List.map (fun l -> Lib.cma  l resolver) libs in
-      let bytcomps = List.map (fun u -> Comp.cmo u resolver) comps in
+      let bytcomps = List.map (fun u -> CU.cmo u resolver) comps in
       bytpps @ bytlibs @ bytcomps
     | `Native ->
       let natlibs  = List.map (fun l -> Lib.cmxa l resolver) libs in
-      let natcomps = List.map (fun u -> Comp.cmx u resolver) comps in
+      let natcomps = List.map (fun u -> CU.cmx u resolver) comps in
       bytpps @ natlibs @ natcomps
 
   let flags t resolver =
-    let comps = comps t in
-    let all_deps  = (deps t @ List.map (fun x -> `Comp x) comps) |> Dep.closure in
+    let comps = compilation_units t in
+    let all_deps =
+      (deps t @ List.map (fun x -> `CU x) comps) |> Component.closure in
     let incl = build_dir t resolver in
-    let comp_byte = Dep.comp_byte (deps t) incl resolver in
-    let comp_native = Dep.comp_native (deps t) incl resolver in
-    let link_byte = Dep.link_byte all_deps comps resolver in
-    let link_native = Dep.link_native all_deps comps resolver in
+    let comp_byte = Component.comp_byte (deps t) incl resolver in
+    let comp_native = Component.comp_native (deps t) incl resolver in
+    let link_byte = Component.link_byte all_deps comps resolver in
+    let link_native = Component.link_native all_deps comps resolver in
     let t' = Flags.create ~link_byte ~link_native ~comp_byte ~comp_native () in
     Flags.(t.b_flags @ t')
 
 end
 
-module Gen = struct
+and Gen: sig
+  include S with type t = gen and type component = Component.t
+  val create: ?deps:Component.t list -> ?action:(Resolver.t -> Action.t) ->
+    [`Both|`ML|`MLI]-> string -> t
+  val copy: t -> t
+end = struct
 
   type t = gen
 
-  let id = gen_id
+  type tmp = component
+  type component = tmp
+
+  let id t = "gen-" ^ t.g_name
 
   let name t = t.g_name
 
@@ -706,10 +892,10 @@ module Gen = struct
   let build_dir t r =
     match t.g_comp with
     | None   -> Resolver.build_dir r ""
-    | Some u -> comp_build_dir u r
+    | Some u -> CU.build_dir u r
 
   let prereqs t r mode =
-    let bins = Dep.(filter bin t.g_deps) in
+    let bins = Component.(filter bin t.g_deps) in
     List.map (fun b -> match mode with
         | `Byte   -> Bin.byte b r
         | `Native -> Bin.native b r
@@ -736,12 +922,22 @@ module Gen = struct
 
 end
 
-module C = struct
+and C: sig
+  include S with type t = c and type component = Component.t
+  val create:
+    ?dir:string -> ?generated:bool -> ?link_flags:string list ->
+    ?deps:Component.t list -> string -> t
+  val dll_so: t -> Resolver.t -> string
+end = struct
 
   type t = c
 
+  type tmp = component
+  type component = tmp
+
   let name t = t.c_name
-  let id = c_id
+
+  let id t = "c-" ^ t.c_name
 
   module Graph = Graph(struct type t = c let id = id end)
 
@@ -774,13 +970,25 @@ module C = struct
 
 end
 
-module Test = struct
+and Test: sig
+  include S with type t = test and type component = Component.t
+  type command =
+    [ `Bin of Bin.t * string list
+    | `Shell of string ]
+  val create: ?dir:string -> ?deps:Component.t list -> command list -> string -> t
+  val dir: t -> string option
+  val commands: t -> command list
+end = struct
 
   type command = test_command
 
   type t = test
 
-  let id = test_id
+  type tmp = component
+  type component = tmp
+
+  let id t =
+    "test-" ^ t.t_name
 
   let name t = t.t_name
 
@@ -826,9 +1034,16 @@ module Test = struct
 
 end
 
-module JS = struct
+and JS: sig
+  include S with type t = js and type component = Component.t
+  val create: Bin.t -> string list -> t
+  val js: t -> Resolver.t -> string
+end = struct
 
   type t = js
+
+  type tmp = component
+  type component = tmp
 
   let bin t =
     t.j_bin
@@ -836,7 +1051,8 @@ module JS = struct
   let name t =
     Bin.name (bin t)
 
-  let id = js_id
+  let id t =
+    Bin.id t.j_bin ^ "-js"
 
   module Graph = Graph(struct type t = js let id = id end)
 
@@ -868,13 +1084,11 @@ module JS = struct
 
 end
 
-let js t r = `JS (JS.create t r)
-
 let name t = t.name
 
 let version t = t.version
 
-let contents t = t.deps
+let components t = t.components
 
 let doc_css t = t.doc_css
 
@@ -882,20 +1096,16 @@ let doc_dir t = t.doc_dir
 
 let doc_intro t = t.doc_intro
 
-let projects = ref []
-
-let list () = !projects
-
-let generated_from_custom_generators t resolver =
-  let comps = Dep.(filter comp t.deps) in
+let files_of_generators t resolver =
+  let comps = Component.(filter cu t.components) in
   List.fold_left (fun acc u ->
-      if Comp.generated u then acc
+      if CU.generated u then acc
       else
-        let ml = match Comp.ml u with
-          | true  -> [Comp.build_dir u resolver / Comp.name u ^ ".ml"]
+        let ml = match CU.ml u with
+          | true  -> [CU.build_dir u resolver / CU.name u ^ ".ml"]
           | false -> [] in
-        let mli = match Comp.mli u with
-          | true  -> [Comp.build_dir u resolver / Comp.name u ^ ".mli"]
+        let mli = match CU.mli u with
+          | true  -> [CU.build_dir u resolver / CU.name u ^ ".mli"]
           | false -> [] in
         ml @ mli @ acc
     ) [] comps
@@ -904,7 +1114,7 @@ let create
     ?(flags=Flags.empty)
     ?doc_css ?doc_intro  ?(doc_dir="doc")
     ?version
-    deps name =
+    components name =
   let version = match version with
     | Some v -> v
     | None   ->
@@ -915,125 +1125,28 @@ let create
         | Some v -> v
         | None   -> "version-not-set"
   in
-  let deps = Dep.closure deps in
-  let libs = Dep.(filter lib deps) in
+  let components = Component.closure components in
+  let libs = Component.(filter lib components) in
   List.iter (fun l ->
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)
     ) libs;
-  let t =
-    { name; version; flags; deps;
-      doc_css; doc_intro; doc_dir } in
-  projects := t :: !projects
-
-let (++) = Feature.Set.union
+  { name; version; flags; components;
+    doc_css; doc_intro; doc_dir }
 
 let unionmap fn t =
   List.fold_left (fun set t ->
-      set ++ (fn t)
+      Feature.(set ++ (fn t))
     ) Feature.Set.empty t
 
 let features t =
   let libs =
-    let libs = Dep.(filter lib t.deps) in
+    let libs = Component.(filter lib t.components) in
     unionmap (fun x -> Feature.atoms @@ Lib.available x) libs in
   let pps  =
-    let pps = Dep.(filter pp t.deps) in
+    let pps = Component.(filter pp t.components) in
     unionmap (fun x -> Feature.atoms @@ Lib.available x) pps in
   let bins =
-    let bins = Dep.(filter bin t.deps) in
+    let bins = Component.(filter bin t.components) in
     unionmap (fun x -> Feature.atoms @@ Bin.available x) bins in
-  Feature.base ++ libs ++ pps ++ bins
-
-module Bag = struct
-
-  let comp_tbl = Hashtbl.create 8
-
-  let default = "main"
-
-  let find bag =
-    try Hashtbl.find comp_tbl bag
-    with Not_found ->
-      let g = Comp.Graph.create () in
-      Hashtbl.add comp_tbl bag g;
-      g
-
-  let add bag u deps =
-    let g = find bag in
-    Comp.Graph.add_vertex g u;
-    Dep.(filter comp deps)
-    |> List.iter (fun u' -> Comp.Graph.add_edge g u' u)
-
-end
-
-let comp ?(bag=Bag.default) ?(dir="lib") deps name =
-  let u = Comp.create ~dir ~deps name in
-  Bag.add bag u deps;
-  `Comp u
-
-let generated ?deps ?action f name =
-  let g = Gen.create ?deps ?action f name in
-  `Gen g
-
-let lib ?(bag=Bag.default) name =
-  let g = Bag.find bag in
-  let l = Lib.create (Comp.Graph.vertex g) name in
-  `Lib l
-
-let bin ?byte_only ?link_all ?install ?(dir="bin") deps comps name =
-  let comps = List.map (Comp.create ~dir ~deps) comps in
-  let b = Bin.create ?byte_only ?link_all ?install comps name in
-  `Bin b
-
-let c ?(dir="stubs") ?(link_flags=[]) libs name =
-  let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
-  let c = C.create ~dir ~link_flags name in
-  `C c
-
-let pkg x = `Pkg x
-
-let pkg_pp x = `Pkg_pp x
-
-(* Ctypes stub-generation *)
-
-let cstubs ?bag ?dir ?(headers=[]) ?(cflags=[]) ?(clibs=[]) deps name: dep =
-
-  (* 1. compile the bindings. *)
-  let deps = `Pkg "ctypes.stubs" :: deps in
-  let name_bindings = name ^ "_bindings" in
-  let bindings = comp ?bag ?dir deps name_bindings in
-
-  (* 2. Generate and compile the generator. *)
-  let name_generator = name ^ "_generator" in
-  let generator =
-    let action r =
-      let headers = match headers with
-        | [] -> ""
-        | hs -> sprintf "--headers %s " (String.concat "," hs) in
-      Action.create ~dir:(Resolver.build_dir r "") "ctypes-gen %s" headers
-    in
-    let gen = generated ~action `ML name_generator in
-    let comp = Comp.create ~deps:[gen; bindings] name_generator in
-    let bin =
-      Bin.create ~install:false [comp] name_generator in
-    `Bin bin in
-
-  (* 3. Generate and compile the stubs. *)
-  let name_stubs = name ^ "_stubs" in
-  let ml_stubs =
-    let action r =
-      Action.create ~dir:(Resolver.build_dir r "") "./%s.byte" name_generator in
-    let gen = generated ~deps:[generator] ~action `ML name_stubs in
-    comp ?bag [gen] name_stubs in
-  let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
-  let c_stubs =
-    let c = C.create ~generated:true ~deps:[generator] ~link_flags name_stubs in
-    `C c in
-  let flags = Flags.(cclib link_flags @ stub name_stubs) in
-  let gen = generated ~deps:[generator] `ML name in
-  let comp = comp ?bag [bindings; ml_stubs; c_stubs; gen] name in
-  let comp = match Dep.comp comp with
-    | Some c -> c
-    | None   -> assert false in
-  let lib = Lib.create ~flags [comp] name in
-  `Lib lib
+  Feature.(base ++ libs ++ pps ++ bins)

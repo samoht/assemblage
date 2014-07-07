@@ -332,9 +332,7 @@ end = struct
                 ]]
             else [] in
           aux Comp.ml ".ml" @ aux Comp.mli ".mli"
-        | true ->
-          let gens = Dep.(filter gen @@ Comp.deps t) in
-          conmap G.rule gens in
+        | true -> [] in
       let cmi = (* generate cmis *)
         let targets, prereqs =
           if Comp.mli t then [target ".cmi"], [target ".mli"]
@@ -529,11 +527,11 @@ end = struct
 end
 
 and G: sig
-  val rule: gen -> Rule.t list
-  val variable: gen -> Variable.t list
+  val rules: gen -> Rule.t list
+  val variables: gen -> Variable.t list
 end = struct
-  let rule _ = failwith "TODO"
-  let variable _ = failwith "TODO"
+  let rules _ = failwith "TODO"
+  let variables _ = failwith "TODO"
 end
 
 module T = struct
@@ -593,14 +591,14 @@ module D = struct
           let deps = Lib.deps l |> Dep.closure in
           let libs =
             deps
-            |> Dep.filter_libs
+            |> Dep.(filter lib)
             |> (fun d -> l :: d)
             |> List.map (fun l -> sprintf "-I %s"
                           (Resolver.build_dir resolver (Lib.id l)))
             |> String.concat " " in
           let pkgs =
             deps
-            |> Dep.filter_pkgs
+            |> Dep.(filter pkg)
             |> (fun pkgs -> Flags.comp_byte (Resolver.pkgs resolver pkgs))
             |> String.concat " " in
           let css = match css with
@@ -705,11 +703,13 @@ let global_variables flags =
 
 let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
   let global_variables = global_variables flags in
-  let libs = Project.libs t in
-  let pps = Project.pps t in
-  let bins = Project.bins t in
-  let tests = Project.tests t in
-  let jss = Project.jss t in
+  let contents = Project.contents t in
+  let libs = Dep.(filter lib contents) in
+  let pps = Dep.(filter pp contents) in
+  let bins = Dep.(filter bin contents) in
+  let tests = Dep.(filter test contents) in
+  let jss = Dep.(filter js contents) in
+  let gens = Dep.(filter gen contents) in
   let features =
     Project.features t
     |> Feature.Set.elements
@@ -733,6 +733,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
       @  conmap L.variables libs
       @  conmap L.variables pps
       @  conmap B.variables bins
+      @  conmap G.variables gens
       @  T.variables tests
       @  D.variables libs
       @  J.variables jss
@@ -742,6 +743,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
       conmap L.rules libs
       @ conmap L.rules pps
       @ conmap B.rules bins
+      @ conmap G.rules gens
       @ T.rules tests
       @ D.rules
         ?css:(Project.doc_css t)
@@ -768,7 +770,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
       ::
       List.map (fun file ->
           sprintf "rm -rf %s.ml" file
-        ) (Project.generated_from_custom_actions t resolver)
+        ) (Project.generated_from_custom_generators t resolver)
     ) in
   let install = Rule.create ~ext:true ~targets:["install"] ~prereqs:["all"] [
       sprintf "@opam-installer --prefix $(shell opam config var prefix) \
