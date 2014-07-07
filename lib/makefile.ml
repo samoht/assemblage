@@ -767,7 +767,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
       "rm -f *~ **/*~";
       sprintf "rm -rf $(BUILDIR)";
     ] in
-  let distclean = Rule.create ~ext:true ~targets:["distclean"] ~prereqs:[] (
+  let distclean = Rule.create ~ext:true ~targets:["distclean"] ~prereqs:["clean"] (
       sprintf "rm -f %s %s.install META %s/*.html"
         makefile  (Project.name t) (Project.doc_dir t)
       ::
