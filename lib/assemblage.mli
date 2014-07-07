@@ -39,32 +39,32 @@
 
 (** {1:project Project} *)
 
-type t
+type t = Project.t
 (** The type for descriptions of full OCaml projects. *)
 
-type comp
+type cu = Project.CU.t
 (** The type for description of compilation units. *)
 
-type lib
+type lib = Project.Lib.t
 (** The type for description of of libraries. *)
 
-type bin
+type bin = Project.Bin.t
 (** The type for description of binaries. *)
 
-type test
+type test = Project.Test.t
 (** The type for description of tests. *)
 
-type js
+type js = Project.JS.t
 (** The type for description of [js_of_ocaml] artifacts. *)
 
-type c
+type c = Project.C.t
 (** The type for description of C source files. *)
 
-type gen
+type gen = Project.Gen.t
 (** The type for generated OCaml source code. *)
 
 type component =
-  [ `Comp of comp
+  [ `CU of cu
   | `Lib of lib
   | `Pp of lib
   | `Pkg_pp of string
@@ -74,7 +74,7 @@ type component =
   | `JS of js
   | `Test of test
   | `Gen of gen ]
-(** The type for all the possible component descriptions. A [`Comp c]
+(** The type for all the possible component descriptions. A [`CU cu]
     is a local compilation unit, [`Lib l] are local libraries, [`Pp p]
     are local pre-processors and [`Bin] are local binaries.
 
@@ -82,69 +82,88 @@ type component =
     globally installed pre-processor packages, both usually managed by
     {i ocamlfind}, *)
 
-(** {2 Basic API} *)
+(** {2 The Project API} *)
 
-val comp: ?bag:string -> ?dir:string ->
-  component list -> string -> [`Comp of comp]
-(** [comp ~lib ~dir deps name] is the compilation unit in the bag of
+val cu: ?dir:string -> component list -> string -> [> `CU of cu]
+(** [cu ~lib ~dir deps name] is the compilation unit in the bag of
     compilation units [bag], located in the directory [dir], which the
     dependencies [deps] and the cname [name]. The name is the same as
-    the filename, without its extension.  By default, [dir] is set to
-    {i lib/} and [bag] is {i "main"}. *)
+    the filename, without its extension. *)
+
+val ocamldep: dir:string -> ?flags:Flags.t -> component list -> [> `CU of cu] list
+(** [ocamldep ~dir] is the list of compilation units in the given
+    directory, obtained by running [ocamldep] with the given flags. *)
 
 val generated: ?action:(Resolver.t -> Action.t) ->
-  component list -> [`Both|`ML|`MLI] -> string -> [`Gen of gen]
+  component list -> [`Both|`ML|`MLI] -> string -> [> `Gen of gen]
 (** Generated OCaml source file(s). *)
 
-val c: ?dir:string -> ?link_flags:string list ->
-  component list -> string list -> string -> [`C c]
-(** [c libs name] is the C file [name.c], which need the C libraries
-    [libs] to be compiled. *)
+val c:
+  ?dir:string ->
+  ?link_flags:string list ->
+  component list -> string list -> string -> [> `C of c]
+(** [c deps libs name] is the C file [name.c], which need the C
+    libraries [libs] to be compiled -- and it has the dependencies
+    [deps]. *)
 
 val cstubs:
-  ?bag:string -> ?dir:string -> ?headers:string list ->
-  ?cflags:string list -> ?clibs:string list ->
-  descr list -> string -> [`Lib of lib]
+  ?dir:string ->
+  ?available:Feature.formula ->
+  ?headers:string list ->
+  ?cflags:string list ->
+  ?clibs:string list ->
+  component list -> string -> [> `Lib of lib]
 (** [stubs deps name] is the C stub generations, using Ctypes, of the
     compilation unit [name]. *)
 
-val lib: ?bag:string -> string -> [`Lib of lib]
-(** Build a library from a bag of compilation units. By default, use
-    all the compilation unit registered in the {i "main"} bag. *)
+val lib:
+  ?available:Feature.formula ->
+  ?flags:Flags.t ->
+  ?pack:bool ->
+  ?deps:component list -> [`CU of cu] list -> string -> [> `Lib of lib]
+(** [lib cus name] is the library [name] composed by the compilation
+    units [cus]. If [lib] is set, use [ocamldep] to approximate the
+    compilation units and their dependecies in the given directory. *)
 
 val bin:
-  ?byte_only:bool -> ?link_all:bool -> ?install:bool -> ?dir:string ->
-  descr list -> string list -> string -> [`Bin of bin]
+  ?dir:string ->
+  ?byte_only:bool ->
+  ?link_all:bool ->
+  ?install:bool ->
+  component list -> string list -> string -> [> `Bin of bin]
 (** [bin deps units name] is the binary [name] obtained by compiling
     the compilation units [units], with the dependencies [deps]. By
     default, the source files are located into {i bin/} (this is
     controled by the value of [dir]). *)
 
-val js: bin -> string list -> [`JS of js]
+val js: [`Bin of bin] -> string list -> [> `JS of js]
 (** [js bin args] is the decription of a javascript artefact generated
     by [js_of_ocaml]. *)
 
-val pkg: string -> [`Pkg of string]
+val pkg: string -> [> `Pkg of string]
 (** An external package. *)
 
-val pkg_pp: string -> [`Pkg_pp of string]
+val pkg_pp: string -> [> `Pkg_pp of string]
 (** An external pre-processor. *)
+
+val test: ?dir:string ->
+  component list -> Project.Test.command list -> string -> [> `Test of test]
+(** Description of a test. *)
+
+val test_bin: [`Bin of bin] -> Project.Test.args -> Project.Test.command
+(** A test which runs a binary built in the project. *)
+
+val test_shell: ('a, unit, string, Project.Test.command) format4 -> 'a
+(** A test which runs an arbitrary shell command. *)
 
 val create:
   ?flags:Flags.t ->
   ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
   ?version:string ->
-  dep list -> string -> unit
+  component list -> string -> unit
 (** [create deps name] registers the project named [name], defining
     the libraries, binaries and tests defined by the transitive
     closure of objects in [deps]. *)
-
-val list: unit -> t list
-(** Return the project already registered. *)
-
-val generated_from_custom_generators: t -> Resolver.t -> string list
-(** Return the list of generated file from a custom action
-    generators. *)
 
 (** {1:features Features} *)
 
@@ -156,7 +175,7 @@ type tool = Project.t -> Build_env.t -> unit
 (** The signature of tools. *)
 
 val process: ?file:string -> string -> tool -> unit
-(** [process ~file name fn] reads and process the OCaml [file] in a
+(** [process ~file name fn] reads and processes the OCaml [file] in a
     top-level environment, for the project called [name], and apply
     [fn] to the projects registered as side-effects. *)
 
@@ -167,6 +186,3 @@ val configure: [`Make] -> tool
 
 val describe: tool
 (** Describe the project to stdout. *)
-
-val timestamp: string
-(** Timestamp to write in the generated files. *)

@@ -1,6 +1,6 @@
-open Project
+open Assemblage
 
-let t = Comp.create ~deps:[
+let t = cu [
     pkg_pp "sexplib.syntax";
     pkg_pp "comparelib.syntax";
     pkg    "sexplib";
@@ -9,7 +9,7 @@ let t = Comp.create ~deps:[
   ] "t"
 
 let lib =
-  Lib.create [t] "mylib"
+  lib [t] "mylib"
 
 let () =
-  create ~libs:[lib] "camlp4o"
+  create [lib] "camlp4o"

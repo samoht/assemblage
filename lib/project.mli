@@ -49,23 +49,6 @@ val doc_dir: t -> string
 (** [doc_dir t] is the the directory where the HTML documentation is
     generated. *)
 
-module type G = sig
-
-  (** Signature for graphs of components. *)
-
-  include Graph.Sig.I
-
-  val iter: (V.t -> unit) -> t -> unit
-  (** Topoligical iteration. *)
-
-  val fold: (V.t -> 'a -> 'a) -> t -> 'a -> 'a
-  (** Topological fold. *)
-
-  val vertex: t -> V.t list
-  (** [vertex g] is the list of topologically sorted vertices. *)
-
-end
-
 (** Although each kind of components has some particularities, but they all
     extend the signature {{!S}S} defined below. *)
 
@@ -116,8 +99,22 @@ module type S = sig
       where [resolver] is used to compute the location of generated
       files. *)
 
-  module Graph: G with type V.t = t
-  (** Graph of descriptions. *)
+end
+
+module type G = sig
+
+  (** Signature for graphs of components. *)
+
+  include Graph.Sig.I
+
+  val iter: (V.t -> unit) -> t -> unit
+  (** Topoligical iteration. *)
+
+  val fold: (V.t -> 'a -> 'a) -> t -> 'a -> 'a
+  (** Topological fold. *)
+
+  val vertex: t -> V.t list
+  (** [vertex g] is the list of topologically sorted vertices. *)
 
 end
 
@@ -176,6 +173,33 @@ module rec Component: sig
   val closure: t list -> t list
   (** Compute the transitive closure of the component dependency
       graph. Try to keep the order as consistent as possible. *)
+
+  val comp_byte: t list -> Resolver.t ->  (Resolver.t -> string) -> string list
+  (** [comp_byte ts r build_dir] is the list of command-line arguments
+      to use for compiling a component depending of [ts] to bytecode,
+      where the build artifacts are generated in [build_dir] and the
+      external names are resolved by [r]. *)
+
+  val comp_native: t list -> Resolver.t -> (Resolver.t -> string) -> string list
+  (** Same as [comp_byte] but for native code. *)
+
+  val pp_byte: t list -> Resolver.t -> string list
+  (** [pp_byte ts r] is the list of command-line arguments to use for
+      pre-processing a component depending on [ts], using the name
+      resolver [r]. *)
+
+  val pp_native: t list -> Resolver.t -> string list
+  (** Same as [pp_native] but for native pre-processors. *)
+
+  val link_byte: t list -> Resolver.t -> CU.t list -> string list
+  (** [link_byte deps r cus] is the list of command-line arguments to
+      use for linking the compilation units [cus] together, depending
+      on the components [ts] and using the name resolver [r]. *)
+
+  val link_native: t list -> Resolver.t -> CU.t list -> string list
+
+  module Graph: G with type V.t = t
+  (** Graph of components. *)
 
 end
 
@@ -380,8 +404,11 @@ and Test: sig
   include S with type component = Component.t
   (** Test values. *)
 
+  type args = (Component.t -> string) -> string list
+  (** The command-line arguments when calling tests. *)
+
   type command =
-    [ `Bin of Bin.t * string list
+    [ `Bin of [`Bin of Bin.t] * args
     | `Shell of string ]
 
   val create: ?dir:string -> ?deps:Component.t list -> command list -> string -> t

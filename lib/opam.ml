@@ -32,9 +32,10 @@ module Install = struct
 
   let of_project ?(meta=true) ~build_dir t =
     let name = Project.name t in
-    let libs = Dep.(filter lib @@ Project.contents t) in
+    let components = components t in
+    let libs = Component.(filter lib components) in
     let bins =
-      List.filter Project.Bin.install Dep.(filter bin @@ Project.contents t) in
+      List.filter Project.Bin.install Component.(filter bin components) in
     let buf = Buffer.create 1024 in
     let resolver =
       Resolver.create
@@ -83,9 +84,9 @@ module Install = struct
       mk "index_values.html";
       mk "style.css";
       List.iter (fun l ->
-          let units = Lib.comps l in
+          let units = Lib.compilation_units l in
           List.iter (fun u ->
-              let name = String.capitalize (Comp.name u) in
+              let name = String.capitalize (CU.name u) in
               mk "%s.html" name;
               mk "type_%s.html" name;
               let modules = OCaml.modules ~build_dir u in

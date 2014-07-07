@@ -18,11 +18,10 @@
 
 open Project
 
-val modules: build_dir:string -> comp -> string list
-(** Return the list of submodules defined in the compilation unit. *)
+val modules: build_dir:string -> CU.t -> string list
+(** Return the list of submodules defined in the given compilation unit. *)
 
-(*
-val refine_depends: Unit.t -> unit
-(** [refine_depends u] refines the dependency [deps] to a more precise
-    list of compilation units using side-effects. *)
-*)
+val depends: ?flags:Flags.t -> ?deps:Component.t list -> Resolver.t ->
+  string -> CU.t list
+(** [depends dir] computes the dependency graph of the compilation
+    units in the directory [dir]. *)

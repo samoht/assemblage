@@ -252,17 +252,17 @@ let deps_byte = "deps-byte"
 let deps_opt  = "deps-opt"
 
 module rec U: sig
-  val rules    : comp -> Rule.t list
-  val variables: comp -> Variable.t list
+  val rules    : CU.t -> Rule.t list
+  val variables: CU.t -> Variable.t list
 end = struct
 
   let pp suffix varlib varbin fn t =
-    let var = Comp.id t ^ "." ^ suffix in
-    let lib = match Comp.container t with
+    let var = CU.id t ^ "." ^ suffix in
+    let lib = match CU.container t with
       | None          -> None
       | Some (`Lib l) -> Some (varlib l)
       | Some (`Bin b) -> Some (varbin b) in
-    match lib, fn (Comp.flags t resolver) with
+    match lib, fn (CU.flags t resolver) with
     | None  , [] -> None
     | Some l, [] -> if Variable.is_empty l then None else Some l
     | None  , u  -> Some (Variable.(var =?= `Strings u))
@@ -273,12 +273,12 @@ end = struct
         Some (Variable.(var =?= `Strings (Variable.name l :: u)))
 
   let flag suffix varlib varbin fn t =
-    let var    = Comp.id t ^ "." ^ suffix in
-    let global = match Comp.container t with
+    let var    = CU.id t ^ "." ^ suffix in
+    let global = match CU.container t with
       | None          -> []
       | Some (`Lib l) -> [Variable.name (varlib l)]
       | Some (`Bin b) -> [Variable.name (varbin b)] in
-    let flags = fn (Comp.flags t resolver) @ global in
+    let flags = fn (CU.flags t resolver) @ global in
     Variable.(var =?= `Strings flags)
 
   let pp_byte     = pp   pp_byte   L.pp_byte     B.pp_byte     Flags.pp_byte
@@ -287,15 +287,15 @@ end = struct
   let comp_native = flag comp_opt  L.comp_native B.comp_native Flags.comp_native
 
   let prereqs t = function
-    | `Byte   -> Comp.id t ^ "." ^ deps_byte
-    | `Native -> Comp.id t ^ "." ^ deps_opt
+    | `Byte   -> CU.id t ^ "." ^ deps_byte
+    | `Native -> CU.id t ^ "." ^ deps_opt
 
   let prereqs_var t mode =
     sprintf "$(%s)" (prereqs t mode)
 
   let variables t =
-    Variable.(prereqs t `Byte =?= `Strings (Comp.prereqs t resolver `Byte))
-    :: Variable.(prereqs t `Native =?= `Strings (Comp.prereqs t resolver `Native))
+    Variable.(prereqs t `Byte =?= `Strings (CU.prereqs t resolver `Byte))
+    :: Variable.(prereqs t `Native =?= `Strings (CU.prereqs t resolver `Native))
     :: comp_byte t
     :: comp_native t
     :: (match pp_byte t with
@@ -310,40 +310,40 @@ end = struct
     let pp = match pp_byte t with
       | None   -> ""
       | Some v -> sprintf "-pp '$(CAMLP4O) %s' " (Variable.name v) in
-    let for_pack = match Comp.for_pack t with
+    let for_pack = match CU.for_pack t with
       | None   -> ""
       | Some p -> sprintf "-for-pack %s " p in
     let flags = for_pack ^ pp in
-    let target ext = Comp.file t resolver ext in
-    let source ext = Comp.dir t // Comp.name t ^ ext in
+    let target ext = CU.file t resolver ext in
+    let source ext = CU.dir t // CU.name t ^ ext in
 
-    match Comp.unpack t with
+    match CU.unpack t with
     | [] -> (* Normal compilation unit. *)
       let ln = (* link source file to target directory *)
-        match Comp.generated t with
+        match CU.generated t with
         | false ->
           let aux exists ext =
             let source = source ext in
             let target = target ext in
             if exists t then
               [Rule.create ~targets:[target] ~prereqs:[source] [
-                  sprintf "mkdir -p %s" (Comp.build_dir t resolver);
+                  sprintf "mkdir -p %s" (CU.build_dir t resolver);
                   sprintf "ln -sf $(shell pwd)/%s %s" source target
                 ]]
             else [] in
-          aux Comp.ml ".ml" @ aux Comp.mli ".mli"
+          aux CU.ml ".ml" @ aux CU.mli ".mli"
         | true -> [] in
       let cmi = (* generate cmis *)
         let targets, prereqs =
-          if Comp.mli t then [target ".cmi"], [target ".mli"]
-          else if Comp.ml t then [target ".cmo"; target ".cmi"], [target ".ml"]
+          if CU.mli t then [target ".cmi"], [target ".mli"]
+          else if CU.ml t then [target ".cmo"; target ".cmi"], [target ".ml"]
           else [], [] in
         [Rule.create ~targets ~prereqs:(prereqs @ [prereqs_var t `Byte]) [
             sprintf "$(OCAMLC) -c %s%s %s"
               flags (Variable.name @@ comp_byte t) Rule.prereq
           ]] in
       let cmo = (* Generate cmos *)
-        if Comp.mli t && Comp.ml t then
+        if CU.mli t && CU.ml t then
           [Rule.create ~targets:[target ".cmo"]
              ~prereqs:[target ".ml"; target ".cmi"; prereqs_var t `Byte]
              [sprintf "$(OCAMLC) -c %s%s %s"
@@ -360,13 +360,13 @@ end = struct
 
     | units -> (* Packed units *)
       let byte =
-        let cmo = List.map (fun u -> Comp.cmo u resolver) units in
+        let cmo = List.map (fun u -> CU.cmo u resolver) units in
         Rule.create ~targets:[target ".cmo"; target ".cmi"] ~prereqs:cmo [
           sprintf "$(OCAMLC) -pack %s%s -o %s"
             flags Rule.prereq Rule.target_member
         ] in
       let native =
-        let cmx = List.map (fun u -> Comp.cmx u resolver) units in
+        let cmx = List.map (fun u -> CU.cmx u resolver) units in
         Rule.create ~targets:[target ".cmx"] ~prereqs:cmx [
           sprintf "$(OCAMLOPT) -pack %s%s -o %s"
             flags Rule.prereq Rule.target_member
@@ -425,7 +425,7 @@ end = struct
     :: link_native t
     :: Variable.(prereqs t `Byte =?= `Strings (Lib.prereqs t resolver `Byte))
     :: Variable.(prereqs t `Native =?= `Strings (Lib.prereqs t resolver `Native))
-    :: conmap U.variables (Lib.comps t)
+    :: conmap U.variables (Lib.compilation_units t)
 
   let rules t =
     let byte =
@@ -451,7 +451,7 @@ end = struct
     :: byte
     :: native `archive
     :: native `shared
-    :: conmap U.rules (Lib.comps t)
+    :: conmap U.rules (Lib.compilation_units t)
 
 end
 
@@ -501,7 +501,7 @@ end = struct
     :: link_native t
     :: Variable.(prereqs t `Byte   =?= `Strings (Bin.prereqs t resolver `Byte))
     :: Variable.(prereqs t `Native =?= `Strings (Bin.prereqs t resolver `Native))
-    :: conmap U.variables (Bin.comps t)
+    :: conmap U.variables (Bin.compilation_units t)
 
   let rules t =
     Rule.create
@@ -522,13 +522,13 @@ end = struct
       sprintf "mkdir -p %s" (Bin.build_dir t resolver);
       sprintf "$(OCAMLOPT) %s -o %s" (Variable.name @@ link_native t) Rule.target;
     ]
-    :: conmap U.rules (Bin.comps t)
+    :: conmap U.rules (Bin.compilation_units t)
 
 end
 
 and G: sig
-  val rules: gen -> Rule.t list
-  val variables: gen -> Variable.t list
+  val rules    : Gen.t -> Rule.t list
+  val variables: Gen.t -> Variable.t list
 end = struct
   let rules _ = failwith "TODO"
   let variables _ = failwith "TODO"
@@ -554,8 +554,11 @@ module T = struct
             | None   -> ""
             | Some d -> sprintf "cd %s &&" d in
           List.map (function
-              | `Shell cmd       -> String.concat " " [dir; cmd]
-              | `Bin (bin, args) ->
+              | `Shell cmd            -> String.concat " " [dir; cmd]
+              | `Bin (`Bin bin, args) ->
+                let args = args (fun c ->
+                    Sys.getcwd () / Component.build_dir c resolver
+                  ) in
                 let bin = Sys.getcwd () / Bin.byte bin resolver in
                 String.concat " " [dir; bin; String.concat " " args]
             ) (Test.commands t)
@@ -582,23 +585,23 @@ module D = struct
         Rule.create ~targets:[target l] ~prereqs:[Lib.id l] [
           sprintf "mkdir -p %s" dir;
           let files =
-            Lib.comps l
+            Lib.compilation_units l
             |> List.map (fun u ->
                 "$(BUILDIR)" / Lib.id l /
-                if Comp.mli u then Comp.name u ^ ".mli"
-                else Comp.name u ^ ".ml")
+                if CU.mli u then CU.name u ^ ".mli"
+                else CU.name u ^ ".ml")
             |> String.concat " " in
-          let deps = Lib.deps l |> Dep.closure in
+          let deps = Lib.deps l |> Component.closure in
           let libs =
             deps
-            |> Dep.(filter lib)
+            |> Component.(filter lib)
             |> (fun d -> l :: d)
             |> List.map (fun l -> sprintf "-I %s"
                           (Resolver.build_dir resolver (Lib.id l)))
             |> String.concat " " in
           let pkgs =
             deps
-            |> Dep.(filter pkg)
+            |> Component.(filter pkg)
             |> (fun pkgs -> Flags.comp_byte (Resolver.pkgs resolver pkgs))
             |> String.concat " " in
           let css = match css with
@@ -703,13 +706,13 @@ let global_variables flags =
 
 let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
   let global_variables = global_variables flags in
-  let contents = Project.contents t in
-  let libs = Dep.(filter lib contents) in
-  let pps = Dep.(filter pp contents) in
-  let bins = Dep.(filter bin contents) in
-  let tests = Dep.(filter test contents) in
-  let jss = Dep.(filter js contents) in
-  let gens = Dep.(filter gen contents) in
+  let components = Project.components t in
+  let libs = Component.(filter lib components) in
+  let pps = Component.(filter pp components) in
+  let bins = Component.(filter bin components) in
+  let tests = Component.(filter test components) in
+  let jss = Component.(filter js components) in
+  let gens = Component.(filter gen components) in
   let features =
     Project.features t
     |> Feature.Set.elements
@@ -770,7 +773,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
       ::
       List.map (fun file ->
           sprintf "rm -rf %s.ml" file
-        ) (Project.generated_from_custom_generators t resolver)
+        ) (Project.files_of_generators t resolver)
     ) in
   let install = Rule.create ~ext:true ~targets:["install"] ~prereqs:["all"] [
       sprintf "@opam-installer --prefix $(shell opam config var prefix) \

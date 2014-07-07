@@ -51,23 +51,24 @@ module Pparse = struct
 end
 #endif
 
-(* XXX: read the cmt instead *)
-let modules ~build_dir comp =
+let init flags =
+  match Flags.pp_byte flags with
+  | [] -> Clflags.preprocessor := None;
+  | pp ->
+    let pp = String.concat " " pp in
+    Clflags.preprocessor := Some (sprintf "camlp4o %s" pp)
+
+let modules ~build_dir cu =
   let resolver = Ocamlfind.resolver `Direct build_dir in
   let () =
-    let pp =
-      Comp.deps comp
-      |> Dep.closure
-      |> Dep.(filter pkg_pp)
-      |> Resolver.pkgs resolver in
-    match Flags.pp_byte pp with
-    | [] -> Clflags.preprocessor := None;
-    | pp ->
-      let pp = String.concat " " pp in
-      Clflags.preprocessor := Some (sprintf "camlp4o %s" pp) in
+    CU.deps cu
+    |> Component.closure
+    |> Component.(filter pkg_pp)
+    |> Resolver.pkgs resolver
+    |> init in
   let aux = function
     | `ML ->
-      let file = Comp.dir comp // Comp.name comp ^ ".ml" in
+      let file = CU.dir cu // CU.name cu ^ ".ml" in
       let ast = Pparse.parse_implementation Format.err_formatter file in
       List.fold_left (fun acc { pstr_desc; _ } ->
           match pstr_desc with
@@ -87,7 +88,7 @@ let modules ~build_dir comp =
           | _ -> acc
         ) StringSet.empty ast
     | `MLI ->
-      let file = Comp.dir comp // Comp.name comp ^ ".mli" in
+      let file = CU.dir cu // CU.name cu ^ ".mli" in
       let ast = Pparse.parse_interface Format.err_formatter file in
       List.fold_left (fun acc { psig_desc; _ } ->
           match psig_desc with
@@ -107,7 +108,89 @@ let modules ~build_dir comp =
           | _ -> acc
         ) StringSet.empty ast in
   let set =
-    if Comp.mli comp then aux `MLI
-    else if Comp.ml comp then aux `ML
+    if CU.mli cu then aux `MLI
+    else if CU.ml cu then aux `ML
     else StringSet.empty in
   StringSet.elements set
+
+let split str char =
+  let len = String.length str in
+  let return l =
+    List.rev (List.filter ((<>)"") l) in
+  let rec aux acc off =
+    if off >= len then return acc
+    else
+      let word, off =
+        try
+          let i = String.index_from str off  char in
+          String.sub str off (i - off), i
+        with Not_found ->
+          String.sub str off (len - off), len in
+      aux (word :: acc) (off+1)
+  in
+  aux [] 0
+
+(* XXX: ugly hack as tools/{depend.ml,ocamldep.ml} are not in
+   `compiler-libs' *)
+let depends ?flags ?(deps=[]) resolver dir =
+  let pp = match Component.pp_byte deps resolver with
+    | [] -> ""
+    | pp ->
+      let pp = String.concat " " pp in
+      sprintf "-pp \"camlp4o %s\"" pp in
+  let incl = match Component.comp_byte deps resolver (fun _ -> dir) with
+    | [] -> ""
+    | ls -> " " ^ String.concat " " ls in
+  let names =
+    Array.to_list (Sys.readdir dir)
+    |> List.filter (fun file ->
+        Filename.check_suffix file ".ml" || Filename.check_suffix file ".mli"
+      )
+    |> List.map Filename.chop_extension in
+  let files =
+    names
+    |> List.map (fun name ->
+        if Sys.file_exists (dir / name ^ ".ml") then
+          dir / name ^ ".ml"
+        else
+          dir / name ^ ".mli"
+      ) in
+  let lines =
+    Shell.exec_output
+      ~verbose:true
+      "ocamldep -one-line -modules %s%s %s"
+      pp incl (String.concat " " files) in
+
+  let deps_tbl = Hashtbl.create (List.length names) in
+  let add_dep line =
+    match split line ' ' with
+    | []
+    | "Bad"   :: _
+    | "File"  :: _
+    | "Error" :: _        -> ()
+    | name    :: modules  ->
+      (* [name] is dir/<name>.ml[,i]: *)
+      let name = Filename.(basename @@ chop_extension name) in
+      let deps = List.fold_left (fun acc m ->
+          if List.mem m names then
+            m :: acc
+          else if List.mem (String.uncapitalize m) names then
+            String.uncapitalize m :: acc
+          else
+            acc
+        ) [] modules in
+      Hashtbl.add deps_tbl name deps in
+  List.iter add_dep lines;
+
+  let cus_tbl = Hashtbl.create (List.length names) in
+  let rec cu name =
+    try Hashtbl.find cus_tbl name
+    with Not_found ->
+      let local_deps =
+        try Hashtbl.find deps_tbl name
+        with Not_found -> [] in
+      let deps = deps @ List.map (fun x -> `CU (cu x)) local_deps in
+      let cu = CU.create ?flags ~dir ~deps name in
+      Hashtbl.add cus_tbl name cu;
+      cu in
+  List.map cu names
