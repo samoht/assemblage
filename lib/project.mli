@@ -100,7 +100,7 @@ module type S = sig
 
 end
 
-module type G = sig
+module type Graph = sig
 
   (** Signature for graphs of components. *)
 
@@ -114,6 +114,17 @@ module type G = sig
 
   val vertex: t -> V.t list
   (** [vertex g] is the list of topologically sorted vertices. *)
+
+end
+
+module type Set = sig
+
+  (** Signature for sets of components. *)
+
+  include Set.S
+
+  val of_list: elt list -> t
+  (** Create a set from a list of elements. *)
 
 end
 
@@ -197,7 +208,10 @@ module rec Component: sig
 
   val link_native: t list -> Resolver.t -> CU.t list -> string list
 
-  module Graph: G with type V.t = t
+  module Set: Set.S with type elt = t
+  (** Set of components. *)
+
+  module Graph: Graph with type V.t = t
   (** Graph of components. *)
 
 end
@@ -268,7 +282,8 @@ and Lib: sig
     ?available:Feature.formula ->
     ?flags:Flags.t ->
     ?pack:bool ->
-    ?deps:Component.t list -> CU.t list -> string -> t
+    ?deps:(string -> Component.t list) ->
+    CU.t list -> string -> t
   (** Create a library. *)
 
   val filename: t -> string
@@ -309,7 +324,7 @@ and Bin: sig
     ?link_all:bool ->
     ?install:bool ->
     ?flags:Flags.t ->
-    ?deps:Component.t list ->
+    ?deps:(string -> Component.t list) ->
     CU.t list -> string -> t
   (** Build a binary by linking a set of compilation units. *)
 
@@ -318,7 +333,7 @@ and Bin: sig
     ?flags:Flags.t ->
     ?custom:bool ->
     ?install:bool ->
-    ?deps:Component.t list ->
+    ?deps:(string -> Component.t list) ->
     CU.t list -> string -> t
   (** Create a custom toplevel by linking a set of compilation
       units. *)
@@ -363,6 +378,13 @@ and Gen: sig
 
   val copy: t -> t
   (** Copy the generator if it needs to run in an other directory. *)
+
+  val files: t -> Resolver.t -> string list
+  (** The list of generated files. *)
+
+  val actions: t -> Resolver.t -> string list
+  (** Return the list of actions to run in order to generate the files
+      advertized by [files]. *)
 
 end
 

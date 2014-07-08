@@ -50,8 +50,9 @@ let generated ?action deps f name =
   let g = Gen.create ~deps ?action f name in
   `Gen g
 
-let lib ?available ?(flags=Flags.empty) ?pack ?(deps=[])
-    (cus:[`CU of cu] list) name =
+let nil _ = []
+
+let sorted_cus cus =
   let g = Component.Graph.create () in
   List.iter (fun (`CU cu) ->
       Component.Graph.add_vertex g (`CU cu);
@@ -63,18 +64,22 @@ let lib ?available ?(flags=Flags.empty) ?pack ?(deps=[])
         ) (CU.deps cu)
     ) cus;
   let cus = Component.Graph.vertex g in
-  let cus = List.map (function `CU cu -> cu | _ -> assert false) cus in
+  List.map (function `CU cu -> cu | _ -> assert false) cus
+
+let lib ?available ?(flags=Flags.empty) ?pack ?(deps=nil)
+    (cus:[`CU of cu] list) name =
+  let cus = sorted_cus cus in
   let l = Lib.create ?available ~flags ?pack ~deps cus name in
   `Lib l
 
-let bin ?(dir="bin") ?byte_only ?link_all ?install deps files name =
-  let cus = List.map (CU.create ~dir ~deps) files in
-  let b = Bin.create ?byte_only ?link_all ?install cus name in
+let bin ?byte_only ?link_all ?install ?(deps=nil) cus name =
+  let cus = sorted_cus cus in
+  let b = Bin.create ?byte_only ?link_all ?install ~deps cus name in
   `Bin b
 
-let c ?(dir="stubs") ?(link_flags=[]) deps libs name =
+let c ?dir ?(link_flags=[]) deps libs name =
   let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
-  let c = C.create ~dir ~link_flags ~deps name in
+  let c = C.create ?dir ~link_flags ~deps name in
   `C c
 
 let js b r =
@@ -96,43 +101,52 @@ let test_shell fmt =
 
 (* Ctypes stub-generation *)
 
+let (/) = Filename.concat
+
 let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) deps name =
 
   (* 1. compile the bindings. *)
   let deps = `Pkg "ctypes.stubs" :: deps in
   let name_bindings = name ^ "_bindings" in
-  let bindings = cu ?dir deps name_bindings in
+  let bindings = CU.create ?dir ~deps:deps name_bindings in
+
+  let name_generator = name ^ "_generator" in
+  let name_stubs = name ^ "_stubs" in
+  let bin_dir r = Bin.build_dir (Bin.create [] name_generator) r in
+  let lib_dir r = Sys.getcwd () / Lib.build_dir (Lib.create [] name) r in
 
   (* 2. Generate and compile the generator. *)
-  let name_generator = name ^ "_generator" in
   let generator =
     let action r =
+      let ml_stubs = lib_dir r / name_stubs ^ ".ml" in
+      let c_stubs  = lib_dir r / name_stubs ^ ".c" in
+      let library  = lib_dir r / name ^ ".ml" in
       let headers = match headers with
         | [] -> ""
         | hs -> sprintf "--headers %s " (String.concat "," hs) in
-      Action.create ~dir:(Resolver.build_dir r "") "ctypes-gen %s" headers
+      Action.create ~dir:(bin_dir r)
+        "mkdir %s && ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
+        (lib_dir r) headers ml_stubs c_stubs library name
     in
-    let gen = generated ~action [] `ML name_generator in
-    let comp = CU.create ~deps:[gen; bindings] name_generator in
-    let bin =
-      Bin.create ~install:false [comp] name_generator in
+    let ml = generated ~action [] `ML name_generator in
+    let comp = CU.create ~deps:[ml; `CU bindings] name_generator in
+    let bin = Bin.create ~install:false [bindings; comp] name_generator in
     `Bin bin in
 
   (* 3. Generate and compile the stubs. *)
-  let name_stubs = name ^ "_stubs" in
   let ml_stubs =
-    let action r =
-      Action.create ~dir:(Resolver.build_dir r "") "./%s.byte" name_generator in
-    let gen = generated ~action [generator] `ML name_stubs in
-    cu [gen] name_stubs in
+    let action r = Action.create ~dir:(bin_dir r) "./%s.byte" name_generator in
+    let ml = generated ~action [generator] `ML name_stubs in
+    cu [ml] name_stubs in
+
   let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
   let c_stubs =
     let c = C.create ~generated:true ~deps:[generator] ~link_flags name_stubs in
     `C c in
   let flags = Flags.(cclib link_flags @ stub name_stubs) in
-  let gen = generated [generator] `ML name in
-  let main = cu [bindings; ml_stubs; c_stubs; gen] name in
-  lib ~flags ?available [bindings; ml_stubs; main] name
+  let ml = generated [generator] `ML name in
+  let main = cu [`CU bindings; ml_stubs; c_stubs; ml] name in
+  lib ~flags ?available [`CU bindings; ml_stubs; main] name
 
 type tool = t -> Build_env.t -> unit
 
@@ -200,13 +214,18 @@ let describe t env =
     List.iteri (fun i m -> aux i n m) ms in
   let print_units us =
     let aux i n u =
-    let mk f ext =
-      if f u then (Shell.color `cyan @@ CU.name u ^ ext) else "" in
-    let ml = mk CU.ml ".ml" in
-    let mli = mk CU.mli ".mli" in
-    printf "  %s %-25s%-25s\n" (if i = n then "└─" else "├─") ml mli;
-    let build_dir = Build_env.build_dir env in
-    print_modules (i=n) (OCaml.modules ~build_dir u)
+      let mk f ext =
+        if f u then (Shell.color `cyan @@ CU.name u ^ ext) else "" in
+      let ml = mk CU.ml ".ml" in
+      let mli = mk CU.mli ".mli" in
+      let modules =
+        if CU.generated u then ["--generated--"]
+        else
+          let build_dir = Build_env.build_dir env in
+          OCaml.modules ~build_dir u in
+      printf "  %s %-25s%-25s\n"
+        (if modules = [] && i = n then "└─" else "├─") ml mli;
+      print_modules (i=n) modules
     in
     let n = List.length us - 1 in
     List.iteri (fun i u -> aux i n u) us in

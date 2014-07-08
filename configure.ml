@@ -13,13 +13,16 @@ let lib =
   lib (ocamldep ~dir:"lib" [cmdliner; graph; compiler; optcomp]) "assemblage"
 
 let configure =
-  bin ~link_all:true ~byte_only:true [lib] ["configure"] "configure.ml"
+  let configure = cu ~dir:"bin" [lib] "configure" in
+  bin ~link_all:true ~byte_only:true [configure] "configure.ml"
 
 let describe =
-  bin ~link_all:true ~byte_only:true [lib] ["describe"] "describe.ml"
+  let describe = cu ~dir:"bin" [lib] "describe" in
+  bin ~link_all:true ~byte_only:true [describe] "describe.ml"
 
 let ctypes_gen =
-  bin ~byte_only:true [cmdliner; lib] ["ctypes_gen"] "ctypes-gen"
+  let ctypes_gen = cu ~dir:"bin" [lib] "ctypes_gen" in
+  bin ~byte_only:true [ctypes_gen] "ctypes-gen"
 
 (* Tests *)
 

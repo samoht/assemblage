@@ -130,18 +130,19 @@ val lib:
   ?available:features ->
   ?flags:flags ->
   ?pack:bool ->
-  ?deps:component list -> [`CU of cu] list -> string -> [> `Lib of lib]
-(** [lib cus name] is the library [name] composed by the compilation
+  ?deps:(string -> component list) ->
+  [`CU of cu] list -> string -> [> `Lib of lib]
+(** [lib units name] is the library [name] composed by the compilation
     units [cus]. If [lib] is set, use [ocamldep] to approximate the
     compilation units and their dependecies in the given directory. *)
 
 val bin:
-  ?dir:string ->
   ?byte_only:bool ->
   ?link_all:bool ->
   ?install:bool ->
-  component list -> string list -> string -> [> `Bin of bin]
-(** [bin deps units name] is the binary [name] obtained by compiling
+  ?deps:(string -> component list) ->
+  [`CU of cu] list -> string -> [> `Bin of bin]
+(** [bin units name] is the binary [name] obtained by compiling
     the compilation units [units], with the dependencies [deps]. By
     default, the source files are located into {i bin/} (this is
     controled by the value of [dir]). *)

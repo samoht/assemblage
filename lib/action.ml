@@ -38,9 +38,12 @@ let run = function
       | Some d -> Shell.in_dir d (fun () -> Shell.exec "%s" s.cmd)
     end
 
-let action = function
-  | None   -> None
+let actions = function
+  | None   -> []
   | Some s ->
-    Some (match s.dir with
-        | None   -> s.cmd
-        | Some d -> sprintf "cd %s && %s" d s.cmd)
+    match s.dir with
+    | None   -> [s.cmd]
+    | Some d -> [
+        sprintf "mkdir -p %s" d;
+        sprintf "cd %s && %s" d s.cmd
+      ]

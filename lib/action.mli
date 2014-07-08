@@ -30,5 +30,5 @@ val create: ?dir:string -> ('a, unit, string, t) format4 -> 'a
 val run: t -> unit
 (** Process the action. *)
 
-val action: t -> string option
+val actions: t -> string list
 (** Return the action to run. *)

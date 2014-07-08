@@ -530,8 +530,15 @@ and G: sig
   val rules    : Gen.t -> Rule.t list
   val variables: Gen.t -> Variable.t list
 end = struct
-  let rules _ = failwith "TODO"
-  let variables _ = failwith "TODO"
+  (* XXX: improve the generated variables and rules *)
+  let variables _ = []
+  let rules t =
+    [
+      Rule.create
+        ~targets:(Gen.files t resolver)
+        ~prereqs:(Gen.prereqs t resolver `Byte)
+        (Gen.actions t resolver)
+    ]
 end
 
 module T = struct

@@ -47,7 +47,6 @@ and lib = {
   mutable l_filename: string;
   l_available       : Feature.formula;
   mutable l_flags   : Flags.t;
-  l_deps            : component list;
 }
 
 and bin = {
@@ -126,11 +125,16 @@ let (//) x y =
   | None   -> y
   | Some x -> Filename.concat x y
 
-module type G = sig
+module type Graph = sig
   include Graph.Sig.I
   val iter: (V.t -> unit) -> t -> unit
   val fold: (V.t -> 'a -> 'a) -> t -> 'a -> 'a
   val vertex: t -> V.t list
+end
+
+module type Set = sig
+  include Set.S
+  val of_list: elt list -> t
 end
 
 module Graph (X: sig type t val id: t -> string end) = struct
@@ -167,7 +171,8 @@ module rec Component: sig
   val pp_native: t list -> Resolver.t -> string list
   val link_byte: t list -> Resolver.t -> cu list -> string list
   val link_native: t list -> Resolver.t -> cu list -> string list
-  module Graph: G with type V.t = component
+  module Graph: Graph with type V.t = component
+  module Set: Set with type elt = component
 end = struct
 
   type t = component
@@ -298,35 +303,38 @@ end = struct
       ) [] l
 
   let closure (ts:t list): t list =
-    let deps = Hashtbl.create 24 in
+    let deps_tbl = Hashtbl.create 24 in
     let rec aux acc = function
-      | []          -> List.rev acc
-      | h :: t as d ->
-        if Hashtbl.mem deps h then
-          match Hashtbl.find deps h with
-          | 0 -> Hashtbl.replace deps h 1; aux (h :: acc) t
+      | []            -> List.rev acc
+      | (h :: t) as d ->
+        if Hashtbl.mem deps_tbl (id h) then
+          match Hashtbl.find deps_tbl (id h) with
+          | 0 -> Hashtbl.replace deps_tbl (id h) 1; aux (h :: acc) t
           | _ -> aux acc t
         else (
-          Hashtbl.add deps h 0;
-          match h with
-          | `CU cu ->
-            let d' = CU.deps cu in
-            aux acc (d' @ d)
-          | `Lib l ->
-            let d' = Lib.deps l in
-            aux acc (d' @ d)
-          | _ -> Hashtbl.replace deps h 1; aux (h :: acc) t
+          Hashtbl.add deps_tbl (id h) 0;
+          let d' = deps h in
+          aux acc (d' @ d)
         )
     in
     aux [] ts
 
   let comp_flags mode (deps:t list) resolver build_dir =
-    let incl = sprintf "-I %s" (build_dir resolver) in
-    let libs = filter lib deps in
-    let libs = List.map (fun l ->
-        sprintf "-I %s" (Lib.build_dir l resolver);
-      ) libs in
-    let libs = String.concat " " (incl :: libs) in
+    let includes = Hashtbl.create 10 in
+    let add dir = Hashtbl.add includes dir true in
+    let incl = build_dir resolver in
+    let cus =
+      filter cu deps
+      |> List.map (fun u -> CU.build_dir u resolver) in
+    let libs =
+      filter lib deps
+      |> List.map (fun l -> Lib.build_dir l resolver) in
+    List.iter add (incl :: cus @ libs);
+    let libs =
+      Hashtbl.fold (fun i _ acc ->
+          (sprintf "-I %s" i) :: acc
+        ) includes [] in
+    let libs = String.concat " " libs in
     let pkgs = filter pkg deps in
     let pkgs = match pkgs with
       | [] -> []
@@ -392,7 +400,24 @@ end = struct
 
   let pp_native = pp_flags `Native
 
-  module Graph = Graph(struct type t = component let id = id end)
+  module Graph = Graph(struct
+      type t = component
+      let id = id
+    end)
+
+  module Set = struct
+
+    include Set.Make(struct
+        type t = component
+        let compare x y = String.compare (id x) (id y)
+      end)
+
+    let of_list l =
+      List.fold_left (fun set elt ->
+          add elt set
+        ) empty l
+
+  end
 
 end
 
@@ -628,7 +653,8 @@ and Lib: sig
     ?available:Feature.formula ->
     ?flags:Flags.t ->
     ?pack:bool ->
-    ?deps:Component.t list -> CU.t list -> string -> t
+    ?deps:(string -> Component.t list) ->
+    CU.t list -> string -> t
   val filename: t -> string
   val compilation_units: t -> CU.t list
   val available: t -> Feature.formula
@@ -650,6 +676,8 @@ end = struct
   let deps t =
     t.l_comps
     |> conmap CU.deps
+    |> Component.Set.of_list
+    |> Component.Set.elements
 
   let name t = t.l_name
 
@@ -665,10 +693,12 @@ end = struct
 
   let available t = t.l_available
 
+  let nil _ = []
+
   let create
       ?(available=Feature.true_)
       ?(flags=Flags.empty)
-      ?(pack=false) ?(deps=[]) comps name =
+      ?(pack=false) ?(deps=nil) comps name =
     let comps' = if pack then [CU.pack comps name] else comps in
     let t = {
       l_name      = name;
@@ -676,8 +706,8 @@ end = struct
       l_available = available;
       l_flags     = flags;
       l_filename  = name;
-      l_deps      = deps } in
-    List.iter (fun u -> CU.add_deps u deps) comps;
+    } in
+    List.iter (fun u -> CU.add_deps u (deps (CU.name u))) comps;
     List.iter (fun u -> CU.set_lib_container u t) (comps' @ comps);
     t
 
@@ -726,14 +756,14 @@ and Bin: sig
     ?link_all:bool ->
     ?install:bool ->
     ?flags:Flags.t ->
-    ?deps:Component.t list ->
+    ?deps:(string -> Component.t list) ->
     CU.t list -> string -> t
   val toplevel:
     ?available:Feature.formula ->
     ?flags:Flags.t ->
     ?custom:bool ->
     ?install:bool ->
-    ?deps:Component.t list ->
+    ?deps:(string -> Component.t list) ->
     CU.t list -> string -> t
   val compilation_units: t -> CU.t list
   val available: t -> Feature.formula
@@ -765,18 +795,28 @@ end = struct
 
   let available t = t.b_available
 
+  let nil _ = []
+
   let create
       ?(available=Feature.true_)
       ?(byte_only=false)
       ?(link_all=false)
       ?(install=true)
       ?(flags=Flags.empty)
-      ?(deps=[])
+      ?(deps=nil)
       comps name =
     let available =
       if byte_only then Feature.(not native && available) else available in
     let flags =
       if link_all then Flags.(linkall @ flags) else flags in
+    List.iter (fun cu ->
+        CU.add_deps cu (deps (CU.name cu))
+      ) comps;
+    let deps =
+      List.fold_left (fun deps cu ->
+          Component.Set.(union deps (of_list (CU.deps cu)))
+        ) Component.Set.empty comps
+      |> Component.Set.elements in
     let t = {
       b_deps      = deps;
       b_flags     = flags;
@@ -794,10 +834,11 @@ end = struct
       ?(flags=Flags.empty)
       ?(custom=false)
       ?install
-      ?(deps=[])
+      ?(deps=nil)
       comps name =
     let available = Feature.(not native && available) in
-    let deps = `Pkg "compiler-libs.toplevel" :: deps in
+    let deps x =
+      `Pkg "compiler-libs.toplevel" :: deps x in
     let link_byte = [
       (if custom then "-custom " else "") ^ "-I +compiler-libs topstart.cmo"
     ] in
@@ -857,6 +898,8 @@ and Gen: sig
   val create: ?deps:Component.t list -> ?action:(Resolver.t -> Action.t) ->
     [`Both|`ML|`MLI]-> string -> t
   val copy: t -> t
+  val files: t -> Resolver.t -> string list
+  val actions: t -> Resolver.t -> string list
 end = struct
 
   type t = gen
@@ -902,13 +945,18 @@ end = struct
   let mli t r =
     file t r ".mli"
 
-  let generated_files t r = [
-    Feature.true_,
+  let files t r =
     match t.g_files with
     | `Both -> [ml t r; mli t r]
     | `ML   -> [ml t r]
     | `MLI  -> [mli t r]
+
+  let generated_files t r = [
+    Feature.true_, files t r
   ]
+
+  let actions t r =
+    Action.actions (t.g_action r)
 
 end
 
@@ -949,7 +997,7 @@ end = struct
   let prereqs _t _r _mode =
     []
 
-  let deps _t = []
+  let deps t = t.c_deps
 
   let generated_files t r =
     [Feature.true_, [dll_so t r]]
@@ -982,38 +1030,39 @@ end = struct
   let name t = t.t_name
 
   let prereqs t r mode =
-    let aux = function
-      | `Shell _           -> []
-      | `Bin (`Bin bin, _) ->
-        match mode with
-        | `Byte   -> [Bin.byte bin r]
-        | `Native -> [Bin.native bin r] in
-    List.fold_left (fun acc cmd ->
-        aux cmd @ acc
-      ) [] t.t_commands
+    List.fold_left (fun acc -> function
+        | `Bin bin ->
+          begin match mode with
+            | `Byte   -> Bin.byte bin r   :: acc
+            | `Native -> Bin.native bin r :: acc
+          end
+        | _ -> acc
+      ) [] t.t_deps
 
   let flags _t _r = Flags.empty
 
   let generated_files _t _r = []
 
   let file _t _r _ext =
-    failwith "TODO"
+    failwith "Test.file"
 
   let build_dir _t _r =
-    failwith "TODO"
+    failwith "Test.build_dir"
 
-  let deps t =
-    let aux = function
-      | `Shell _           -> []
-      | `Bin (`Bin bin, _) -> [`Bin bin] in
-    t.t_deps @ conmap aux t.t_commands
+  let deps t = t.t_deps
 
-  let create ?dir ?(deps=[]) commands name = {
-    t_name     = name;
-    t_dir      = dir;
-    t_commands = commands;
-    t_deps     = deps;
-  }
+  let create ?dir ?(deps=[]) commands name =
+    let bin_deps =
+      List.fold_left (fun acc -> function
+          | `Shell _           -> acc
+          | `Bin (`Bin bin, _) -> `Bin bin :: acc
+        ) [] commands in
+    {
+      t_name     = name;
+      t_dir      = dir;
+      t_commands = commands;
+      t_deps     = bin_deps @ deps;
+    }
 
   let commands t = t.t_commands
 

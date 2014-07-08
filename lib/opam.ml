@@ -89,7 +89,9 @@ module Install = struct
               let name = String.capitalize (CU.name u) in
               mk "%s.html" name;
               mk "type_%s.html" name;
-              let modules = OCaml.modules ~build_dir u in
+              let modules =
+                if CU.generated u then []
+                else OCaml.modules ~build_dir u in
               List.iter (fun m ->
                   mk "%s.%s.html" name m
                 ) modules
