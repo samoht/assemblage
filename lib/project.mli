@@ -373,7 +373,7 @@ and Gen: sig
   include S with type component = Component.t
 
   val create: ?deps:Component.t list -> ?action:(Resolver.t -> Action.t) ->
-    [`Both|`ML|`MLI]-> string -> t
+    [`C|`ML|`MLI] list -> string -> t
   (** Generate source files, using the given action. *)
 
   val copy: t -> t
@@ -418,6 +418,12 @@ and C: sig
 
   val dll_so: t -> Resolver.t -> string
   (** The location of the generated [.so] file. *)
+
+  val symlink_c: t -> Resolver.t -> string
+  (** The location of the symlinked C file. *)
+
+  val o: t -> Resolver.t -> string
+  (** The location of the object file. *)
 
 end
 

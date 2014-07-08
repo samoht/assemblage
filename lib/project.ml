@@ -90,7 +90,7 @@ and gen = {
   mutable g_comp: cu option;
   g_action      : (Resolver.t -> Action.t);
   g_deps        : component list;
-  g_files       : [`Both|`ML|`MLI];
+  g_files       : [`C|`ML|`MLI] list;
 }
 
 type t = {
@@ -541,10 +541,10 @@ end = struct
     let gens = Component.(filter gen) deps in
     let mli = match gens with
       | [] -> Sys.file_exists (dir // name ^ ".mli")
-      | _  -> List.exists (fun g -> g.g_files = `Both || g.g_files = `MLI) gens in
+      | _  -> List.exists (fun g -> List.mem `MLI g.g_files) gens in
     let ml = match gens with
       | [] -> Sys.file_exists (dir // name ^ ".ml")
-      | _  -> List.exists (fun g -> g.g_files = `Both || g.g_files = `ML) gens in
+      | _  -> List.exists (fun g -> List.mem `ML g.g_files) gens in
     if not ml && not mli then (
       eprintf
         "\027[31m[ERROR]\027[m Cannot find %s.ml or %s.mli, stopping.\n"
@@ -906,7 +906,7 @@ end
 and Gen: sig
   include S with type t = gen and type component = Component.t
   val create: ?deps:Component.t list -> ?action:(Resolver.t -> Action.t) ->
-    [`Both|`ML|`MLI]-> string -> t
+    [`C|`ML|`MLI] list -> string -> t
   val copy: t -> t
   val files: t -> Resolver.t -> string list
   val actions: t -> Resolver.t -> string list
@@ -957,10 +957,11 @@ end = struct
     file t r ".mli"
 
   let files t r =
-    match t.g_files with
-    | `Both -> [ml t r; mli t r]
-    | `ML   -> [ml t r]
-    | `MLI  -> [mli t r]
+    List.map (function
+        | `C    -> C.symlink_c (C.create t.g_name) r
+        | `ML   -> ml t r
+        | `MLI  -> mli t r
+      ) t.g_files
 
   let generated_files t r = [
     Feature.true_, files t r
@@ -978,6 +979,8 @@ and C: sig
     ?deps:Component.t list -> string -> t
   val link_flags: t -> string list
   val dll_so: t -> Resolver.t -> string
+  val symlink_c: t -> Resolver.t -> string
+  val o: t -> Resolver.t -> string
 end = struct
 
   type t = c
@@ -1005,8 +1008,14 @@ end = struct
   let dll_so t r =
     build_dir t r / "dll" ^ t.c_name ^ "_stubs.so"
 
+  let o t r =
+    file t r ".o"
+
+  let symlink_c t r =
+    file t r ".c"
+
   let prereqs t r _mode =
-    [file t r ".c"]
+    [o t r]
 
   let deps t = t.c_deps
 

@@ -660,14 +660,29 @@ module C = struct
     [Variable.("c" =:= `Strings (List.map (fun t -> C.dll_so t r) cs))]
 
   let rules cs r =
+    (* XXX: handle the case where opam is not installed *)
+    let lib_dir = List.hd (Shell.exec_output "opam config var lib") in
     Rule.create ~targets:["c"] ~prereqs:["$(c)"] []
-    :: List.map (fun c ->
-        Rule.create ~targets:[C.dll_so c r] ~prereqs:(C.prereqs c resolver `Byte)
-          [sprintf "$(OCAMLMKLIB) -o %s %s %s"
-             Rule.target
-             Rule.prereqs
-             (String.concat " " (C.link_flags c))
-          ]
+    :: conmap (fun c -> [
+          (* XXX: add symlink rule *)
+          Rule.create
+            ~targets:[C.o c r]
+            ~prereqs:[C.symlink_c c r]
+            [sprintf "cd %s && $(OCAMLC) -c -I %s %s %s"
+               (Filename.dirname (C.symlink_c c r))
+               lib_dir
+               (Filename.basename (C.symlink_c c r))
+               (String.concat " " (
+                   List.map (sprintf "-ccopt %s") (C.link_flags c)))];
+          Rule.create
+            ~targets:[C.dll_so c r]
+            ~prereqs:(C.prereqs c resolver `Byte)
+           [sprintf "$(OCAMLMKLIB) -o %s %s %s"
+              Rule.target
+              Rule.prereqs
+              (String.concat " " (C.link_flags c))
+           ];
+        ]
       ) cs
 
 end

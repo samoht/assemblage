@@ -105,7 +105,7 @@ val ocamldep: dir:string -> ?flags:flags -> component list -> [> `CU of cu] list
     directory, obtained by running [ocamldep] with the given flags. *)
 
 val generated: ?action:(Resolver.t -> Action.t) ->
-  component list -> [`Both|`ML|`MLI] -> string -> [> `Gen of gen]
+  component list -> [`C|`ML|`MLI] list -> string -> [> `Gen of gen]
 (** Generated OCaml source file(s). *)
 
 val c:
