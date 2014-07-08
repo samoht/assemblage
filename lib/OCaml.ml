@@ -60,8 +60,7 @@ let init flags =
 
 let add_module prefix set m =
   let p = prefix m in
-  StringSet.add m set,
-  fun x -> p ^ "." ^ x
+  StringSet.add p set, fun x -> p ^ "." ^ x
 
 let modules_of_ml ast =
   let rec structure_item prefix acc { pstr_desc; _ } =
@@ -96,26 +95,28 @@ let modules_of_mli ast =
   let rec sig_item prefix acc { psig_desc; _ } =
     match psig_desc with
 #if ocaml_version >= (4, 2)
-    | Psig_module b    ->
+    | Psig_module b  ->
       let acc, prefix = add_module prefix acc b.pmd_name.Asttypes.txt in
-      module_type prefix acc b.pmd_type.pmty_desc
+      module_type prefix acc b.pmd_type
     | Psig_recmodule l ->
       List.fold_left (fun acc b ->
           let acc, prefix = add_module prefix acc b.pmd_name.Asttypes.txt in
-          module_type prefix acc b.pmd_type.pmty_desc
+          module_type prefix acc b.pmd_type
         ) acc l
 #else
     | Psig_module (l, s) ->
       let acc, prefix = add_module prefix acc l.Asttypes.txt in
-      module_type prefix acc s.pmty_desc
+      module_type prefix acc s
     | Psig_recmodule l  ->
       List.fold_left (fun acc (l,s) ->
           let acc, prefix = add_module prefix acc l.Asttypes.txt in
-          module_type prefix acc s.pmty_desc
+          module_type prefix acc s
         ) acc l
 #endif
     | _ -> acc
-  and module_type prefix acc = function
+
+  and module_type prefix acc { pmty_desc; _ } =
+    match pmty_desc with
     | Pmty_signature s -> List.fold_left (sig_item prefix) acc s
     | _                -> acc
   in
