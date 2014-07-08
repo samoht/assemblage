@@ -15,7 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Execution of shell commands *)
+(** Execution of shell commands. *)
 
 val show: ('a, unit, string, unit) format4 -> 'a
 (** [show msg] outputs the given message on stdout. *)

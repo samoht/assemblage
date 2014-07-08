@@ -14,12 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** EDSL to describe OCaml projects. *)
+(** EDSL to describe OCaml projects.
 
-(** A typical project contains the descriptions of multiple
+    A typical project contains the descriptions of multiple
     components, such as libraries, binaries, tests, ... forming a
     complex DAG of inter-related descriptions. The module signature
-    {{!G}G} models the relation between components. *)
+    {{!G}G} models the relation between components. Although each kind
+    of components has some particularities, but they all extend the
+    signature {{!S}S} defined below. *)
 
 type t
 (** The type for describing projects. *)
@@ -48,9 +50,6 @@ val doc_intro: t -> string option
 val doc_dir: t -> string
 (** [doc_dir t] is the the directory where the HTML documentation is
     generated. *)
-
-(** Although each kind of components has some particularities, but they all
-    extend the signature {{!S}S} defined below. *)
 
 module type S = sig
 

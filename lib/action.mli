@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Actions to generated source files. *)
+(** Actions to generate source files. *)
 
 type t
 (** Generator values. *)

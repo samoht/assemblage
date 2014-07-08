@@ -40,15 +40,15 @@ module Rule: sig
 
   val target: string
   (** The file name of the target of the rule. If the target is an
-      archive member, then ‘$@’ is the name of the archive file. In a
+      archive member, then [$@]is the name of the archive file. In a
       pattern rule that has multiple targets (see Introduction to Pattern
-      Rules), ‘$@’ is the name of whichever target caused the rule's
+      Rules), [$@] is the name of whichever target caused the rule's
       recipe to be run. *)
 
   val target_member: string
   (** The target member name, when the target is an archive
       member. See Archives. For example, if the target is foo.a(bar.o)
-      then ‘$%’ is bar.o and ‘$@’ is foo.a. ‘$%’ is empty when the
+      then [$%] is bar.o and [$@] is foo.a. [$%] is empty when the
       target is not an archive member. *)
 
   val prereq: string
@@ -68,13 +68,13 @@ module Rule: sig
       named member is used (see Archives). A target has only one
       prerequisite on each other file it depends on, no matter how
       many times each file is listed as a prerequisite. So if you list
-      a prerequisite more than once for a target, the value of $^
+      a prerequisite more than once for a target, the value of [$^]
       contains just one copy of the name. This list does not contain
-      any of the order-only prerequisites; for those see the ‘$|’
+      any of the order-only prerequisites; for those see the [$|]
       variable, below.  *)
 
   val dedup_prereqs: string
-  (** This is like ‘$^’, but prerequisites listed more than once are
+  (** This is like [$^], but prerequisites listed more than once are
       duplicated in the order they were listed in the makefile. This
       is primarily useful for use in linking commands where it is
       meaningful to repeat library file names in a particular
@@ -82,23 +82,23 @@ module Rule: sig
 
   val stem: string
   (** The stem with which an implicit rule matches (see How Patterns
-      Match). If the target is dir/a.foo.b and the target pattern is
-      a.%.b then the stem is dir/foo. The stem is useful for
+      Match). If the target is [dir/a.foo.b] and the target pattern is
+      [a.%.b] then the stem is [dir/foo]. The stem is useful for
       constructing names of related files. In a static pattern rule,
-      the stem is part of the file name that matched the ‘%’ in the
+      the stem is part of the file name that matched the [%] in the
       target pattern.
 
-      In an explicit rule, there is no stem; so ‘$*’ cannot be
+      In an explicit rule, there is no stem; so [$*] cannot be
       determined in that way. Instead, if the target name ends with a
-      recognized suffix (see Old-Fashioned Suffix Rules), ‘$*’ is set
+      recognized suffix (see Old-Fashioned Suffix Rules), [$*] is set
       to the target name minus the suffix. For example, if the target
-      name is ‘foo.c’, then ‘$*’ is set to ‘foo’, since ‘.c’ is a
+      name is [foo.c], then [$*] is set to [foo], since [.c] is a
       suffix. GNU make does this bizarre thing only for compatibility
       with other implementations of make. You should generally avoid
-      using ‘$*’ except in implicit rules or static pattern rules.
+      using [$*] except in implicit rules or static pattern rules.
 
       If the target name in an explicit rule does not end with a
-      recognized suffix, ‘$*’ is set to the empty string for that
+      recognized suffix, [$*] is set to the empty string for that
       rule. *)
 
 end
@@ -123,26 +123,26 @@ module Variable: sig
       action [action] is performed. *)
 
   val (=:=): string -> contents ->  t
-  (** VAR := x *)
+  (** [VAR := x] *)
 
   val (=+=): string -> contents -> t
-  (** VAR += x *)
+  (** [VAR += x] *)
 
   val (=?=): string -> contents -> t
-  (** VAR ?= x *)
+  (** [VAR ?= x] *)
 
   val subst: t -> string -> input:string -> output:string -> t
     (** Create a new variable by sustituting the contents of an other one.
 
-      NEWVAR = $(subst ${VAR}:input=output)
+      [VAR = $(subst ${OLDVAR}:input=output)]
 
     *)
 
   val shell: string -> string -> t
-  (** VAR = $(shell <command>) *)
+  (** [VAR = $(shell <command>)] *)
 
   val files: string -> dir:string -> ext:string -> t
-  (** VAR = $(wildcard <dir>/*.<ext>)  *)
+  (** [VAR = $(wildcard <dir>/*.<ext>)] *)
 
   val has_feature: Feature.t -> t
   (** Is the given feature enabled. *)

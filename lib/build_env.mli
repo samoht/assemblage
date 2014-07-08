@@ -14,8 +14,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Global project environment. The build environment (which can be an
-    human) discover available feature. *)
+(** Global project environment.
+
+    The build environment (which can be an human) discovers available
+    features. *)
 
 type t
 (** Environment values. *)

@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Manage Git repositories. *)
+(** Extract information from Git repositories. *)
 
 val head: unit -> string option
 (** [head ()] is the tip's SHA1 of the current project. *)

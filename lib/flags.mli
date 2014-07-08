@@ -14,9 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Command line arguments (i.e. flags). *)
+(** Command line arguments.
 
-(** The various compilation options that are set for a project
+    The various compilation options that are set for a project
     eventually reduce to tweaking the simple command-line arguments to
     the compiler. We distinguish three different phases, where the
     command-line can be changed: the pre-processing step, the separate

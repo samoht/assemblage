@@ -225,3 +225,7 @@ let describe t env =
   print_libs Component.(filter lib components);
   print_libs Component.(filter pp  components);
   print_bins Component.(filter bin components)
+
+type flags = Flags.t
+
+type features = Feature.formula

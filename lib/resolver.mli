@@ -14,15 +14,22 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Dependency resolver. *)
+(** Internal and external name resolvers.
+
+    A project defines different kinds of names: local and external
+    library names. A local library name needs to be associated with
+    the name of the local directory where the build artifacts for that
+    library are created and an external library name needs to be
+    associated with the global directory where the object files for
+    that library are installed. *)
 
 type t
-(** Resolver values. *)
+(** The type for internal and external name resolvers. *)
 
 val create: build_dir:string -> pkgs:(string list -> Flags.t) -> t
-(** [create ~buildir ~pkgs] is the resolver which apply the function
-      [buildir] to resolve local libraries and resolves a set of
-      global package by applying [pkgs]. *)
+(** [create ~buildir ~pkgs] is the resolver which prefixes [buildir]
+    to resolve local library names and applies [pkgs] to resolve a set
+    of global package names. *)
 
 val build_dir: t -> string -> string
 (** Resolve locally generated filename by prepending the build

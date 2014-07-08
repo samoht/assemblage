@@ -14,9 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** The Assemblage Library. *)
+(** The Assemblage Library.
 
-(** [Assemblage] provides a simple embedded domain specific language
+    [Assemblage] provides a simple embedded domain specific language
     to describe [OCaml] {{!project}projects}. It also provides simple
     {{!tools}tools} to configure, manage, install and use OCaml
     projects.
@@ -36,6 +36,16 @@
     compilation and linking phases.
 
     {e Release %%VERSION%% - %%AUTHOR%% } *)
+
+(** {1:features Features} *)
+
+type features = Feature.formula
+(** The type of user-defined or system-dependent features. *)
+
+(** {1:flags Flags} *)
+
+type flags = Flags.t
+(** The type of command-line arguments. *)
 
 (** {1:project Project} *)
 
@@ -90,7 +100,7 @@ val cu: ?dir:string -> component list -> string -> [> `CU of cu]
     dependencies [deps] and the cname [name]. The name is the same as
     the filename, without its extension. *)
 
-val ocamldep: dir:string -> ?flags:Flags.t -> component list -> [> `CU of cu] list
+val ocamldep: dir:string -> ?flags:flags -> component list -> [> `CU of cu] list
 (** [ocamldep ~dir] is the list of compilation units in the given
     directory, obtained by running [ocamldep] with the given flags. *)
 
@@ -108,7 +118,7 @@ val c:
 
 val cstubs:
   ?dir:string ->
-  ?available:Feature.formula ->
+  ?available:features ->
   ?headers:string list ->
   ?cflags:string list ->
   ?clibs:string list ->
@@ -117,8 +127,8 @@ val cstubs:
     compilation unit [name]. *)
 
 val lib:
-  ?available:Feature.formula ->
-  ?flags:Flags.t ->
+  ?available:features ->
+  ?flags:flags ->
   ?pack:bool ->
   ?deps:component list -> [`CU of cu] list -> string -> [> `Lib of lib]
 (** [lib cus name] is the library [name] composed by the compilation
@@ -157,17 +167,13 @@ val test_shell: ('a, unit, string, Project.Test.command) format4 -> 'a
 (** A test which runs an arbitrary shell command. *)
 
 val create:
-  ?flags:Flags.t ->
+  ?flags:flags ->
   ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
   ?version:string ->
   component list -> string -> unit
 (** [create deps name] registers the project named [name], defining
     the libraries, binaries and tests defined by the transitive
     closure of objects in [deps]. *)
-
-(** {1:features Features} *)
-
-(** {1:flags Flags} *)
 
 (** {1:tools Tools} *)
 
@@ -176,8 +182,9 @@ type tool = Project.t -> Build_env.t -> unit
 
 val process: ?file:string -> string -> tool -> unit
 (** [process ~file name fn] reads and processes the OCaml [file] in a
-    top-level environment, for the project called [name], and apply
-    [fn] to the projects registered as side-effects. *)
+    top-level environment (the default is [configure.ml]), for the
+    project called [name], and apply [fn] to the projects registered
+    as side-effects. *)
 
 val configure: [`Make] -> tool
 (** Configure the project by generating the build, META and .install

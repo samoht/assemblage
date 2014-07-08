@@ -14,9 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Project features. *)
+(** Project features.
 
-(** Typical OCaml project might have multiple features, which modifies
+    Typical OCaml project might have multiple features, which modifies
     the list of generated artifacts. An example is a project which
     depends on either [lwt] or [async], and which choose to compile
     the relevant libraries only if one of the other is installed on
