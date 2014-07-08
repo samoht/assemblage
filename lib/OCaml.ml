@@ -58,6 +58,69 @@ let init flags =
     let pp = String.concat " " pp in
     Clflags.preprocessor := Some (sprintf "camlp4o %s" pp)
 
+let add_module prefix set m =
+  let p = prefix m in
+  StringSet.add m set,
+  fun x -> p ^ "." ^ x
+
+let modules_of_ml ast =
+  let rec structure_item prefix acc { pstr_desc; _ } =
+    match pstr_desc with
+#if ocaml_version >= (4, 2)
+    | Pstr_module b    ->
+      let acc, prefix = add_module prefix acc b.pmb_name.Asttypes.txt in
+      module_expr prefix acc b.pmb_expr
+    | Pstr_recmodule l ->
+      List.fold_left (fun acc b ->
+          let acc, prefix = add_module b.pmb_name.Asttypes.txt in
+          module_expr prefix acc b.pmb_expr
+        ) acc l
+#else
+    | Pstr_module (l, e) ->
+      let acc, prefix = add_module prefix acc l.Asttypes.txt in
+      module_expr prefix acc e.pmod_desc
+    | Pstr_recmodule l  ->
+      List.fold_left (fun acc (l,_,e) ->
+          let acc, prefix = add_module prefix acc l.Asttypes.txt in
+          module_expr prefix acc e.pmod_desc
+        ) acc l
+#endif
+    | _ -> acc
+  and module_expr prefix acc = function
+    | Pmod_structure l -> List.fold_left (structure_item prefix) acc l
+    | _                -> acc
+  in
+  List.fold_left (structure_item (fun x -> x)) StringSet.empty ast
+
+let modules_of_mli ast =
+  let rec sig_item prefix acc { psig_desc; _ } =
+    match psig_desc with
+#if ocaml_version >= (4, 2)
+    | Psig_module b    ->
+      let acc, prefix = add_module prefix acc b.pmd_name.Asttypes.txt in
+      module_type prefix acc b.pmd_type.pmty_desc
+    | Psig_recmodule l ->
+      List.fold_left (fun acc b ->
+          let acc, prefix = add_module prefix acc b.pmd_name.Asttypes.txt in
+          module_type prefix acc b.pmd_type.pmty_desc
+        ) acc l
+#else
+    | Psig_module (l, s) ->
+      let acc, prefix = add_module prefix acc l.Asttypes.txt in
+      module_type prefix acc s.pmty_desc
+    | Psig_recmodule l  ->
+      List.fold_left (fun acc (l,s) ->
+          let acc, prefix = add_module prefix acc l.Asttypes.txt in
+          module_type prefix acc s.pmty_desc
+        ) acc l
+#endif
+    | _ -> acc
+  and module_type prefix acc = function
+    | Pmty_signature s -> List.fold_left (sig_item prefix) acc s
+    | _                -> acc
+  in
+  List.fold_left (sig_item (fun x -> x)) StringSet.empty ast
+
 let modules ~build_dir cu =
   let resolver = Ocamlfind.resolver `Direct build_dir in
   let () =
@@ -70,43 +133,11 @@ let modules ~build_dir cu =
     | `ML ->
       let file = CU.dir cu // CU.name cu ^ ".ml" in
       let ast = Pparse.parse_implementation Format.err_formatter file in
-      List.fold_left (fun acc { pstr_desc; _ } ->
-          match pstr_desc with
-#if ocaml_version >= (4, 2)
-          | Pstr_module b    -> StringSet.add b.pmb_name.Asttypes.txt acc
-          | Pstr_recmodule l ->
-            List.fold_left (fun acc b ->
-                StringSet.add b.pmb_name.Asttypes.txt acc
-              ) acc l
-#else
-          | Pstr_module (l,_) -> StringSet.add l.Asttypes.txt acc
-          | Pstr_recmodule l  ->
-            List.fold_left (fun acc (l,_,_) ->
-              StringSet.add l.Asttypes.txt acc
-            ) acc l
-#endif
-          | _ -> acc
-        ) StringSet.empty ast
+      modules_of_ml ast
     | `MLI ->
       let file = CU.dir cu // CU.name cu ^ ".mli" in
       let ast = Pparse.parse_interface Format.err_formatter file in
-      List.fold_left (fun acc { psig_desc; _ } ->
-          match psig_desc with
-#if ocaml_version >= (4, 2)
-          | Psig_module b    -> StringSet.add b.pmd_name.Asttypes.txt acc
-          | Psig_recmodule l ->
-            List.fold_left (fun acc b ->
-                StringSet.add b.pmd_name.Asttypes.txt acc
-              ) acc l
-#else
-          | Psig_module (l,_) -> StringSet.add l.Asttypes.txt acc
-          | Psig_recmodule l  ->
-            List.fold_left (fun acc (l,_) ->
-                StringSet.add l.Asttypes.txt acc
-              ) acc l
-#endif
-          | _ -> acc
-        ) StringSet.empty ast in
+      modules_of_mli ast in
   let set =
     if CU.mli cu then aux `MLI
     else if CU.ml cu then aux `ML
