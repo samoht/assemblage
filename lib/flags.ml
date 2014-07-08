@@ -25,6 +25,7 @@ type t = {
   pp_native  : s;
   link_byte  : s;
   link_native: s;
+  link_shared: s;
   c          : s;
 }
 
@@ -35,24 +36,25 @@ let (@) f g = {
   pp_native   = f.pp_native   @ g.pp_native  ;
   link_byte   = f.link_byte   @ g.link_byte  ;
   link_native = f.link_native @ g.link_native;
+  link_shared = f.link_shared @ g.link_shared;
   c           = f.c           @ g.c          ;
 }
 
 let create
     ?(comp_byte=[]) ?(comp_native=[])
     ?(pp_byte=[])   ?(pp_native=[])
-    ?(link_byte=[]) ?(link_native=[])
+    ?(link_byte=[]) ?(link_native=[]) ?(link_shared=[])
     ?(c=[])
     () =
   { comp_byte; comp_native;
     pp_byte; pp_native;
-    link_byte; link_native;
+    link_byte; link_native; link_shared;
     c; }
 
 let empty =
   { comp_byte = []; comp_native = [];
     pp_byte = []; pp_native = [];
-    link_byte = []; link_native = [];
+    link_byte = []; link_native = []; link_shared = [];
     c = ["-fPIC -Wall -O3"]; }
 
 let comp_byte t = t.comp_byte
@@ -67,13 +69,15 @@ let link_byte t = t.link_byte
 
 let link_native t = t.link_native
 
+let link_shared t = t.link_shared
+
 let c t = t.c
 
 let debug =
   let f = ["-g"] in
   { empty with
     comp_byte   = f; comp_native = f;
-    link_byte   = f; link_native = f;
+    link_byte   = f; link_native = f; link_shared = f;
     c = ["-fPIC -Wall -g"];
   }
 
@@ -93,24 +97,25 @@ let thread =
   let f = ["-thread"] in
   { empty with
     comp_byte = f; comp_native = f;
-    link_byte = f; link_native = f; }
+    link_byte = f; link_native = f; link_shared = f; }
 
 let cclib args =
   let f = List.map (sprintf "-cclib %s") args in
   { empty with
-    link_byte = f; link_native = f; c = args;
+    link_byte = f; link_native = f; c = args; link_shared = f;
   }
 
 let ccopt args =
   let f = List.map (sprintf "-ccopt %s") args in
   { empty with
     comp_byte = f; comp_native = f;
-    link_byte = f; link_native = f;
+    link_byte = f; link_native = f; link_shared = f;
     c = args;
   }
 
 let stub s =
   { empty with
     link_byte   = [sprintf "-cclib -l%s -dllib -l%s" s s];
-    link_native = [sprintf "-cclib -l%s" s]
+    link_native = [sprintf "-cclib -l%s" s];
+    link_shared = [];
   }

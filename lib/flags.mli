@@ -36,7 +36,7 @@ type s = string list
 val create:
   ?comp_byte:s -> ?comp_native:s ->
   ?pp_byte:s -> ?pp_native:s ->
-  ?link_byte:s -> ?link_native:s ->
+  ?link_byte:s -> ?link_native:s -> ?link_shared:s ->
   ?c:s ->
   unit -> t
 (** Create a full command-line argument using the the given single
@@ -68,6 +68,9 @@ val link_byte: t -> s
 val link_native: t -> s
 (** The command-line arguments to link compilation units in native
     mode. *)
+
+val link_shared: t -> s
+(** The command-line arguments to link shared libraries. *)
 
 val c: t -> s
 (** The command-line arguments to pass to the C compiler. *)

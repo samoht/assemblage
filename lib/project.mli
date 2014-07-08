@@ -92,7 +92,7 @@ module type S = sig
       build artifacts for the project [t] and the name resolver
       [r].  *)
 
-  val prereqs: t -> Resolver.t -> [`Byte | `Native] -> string list
+  val prereqs: t -> Resolver.t -> [`Byte | `Native | `Shared] -> string list
   (** [prereqs t resolver mode] is the list of prerequisites files to
       build, in the given [mode], before building the object [t],
       where [resolver] is used to compute the location of generated
@@ -412,6 +412,9 @@ and C: sig
     ?dir:string -> ?generated:bool -> ?link_flags:string list ->
     ?deps:Component.t list -> string -> t
   (** Create a C object file. *)
+
+  val link_flags: t -> string list
+  (** Return the C link flags. *)
 
   val dll_so: t -> Resolver.t -> string
   (** The location of the generated [.so] file. *)

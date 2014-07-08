@@ -113,7 +113,7 @@ module type S = sig
   val file: t -> Resolver.t -> string -> string
   val generated_files: t -> Resolver.t -> (Feature.formula * string list) list
   val flags: t -> Resolver.t -> Flags.t
-  val prereqs: t -> Resolver.t -> [`Byte | `Native] -> string list
+  val prereqs: t -> Resolver.t -> [`Byte|`Native|`Shared] -> string list
 end
 
 let (/) x y = Filename.concat x y
@@ -618,14 +618,19 @@ end = struct
   let prereqs t resolver mode =
     let deps = deps t in
     let comps = Component.(filter cu) deps in
-    let comps = List.map (fun u ->
+    let comps = conmap (fun u ->
         match mode with
-        | `Native -> cmx u resolver
-        | `Byte   -> cmi u resolver
+        | `Native -> [cmx u resolver]
+        | `Byte   -> [cmi u resolver]
+        | `Shared ->
+          let cs = Component.(filter c) u.cu_deps in
+          let cobjs = List.map (fun c -> C.dll_so c resolver) cs in
+          cmx u resolver :: cobjs
       ) comps in
     let libs = Component.(filter lib) deps in
     let libs = List.map (fun l ->
         match mode with
+        | `Shared
         | `Native -> Lib.cmxa l resolver
         | `Byte   -> Lib.cma  l resolver
       ) libs in
@@ -742,9 +747,13 @@ end = struct
     let t' = Flags.create ~link_byte ~link_native () in
     Flags.(t' @ t.l_flags)
 
-  let prereqs t resolver = function
+  let rec prereqs t resolver = function
     | `Byte   -> List.map (fun u -> CU.cmo u resolver) (compilation_units t)
     | `Native -> List.map (fun u -> CU.cmx u resolver) (compilation_units t)
+    | `Shared ->
+      let cs = Component.(filter c) (deps t) in
+      prereqs t resolver `Native
+      @ List.map (fun c -> C.dll_so c resolver) cs
 
 end
 
@@ -875,6 +884,7 @@ end = struct
       let bytlibs  = List.map (fun l -> Lib.cma  l resolver) libs in
       let bytcomps = List.map (fun u -> CU.cmo u resolver) comps in
       bytpps @ bytlibs @ bytcomps
+    | `Shared
     | `Native ->
       let natlibs  = List.map (fun l -> Lib.cmxa l resolver) libs in
       let natcomps = List.map (fun u -> CU.cmx u resolver) comps in
@@ -931,6 +941,7 @@ end = struct
     let bins = Component.(filter bin t.g_deps) in
     List.map (fun b -> match mode with
         | `Byte   -> Bin.byte b r
+        | `Shared
         | `Native -> Bin.native b r
       ) bins
 
@@ -965,6 +976,7 @@ and C: sig
   val create:
     ?dir:string -> ?generated:bool -> ?link_flags:string list ->
     ?deps:Component.t list -> string -> t
+  val link_flags: t -> string list
   val dll_so: t -> Resolver.t -> string
 end = struct
 
@@ -990,12 +1002,11 @@ end = struct
   let file t r ext =
     build_dir t r / t.c_name ^ ext
 
-
   let dll_so t r =
     build_dir t r / "dll" ^ t.c_name ^ "_stubs.so"
 
-  let prereqs _t _r _mode =
-    []
+  let prereqs t r _mode =
+    [file t r ".c"]
 
   let deps t = t.c_deps
 
@@ -1003,6 +1014,8 @@ end = struct
     [Feature.true_, [dll_so t r]]
 
   let flags _t _r = Flags.empty
+
+  let link_flags t = t.c_link_flags
 
 end
 
@@ -1034,6 +1047,7 @@ end = struct
         | `Bin bin ->
           begin match mode with
             | `Byte   -> Bin.byte bin r   :: acc
+            | `Shared
             | `Native -> Bin.native bin r :: acc
           end
         | _ -> acc

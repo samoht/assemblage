@@ -242,14 +242,16 @@ let native_dynlink_f = Feature.(native_dynlink && native)
 
 let native_f = Feature.native
 
-let comp_byte = "comp-byte"
-let comp_opt  = "comp-opt"
-let link_byte = "link-byte"
-let link_opt  = "link-opt"
-let pp_byte   = "pp-byte"
-let pp_opt    = "pp-opt"
-let deps_byte = "deps-byte"
-let deps_opt  = "deps-opt"
+let comp_byte   = "comp-byte"
+let comp_opt    = "comp-opt"
+let link_byte   = "link-byte"
+let link_opt    = "link-opt"
+let link_shared = "link-shared"
+let pp_byte     = "pp-byte"
+let pp_opt      = "pp-opt"
+let deps_byte   = "deps-byte"
+let deps_opt    = "deps-opt"
+let deps_shared = "deps-shared"
 
 module rec U: sig
   val rules    : CU.t -> Rule.t list
@@ -393,16 +395,18 @@ end = struct
     else
       Variable.(var =?= `Strings flags)
 
-  let comp_byte   = flag comp_byte true  Flags.comp_byte
-  let comp_native = flag comp_opt  true  Flags.comp_native
-  let pp_byte     = flag pp_byte   false Flags.pp_byte
-  let pp_native   = flag pp_opt    false Flags.pp_native
-  let link_byte   = flag link_byte true  Flags.link_byte
-  let link_native = flag link_opt  true  Flags.link_native
+  let comp_byte   = flag comp_byte   true  Flags.comp_byte
+  let comp_native = flag comp_opt    true  Flags.comp_native
+  let pp_byte     = flag pp_byte     false Flags.pp_byte
+  let pp_native   = flag pp_opt      false Flags.pp_native
+  let link_byte   = flag link_byte   true  Flags.link_byte
+  let link_native = flag link_opt    true  Flags.link_native
+  let link_shared = flag link_shared true Flags.link_shared
 
   let prereqs t = function
     | `Byte   -> Lib.id t ^ "." ^ deps_byte
     | `Native -> Lib.id t ^ "." ^ deps_opt
+    | `Shared -> Lib.id t ^ "." ^ deps_shared
 
   let prereqs_var t mode =
     sprintf "$(%s)" (prereqs t mode)
@@ -423,6 +427,7 @@ end = struct
     :: pp_native t
     :: link_byte t
     :: link_native t
+    :: link_shared t
     :: Variable.(prereqs t `Byte =?= `Strings (Lib.prereqs t resolver `Byte))
     :: Variable.(prereqs t `Native =?= `Strings (Lib.prereqs t resolver `Native))
     :: conmap U.variables (Lib.compilation_units t)
@@ -435,22 +440,25 @@ end = struct
         sprintf "$(OCAMLC) -a %s -o %s" (Variable.name @@ link_byte t) Rule.target
       ] in
     let native mode =
-      let file, mode = match mode with
-        | `shared  -> Lib.cmxs t resolver, "-shared"
-        | `archive -> Lib.cmxa t resolver, "-a" in
+      let file, arg = match mode with
+        | `Shared -> Lib.cmxs t resolver, "-shared"
+        | `Native -> Lib.cmxa t resolver, "-a" in
+      let link = match mode with
+        | `Shared -> link_shared t
+        | `Native -> link_native t in
       Rule.create
         ~targets:[file]
-        ~prereqs:[prereqs_var t `Native] [
+        ~prereqs:[prereqs_var t mode] [
         sprintf "$(OCAMLOPT) %s %s -o %s"
-          mode (Variable.name @@ link_native t) Rule.target
+         arg (Variable.name @@ link) Rule.target
       ] in
     Rule.create
       ~targets:[Lib.id t]
       ~prereqs:[sprintf "$(%s)" (Lib.id t)]
       [echo_prereqs]
     :: byte
-    :: native `archive
-    :: native `shared
+    :: native `Native
+    :: native `Shared
     :: conmap U.rules (Lib.compilation_units t)
 
 end
@@ -648,14 +656,18 @@ end
 
 module C = struct
 
-  let _variables cs r =
+  let variables cs r =
     [Variable.("c" =:= `Strings (List.map (fun t -> C.dll_so t r) cs))]
 
-  let _rules cs r =
+  let rules cs r =
     Rule.create ~targets:["c"] ~prereqs:["$(c)"] []
     :: List.map (fun c ->
-        Rule.create ~targets:[C.dll_so c r] ~prereqs:[]
-          [sprintf "$(OCAMLMKLIB) -o %s" Rule.target]
+        Rule.create ~targets:[C.dll_so c r] ~prereqs:(C.prereqs c resolver `Byte)
+          [sprintf "$(OCAMLMKLIB) -o %s %s %s"
+             Rule.target
+             Rule.prereqs
+             (String.concat " " (C.link_flags c))
+          ]
       ) cs
 
 end
@@ -720,6 +732,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
   let tests = Component.(filter test components) in
   let jss = Component.(filter js components) in
   let gens = Component.(filter gen components) in
+  let cs = Component.(filter c components) in
   let features =
     Project.features t
     |> Feature.Set.elements
@@ -738,12 +751,14 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
       :: Variable.("CAMLP4O"     =?= `String "camlp4o")
       :: Variable.("OCAMLDOC"    =?= `String "ocamldoc")
       :: Variable.("JS_OF_OCAML" =?= `String "js_of_ocaml")
+      :: Variable.("OCAMLMKLIB"  =?= `String "ocamlmklib")
       :: features
       @  global_variables
       @  conmap L.variables libs
       @  conmap L.variables pps
       @  conmap B.variables bins
       @  conmap G.variables gens
+      @  C.variables cs resolver
       @  T.variables tests
       @  D.variables libs
       @  J.variables jss
@@ -754,6 +769,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
       @ conmap L.rules pps
       @ conmap B.rules bins
       @ conmap G.rules gens
+      @ C.rules cs resolver
       @ T.rules tests
       @ D.rules
         ?css:(Project.doc_css t)

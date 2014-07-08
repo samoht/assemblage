@@ -114,19 +114,21 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) deps name =
   let name_stubs = name ^ "_stubs" in
   let bin_dir r = Bin.build_dir (Bin.create [] name_generator) r in
   let lib_dir r = Sys.getcwd () / Lib.build_dir (Lib.create [] name) r in
+  let c_dir   r = Sys.getcwd () / C.build_dir (C.create name_stubs) r in
 
   (* 2. Generate and compile the generator. *)
   let generator =
     let action r =
       let ml_stubs = lib_dir r / name_stubs ^ ".ml" in
-      let c_stubs  = lib_dir r / name_stubs ^ ".c" in
+      let c_stubs  = c_dir r / name_stubs ^ ".c" in
       let library  = lib_dir r / name ^ ".ml" in
       let headers = match headers with
         | [] -> ""
         | hs -> sprintf "--headers %s " (String.concat "," hs) in
       Action.create ~dir:(bin_dir r)
-        "mkdir %s && ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
-        (lib_dir r) headers ml_stubs c_stubs library name
+        "mkdir -p %s %s && \
+         ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
+        (lib_dir r) (c_dir r) headers ml_stubs c_stubs library name
     in
     let ml = generated ~action [] `ML name_generator in
     let comp = CU.create ~deps:[ml; `CU bindings] name_generator in
