@@ -1,0 +1,148 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="next" href="Shell.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Flags" rel="Chapter" href="Flags.html">
+<link title="Shell" rel="Chapter" href="Shell.html">
+<link title="Feature" rel="Chapter" href="Feature.html">
+<link title="Resolver" rel="Chapter" href="Resolver.html">
+<link title="Git" rel="Chapter" href="Git.html">
+<link title="Action" rel="Chapter" href="Action.html">
+<link title="Build_env" rel="Chapter" href="Build_env.html">
+<link title="Project" rel="Chapter" href="Project.html">
+<link title="Ocamlfind" rel="Chapter" href="Ocamlfind.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html">
+<link title="OCaml" rel="Chapter" href="OCaml.html">
+<link title="Opam" rel="Chapter" href="Opam.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><link title="Built-in flags" rel="Section" href="#2_Builtinflags">
+<title>Flags</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Shell.html" title="Shell">Next</a>
+</div>
+<h1>Module <a href="type_Flags.html">Flags</a></h1>
+
+<pre><span class="keyword">module</span> Flags: <code class="code"><span class="keyword">sig</span></code> <a href="Flags.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Command line arguments.
+<p>
+
+    The various compilation options that are set for a project
+    eventually reduce to tweaking the simple command-line arguments to
+    the compiler. We distinguish three different phases, where the
+    command-line can be changed: the pre-processing step, the separate
+    compilation of module implementations and signatures and the
+    linking of such compilation units to produce a library or a
+    binary. These three phases come in two modes: bytecode compilation
+    and native-code compilation.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info ">
+Full command-line arguments. Values of this type carry the
+    command-line arguments to use in the different phases and
+    modes.<br>
+</div>
+
+
+<pre><span id="TYPEs"><span class="keyword">type</span> <code class="type"></code>s</span> = <code class="type">string list</code> </pre>
+<div class="info ">
+An single command-line argument, for a given phase and mode.<br>
+</div>
+
+
+<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">?comp_byte:<a href="Flags.html#TYPEs">s</a> -><br>       ?comp_native:<a href="Flags.html#TYPEs">s</a> -><br>       ?pp_byte:<a href="Flags.html#TYPEs">s</a> -><br>       ?pp_native:<a href="Flags.html#TYPEs">s</a> -><br>       ?link_byte:<a href="Flags.html#TYPEs">s</a> -><br>       ?link_native:<a href="Flags.html#TYPEs">s</a> -> ?link_shared:<a href="Flags.html#TYPEs">s</a> -> ?c:<a href="Flags.html#TYPEs">s</a> -> unit -> <a href="Flags.html#TYPEt">t</a></code></pre><div class="info ">
+Create a full command-line argument using the the given single
+    command-line arguments.<br>
+</div>
+
+<pre><span id="VAL(@)"><span class="keyword">val</span> (@)</span> : <code class="type"><a href="Flags.html#TYPEt">t</a> -> <a href="Flags.html#TYPEt">t</a> -> <a href="Flags.html#TYPEt">t</a></code></pre><div class="info ">
+Append command-line flags.<br>
+</div>
+
+<pre><span id="VALcomp_byte"><span class="keyword">val</span> comp_byte</span> : <code class="type"><a href="Flags.html#TYPEt">t</a> -> <a href="Flags.html#TYPEs">s</a></code></pre><div class="info ">
+The command-line arguments for compiling compilation units in
+    bytecode mode.<br>
+</div>
+
+<pre><span id="VALcomp_native"><span class="keyword">val</span> comp_native</span> : <code class="type"><a href="Flags.html#TYPEt">t</a> -> <a href="Flags.html#TYPEs">s</a></code></pre><div class="info ">
+The command-line arguments for compiling compilation units in
+    native mode.<br>
+</div>
+
+<pre><span id="VALpp_byte"><span class="keyword">val</span> pp_byte</span> : <code class="type"><a href="Flags.html#TYPEt">t</a> -> <a href="Flags.html#TYPEs">s</a></code></pre><div class="info ">
+The command-line arguments for pre-processing files in bytecode
+    mode.<br>
+</div>
+
+<pre><span id="VALpp_native"><span class="keyword">val</span> pp_native</span> : <code class="type"><a href="Flags.html#TYPEt">t</a> -> <a href="Flags.html#TYPEs">s</a></code></pre><div class="info ">
+The command-line arguments for pre-processing files in native
+    mode.<br>
+</div>
+
+<pre><span id="VALlink_byte"><span class="keyword">val</span> link_byte</span> : <code class="type"><a href="Flags.html#TYPEt">t</a> -> <a href="Flags.html#TYPEs">s</a></code></pre><div class="info ">
+The command-line arguments to link compilation units in bytecode
+    mode.<br>
+</div>
+
+<pre><span id="VALlink_native"><span class="keyword">val</span> link_native</span> : <code class="type"><a href="Flags.html#TYPEt">t</a> -> <a href="Flags.html#TYPEs">s</a></code></pre><div class="info ">
+The command-line arguments to link compilation units in native
+    mode.<br>
+</div>
+
+<pre><span id="VALlink_shared"><span class="keyword">val</span> link_shared</span> : <code class="type"><a href="Flags.html#TYPEt">t</a> -> <a href="Flags.html#TYPEs">s</a></code></pre><div class="info ">
+The command-line arguments to link shared libraries.<br>
+</div>
+
+<pre><span id="VALc"><span class="keyword">val</span> c</span> : <code class="type"><a href="Flags.html#TYPEt">t</a> -> <a href="Flags.html#TYPEs">s</a></code></pre><div class="info ">
+The command-line arguments to pass to the C compiler.<br>
+</div>
+<br>
+<h2 id="2_Builtinflags">Built-in flags</h2><br>
+
+<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type"><a href="Flags.html#TYPEt">t</a></code></pre><div class="info ">
+Empty flags.<br>
+</div>
+
+<pre><span id="VALdebug"><span class="keyword">val</span> debug</span> : <code class="type"><a href="Flags.html#TYPEt">t</a></code></pre><div class="info ">
+Add <code class="code">-g</code>.<br>
+</div>
+
+<pre><span id="VALannot"><span class="keyword">val</span> annot</span> : <code class="type"><a href="Flags.html#TYPEt">t</a></code></pre><div class="info ">
+Add <code class="code">-bin-annot</code>.<br>
+</div>
+
+<pre><span id="VALwarn_error"><span class="keyword">val</span> warn_error</span> : <code class="type"><a href="Flags.html#TYPEt">t</a></code></pre><div class="info ">
+Add <code class="code">-warn-error</code>.<br>
+</div>
+
+<pre><span id="VALlinkall"><span class="keyword">val</span> linkall</span> : <code class="type"><a href="Flags.html#TYPEt">t</a></code></pre><div class="info ">
+Add <code class="code">-linkall</code>.<br>
+</div>
+
+<pre><span id="VALthread"><span class="keyword">val</span> thread</span> : <code class="type"><a href="Flags.html#TYPEt">t</a></code></pre><div class="info ">
+Add <code class="code">-thread</code>.<br>
+</div>
+
+<pre><span id="VALcclib"><span class="keyword">val</span> cclib</span> : <code class="type">string list -> <a href="Flags.html#TYPEt">t</a></code></pre><div class="info ">
+Add <code class="code">-cclib</code> flags to the linker.<br>
+</div>
+
+<pre><span id="VALccopt"><span class="keyword">val</span> ccopt</span> : <code class="type">string list -> <a href="Flags.html#TYPEt">t</a></code></pre><div class="info ">
+Add <code class="code">-ccopt</code> flags to the compiler and the linker.<br>
+</div>
+
+<pre><span id="VALstub"><span class="keyword">val</span> stub</span> : <code class="type">string -> <a href="Flags.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">stub s</code> Add <i>-cclib -l<code class="code">s</code> -dllib -l<code class="code">s</code></i> to the bytecode linking
+    options and <i>-cclib -l<code class="code">s</code></i> to the native linking options.<br>
+</div>
+</body></html>

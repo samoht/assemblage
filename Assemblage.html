@@ -1,0 +1,244 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Opam.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Flags" rel="Chapter" href="Flags.html">
+<link title="Shell" rel="Chapter" href="Shell.html">
+<link title="Feature" rel="Chapter" href="Feature.html">
+<link title="Resolver" rel="Chapter" href="Resolver.html">
+<link title="Git" rel="Chapter" href="Git.html">
+<link title="Action" rel="Chapter" href="Action.html">
+<link title="Build_env" rel="Chapter" href="Build_env.html">
+<link title="Project" rel="Chapter" href="Project.html">
+<link title="Ocamlfind" rel="Chapter" href="Ocamlfind.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html">
+<link title="OCaml" rel="Chapter" href="OCaml.html">
+<link title="Opam" rel="Chapter" href="Opam.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><link title="Features" rel="Section" href="#features">
+<link title="Flags" rel="Section" href="#flags">
+<link title="Project" rel="Section" href="#project">
+<link title="Tools" rel="Section" href="#tools">
+<link title="The Project API" rel="Subsection" href="#2_TheProjectAPI">
+<title>Assemblage</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Opam.html" title="Opam">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;</div>
+<h1>Module <a href="type_Assemblage.html">Assemblage</a></h1>
+
+<pre><span class="keyword">module</span> Assemblage: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+The Assemblage Library.
+<p>
+
+    <code class="code"><span class="constructor">Assemblage</span></code> provides a simple embedded domain specific language
+    to describe <code class="code"><span class="constructor">OCaml</span></code> <a href="Assemblage.html#project">projects</a>. It also provides simple
+    <a href="Assemblage.html#tools">tools</a> to configure, manage, install and use OCaml
+    projects.
+<p>
+
+    Describing a project is eventually leads to describe its build
+    artifacts. The exact mapping betweem project elements and those
+    build artifacts depends on the presence or absence of
+    <a href="Assemblage.html#TYPEfeatures">features</a>. Examples of such features are weather to
+    compile and run the tests (user-defined feature), the presence of
+    the native compiler (system-dependant feature), compiling a
+    library using <code class="code">async</code> or <code class="code">lwt</code> as a backend (environment-dependant
+    feature), ...
+<p>
+
+    Finally, generating build artifacts means refining the project
+    description into concrete <a href="Assemblage.html#TYPEflags">command-line arguments</a> to pass
+    to the different compilers (<code class="code">ocamlc</code>, <code class="code">ocamlopt</code>) on the different
+    compilation and linking phases.
+<p>
+
+    <em>Release %%VERSION%% - %%AUTHOR%% </em><br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="features">Features</h1><br>
+
+<pre><span id="TYPEfeatures"><span class="keyword">type</span> <code class="type"></code>features</span> = <code class="type"><a href="Feature.html#TYPEformula">Feature.formula</a></code> </pre>
+<div class="info ">
+The type of user-defined or system-dependent features.<br>
+</div>
+
+<br>
+<h1 id="flags">Flags</h1><br>
+
+<pre><span id="TYPEflags"><span class="keyword">type</span> <code class="type"></code>flags</span> = <code class="type"><a href="Flags.html#TYPEt">Flags.t</a></code> </pre>
+<div class="info ">
+The type of command-line arguments.<br>
+</div>
+
+<br>
+<h1 id="project">Project</h1><br>
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> = <code class="type"><a href="Project.html#TYPEt">Project.t</a></code> </pre>
+<div class="info ">
+The type for descriptions of full OCaml projects.<br>
+</div>
+
+
+<pre><span id="TYPEcu"><span class="keyword">type</span> <code class="type"></code>cu</span> = <code class="type">Project.CU.t</code> </pre>
+<div class="info ">
+The type for description of compilation units.<br>
+</div>
+
+
+<pre><span id="TYPElib"><span class="keyword">type</span> <code class="type"></code>lib</span> = <code class="type">Project.Lib.t</code> </pre>
+<div class="info ">
+The type for description of of libraries.<br>
+</div>
+
+
+<pre><span id="TYPEbin"><span class="keyword">type</span> <code class="type"></code>bin</span> = <code class="type">Project.Bin.t</code> </pre>
+<div class="info ">
+The type for description of binaries.<br>
+</div>
+
+
+<pre><span id="TYPEtest"><span class="keyword">type</span> <code class="type"></code>test</span> = <code class="type">Project.Test.t</code> </pre>
+<div class="info ">
+The type for description of tests.<br>
+</div>
+
+
+<pre><span id="TYPEjs"><span class="keyword">type</span> <code class="type"></code>js</span> = <code class="type">Project.JS.t</code> </pre>
+<div class="info ">
+The type for description of <code class="code">js_of_ocaml</code> artifacts.<br>
+</div>
+
+
+<pre><span id="TYPEc"><span class="keyword">type</span> <code class="type"></code>c</span> = <code class="type">Project.C.t</code> </pre>
+<div class="info ">
+The type for description of C source files.<br>
+</div>
+
+
+<pre><span id="TYPEgen"><span class="keyword">type</span> <code class="type"></code>gen</span> = <code class="type">Project.Gen.t</code> </pre>
+<div class="info ">
+The type for generated OCaml source code.<br>
+</div>
+
+
+<pre><span id="TYPEcomponent"><span class="keyword">type</span> <code class="type"></code>component</span> = <code class="type">[ `Bin of <a href="Assemblage.html#TYPEbin">bin</a><br>       | `C of <a href="Assemblage.html#TYPEc">c</a><br>       | `CU of <a href="Assemblage.html#TYPEcu">cu</a><br>       | `Gen of <a href="Assemblage.html#TYPEgen">gen</a><br>       | `JS of <a href="Assemblage.html#TYPEjs">js</a><br>       | `Lib of <a href="Assemblage.html#TYPElib">lib</a><br>       | `Pkg of string<br>       | `Pkg_pp of string<br>       | `Pp of <a href="Assemblage.html#TYPElib">lib</a><br>       | `Test of <a href="Assemblage.html#TYPEtest">test</a> ]</code> </pre>
+<div class="info ">
+The type for all the possible component descriptions. A <code class="code"><span class="keywordsign">`</span><span class="constructor">CU</span> cu</code>
+    is a local compilation unit, <code class="code"><span class="keywordsign">`</span><span class="constructor">Lib</span> l</code> are local libraries, <code class="code"><span class="keywordsign">`</span><span class="constructor">Pp</span> p</code>
+    are local pre-processors and <code class="code"><span class="keywordsign">`</span><span class="constructor">Bin</span></code> are local binaries.
+<p>
+
+    <code class="code"><span class="keywordsign">`</span><span class="constructor">Pkg</span> p</code> are globally installed packages and <code class="code"><span class="keywordsign">`</span><span class="constructor">Pkg_pp</span></code> are
+    globally installed pre-processor packages, both usually managed by
+    <i>ocamlfind</i>,<br>
+</div>
+
+<br>
+<h2 id="2_TheProjectAPI">The Project API</h2><br>
+
+<pre><span id="VALcu"><span class="keyword">val</span> cu</span> : <code class="type">?dir:string -><br>       <a href="Assemblage.html#TYPEcomponent">component</a> list -> string -> [> `CU of <a href="Assemblage.html#TYPEcu">cu</a> ]</code></pre><div class="info ">
+<code class="code">cu ~lib ~dir deps name</code> is the compilation unit in the bag of
+    compilation units <code class="code">bag</code>, located in the directory <code class="code">dir</code>, which the
+    dependencies <code class="code">deps</code> and the cname <code class="code">name</code>. The name is the same as
+    the filename, without its extension.<br>
+</div>
+
+<pre><span id="VALocamldep"><span class="keyword">val</span> ocamldep</span> : <code class="type">dir:string -><br>       ?flags:<a href="Assemblage.html#TYPEflags">flags</a> -><br>       <a href="Assemblage.html#TYPEcomponent">component</a> list -> [> `CU of <a href="Assemblage.html#TYPEcu">cu</a> ] list</code></pre><div class="info ">
+<code class="code">ocamldep ~dir</code> is the list of compilation units in the given
+    directory, obtained by running <code class="code">ocamldep</code> with the given flags.<br>
+</div>
+
+<pre><span id="VALgenerated"><span class="keyword">val</span> generated</span> : <code class="type">?action:(<a href="Resolver.html#TYPEt">Resolver.t</a> -> <a href="Action.html#TYPEt">Action.t</a>) -><br>       <a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       [ `C | `ML | `MLI ] list -> string -> [> `Gen of <a href="Assemblage.html#TYPEgen">gen</a> ]</code></pre><div class="info ">
+Generated OCaml source file(s).<br>
+</div>
+
+<pre><span id="VALc"><span class="keyword">val</span> c</span> : <code class="type">?dir:string -><br>       ?link_flags:string list -><br>       <a href="Assemblage.html#TYPEcomponent">component</a> list -> string list -> string -> [> `C of <a href="Assemblage.html#TYPEc">c</a> ]</code></pre><div class="info ">
+<code class="code">c deps libs name</code> is the C file <code class="code">name.c</code>, which need the C
+    libraries <code class="code">libs</code> to be compiled -- and it has the dependencies
+    <code class="code">deps</code>.<br>
+</div>
+
+<pre><span id="VALcstubs"><span class="keyword">val</span> cstubs</span> : <code class="type">?dir:string -><br>       ?available:<a href="Assemblage.html#TYPEfeatures">features</a> -><br>       ?headers:string list -><br>       ?cflags:string list -><br>       ?clibs:string list -><br>       <a href="Assemblage.html#TYPEcomponent">component</a> list -> string -> [> `Lib of <a href="Assemblage.html#TYPElib">lib</a> ]</code></pre><div class="info ">
+<code class="code">stubs deps name</code> is the C stub generations, using Ctypes, of the
+    compilation unit <code class="code">name</code>.<br>
+</div>
+
+<pre><span id="VALlib"><span class="keyword">val</span> lib</span> : <code class="type">?available:<a href="Assemblage.html#TYPEfeatures">features</a> -><br>       ?flags:<a href="Assemblage.html#TYPEflags">flags</a> -><br>       ?pack:bool -><br>       ?deps:(string -> <a href="Assemblage.html#TYPEcomponent">component</a> list) -><br>       ?c:[ `C of <a href="Assemblage.html#TYPEc">c</a> ] list -><br>       [ `CU of <a href="Assemblage.html#TYPEcu">cu</a> ] list -> string -> [> `Lib of <a href="Assemblage.html#TYPElib">lib</a> ]</code></pre><div class="info ">
+<code class="code">lib units name</code> is the library <code class="code">name</code> composed by the compilation
+    units <code class="code">cus</code>. If <code class="code">lib</code> is set, use <code class="code">ocamldep</code> to approximate the
+    compilation units and their dependecies in the given directory.<br>
+</div>
+
+<pre><span id="VALbin"><span class="keyword">val</span> bin</span> : <code class="type">?byte_only:bool -><br>       ?link_all:bool -><br>       ?install:bool -><br>       ?deps:(string -> <a href="Assemblage.html#TYPEcomponent">component</a> list) -><br>       [ `CU of <a href="Assemblage.html#TYPEcu">cu</a> ] list -> string -> [> `Bin of <a href="Assemblage.html#TYPEbin">bin</a> ]</code></pre><div class="info ">
+<code class="code">bin units name</code> is the binary <code class="code">name</code> obtained by compiling
+    the compilation units <code class="code">units</code>, with the dependencies <code class="code">deps</code>. By
+    default, the source files are located into <i>bin/</i> (this is
+    controled by the value of <code class="code">dir</code>).<br>
+</div>
+
+<pre><span id="VALjs"><span class="keyword">val</span> js</span> : <code class="type">[ `Bin of <a href="Assemblage.html#TYPEbin">bin</a> ] -> string list -> [> `JS of <a href="Assemblage.html#TYPEjs">js</a> ]</code></pre><div class="info ">
+<code class="code">js bin args</code> is the decription of a javascript artefact generated
+    by <code class="code">js_of_ocaml</code>.<br>
+</div>
+
+<pre><span id="VALpkg"><span class="keyword">val</span> pkg</span> : <code class="type">string -> [> `Pkg of string ]</code></pre><div class="info ">
+An external package.<br>
+</div>
+
+<pre><span id="VALpkg_pp"><span class="keyword">val</span> pkg_pp</span> : <code class="type">string -> [> `Pkg_pp of string ]</code></pre><div class="info ">
+An external pre-processor.<br>
+</div>
+
+<pre><span id="VALtest"><span class="keyword">val</span> test</span> : <code class="type">?dir:string -><br>       <a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       <a href="Project.Test.html#TYPEcommand">Project.Test.command</a> list -> string -> [> `Test of <a href="Assemblage.html#TYPEtest">test</a> ]</code></pre><div class="info ">
+Description of a test.<br>
+</div>
+
+<pre><span id="VALtest_bin"><span class="keyword">val</span> test_bin</span> : <code class="type">[ `Bin of <a href="Assemblage.html#TYPEbin">bin</a> ] -> <a href="Project.Test.html#TYPEargs">Project.Test.args</a> -> <a href="Project.Test.html#TYPEcommand">Project.Test.command</a></code></pre><div class="info ">
+A test which runs a binary built in the project.<br>
+</div>
+
+<pre><span id="VALtest_shell"><span class="keyword">val</span> test_shell</span> : <code class="type">('a, unit, string, <a href="Project.Test.html#TYPEcommand">Project.Test.command</a>) Pervasives.format4 -> 'a</code></pre><div class="info ">
+A test which runs an arbitrary shell command.<br>
+</div>
+
+<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">?flags:<a href="Assemblage.html#TYPEflags">flags</a> -><br>       ?doc_css:string -><br>       ?doc_intro:string -><br>       ?doc_dir:string -><br>       ?version:string -> <a href="Assemblage.html#TYPEcomponent">component</a> list -> string -> unit</code></pre><div class="info ">
+<code class="code">create deps name</code> registers the project named <code class="code">name</code>, defining
+    the libraries, binaries and tests defined by the transitive
+    closure of objects in <code class="code">deps</code>.<br>
+</div>
+<br>
+<h1 id="tools">Tools</h1><br>
+
+<pre><span id="TYPEtool"><span class="keyword">type</span> <code class="type"></code>tool</span> = <code class="type"><a href="Project.html#TYPEt">Project.t</a> -> <a href="Build_env.html#TYPEt">Build_env.t</a> -> unit</code> </pre>
+<div class="info ">
+The signature of tools.<br>
+</div>
+
+
+<pre><span id="VALprocess"><span class="keyword">val</span> process</span> : <code class="type">?file:string -> string -> <a href="Assemblage.html#TYPEtool">tool</a> -> unit</code></pre><div class="info ">
+<code class="code">process ~file name fn</code> reads and processes the OCaml <code class="code">file</code> in a
+    top-level environment (the default is <code class="code">configure.ml</code>), for the
+    project called <code class="code">name</code>, and apply <code class="code">fn</code> to the projects registered
+    as side-effects.<br>
+</div>
+
+<pre><span id="VALconfigure"><span class="keyword">val</span> configure</span> : <code class="type">[ `Make ] -> <a href="Assemblage.html#TYPEtool">tool</a></code></pre><div class="info ">
+Configure the project by generating the build, META and .install
+    files, using the given build system backend (currently, only GNU
+    make is supported).<br>
+</div>
+
+<pre><span id="VALdescribe"><span class="keyword">val</span> describe</span> : <code class="type"><a href="Assemblage.html#TYPEtool">tool</a></code></pre><div class="info ">
+Describe the project to stdout.<br>
+</div>
+</body></html>

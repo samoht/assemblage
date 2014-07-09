@@ -1,0 +1,38 @@
+<html><head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Flags" rel="Chapter" href="Flags.html">
+<link title="Shell" rel="Chapter" href="Shell.html">
+<link title="Feature" rel="Chapter" href="Feature.html">
+<link title="Resolver" rel="Chapter" href="Resolver.html">
+<link title="Git" rel="Chapter" href="Git.html">
+<link title="Action" rel="Chapter" href="Action.html">
+<link title="Build_env" rel="Chapter" href="Build_env.html">
+<link title="Project" rel="Chapter" href="Project.html">
+<link title="Ocamlfind" rel="Chapter" href="Ocamlfind.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html">
+<link title="OCaml" rel="Chapter" href="OCaml.html">
+<link title="Opam" rel="Chapter" href="Opam.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>Makefile.Rule</title>
+</head>
+<body>
+<code class="code"><span class="keyword">sig</span><br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;create&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?ext:bool&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;targets:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;prereqs:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?order_only_prereqs:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Makefile</span>.<span class="constructor">Rule</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;target&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;target_member&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;prereq&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;prereqs&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;changed_prereqs&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;dedup_prereqs&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;stem&nbsp;:&nbsp;string<br>
+<span class="keyword">end</span></code></body></html>

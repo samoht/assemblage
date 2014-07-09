@@ -1,0 +1,61 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Project.C.html">
+<link rel="Up" href="Project.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Flags" rel="Chapter" href="Flags.html">
+<link title="Shell" rel="Chapter" href="Shell.html">
+<link title="Feature" rel="Chapter" href="Feature.html">
+<link title="Resolver" rel="Chapter" href="Resolver.html">
+<link title="Git" rel="Chapter" href="Git.html">
+<link title="Action" rel="Chapter" href="Action.html">
+<link title="Build_env" rel="Chapter" href="Build_env.html">
+<link title="Project" rel="Chapter" href="Project.html">
+<link title="Ocamlfind" rel="Chapter" href="Ocamlfind.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html">
+<link title="OCaml" rel="Chapter" href="OCaml.html">
+<link title="Opam" rel="Chapter" href="Opam.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>Project.Test</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Project.C.html" title="Project.C">Previous</a>
+&nbsp;<a class="up" href="Project.html" title="Project">Up</a>
+&nbsp;</div>
+<h1>Module <a href="type_Project.Test.html">Project.Test</a></h1>
+
+<pre><span class="keyword">module</span> Test: <code class="code"><span class="keyword">sig</span></code> <a href="Project.Test.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><hr width="100%">
+<br>
+Test-cases<br>
+
+<pre><span class="keyword">include</span> <a href="Project.S.html">Project.S</a></pre>
+<br>
+Test values.<br>
+
+<pre><span id="TYPEargs"><span class="keyword">type</span> <code class="type"></code>args</span> = <code class="type">(<a href="Project.Component.html#TYPEt">Project.Component.t</a> -> string) -> string list</code> </pre>
+<div class="info ">
+The command-line arguments when calling tests.<br>
+</div>
+
+
+<pre><span id="TYPEcommand"><span class="keyword">type</span> <code class="type"></code>command</span> = <code class="type">[ `Bin of [ `Bin of Project.Bin.t ] * <a href="Project.Test.html#TYPEargs">args</a> | `Shell of string ]</code> </pre>
+
+
+<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">?dir:string -><br>       ?deps:<a href="Project.Component.html#TYPEt">Project.Component.t</a> list -><br>       <a href="Project.Test.html#TYPEcommand">command</a> list -> string -> <a href="Project.html#TYPEt">Project.t</a></code></pre><div class="info ">
+Create a test.<br>
+</div>
+
+<pre><span id="VALdir"><span class="keyword">val</span> dir</span> : <code class="type"><a href="Project.html#TYPEt">Project.t</a> -> string option</code></pre><div class="info ">
+The directory where to run the test.<br>
+</div>
+
+<pre><span id="VALcommands"><span class="keyword">val</span> commands</span> : <code class="type"><a href="Project.html#TYPEt">Project.t</a> -> <a href="Project.Test.html#TYPEcommand">command</a> list</code></pre><div class="info ">
+The list of commands to run the test.<br>
+</div>
+</body></html>

@@ -1,0 +1,54 @@
+<html><head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Flags" rel="Chapter" href="Flags.html">
+<link title="Shell" rel="Chapter" href="Shell.html">
+<link title="Feature" rel="Chapter" href="Feature.html">
+<link title="Resolver" rel="Chapter" href="Resolver.html">
+<link title="Git" rel="Chapter" href="Git.html">
+<link title="Action" rel="Chapter" href="Action.html">
+<link title="Build_env" rel="Chapter" href="Build_env.html">
+<link title="Project" rel="Chapter" href="Project.html">
+<link title="Ocamlfind" rel="Chapter" href="Ocamlfind.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html">
+<link title="OCaml" rel="Chapter" href="OCaml.html">
+<link title="Opam" rel="Chapter" href="Opam.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>Project.CU</title>
+</head>
+<body>
+<code class="code"><span class="keyword">sig</span><br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;component&nbsp;=&nbsp;<span class="constructor">Component</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;id&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;name&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;deps&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;component&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;build_dir&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Resolver</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;file&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Resolver</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;generated_files&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Resolver</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;(<span class="constructor">Feature</span>.formula&nbsp;*&nbsp;string&nbsp;list)&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;flags&nbsp;:&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Resolver</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Flags</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;prereqs&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Resolver</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Byte</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Native</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Shared</span>&nbsp;]&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;create&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?dir:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;?deps:<span class="constructor">Project</span>.<span class="constructor">Component</span>.t&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Project</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;copy&nbsp;:&nbsp;<span class="constructor">Project</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Project</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;dir&nbsp;:&nbsp;<span class="constructor">Project</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;option<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;container&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Project</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Bin</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Project</span>.<span class="constructor">Bin</span>.t&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Lib</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Project</span>.<span class="constructor">Lib</span>.t&nbsp;]&nbsp;option<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mli&nbsp;:&nbsp;<span class="constructor">Project</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ml&nbsp;:&nbsp;<span class="constructor">Project</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;for_pack&nbsp;:&nbsp;<span class="constructor">Project</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;option<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;generated&nbsp;:&nbsp;<span class="constructor">Project</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pack&nbsp;:&nbsp;?flags:<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Project</span>.t&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Project</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;unpack&nbsp;:&nbsp;<span class="constructor">Project</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Project</span>.t&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cmi&nbsp;:&nbsp;<span class="constructor">Project</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Resolver</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cmo&nbsp;:&nbsp;<span class="constructor">Project</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Resolver</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cmx&nbsp;:&nbsp;<span class="constructor">Project</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Resolver</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;o&nbsp;:&nbsp;<span class="constructor">Project</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Resolver</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string<br>
+<span class="keyword">end</span></code></body></html>

@@ -1,0 +1,48 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Makefile.html">
+<link rel="next" href="Opam.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Flags" rel="Chapter" href="Flags.html">
+<link title="Shell" rel="Chapter" href="Shell.html">
+<link title="Feature" rel="Chapter" href="Feature.html">
+<link title="Resolver" rel="Chapter" href="Resolver.html">
+<link title="Git" rel="Chapter" href="Git.html">
+<link title="Action" rel="Chapter" href="Action.html">
+<link title="Build_env" rel="Chapter" href="Build_env.html">
+<link title="Project" rel="Chapter" href="Project.html">
+<link title="Ocamlfind" rel="Chapter" href="Ocamlfind.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html">
+<link title="OCaml" rel="Chapter" href="OCaml.html">
+<link title="Opam" rel="Chapter" href="Opam.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>OCaml</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Makefile.html" title="Makefile">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Opam.html" title="Opam">Next</a>
+</div>
+<h1>Module <a href="type_OCaml.html">OCaml</a></h1>
+
+<pre><span class="keyword">module</span> OCaml: <code class="code"><span class="keyword">sig</span></code> <a href="OCaml.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Compiler-libs helpers.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="VALmodules"><span class="keyword">val</span> modules</span> : <code class="type">build_dir:string -> Project.CU.t -> string list</code></pre><div class="info ">
+Return the list of submodules defined in the given compilation unit.<br>
+</div>
+
+<pre><span id="VALdepends"><span class="keyword">val</span> depends</span> : <code class="type">?flags:<a href="Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Project.Component.html#TYPEt">Project.Component.t</a> list -> <a href="Resolver.html#TYPEt">Resolver.t</a> -> string -> Project.CU.t list</code></pre><div class="info ">
+<code class="code">depends dir</code> computes the dependency graph of the compilation
+    units in the directory <code class="code">dir</code>.<br>
+</div>
+</body></html>

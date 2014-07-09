@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Git.html">
+<link rel="next" href="Build_env.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Flags" rel="Chapter" href="Flags.html">
+<link title="Shell" rel="Chapter" href="Shell.html">
+<link title="Feature" rel="Chapter" href="Feature.html">
+<link title="Resolver" rel="Chapter" href="Resolver.html">
+<link title="Git" rel="Chapter" href="Git.html">
+<link title="Action" rel="Chapter" href="Action.html">
+<link title="Build_env" rel="Chapter" href="Build_env.html">
+<link title="Project" rel="Chapter" href="Project.html">
+<link title="Ocamlfind" rel="Chapter" href="Ocamlfind.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html">
+<link title="OCaml" rel="Chapter" href="OCaml.html">
+<link title="Opam" rel="Chapter" href="Opam.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>Action</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Git.html" title="Git">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Build_env.html" title="Build_env">Next</a>
+</div>
+<h1>Module <a href="type_Action.html">Action</a></h1>
+
+<pre><span class="keyword">module</span> Action: <code class="code"><span class="keyword">sig</span></code> <a href="Action.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Actions to generate source files.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info ">
+Generator values.<br>
+</div>
+
+
+<pre><span id="VALnone"><span class="keyword">val</span> none</span> : <code class="type"><a href="Action.html#TYPEt">t</a></code></pre><div class="info ">
+No action.<br>
+</div>
+
+<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">?dir:string -> ('a, unit, string, <a href="Action.html#TYPEt">t</a>) Pervasives.format4 -> 'a</code></pre><div class="info ">
+<code class="code">bash ~dir fmt</code> is a generator which produces some results by
+    calling <code class="code">fmt</code> in a bash shell, running in the directory
+    <code class="code">dir</code>.<br>
+</div>
+
+<pre><span id="VALrun"><span class="keyword">val</span> run</span> : <code class="type"><a href="Action.html#TYPEt">t</a> -> unit</code></pre><div class="info ">
+Process the action.<br>
+</div>
+
+<pre><span id="VALactions"><span class="keyword">val</span> actions</span> : <code class="type"><a href="Action.html#TYPEt">t</a> -> string list</code></pre><div class="info ">
+Return the action to run.<br>
+</div>
+</body></html>
