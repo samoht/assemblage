@@ -6,9 +6,10 @@ authors: [ "Thomas Gazagnaire" ]
 license: "ISC"
 depends: [
   "cmdliner"
-  "opam-lib" {>= "1.1.1"}
+  "optcomp" 
+  "ocamlgraph"
 ]
 build: [
-  ["./bootstrap"]
+  ["./bootstrap.sh"]
   ["make"]
 ]
