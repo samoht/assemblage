@@ -39,9 +39,9 @@ let head () =
     | None      -> None
     | Some sha1 -> Some sha1
 
-let describe ?(chop_v=false) ?(branch="master") () =
-  if Shell.try_exec "git describe --always %s" branch then
-    match Shell.exec_output "git describe --always %s" branch with
+let describe ?(chop_v=false) () =
+  if Shell.try_exec "git describe --always" then
+    match Shell.exec_output "git describe --always" with
     | d::_ ->
       let len = String.length d in
       if chop_v && len > 0 && d.[0] = 'v' then
