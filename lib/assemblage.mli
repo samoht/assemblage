@@ -21,7 +21,7 @@
     {{!tools}tools} to configure, manage, install and use OCaml
     projects.
 
-    Describing a project is eventually leads to describe its build
+    Describing a project eventually leads to describe its build
     artifacts. The exact mapping betweem project elements and those
     build artifacts depends on the presence or absence of
     {{!features}features}. Examples of such features are weather to
