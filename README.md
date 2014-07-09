@@ -10,6 +10,8 @@ configure, manage, and use OCaml projects.
 
 ### Status
 
+https://travis-ci.org/samoht/assemblage.svg?branch=master
+
 The library can be used to describe OCaml projects with static dependencies.
 
 A projects description consists of a list of libraries, binaries and/or toplevels.
@@ -26,6 +28,8 @@ Using a project description, the tools can generate:
 
 Multiple kinds of dependencies are currently supported:
 
+- a single directory, with a collection of files to sort to form a
+  library (using ocamldep)
 - local libraries, defined in the same project
 - local syntax extensions, defined in the same project (using `camlp4o`)
 - global ocamlfind libraries
