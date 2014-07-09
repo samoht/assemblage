@@ -19,6 +19,8 @@ open Project
 
 let (/) = Filename.concat
 
+let (|>) x f = f x
+
 type mode = [`Direct|`Indirect|`Makefile]
 
 let query_indirect ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
@@ -123,7 +125,7 @@ module META = struct
   type t = string
 
   let of_project t =
-    let libs = Component.(filter lib @@ components t) in
+    let libs = Component.(filter lib (components t)) in
     let version = Project.version t in
     let buf = Buffer.create 1024 in
     let one lib =

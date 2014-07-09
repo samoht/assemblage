@@ -18,6 +18,8 @@ open Project
 open Parsetree
 open Printf
 
+let (|>) x f = f x
+
 module StringSet = Set.Make(struct
     type t = string
     let compare = String.compare
@@ -202,7 +204,7 @@ let depends ?flags ?(deps=[]) resolver dir =
     | "Error" :: _        -> ()
     | name    :: modules  ->
       (* [name] is dir/<name>.ml[,i]: *)
-      let name = Filename.(basename @@ chop_extension name) in
+      let name = Filename.(basename (chop_extension name)) in
       let deps = List.fold_left (fun acc m ->
           if List.mem m names then
             m :: acc

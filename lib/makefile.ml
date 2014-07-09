@@ -24,6 +24,8 @@ let (//) x y =
   | None   -> y
   | Some x -> Filename.concat x y
 
+let (|>) x f = f x
+
 let conmap f l = List.concat (List.map f l)
 
 module Variable = struct
@@ -342,21 +344,21 @@ end = struct
           else [], [] in
         [Rule.create ~targets ~prereqs:(prereqs @ [prereqs_var t `Byte]) [
             sprintf "$(OCAMLC) -c %s%s %s"
-              flags (Variable.name @@ comp_byte t) Rule.prereq
+              flags (Variable.name (comp_byte t)) Rule.prereq
           ]] in
       let cmo = (* Generate cmos *)
         if CU.mli t && CU.ml t then
           [Rule.create ~targets:[target ".cmo"]
              ~prereqs:[target ".ml"; target ".cmi"; prereqs_var t `Byte]
              [sprintf "$(OCAMLC) -c %s%s %s"
-                flags (Variable.name @@ comp_byte t) Rule.prereq]]
+                flags (Variable.name (comp_byte t)) Rule.prereq]]
         else
           [] in
       let cmx = (* Generate cmxs *)
         [Rule.create ~targets:[target ".cmx"]
            ~prereqs:[target ".ml"; target ".cmi"; prereqs_var t `Native]
            [sprintf "$(OCAMLOPT) -c %s%s %s"
-              flags (Variable.name @@ comp_native t) Rule.prereq]]
+              flags (Variable.name (comp_native t)) Rule.prereq]]
       in
       ln @ cmi @ cmo @ cmx
 
@@ -437,7 +439,7 @@ end = struct
       Rule.create
         ~targets:[Lib.cma t resolver]
         ~prereqs:[prereqs_var t `Byte] [
-        sprintf "$(OCAMLC) -a %s -o %s" (Variable.name @@ link_byte t) Rule.target
+        sprintf "$(OCAMLC) -a %s -o %s" (Variable.name (link_byte t)) Rule.target
       ] in
     let native mode =
       let file, arg = match mode with
@@ -450,7 +452,7 @@ end = struct
         ~targets:[file]
         ~prereqs:[prereqs_var t mode] [
         sprintf "$(OCAMLOPT) %s %s -o %s"
-         arg (Variable.name @@ link) Rule.target
+         arg (Variable.name link) Rule.target
       ] in
     Rule.create
       ~targets:[Lib.id t]
@@ -521,14 +523,14 @@ end = struct
       ~targets:[Bin.byte t resolver]
       ~prereqs:[prereqs_var t `Byte] [
       sprintf "mkdir -p %s" (Bin.build_dir t resolver);
-      sprintf "$(OCAMLC) %s -o %s" (Variable.name @@ link_byte t) Rule.target;
+      sprintf "$(OCAMLC) %s -o %s" (Variable.name (link_byte t)) Rule.target;
     ]
     ::
     Rule.create
       ~targets:[Bin.native t resolver]
       ~prereqs:[prereqs_var t `Native] [
       sprintf "mkdir -p %s" (Bin.build_dir t resolver);
-      sprintf "$(OCAMLOPT) %s -o %s" (Variable.name @@ link_native t) Rule.target;
+      sprintf "$(OCAMLOPT) %s -o %s" (Variable.name (link_native t)) Rule.target;
     ]
     :: conmap U.rules (Bin.compilation_units t)
 

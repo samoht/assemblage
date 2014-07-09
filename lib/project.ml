@@ -127,6 +127,8 @@ let (//) x y =
   | None   -> y
   | Some x -> Filename.concat x y
 
+let (|>) x f = f x
+
 module type Graph = sig
   include Graph.Sig.I
   val iter: (V.t -> unit) -> t -> unit
@@ -1226,11 +1228,11 @@ let unionmap fn t =
 let features t =
   let libs =
     let libs = Component.(filter lib t.components) in
-    unionmap (fun x -> Feature.atoms @@ Lib.available x) libs in
+    unionmap (fun x -> Feature.atoms (Lib.available x)) libs in
   let pps  =
     let pps = Component.(filter pp t.components) in
-    unionmap (fun x -> Feature.atoms @@ Lib.available x) pps in
+    unionmap (fun x -> Feature.atoms (Lib.available x)) pps in
   let bins =
     let bins = Component.(filter bin t.components) in
-    unionmap (fun x -> Feature.atoms @@ Bin.available x) bins in
+    unionmap (fun x -> Feature.atoms (Bin.available x)) bins in
   Feature.(base ++ libs ++ pps ++ bins)
