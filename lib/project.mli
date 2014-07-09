@@ -283,6 +283,7 @@ and Lib: sig
     ?flags:Flags.t ->
     ?pack:bool ->
     ?deps:(string -> Component.t list) ->
+    ?c:C.t list ->
     CU.t list -> string -> t
   (** Create a library. *)
 
@@ -293,6 +294,10 @@ and Lib: sig
 
   val compilation_units: t -> CU.t list
   (** The list of compilation units which defines the library. *)
+
+  val c_objects: t -> C.t list
+  (** [c_objects t] is the list of C objects contained in the
+      library. *)
 
   val available: t -> Feature.formula
   (** The features which enables the build of that library. *)
@@ -412,6 +417,16 @@ and C: sig
     ?dir:string -> ?generated:bool -> ?link_flags:string list ->
     ?deps:Component.t list -> string -> t
   (** Create a C object file. *)
+
+  val container: t -> [`Lib of Lib.t |`Bin of Bin.t]  option
+  (** [container t] is the component which contains the given C
+      objects. *)
+
+  val set_lib_container: t -> Lib.t -> unit
+  (** Set the container to the given library. *)
+
+  val set_bin_container: t -> Bin.t -> unit
+  (** Set the container to the given binary. *)
 
   val link_flags: t -> string list
   (** Return the C link flags. *)

@@ -105,6 +105,10 @@ let output_generator_ml
   p "]";
   p "";
   p "let main () =";
+  if Filename.dirname ml_stubs <> "." then
+    p "  let _ = Sys.command \"mkdir -p %s\" in" (Filename.dirname ml_stubs);
+  if Filename.dirname ml_stubs <> Filename.dirname c_stubs then
+    p "  let _ = Sys.command \"mkdir -p %s\" in" (Filename.dirname c_stubs);
   p "  let ml_out = open_out \"%s\"" ml_stubs;
   p "  and c_out = open_out \"%s\" in" c_stubs;
   p "  let ml_fmt = Format.formatter_of_out_channel ml_out";

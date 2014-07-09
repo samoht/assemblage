@@ -43,7 +43,8 @@ and cu = {
 
 and lib = {
   l_name            : string;
-  l_comps           : cu list;
+  l_cus             : cu list;
+  l_cs              : c list;
   mutable l_filename: string;
   l_available       : Feature.formula;
   mutable l_flags   : Flags.t;
@@ -60,11 +61,12 @@ and bin = {
 }
 
 and c = {
-  c_dir       : string option;
-  c_name      : string;
-  c_link_flags: string list;
-  c_deps      : component list;
-  c_generated : bool;
+  c_dir              : string option;
+  c_name             : string;
+  c_link_flags       : string list;
+  c_deps             : component list;
+  c_generated        : bool;
+  mutable c_container: [`Lib of lib | `Bin of bin] option;
 }
 
 and test = {
@@ -659,9 +661,11 @@ and Lib: sig
     ?flags:Flags.t ->
     ?pack:bool ->
     ?deps:(string -> Component.t list) ->
+    ?c:C.t list ->
     CU.t list -> string -> t
   val filename: t -> string
   val compilation_units: t -> CU.t list
+  val c_objects: t -> C.t list
   val available: t -> Feature.formula
   val cma: t -> Resolver.t -> string
   val cmxa: t -> Resolver.t -> string
@@ -679,8 +683,9 @@ end = struct
   let id t = "lib-" ^ t.l_name
 
   let deps t =
-    t.l_comps
-    |> conmap CU.deps
+    let cus = t.l_cus |> conmap CU.deps in
+    let cs  = t.l_cs  |> conmap C.deps in
+    cus @ cs
     |> Component.Set.of_list
     |> Component.Set.elements
 
@@ -689,7 +694,9 @@ end = struct
   let build_dir t resolver =
     Resolver.build_dir resolver (id t)
 
-  let compilation_units t = t.l_comps
+  let compilation_units t = t.l_cus
+
+  let c_objects t = t.l_cs
 
   let filename t = t.l_filename
 
@@ -703,17 +710,19 @@ end = struct
   let create
       ?(available=Feature.true_)
       ?(flags=Flags.empty)
-      ?(pack=false) ?(deps=nil) comps name =
-    let comps' = if pack then [CU.pack comps name] else comps in
+      ?(pack=false) ?(deps=nil) ?(c=[]) cus name =
+    let cus' = if pack then [CU.pack cus name] else cus in
     let t = {
       l_name      = name;
-      l_comps     = comps';
+      l_cus       = cus';
+      l_cs        = c;
       l_available = available;
       l_flags     = flags;
       l_filename  = name;
     } in
-    List.iter (fun u -> CU.add_deps u (deps (CU.name u))) comps;
-    List.iter (fun u -> CU.set_lib_container u t) (comps' @ comps);
+    List.iter (fun u -> CU.add_deps u (deps (CU.name u))) cus;
+    List.iter (fun u -> CU.set_lib_container u t) (cus' @ cus);
+    List.iter (fun c -> C.set_lib_container c t) c;
     t
 
   let file t r ext =
@@ -738,7 +747,7 @@ end = struct
       Feature.(native         && t.l_available), [mk cmxa; mk a];
       Feature.(native_dynlink && t.l_available), [mk cmxs]      ;
     ]
-    @ conmap (fun u -> CU.generated_files u resolver) t.l_comps
+    @ conmap (fun u -> CU.generated_files u resolver) t.l_cus
 
   let flags t resolver =
     let comps = compilation_units t in
@@ -747,13 +756,16 @@ end = struct
     let t' = Flags.create ~link_byte ~link_native () in
     Flags.(t' @ t.l_flags)
 
-  let rec prereqs t resolver = function
-    | `Byte   -> List.map (fun u -> CU.cmo u resolver) (compilation_units t)
-    | `Native -> List.map (fun u -> CU.cmx u resolver) (compilation_units t)
-    | `Shared ->
-      let cs = Component.(filter c) (deps t) in
-      prereqs t resolver `Native
-      @ List.map (fun c -> C.dll_so c resolver) cs
+  let rec prereqs t resolver mode =
+    let c_deps = match mode with
+      | `Byte
+      | `Native -> List.map (fun c -> C.o c resolver) (c_objects t)
+      | `Shared -> List.map (fun c -> C.dll_so c resolver) (c_objects t) in
+    let ml_deps = match mode with
+      | `Byte   -> List.map (fun u -> CU.cmo u resolver) (compilation_units t)
+      | `Native -> List.map (fun u -> CU.cmx u resolver) (compilation_units t)
+      | `Shared -> prereqs t resolver `Native in
+    c_deps @ ml_deps
 
 end
 
@@ -958,7 +970,7 @@ end = struct
 
   let files t r =
     List.map (function
-        | `C    -> C.symlink_c (C.create t.g_name) r
+        | `C    -> file t r ".c"
         | `ML   -> ml t r
         | `MLI  -> mli t r
       ) t.g_files
@@ -977,6 +989,9 @@ and C: sig
   val create:
     ?dir:string -> ?generated:bool -> ?link_flags:string list ->
     ?deps:Component.t list -> string -> t
+  val container: t -> [`Lib of Lib.t |`Bin of Bin.t]  option
+  val set_lib_container: t -> Lib.t -> unit
+  val set_bin_container: t -> Bin.t -> unit
   val link_flags: t -> string list
   val dll_so: t -> Resolver.t -> string
   val symlink_c: t -> Resolver.t -> string
@@ -997,16 +1012,28 @@ end = struct
       c_name       = name;
       c_link_flags = link_flags;
       c_deps       = deps;
-      c_generated  = generated; }
+      c_generated  = generated;
+      c_container  = None }
 
   let build_dir t r =
-    Resolver.build_dir r (id t)
+    match t.c_container with
+    | Some (`Lib l) -> Lib.build_dir l r
+    | Some (`Bin b) -> Bin.build_dir b r
+    | None          -> Resolver.build_dir r (id t)
+
+  let container t = t.c_container
+
+  let set_lib_container t lib =
+    t.c_container <- Some (`Lib lib)
+
+  let set_bin_container t bin =
+    t.c_container <- Some (`Bin bin)
 
   let file t r ext =
     build_dir t r / t.c_name ^ ext
 
   let dll_so t r =
-    build_dir t r / "dll" ^ t.c_name ^ "_stubs.so"
+    build_dir t r / "dll" ^ t.c_name ^ ".so"
 
   let o t r =
     file t r ".o"
@@ -1014,8 +1041,8 @@ end = struct
   let symlink_c t r =
     file t r ".c"
 
-  let prereqs t r _mode =
-    [o t r]
+  let prereqs _t _r _mode =
+    failwith "C.prereqs"
 
   let deps t = t.c_deps
 

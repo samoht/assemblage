@@ -66,10 +66,11 @@ let sorted_cus cus =
   let cus = Component.Graph.vertex g in
   List.map (function `CU cu -> cu | _ -> assert false) cus
 
-let lib ?available ?(flags=Flags.empty) ?pack ?(deps=nil)
+let lib ?available ?(flags=Flags.empty) ?pack ?(deps=nil) ?(c=[])
     (cus:[`CU of cu] list) name =
   let cus = sorted_cus cus in
-  let l = Lib.create ?available ~flags ?pack ~deps cus name in
+  let c = List.map (function `C c -> c) c in
+  let l = Lib.create ?available ~flags ?pack ~deps ~c cus name in
   `Lib l
 
 let bin ?byte_only ?link_all ?install ?(deps=nil) cus name =
@@ -114,21 +115,19 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) deps name =
   let name_stubs = name ^ "_stubs" in
   let bin_dir r = Bin.build_dir (Bin.create [] name_generator) r in
   let lib_dir r = Sys.getcwd () / Lib.build_dir (Lib.create [] name) r in
-  let c_dir   r = Sys.getcwd () / C.build_dir (C.create name_stubs) r in
 
   (* 2. Generate and compile the generator. *)
   let generator =
     let action r =
       let ml_stubs = lib_dir r / name_stubs ^ ".ml" in
-      let c_stubs  = c_dir r / name_stubs ^ ".c" in
+      let c_stubs  = lib_dir r / name_stubs ^ ".c" in
       let library  = lib_dir r / name ^ ".ml" in
       let headers = match headers with
         | [] -> ""
         | hs -> sprintf "--headers %s " (String.concat "," hs) in
       Action.create ~dir:(bin_dir r)
-        "mkdir -p %s %s && \
-         ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
-        (lib_dir r) (c_dir r) headers ml_stubs c_stubs library name
+         "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
+         headers ml_stubs c_stubs library name
     in
     let ml = generated ~action [] [`ML] name_generator in
     let comp = CU.create ~deps:[ml; `CU bindings] name_generator in
@@ -148,7 +147,7 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) deps name =
   let flags = Flags.(cclib link_flags @ stub name_stubs) in
   let ml = generated [generator] [`ML] name in
   let main = cu [`CU bindings; ml_stubs; c_stubs; ml] name in
-  lib ~flags ?available [`CU bindings; ml_stubs; main] name
+  lib ~flags ?available ~c:[c_stubs] [`CU bindings; ml_stubs; main] name
 
 type tool = t -> Build_env.t -> unit
 

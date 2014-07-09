@@ -131,6 +131,7 @@ val lib:
   ?flags:flags ->
   ?pack:bool ->
   ?deps:(string -> component list) ->
+  ?c:[`C of c] list ->
   [`CU of cu] list -> string -> [> `Lib of lib]
 (** [lib units name] is the library [name] composed by the compilation
     units [cus]. If [lib] is set, use [ocamldep] to approximate the

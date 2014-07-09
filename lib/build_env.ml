@@ -23,7 +23,7 @@ let help_sections = [
   `S "AUTHORS";
   `P "Thomas Gazagnaire <thomas@gazagnaire.org>";
   `S "BUGS";
-  `P "Check bug reports at https://github.com/samoht/ocaml-tools/issues.";
+  `P "Check bug reports at https://github.com/samoht/assemblage/issues.";
 ]
 
 type global = {
@@ -172,7 +172,7 @@ let parse ?doc ?man name features =
     :: match man with
     | Some m -> List.map (fun p -> `P p) m
     | None   ->
-      [`P "$(tname) is part of OCaml-tools, a collection of tools to \
+      [`P "$(tname) is part of Assemblage, a collection of tools to \
            manage and configure OCaml projects."]
       @ help_sections
   in
