@@ -95,10 +95,9 @@ type component =
 (** {2 The Project API} *)
 
 val cu: ?dir:string -> component list -> string -> [> `CU of cu]
-(** [cu ~lib ~dir deps name] is the compilation unit in the bag of
-    compilation units [bag], located in the directory [dir], which the
-    dependencies [deps] and the cname [name]. The name is the same as
-    the filename, without its extension. *)
+(** [cu ~dir deps name] is the compilation unit located in the
+    directory [dir] with dependencies [deps] and the cname [name]. The
+    name is the same as the filename, without its extension. *)
 
 val ocamldep: dir:string -> ?flags:flags -> component list -> [> `CU of cu] list
 (** [ocamldep ~dir] is the list of compilation units in the given
