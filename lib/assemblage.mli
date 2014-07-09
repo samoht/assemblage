@@ -85,12 +85,12 @@ type component =
   | `Test of test
   | `Gen of gen ]
 (** The type for all the possible component descriptions. A [`CU cu]
-    is a local compilation unit, [`Lib l] are local libraries, [`Pp p]
-    are local pre-processors and [`Bin] are local binaries.
+    is a local compilation unit, [`Lib l] is a local library, [`Pp p]
+    is a local pre-processors and [`Bin] is local biny.
 
-    [`Pkg p] are globally installed packages and [`Pkg_pp] are
+    [`Pkg p] is a globally installed packages and [`Pkg_pp] is a
     globally installed pre-processor packages, both usually managed by
-    {i ocamlfind}, *)
+    {i ocamlfind}. *)
 
 (** {2 The Project API} *)
 
