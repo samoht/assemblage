@@ -40,35 +40,35 @@
 (** {1:features Features} *)
 
 type features = Feature.formula
-(** The type of user-defined or system-dependent features. *)
+(** The type for user-defined or system-dependent features. *)
 
 (** {1:flags Flags} *)
 
 type flags = Flags.t
-(** The type of command-line arguments. *)
+(** The type for command-line arguments. *)
 
 (** {1:project Project} *)
 
 type t = Project.t
-(** The type for descriptions of full OCaml projects. *)
+(** The type for OCaml projects descriptions. *)
 
 type cu = Project.CU.t
-(** The type for description of compilation units. *)
+(** The type for compilation unit descriptions. *)
 
 type lib = Project.Lib.t
-(** The type for description of of libraries. *)
+(** The type for library descriptions. *)
 
 type bin = Project.Bin.t
-(** The type for description of binaries. *)
+(** The type for binary executable descriptions. *)
 
 type test = Project.Test.t
-(** The type for description of tests. *)
+(** The type for test descriptions. *)
 
 type js = Project.JS.t
-(** The type for description of [js_of_ocaml] artifacts. *)
+(** The type for [js_of_ocaml] artifact descriptions. *)
 
 type c = Project.C.t
-(** The type for description of C source files. *)
+(** The type for C source file descriptions. *)
 
 type gen = Project.Gen.t
 (** The type for generated OCaml source code. *)
