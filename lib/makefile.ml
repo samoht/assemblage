@@ -70,11 +70,7 @@ module Variable = struct
 
   let has_feature f =
     let var = String.uppercase (Feature.name f) in
-    for i = 0 to String.length var - 1 do
-      match var.[i] with
-      | '-' -> var.[i] <- '_'
-      | _   -> ()
-    done;
+    let var = String.map (function '-' -> '_' | x -> x) var in
     ("HAS_" ^ var) =?= `String (if Feature.default f then "1" else "0")
 
   (* build one handler case *)
@@ -97,7 +93,7 @@ module Variable = struct
 
   let generate buf ?(size=0) t =
     let string tab c =
-      bprintf buf "%s%-.*s %s %s\n"
+      bprintf buf "%s%-*s %s %s\n"
         tab (size - String.length tab) t.name t.assign c in
     let rec contents tab (t:contents) = match t with
       | `String s   -> string tab s

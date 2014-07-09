@@ -70,11 +70,11 @@ let modules_of_ml ast =
 #if ocaml_version >= (4, 2)
     | Pstr_module b    ->
       let acc, prefix = add_module prefix acc b.pmb_name.Asttypes.txt in
-      module_expr prefix acc b.pmb_expr
+      module_expr prefix acc b.pmb_expr.pmod_desc
     | Pstr_recmodule l ->
       List.fold_left (fun acc b ->
-          let acc, prefix = add_module b.pmb_name.Asttypes.txt in
-          module_expr prefix acc b.pmb_expr
+          let acc, prefix = add_module prefix acc b.pmb_name.Asttypes.txt in
+          module_expr prefix acc b.pmb_expr.pmod_desc
         ) acc l
 #else
     | Pstr_module (l, e) ->
