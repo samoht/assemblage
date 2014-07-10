@@ -291,7 +291,7 @@ val test: ?dir:string ->
 
 val create:
   ?flags:Flags.t ->
-  ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
+  ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string -> ?doc_public:string list ->
   ?version:string ->
   string -> component list -> unit
 (** [create name deps] registers the project named [name], defining

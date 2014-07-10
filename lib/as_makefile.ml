@@ -598,17 +598,20 @@ module D = struct
          []            , `Strings [];
        ])]
 
-  let rules ?css ?intro ~dir libs =
+  let rules ?css ?intro ~dir public libs =
     Rule.create ~targets:["doc"] ~prereqs:["$(doc)"] []
     :: List.map (fun l ->
         Rule.create ~targets:[target l] ~prereqs:[Project.Lib.id l] [
           sprintf "mkdir -p %s" dir;
           let files =
             Project.Lib.compilation_units l
-            |> List.map (fun u ->
-                "$(BUILDIR)" / Project.Lib.id l /
-                if Project.CU.mli u then Project.CU.name u ^ ".mli"
-                else Project.CU.name u ^ ".ml")
+            |> conmap (fun u ->
+                let name = Project.CU.name u in
+                if List.mem name public then
+                  ["$(BUILDIR)" / Project.Lib.id l /
+                   if Project.CU.mli u then name ^ ".mli" else name ^ ".ml"]
+                else
+                  [])
             |> String.concat " " in
           let deps = Project.Lib.deps l |> Project.Component.closure in
           let libs =
@@ -796,7 +799,8 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
       @ D.rules
         ?css:(Project.doc_css t)
         ?intro:(Project.doc_intro t)
-        ~dir:(Project.doc_dir t) libs
+        ~dir:(Project.doc_dir t)
+        (Project.doc_public t) libs
       @ J.rules jss
     ) in
   let main = Rule.create ~ext:true ~targets:["all"] ~prereqs:[] [

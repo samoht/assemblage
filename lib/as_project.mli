@@ -51,6 +51,9 @@ val doc_dir: t -> string
 (** [doc_dir t] is the the directory where the HTML documentation is
     generated. *)
 
+val doc_public: t -> string list
+(** The public documentation. *)
+
 module type S = sig
 
   (** Common signature shared by all components. *)
@@ -469,7 +472,7 @@ end
 
 val create:
   ?flags:As_flags.t ->
-  ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
+  ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string -> ?doc_public:string list ->
   ?version:string ->
   Component.t list -> string -> t
 (** [create cs n] is the project named [n] with components [cs]. *)
