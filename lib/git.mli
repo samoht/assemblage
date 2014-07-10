@@ -19,5 +19,5 @@
 val head: unit -> string option
 (** [head ()] is the tip's SHA1 of the current project. *)
 
-val describe: ?chop_v:bool -> ?branch:string -> unit -> string option
+val describe: ?chop_v:bool -> unit -> string option
 (** [desrcibe ()] is the output of {i git describe}. *)

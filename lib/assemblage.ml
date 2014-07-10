@@ -198,9 +198,9 @@ let configure `Make t env =
   let flags = Build_env.flags env in
   let makefile = "Makefile" in
   let build_dir = Build_env.build_dir env in
-  Makefile.(write @@ of_project t ~features ~flags ~makefile);
-  Ocamlfind.META.(write @@ of_project t);
-  Opam.Install.(write @@ of_project ~build_dir t)
+  Makefile.(write (of_project t ~features ~flags ~makefile));
+  Ocamlfind.META.(write (of_project t));
+  Opam.Install.(write (of_project ~build_dir t))
 
 let describe t env =
   let print_deps x = match Component.(filter pkg x @ filter pkg_pp x) with
@@ -216,7 +216,7 @@ let describe t env =
   let print_units us =
     let aux i n u =
       let mk f ext =
-        if f u then (Shell.color `cyan @@ CU.name u ^ ext) else "" in
+        if f u then (Shell.color `cyan (CU.name u ^ ext)) else "" in
       let ml = mk CU.ml ".ml" in
       let mli = mk CU.mli ".mli" in
       let modules =
@@ -233,7 +233,7 @@ let describe t env =
   let print_top id deps comps ls =
     let aux l =
       printf "└─┬─ %s\n%s"
-        (Shell.color `magenta (id l)) (print_deps @@ deps l);
+        (Shell.color `magenta (id l)) (print_deps (deps l));
       print_units (comps l) in
     List.iter aux ls in
   let print_libs = print_top Lib.id Lib.deps Lib.compilation_units in

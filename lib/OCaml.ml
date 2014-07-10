@@ -18,6 +18,8 @@ open Project
 open Parsetree
 open Printf
 
+let (|>) x f = f x
+
 module StringSet = Set.Make(struct
     type t = string
     let compare = String.compare
@@ -68,11 +70,11 @@ let modules_of_ml ast =
 #if ocaml_version >= (4, 2)
     | Pstr_module b    ->
       let acc, prefix = add_module prefix acc b.pmb_name.Asttypes.txt in
-      module_expr prefix acc b.pmb_expr
+      module_expr prefix acc b.pmb_expr.pmod_desc
     | Pstr_recmodule l ->
       List.fold_left (fun acc b ->
-          let acc, prefix = add_module b.pmb_name.Asttypes.txt in
-          module_expr prefix acc b.pmb_expr
+          let acc, prefix = add_module prefix acc b.pmb_name.Asttypes.txt in
+          module_expr prefix acc b.pmb_expr.pmod_desc
         ) acc l
 #else
     | Pstr_module (l, e) ->
@@ -202,7 +204,7 @@ let depends ?flags ?(deps=[]) resolver dir =
     | "Error" :: _        -> ()
     | name    :: modules  ->
       (* [name] is dir/<name>.ml[,i]: *)
-      let name = Filename.(basename @@ chop_extension name) in
+      let name = Filename.(basename (chop_extension name)) in
       let deps = List.fold_left (fun acc m ->
           if List.mem m names then
             m :: acc
