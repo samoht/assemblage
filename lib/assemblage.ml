@@ -181,7 +181,7 @@ let includes () =
     | _ :: t         -> aux acc t in
   aux [] sys_argl
 
-let process ?(file="configure.ml") name fn =
+let process ?(file="assemble.ml") name fn =
   let includes = includes () in
   let auto_load = auto_load () in
   Shell.show "Loading %s. %s"
