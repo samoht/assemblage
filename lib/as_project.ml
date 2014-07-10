@@ -1193,7 +1193,7 @@ let doc_public t = t.doc_public
 let files_of_generators t resolver =
   let comps = Component.(filter cu t.components) in
   List.fold_left (fun acc u ->
-      if CU.generated u then acc
+      if not (CU.generated u) then acc
       else
         let ml = match CU.ml u with
           | true  -> [CU.build_dir u resolver / CU.name u ^ ".ml"]
