@@ -131,7 +131,7 @@ let term features: t Cmdliner.Term.t =
   let build_dir =
     let doc = Arg.info
         ~doc:"The name of the directory where built artifacts are created."
-        ~docv:"DIR" ["build_dir"] in
+        ~docv:"DIR" ["build-dir"] in
     Arg.(value & opt string "_build" & doc) in
   let includes =
     let doc = Arg.info
