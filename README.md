@@ -10,7 +10,7 @@ configure, manage, and use OCaml projects.
 
 ### Status
 
-https://travis-ci.org/samoht/assemblage.svg?branch=master
+[![Build Status](https://travis-ci.org/samoht/assemblage.svg?branch=master)](https://travis-ci.org/samoht/assemblage)
 
 The library can be used to describe OCaml projects with static dependencies.
 
