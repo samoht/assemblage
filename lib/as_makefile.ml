@@ -556,12 +556,7 @@ end
 module T = struct
 
   let variables ts =
-    let has_test = Variable.has_feature Features.test_elt in
-    [Variable.("test" =:= `Case [
-         [has_test, "1"], `String (String.concat " " (List.map Project.Test.id ts));
-         []             , `Strings [];
-
-       ])]
+    [Variable.("test" =:= `String (String.concat " " (List.map Project.Test.id ts)))]
 
   let rules ts =
     Rule.create ~targets:["test"] ~prereqs:["$(test)"] []
@@ -818,8 +813,9 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
         (String.concat " " (List.map (fun v ->
              sprintf "%s=%s" v.Variable.name (Variable.name v)
            ) features));
-      sprintf "@$(MAKE) %s test"
+      sprintf "@$(MAKE) %s"
         (String.concat " " (List.map Project.Lib.id libs @ List.map Project.Bin.id bins));
+      sprintf "@if [ \"x${HAS_TEST}\" == \"x1\" ]; then $(MAKE) test; fi";
       sprintf "@echo '\027[32m== Done!\027[m'";
     ] in
   let clean = Rule.create ~ext:true ~targets:["clean"] ~prereqs:[] [
