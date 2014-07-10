@@ -118,5 +118,9 @@ val js: t
 val js_elt: elt
 (** Build the javascript objects. *)
 
+val full_doc: t
+val full_doc_elt: elt
+(** Generate the full documentation (and not just the public doc). *)
+
 val base: Set.t
 (** The base features. *)

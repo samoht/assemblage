@@ -137,13 +137,13 @@ let term features: t Cmdliner.Term.t =
     Arg.(value & opt string "_build" & doc) in
   let includes =
     let doc = Arg.info
-        ~doc:"A list of directories to includes when loading `configure.ml'."
+        ~doc:"A list of directories to includes when loading `assemble.ml'."
         ~docv:"DIRECTORY" ["I"] in
     Arg.(value & opt_all string [] & doc) in
   let disable_auto_load =
     let doc = Arg.info
         ~doc:"Do not auto-load of $(b,`ocamlfind query tools`/tools.cma) when \
-              loading `configure.ml'."
+              loading `assemble.ml'."
         ["disable-auto-load-tools"] in
     Arg.(value & flag & doc) in
 

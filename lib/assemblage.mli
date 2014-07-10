@@ -90,6 +90,9 @@ module Features: sig
   val js: t
   (** Build the javascript objects? *)
 
+  val full_doc: t
+  (** Build the full documentation (ignore [doc_public])? *)
+
 end
 
 (** {1:flags Flags} *)
@@ -291,7 +294,7 @@ val test: ?dir:string ->
 
 val create:
   ?flags:Flags.t ->
-  ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
+  ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string -> ?doc_public:string list ->
   ?version:string ->
   string -> component list -> unit
 (** [create name deps] registers the project named [name], defining
@@ -305,7 +308,7 @@ type tool = t -> As_build_env.t -> unit
 
 val process: ?file:string -> string -> tool -> unit
 (** [process ~file name fn] reads and processes the OCaml [file] in a
-    top-level environment (the default is [configure.ml]), for the
+    top-level environment (the default is [assemble.ml]), for the
     project called [name], and apply [fn] to the projects registered
     as side-effects. *)
 

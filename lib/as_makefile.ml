@@ -591,48 +591,61 @@ module D = struct
   let target l =
     "doc-" ^ Project.Lib.id l
 
+  let full_target l =
+    "full-doc-" ^ Project.Lib.id l
+
   let variables libs =
     let has_doc = Variable.has_feature Features.doc_elt in
+    let has_full_doc = Variable.has_feature Features.full_doc_elt in
     [Variable.("doc" =:= `Case [
-         [has_doc, "1"], `String (String.concat " " (List.map target libs));
-         []            , `Strings [];
+         [has_full_doc, "1"], `String (String.concat " " (List.map full_target libs));
+         [has_doc     , "1"], `String (String.concat " " (List.map target libs));
+         []                 , `Strings [];
        ])]
 
-  let rules ?css ?intro ~dir libs =
-    Rule.create ~targets:["doc"] ~prereqs:["$(doc)"] []
-    :: List.map (fun l ->
-        Rule.create ~targets:[target l] ~prereqs:[Project.Lib.id l] [
-          sprintf "mkdir -p %s" dir;
-          let files =
-            Project.Lib.compilation_units l
-            |> List.map (fun u ->
-                "$(BUILDIR)" / Project.Lib.id l /
-                if Project.CU.mli u then Project.CU.name u ^ ".mli"
-                else Project.CU.name u ^ ".ml")
-            |> String.concat " " in
-          let deps = Project.Lib.deps l |> Project.Component.closure in
-          let libs =
-            deps
-            |> Project.Component.(filter lib)
-            |> (fun d -> l :: d)
-            |> List.map (fun l -> sprintf "-I %s"
+  let rules ?css ?intro ~dir public libs =
+    let aux ~full_doc l =
+      let targets = [if full_doc then full_target l else target l] in
+      Rule.create
+        ~targets
+        ~prereqs:[Project.Lib.id l] [
+        sprintf "mkdir -p %s" dir;
+        let files =
+          Project.Lib.compilation_units l
+          |> conmap (fun u ->
+              let name = Project.CU.name u in
+              if full_doc || List.mem name public then
+                ["$(BUILDIR)" / Project.Lib.id l /
+                 if Project.CU.mli u then name ^ ".mli" else name ^ ".ml"]
+              else
+                [])
+          |> String.concat " " in
+        let deps = Project.Lib.deps l |> Project.Component.closure in
+        let libs =
+          deps
+          |> Project.Component.(filter lib)
+          |> (fun d -> l :: d)
+          |> List.map (fun l -> sprintf "-I %s"
                           (Resolver.build_dir resolver (Project.Lib.id l)))
-            |> String.concat " " in
-          let pkgs =
-            deps
-            |> Project.Component.(filter pkg)
-            |> (fun pkgs -> Flags.comp_byte (Resolver.pkgs resolver pkgs))
-            |> String.concat " " in
-          let css = match css with
-            | None   -> ""
-            | Some f -> sprintf "-css-style %s " f in
-          let intro = match intro with
-            | None   -> ""
-            | Some i -> sprintf "-intro %s " i in
-          sprintf "$(OCAMLDOC) %s %s %s -short-functors \
-                  \  %s%s-colorize-code -html -d %s"
-            pkgs libs files css intro dir
-        ]) libs
+          |> String.concat " " in
+        let pkgs =
+          deps
+          |> Project.Component.(filter pkg)
+          |> (fun pkgs -> Flags.comp_byte (Resolver.pkgs resolver pkgs))
+          |> String.concat " " in
+        let css = match css with
+          | None   -> ""
+          | Some f -> sprintf "-css-style %s " f in
+        let intro = match intro with
+          | None   -> ""
+          | Some i -> sprintf "-intro %s " i in
+        sprintf "$(OCAMLDOC) %s %s %s -short-functors \
+                \  %s%s-colorize-code -html -d %s"
+          pkgs libs files css intro dir
+      ] in
+    Rule.create ~targets:["doc"] ~prereqs:["$(doc)"] []
+    :: List.map (aux ~full_doc:true) libs
+    @  List.map (aux ~full_doc:false) libs
 
 end
 
@@ -796,7 +809,8 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
       @ D.rules
         ?css:(Project.doc_css t)
         ?intro:(Project.doc_intro t)
-        ~dir:(Project.doc_dir t) libs
+        ~dir:(Project.doc_dir t)
+        (Project.doc_public t) libs
       @ J.rules jss
     ) in
   let main = Rule.create ~ext:true ~targets:["all"] ~prereqs:[] [

@@ -108,6 +108,7 @@ type t = {
   doc_css   : string option;
   doc_intro : string option;
   doc_dir   : string;
+  doc_public: string list;
 }
 
 module type S = sig
@@ -1187,6 +1188,8 @@ let doc_dir t = t.doc_dir
 
 let doc_intro t = t.doc_intro
 
+let doc_public t = t.doc_public
+
 let files_of_generators t resolver =
   let comps = Component.(filter cu t.components) in
   List.fold_left (fun acc u ->
@@ -1203,7 +1206,7 @@ let files_of_generators t resolver =
 
 let create
     ?(flags=Flags.empty)
-    ?doc_css ?doc_intro  ?(doc_dir="doc")
+    ?doc_css ?doc_intro  ?(doc_dir="doc") ?doc_public
     ?version
     components name =
   let version = match version with
@@ -1222,8 +1225,15 @@ let create
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)
     ) libs;
+  let doc_public = match doc_public with
+    | Some d -> d
+    | None   -> conmap (function
+        | `Lib l -> List.map CU.name (Lib.compilation_units l)
+        | `CU cu -> [CU.name cu]
+        | _      -> []
+      ) components in
   { name; version; flags; components;
-    doc_css; doc_intro; doc_dir }
+    doc_css; doc_intro; doc_dir; doc_public }
 
 let unionmap fn t =
   List.fold_left (fun set t ->

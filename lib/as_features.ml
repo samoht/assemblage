@@ -163,10 +163,15 @@ let js_elt =
   create ~doc:"the generation of JavaScript build artefacts, using `js_of_ocaml'."
     ~default:false "js"
 
+let full_doc_elt =
+  create ~doc:"the generation of the full documentation (ie. discard the `doc_public' argument."
+    ~default:false "full-doc"
+
 let base = List.fold_left (fun set t -> Set.add t set) Set.empty [
     native_elt; native_dynlink_elt;
     debug_elt; annot_elt; warn_error_elt;
     test_elt; doc_elt; js_elt;
+    full_doc_elt;
   ]
 
 let native = atom native_elt
@@ -177,3 +182,4 @@ let debug = atom debug_elt
 let test = atom test_elt
 let doc = atom doc_elt
 let js = atom js_elt
+let full_doc = atom full_doc_elt

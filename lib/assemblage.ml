@@ -46,9 +46,9 @@ type test = Project.Test.t
 let projects () =
   !project_list
 
-let create ?flags ?doc_css ?doc_intro ?doc_dir ?version name components =
+let create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version name components =
   let t =
-    Project.create ?flags ?doc_css ?doc_intro ?doc_dir ?version components name in
+    Project.create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version components name in
   project_list := t :: !project_list
 
 let cu ?dir name deps =
@@ -181,7 +181,7 @@ let includes () =
     | _ :: t         -> aux acc t in
   aux [] sys_argl
 
-let process ?(file="configure.ml") name fn =
+let process ?(file="assemble.ml") name fn =
   let includes = includes () in
   let auto_load = auto_load () in
   Shell.show "Loading %s. %s"
