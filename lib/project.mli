@@ -19,9 +19,9 @@
     A typical project contains the descriptions of multiple
     components, such as libraries, binaries, tests, ... forming a
     complex DAG of inter-related descriptions. The module signature
-    {{!G}G} models the relation between components. Although each kind
-    of components has some particularities, but they all extend the
-    signature {{!S}S} defined below. *)
+    {{!Graph}Graph} models the relation between components. Although
+    each kind of components has some particularities, but they all
+    extend the signature {{!S}S} defined below. *)
 
 type t
 (** The type for describing projects. *)
