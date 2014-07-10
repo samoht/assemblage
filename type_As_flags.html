@@ -1,0 +1,53 @@
+<html><head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="As_flags" rel="Chapter" href="As_flags.html">
+<link title="As_features" rel="Chapter" href="As_features.html">
+<link title="As_shell" rel="Chapter" href="As_shell.html">
+<link title="As_resolver" rel="Chapter" href="As_resolver.html">
+<link title="As_build_env" rel="Chapter" href="As_build_env.html">
+<link title="As_git" rel="Chapter" href="As_git.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_makefile" rel="Chapter" href="As_makefile.html">
+<link title="As_OCaml" rel="Chapter" href="As_OCaml.html">
+<link title="As_opam" rel="Chapter" href="As_opam.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>As_flags</title>
+</head>
+<body>
+<code class="code"><span class="keyword">sig</span><br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;s&nbsp;=&nbsp;string&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;create&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?comp_byte:<span class="constructor">As_flags</span>.s&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?comp_native:<span class="constructor">As_flags</span>.s&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?pp_byte:<span class="constructor">As_flags</span>.s&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?pp_native:<span class="constructor">As_flags</span>.s&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?link_byte:<span class="constructor">As_flags</span>.s&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?link_native:<span class="constructor">As_flags</span>.s&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?link_shared:<span class="constructor">As_flags</span>.s&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;?c:<span class="constructor">As_flags</span>.s&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;(&nbsp;@@@&nbsp;)&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;comp_byte&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.s<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;comp_native&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.s<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pp_byte&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.s<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pp_native&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.s<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;link_byte&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.s<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;link_native&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.s<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;link_shared&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.s<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;c&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.s<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;empty&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;debug&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;annot&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;warn_error&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;linkall&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;thread&nbsp;:&nbsp;<span class="constructor">As_flags</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cclib&nbsp;:&nbsp;string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ccopt&nbsp;:&nbsp;string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;stub&nbsp;:&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_flags</span>.t<br>
+<span class="keyword">end</span></code></body></html>

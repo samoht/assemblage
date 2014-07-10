@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="next" href="As_project.CU.html">
+<link rel="Up" href="As_project.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="As_flags" rel="Chapter" href="As_flags.html">
+<link title="As_features" rel="Chapter" href="As_features.html">
+<link title="As_shell" rel="Chapter" href="As_shell.html">
+<link title="As_resolver" rel="Chapter" href="As_resolver.html">
+<link title="As_build_env" rel="Chapter" href="As_build_env.html">
+<link title="As_git" rel="Chapter" href="As_git.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_makefile" rel="Chapter" href="As_makefile.html">
+<link title="As_OCaml" rel="Chapter" href="As_OCaml.html">
+<link title="As_opam" rel="Chapter" href="As_opam.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>As_project.Component</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="As_project.html" title="As_project">Up</a>
+&nbsp;<a class="post" href="As_project.CU.html" title="As_project.CU">Next</a>
+</div>
+<h1>Module <a href="type_As_project.Component.html">As_project.Component</a></h1>
+
+<pre><span class="keyword">module</span> Component: <code class="code"><span class="keyword">sig</span></code> <a href="As_project.Component.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><hr width="100%">
+<br>
+Component descriptions.<br>
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> = <code class="type">[ `Bin of As_project.Bin.t<br>       | `C of As_project.C.t<br>       | `CU of As_project.CU.t<br>       | `Gen of As_project.Gen.t<br>       | `JS of As_project.JS.t<br>       | `Lib of As_project.Lib.t<br>       | `Pkg of As_project.Pkg.t<br>       | `Pkg_pp of As_project.Pkg.t<br>       | `Pp of As_project.Lib.t<br>       | `Test of As_project.Test.t ]</code> </pre>
+<div class="info ">
+The type for describing project components.<br>
+</div>
+
+
+<pre><span class="keyword">include</span> <a href="As_project.S.html">As_project.S</a></pre>
+
+<pre><span id="VALcu"><span class="keyword">val</span> cu</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> -> As_project.CU.t option</code></pre><div class="info ">
+Is the component a compilation unit?<br>
+</div>
+
+<pre><span id="VALlib"><span class="keyword">val</span> lib</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> -> As_project.Lib.t option</code></pre><div class="info ">
+Is the component a local library?<br>
+</div>
+
+<pre><span id="VALpkg"><span class="keyword">val</span> pkg</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> -> string option</code></pre><div class="info ">
+Is the component a globally installed library in a package?<br>
+</div>
+
+<pre><span id="VALpp"><span class="keyword">val</span> pp</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> -> As_project.Lib.t option</code></pre><div class="info ">
+Is the component a local syntax extension?<br>
+</div>
+
+<pre><span id="VALpkg_pp"><span class="keyword">val</span> pkg_pp</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> -> string option</code></pre><div class="info ">
+Is the component a globally installed syntax extension<br>
+</div>
+
+<pre><span id="VALbin"><span class="keyword">val</span> bin</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> -> As_project.Bin.t option</code></pre><div class="info ">
+Is the component a binary?<br>
+</div>
+
+<pre><span id="VALc"><span class="keyword">val</span> c</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> -> As_project.C.t option</code></pre><div class="info ">
+Is the component a C file?<br>
+</div>
+
+<pre><span id="VALjs"><span class="keyword">val</span> js</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> -> As_project.JS.t option</code></pre><div class="info ">
+Is the component a js_of_ocaml binary?<br>
+</div>
+
+<pre><span id="VALgen"><span class="keyword">val</span> gen</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> -> As_project.Gen.t option</code></pre><div class="info ">
+Is the component a generated source file?<br>
+</div>
+
+<pre><span id="VALtest"><span class="keyword">val</span> test</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> -> As_project.Test.t option</code></pre><div class="info ">
+Is the component a test?<br>
+</div>
+
+<pre><span id="VALfilter"><span class="keyword">val</span> filter</span> : <code class="type">(<a href="As_project.Component.html#TYPEt">t</a> -> 'a option) -><br>       <a href="As_project.Component.html#TYPEt">t</a> list -> 'a list</code></pre><div class="info ">
+Filter a list of components.<br>
+</div>
+
+<pre><span id="VALclosure"><span class="keyword">val</span> closure</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> list -> <a href="As_project.Component.html#TYPEt">t</a> list</code></pre><div class="info ">
+Compute the transitive closure of the component dependency
+      graph. Try to keep the order as consistent as possible.<br>
+</div>
+
+<pre><span id="VALcomp_byte"><span class="keyword">val</span> comp_byte</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> list -><br>       <a href="As_resolver.html#TYPEt">As_resolver.t</a> -> (<a href="As_resolver.html#TYPEt">As_resolver.t</a> -> string) -> string list</code></pre><div class="info ">
+<code class="code">comp_byte ts r build_dir</code> is the list of command-line arguments
+      to use for compiling a component depending of <code class="code">ts</code> to bytecode,
+      where the build artifacts are generated in <code class="code">build_dir</code> and the
+      external names are resolved by <code class="code">r</code>.<br>
+</div>
+
+<pre><span id="VALcomp_native"><span class="keyword">val</span> comp_native</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> list -><br>       <a href="As_resolver.html#TYPEt">As_resolver.t</a> -> (<a href="As_resolver.html#TYPEt">As_resolver.t</a> -> string) -> string list</code></pre><div class="info ">
+Same as <code class="code">comp_byte</code> but for native code.<br>
+</div>
+
+<pre><span id="VALpp_byte"><span class="keyword">val</span> pp_byte</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> list -> <a href="As_resolver.html#TYPEt">As_resolver.t</a> -> string list</code></pre><div class="info ">
+<code class="code">pp_byte ts r</code> is the list of command-line arguments to use for
+      pre-processing a component depending on <code class="code">ts</code>, using the name
+      resolver <code class="code">r</code>.<br>
+</div>
+
+<pre><span id="VALpp_native"><span class="keyword">val</span> pp_native</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> list -> <a href="As_resolver.html#TYPEt">As_resolver.t</a> -> string list</code></pre><div class="info ">
+Same as <code class="code">pp_native</code> but for native pre-processors.<br>
+</div>
+
+<pre><span id="VALlink_byte"><span class="keyword">val</span> link_byte</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> list -><br>       <a href="As_resolver.html#TYPEt">As_resolver.t</a> -> As_project.CU.t list -> string list</code></pre><div class="info ">
+<code class="code">link_byte deps r cus</code> is the list of command-line arguments to
+      use for linking the compilation units <code class="code">cus</code> together, depending
+      on the components <code class="code">ts</code> and using the name resolver <code class="code">r</code>.<br>
+</div>
+
+<pre><span id="VALlink_native"><span class="keyword">val</span> link_native</span> : <code class="type"><a href="As_project.Component.html#TYPEt">t</a> list -><br>       <a href="As_resolver.html#TYPEt">As_resolver.t</a> -> As_project.CU.t list -> string list</code></pre>
+<pre><span class="keyword">module</span> <a href="As_project.Component.Set.html">Set</a>: <code class="type">Set.S</code><code class="type">  with type elt = t</code></pre><div class="info">
+Set of components.
+</div>
+
+<pre><span class="keyword">module</span> <a href="As_project.Component.Graph.html">Graph</a>: <code class="type"><a href="As_project.Graph.html">As_project.Graph</a></code><code class="type">  with type V.t = t</code></pre><div class="info">
+Graph of components.
+</div>
+</body></html>

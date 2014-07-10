@@ -1,0 +1,47 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Resolver.html">
+<link rel="next" href="Git.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="Flags" rel="Chapter" href="Flags.html">
+<link title="Shell" rel="Chapter" href="Shell.html">
+<link title="Feature" rel="Chapter" href="Feature.html">
+<link title="Resolver" rel="Chapter" href="Resolver.html">
+<link title="Release" rel="Chapter" href="Release.html">
+<link title="Git" rel="Chapter" href="Git.html">
+<link title="Action" rel="Chapter" href="Action.html">
+<link title="Build_env" rel="Chapter" href="Build_env.html">
+<link title="Project" rel="Chapter" href="Project.html">
+<link title="Ocamlfind" rel="Chapter" href="Ocamlfind.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html">
+<link title="OCaml" rel="Chapter" href="OCaml.html">
+<link title="Opam" rel="Chapter" href="Opam.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>Release</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Resolver.html" title="Resolver">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Git.html" title="Git">Next</a>
+</div>
+<h1>Module <a href="type_Release.html">Release</a></h1>
+
+<pre><span class="keyword">module</span> Release: <code class="code"><span class="keyword">sig</span></code> <a href="Release.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Manage releases.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="VALsubst"><span class="keyword">val</span> subst</span> : <code class="type">string -> (string * string) list -> string -> unit</code></pre><div class="info ">
+<code class="code">write_subst file vars content</code> writes <code class="code">contents</code> to <code class="code">file</code>
+    substituting variables of the form <code class="code">%%<span class="constructor">ID</span>%%</code> by their definition.
+    The <code class="code"><span class="constructor">ID</span></code>'s are <code class="code"><span class="constructor">List</span>.map fst vars</code> and their definition content
+    is found with <code class="code"><span class="constructor">List</span>.assoc</code>.<br>
+</div>
+</body></html>

@@ -1,0 +1,62 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="As_project.html">
+<link rel="next" href="As_makefile.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="As_flags" rel="Chapter" href="As_flags.html">
+<link title="As_features" rel="Chapter" href="As_features.html">
+<link title="As_shell" rel="Chapter" href="As_shell.html">
+<link title="As_resolver" rel="Chapter" href="As_resolver.html">
+<link title="As_build_env" rel="Chapter" href="As_build_env.html">
+<link title="As_git" rel="Chapter" href="As_git.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_makefile" rel="Chapter" href="As_makefile.html">
+<link title="As_OCaml" rel="Chapter" href="As_OCaml.html">
+<link title="As_opam" rel="Chapter" href="As_opam.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>As_ocamlfind</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="As_project.html" title="As_project">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="As_makefile.html" title="As_makefile">Next</a>
+</div>
+<h1>Module <a href="type_As_ocamlfind.html">As_ocamlfind</a></h1>
+
+<pre><span class="keyword">module</span> As_ocamlfind: <code class="code"><span class="keyword">sig</span></code> <a href="As_ocamlfind.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Manage OCamlfind invocations.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="TYPEmode"><span class="keyword">type</span> <code class="type"></code>mode</span> = <code class="type">[ `Direct | `Indirect | `Makefile ]</code> </pre>
+<div class="info ">
+The different invocation modes. <code class="code"><span class="constructor">Direct</span></code> is the expanded
+    command-line, without any mention of `ocamlfind'
+    anymore. <code class="code"><span class="constructor">Indirect</span></code> return the `ocamlfind' invocation to run to
+    get the right command-line, and <code class="code"><span class="constructor">Makefile</span></code> is the same as
+    <code class="code"><span class="constructor">Indirect</span></code>, but quoted inside a <i>$(shell ...)</i> string.<br>
+</div>
+
+
+<pre><span id="VALquery"><span class="keyword">val</span> query</span> : <code class="type">mode:<a href="As_ocamlfind.html#TYPEmode">mode</a> -><br>       ?predicates:string list -><br>       ?format:string -> ?uniq:bool -> ?recursive:bool -> string list -> string</code></pre><div class="info ">
+<code class="code">ocamlfind_query ~direct ?predicates ?format packages</code> is the
+    result of executing <code class="code">ocamlfind query</code> with the given
+    parameters. If <code class="code">direct</code> is set, call the `ocamlfind' commands
+    directly. Otherwise, return the ocamlfind to run to get the
+    expected result.<br>
+</div>
+
+<pre><span id="VALresolver"><span class="keyword">val</span> resolver</span> : <code class="type"><a href="As_ocamlfind.html#TYPEmode">mode</a> -> string -> <a href="As_resolver.html#TYPEt">As_resolver.t</a></code></pre><div class="info ">
+Resolve command-line arguments for ocamlfind packages.<br>
+</div>
+
+<pre><span class="keyword">module</span> <a href="As_ocamlfind.META.html">META</a>: <code class="code"><span class="keyword">sig</span></code> <a href="As_ocamlfind.META.html">..</a> <code class="code"><span class="keyword">end</span></code></pre></body></html>

@@ -1,0 +1,74 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="As_features.html">
+<link rel="next" href="As_resolver.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="As_flags" rel="Chapter" href="As_flags.html">
+<link title="As_features" rel="Chapter" href="As_features.html">
+<link title="As_shell" rel="Chapter" href="As_shell.html">
+<link title="As_resolver" rel="Chapter" href="As_resolver.html">
+<link title="As_build_env" rel="Chapter" href="As_build_env.html">
+<link title="As_git" rel="Chapter" href="As_git.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_makefile" rel="Chapter" href="As_makefile.html">
+<link title="As_OCaml" rel="Chapter" href="As_OCaml.html">
+<link title="As_opam" rel="Chapter" href="As_opam.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><link title="Terminal Colors" rel="Section" href="#2_TerminalColors">
+<title>As_shell</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="As_features.html" title="As_features">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="As_resolver.html" title="As_resolver">Next</a>
+</div>
+<h1>Module <a href="type_As_shell.html">As_shell</a></h1>
+
+<pre><span class="keyword">module</span> As_shell: <code class="code"><span class="keyword">sig</span></code> <a href="As_shell.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Execution of shell commands.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="VALshow"><span class="keyword">val</span> show</span> : <code class="type">('a, unit, string, unit) Pervasives.format4 -> 'a</code></pre><div class="info ">
+<code class="code">show msg</code> outputs the given message on stdout.<br>
+</div>
+
+<pre><span id="VALfatal_error"><span class="keyword">val</span> fatal_error</span> : <code class="type">int -> ('a, unit, string, 'b) Pervasives.format4 -> 'a</code></pre><div class="info ">
+<code class="code">fatal_error i msg</code> signals an error and stops the program with
+    the exit code <code class="code">i</code>.<br>
+</div>
+
+<pre><span id="VALexec"><span class="keyword">val</span> exec</span> : <code class="type">?verbose:bool -> ('a, unit, string, unit) Pervasives.format4 -> 'a</code></pre><div class="info ">
+Execute a shell command.<br>
+</div>
+
+<pre><span id="VALexec_output"><span class="keyword">val</span> exec_output</span> : <code class="type">?verbose:bool -> ('a, unit, string, string list) Pervasives.format4 -> 'a</code></pre><div class="info ">
+Execute a shell command and returns its output.<br>
+</div>
+
+<pre><span id="VALtry_exec"><span class="keyword">val</span> try_exec</span> : <code class="type">('a, unit, string, bool) Pervasives.format4 -> 'a</code></pre><div class="info ">
+Try to run a given command.<br>
+</div>
+
+<pre><span id="VALin_dir"><span class="keyword">val</span> in_dir</span> : <code class="type">string -> (unit -> 'a) -> 'a</code></pre><div class="info ">
+Execute a command in a given directory.<br>
+</div>
+<br>
+<h2 id="2_TerminalColors">Terminal Colors</h2><br>
+
+<pre><span id="TYPEtext_style"><span class="keyword">type</span> <code class="type"></code>text_style</span> = <code class="type">[ `black<br>       | `blue<br>       | `bold<br>       | `cyan<br>       | `green<br>       | `magenta<br>       | `red<br>       | `underline<br>       | `white<br>       | `yellow ]</code> </pre>
+
+
+<pre><span id="VALcolor"><span class="keyword">val</span> color</span> : <code class="type"><a href="As_shell.html#TYPEtext_style">text_style</a> -> string -> string</code></pre><div class="info ">
+Colorize a string using the given style.<br>
+</div>
+</body></html>

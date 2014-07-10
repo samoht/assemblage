@@ -7,18 +7,18 @@
 <link title="Index of values" rel=Appendix href="index_values.html">
 <link title="Index of modules" rel=Appendix href="index_modules.html">
 <link title="Index of module types" rel=Appendix href="index_module_types.html">
-<link title="Flags" rel="Chapter" href="Flags.html">
-<link title="Shell" rel="Chapter" href="Shell.html">
-<link title="Feature" rel="Chapter" href="Feature.html">
-<link title="Resolver" rel="Chapter" href="Resolver.html">
-<link title="Git" rel="Chapter" href="Git.html">
-<link title="Action" rel="Chapter" href="Action.html">
-<link title="Build_env" rel="Chapter" href="Build_env.html">
-<link title="Project" rel="Chapter" href="Project.html">
-<link title="Ocamlfind" rel="Chapter" href="Ocamlfind.html">
-<link title="Makefile" rel="Chapter" href="Makefile.html">
-<link title="OCaml" rel="Chapter" href="OCaml.html">
-<link title="Opam" rel="Chapter" href="Opam.html">
+<link title="As_flags" rel="Chapter" href="As_flags.html">
+<link title="As_features" rel="Chapter" href="As_features.html">
+<link title="As_shell" rel="Chapter" href="As_shell.html">
+<link title="As_resolver" rel="Chapter" href="As_resolver.html">
+<link title="As_build_env" rel="Chapter" href="As_build_env.html">
+<link title="As_git" rel="Chapter" href="As_git.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_makefile" rel="Chapter" href="As_makefile.html">
+<link title="As_OCaml" rel="Chapter" href="As_OCaml.html">
+<link title="As_opam" rel="Chapter" href="As_opam.html">
 <link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>Index of values</title>
 </head>
 <body>
@@ -27,103 +27,128 @@
 <h1>Index of values</h1>
 <table>
 <tr><td align="left"><br></td></tr>
-<tr><td><a href="Feature.html#VAL(&&)">(&amp;&amp;)</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="Assemblage.Features.html#VAL(&&&)">(&amp;&amp;&amp;)</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+Logical AND of feature formulaes.
+</div>
+</td></tr>
+<tr><td><a href="As_features.html#VAL(&&&)">(&amp;&amp;&amp;)</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 <code class="code">f1 <span class="keywordsign">&amp;&amp;</span> f2</code> is the conjonction of <code class="code">f1</code> and <code class="code">f2</code>.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VAL(++)">(++)</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VAL(++)">(++)</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 Union of feature sets.
 </div>
 </td></tr>
-<tr><td><a href="Makefile.Variable.html#VAL(=+=)">(=+=)</a> [<a href="Makefile.Variable.html">Makefile.Variable</a>]</td>
+<tr><td><a href="As_makefile.Variable.html#VAL(=+=)">(=+=)</a> [<a href="As_makefile.Variable.html">As_makefile.Variable</a>]</td>
 <td><div class="info">
 <code class="code"><span class="constructor">VAR</span> += x</code>
 </div>
 </td></tr>
-<tr><td><a href="Makefile.Variable.html#VAL(=:=)">(=:=)</a> [<a href="Makefile.Variable.html">Makefile.Variable</a>]</td>
+<tr><td><a href="As_makefile.Variable.html#VAL(=:=)">(=:=)</a> [<a href="As_makefile.Variable.html">As_makefile.Variable</a>]</td>
 <td><div class="info">
 <code class="code"><span class="constructor">VAR</span> := x</code>
 </div>
 </td></tr>
-<tr><td><a href="Makefile.Variable.html#VAL(=?=)">(=?=)</a> [<a href="Makefile.Variable.html">Makefile.Variable</a>]</td>
+<tr><td><a href="As_makefile.Variable.html#VAL(=?=)">(=?=)</a> [<a href="As_makefile.Variable.html">As_makefile.Variable</a>]</td>
 <td><div class="info">
 <code class="code"><span class="constructor">VAR</span> <span class="keywordsign">?=</span> x</code>
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VAL(@)">(@)</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VAL(@)">(@)</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 Concatenation of CNF formulaes.
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VAL(@)">(@)</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="Assemblage.Flags.html#VAL(@@@)">(@@@)</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
 Append command-line flags.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VAL(||)">(||)</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_flags.html#VAL(@@@)">(@@@)</a> [<a href="As_flags.html">As_flags</a>]</td>
+<td><div class="info">
+Append command-line flags.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.Features.html#VAL(|||)">(|||)</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+Logical OR of feature formulaes.
+</div>
+</td></tr>
+<tr><td><a href="As_features.html#VAL(|||)">(|||)</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 <code class="code">f1 <span class="keywordsign">||</span> f2</code> is the disjonction of <code class="code">f1</code> and <code class="code">f2</code>.
 </div>
 </td></tr>
 <tr><td align="left"><br>A</td></tr>
-<tr><td><a href="Project.Lib.html#VALa">a</a> [<a href="Project.Lib.html">Project.Lib</a>]</td>
+<tr><td><a href="As_project.Lib.html#VALa">a</a> [<a href="As_project.Lib.html">As_project.Lib</a>]</td>
 <td><div class="info">
 The location of the native archive.
 </div>
 </td></tr>
-<tr><td><a href="Project.Gen.html#VALactions">actions</a> [<a href="Project.Gen.html">Project.Gen</a>]</td>
+<tr><td><a href="As_project.Gen.html#VALactions">actions</a> [<a href="As_project.Gen.html">As_project.Gen</a>]</td>
 <td><div class="info">
 Return the list of actions to run in order to generate the files
       advertized by <code class="code">files</code>.
 </div>
 </td></tr>
-<tr><td><a href="Action.html#VALactions">actions</a> [<a href="Action.html">Action</a>]</td>
+<tr><td><a href="As_action.html#VALactions">actions</a> [<a href="As_action.html">As_action</a>]</td>
 <td><div class="info">
 Return the action to run.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALannot">annot</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="Assemblage.Flags.html#VALannot">annot</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
+<td><div class="info">
+The <code class="code">-bin-annot</code> flags.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.Features.html#VALannot">annot</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+Generate annot files?
+</div>
+</td></tr>
+<tr><td><a href="As_features.html#VALannot">annot</a> [<a href="As_features.html">As_features</a>]</td>
 <td></td></tr>
-<tr><td><a href="Flags.html#VALannot">annot</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="As_flags.html#VALannot">annot</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 Add <code class="code">-bin-annot</code>.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALannot_t">annot_t</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALannot_elt">annot_elt</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 Generate annot files ?
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALatom">atom</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALatom">atom</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 <code class="code">atom t</code> is the formula containing the singleton feature <code class="code">t</code>.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALatoms">atoms</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALatoms">atoms</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 <code class="code">atoms f</code> is the list of atoms appearing in the formula <code class="code">f</code>.
 </div>
 </td></tr>
-<tr><td><a href="Build_env.html#VALauto_load">auto_load</a> [<a href="Build_env.html">Build_env</a>]</td>
+<tr><td><a href="As_build_env.html#VALauto_load">auto_load</a> [<a href="As_build_env.html">As_build_env</a>]</td>
 <td><div class="info">
 Automatically include $(shell ocamlfind query tools) before
     loading `configure.ml'.
 </div>
 </td></tr>
-<tr><td><a href="Project.Bin.html#VALavailable">available</a> [<a href="Project.Bin.html">Project.Bin</a>]</td>
+<tr><td><a href="As_project.Bin.html#VALavailable">available</a> [<a href="As_project.Bin.html">As_project.Bin</a>]</td>
 <td><div class="info">
 The features which enables the build of that library.
 </div>
 </td></tr>
-<tr><td><a href="Project.Lib.html#VALavailable">available</a> [<a href="Project.Lib.html">Project.Lib</a>]</td>
+<tr><td><a href="As_project.Lib.html#VALavailable">available</a> [<a href="As_project.Lib.html">As_project.Lib</a>]</td>
 <td><div class="info">
 The features which enables the build of that library.
 </div>
 </td></tr>
 <tr><td align="left"><br>B</td></tr>
-<tr><td><a href="Feature.html#VALbase">base</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALbase">base</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 The base features.
 </div>
@@ -134,29 +159,29 @@ The base features.
     the compilation units <code class="code">units</code>, with the dependencies <code class="code">deps</code>.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALbin">bin</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALbin">bin</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Is the component a binary?
 </div>
 </td></tr>
-<tr><td><a href="Project.S.html#VALbuild_dir">build_dir</a> [<a href="Project.S.html">Project.S</a>]</td>
+<tr><td><a href="As_project.S.html#VALbuild_dir">build_dir</a> [<a href="As_project.S.html">As_project.S</a>]</td>
 <td><div class="info">
 <code class="code">build_dir t</code> is the directory where build artifacts of the
       description <code class="code">t</code> are built.
 </div>
 </td></tr>
-<tr><td><a href="Build_env.html#VALbuild_dir">build_dir</a> [<a href="Build_env.html">Build_env</a>]</td>
+<tr><td><a href="As_build_env.html#VALbuild_dir">build_dir</a> [<a href="As_build_env.html">As_build_env</a>]</td>
 <td><div class="info">
 Return the directory where build artififacts are generated.
 </div>
 </td></tr>
-<tr><td><a href="Resolver.html#VALbuild_dir">build_dir</a> [<a href="Resolver.html">Resolver</a>]</td>
+<tr><td><a href="As_resolver.html#VALbuild_dir">build_dir</a> [<a href="As_resolver.html">As_resolver</a>]</td>
 <td><div class="info">
 Resolve locally generated filename by prepending the build
     directory name.
 </div>
 </td></tr>
-<tr><td><a href="Project.Bin.html#VALbyte">byte</a> [<a href="Project.Bin.html">Project.Bin</a>]</td>
+<tr><td><a href="As_project.Bin.html#VALbyte">byte</a> [<a href="As_project.Bin.html">As_project.Bin</a>]</td>
 <td><div class="info">
 The location of the generated byte-code binary.
 </div>
@@ -169,92 +194,102 @@ The location of the generated byte-code binary.
     <code class="code">deps</code>.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALc">c</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALc">c</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Is the component a C file?
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VALc">c</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="As_flags.html#VALc">c</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 The command-line arguments to pass to the C compiler.
 </div>
 </td></tr>
-<tr><td><a href="Project.Lib.html#VALc_objects">c_objects</a> [<a href="Project.Lib.html">Project.Lib</a>]</td>
+<tr><td><a href="As_project.Lib.html#VALc_objects">c_objects</a> [<a href="As_project.Lib.html">As_project.Lib</a>]</td>
 <td><div class="info">
 <code class="code">c_objects t</code> is the list of C objects contained in the
       library.
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VALcclib">cclib</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="Assemblage.Flags.html#VALcclib">cclib</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
+<td><div class="info">
+The <code class="code">-cclib x</code> flags.
+</div>
+</td></tr>
+<tr><td><a href="As_flags.html#VALcclib">cclib</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 Add <code class="code">-cclib</code> flags to the linker.
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VALccopt">ccopt</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="Assemblage.Flags.html#VALccopt">ccopt</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
+<td><div class="info">
+The <code class="code">-ccopt x</code> flags.
+</div>
+</td></tr>
+<tr><td><a href="As_flags.html#VALccopt">ccopt</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 Add <code class="code">-ccopt</code> flags to the compiler and the linker.
 </div>
 </td></tr>
-<tr><td><a href="Makefile.Rule.html#VALchanged_prereqs">changed_prereqs</a> [<a href="Makefile.Rule.html">Makefile.Rule</a>]</td>
+<tr><td><a href="As_makefile.Rule.html#VALchanged_prereqs">changed_prereqs</a> [<a href="As_makefile.Rule.html">As_makefile.Rule</a>]</td>
 <td><div class="info">
 The names of all the prerequisites, with spaces between
       them.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALclosure">closure</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALclosure">closure</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Compute the transitive closure of the component dependency
       graph.
 </div>
 </td></tr>
-<tr><td><a href="Project.Lib.html#VALcma">cma</a> [<a href="Project.Lib.html">Project.Lib</a>]</td>
+<tr><td><a href="As_project.Lib.html#VALcma">cma</a> [<a href="As_project.Lib.html">As_project.Lib</a>]</td>
 <td><div class="info">
 The location of the generated bytecode archive.
 </div>
 </td></tr>
-<tr><td><a href="Project.CU.html#VALcmi">cmi</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALcmi">cmi</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 The location of the generated compiled module interface.
 </div>
 </td></tr>
-<tr><td><a href="Project.CU.html#VALcmo">cmo</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALcmo">cmo</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 The location of the generated compiled module object.
 </div>
 </td></tr>
-<tr><td><a href="Project.CU.html#VALcmx">cmx</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALcmx">cmx</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 The location of the extra information for native linking of the
       compilation unit.
 </div>
 </td></tr>
-<tr><td><a href="Project.Lib.html#VALcmxa">cmxa</a> [<a href="Project.Lib.html">Project.Lib</a>]</td>
+<tr><td><a href="As_project.Lib.html#VALcmxa">cmxa</a> [<a href="As_project.Lib.html">As_project.Lib</a>]</td>
 <td><div class="info">
 The location of the extra information about the native
       archive.
 </div>
 </td></tr>
-<tr><td><a href="Project.Lib.html#VALcmxs">cmxs</a> [<a href="Project.Lib.html">Project.Lib</a>]</td>
+<tr><td><a href="As_project.Lib.html#VALcmxs">cmxs</a> [<a href="As_project.Lib.html">As_project.Lib</a>]</td>
 <td><div class="info">
 The location of the shared archive.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALcnf">cnf</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALcnf">cnf</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 <code class="code">normalize f</code> transform <code class="code">f</code> in a conjonctive-normal form.
 </div>
 </td></tr>
-<tr><td><a href="Shell.html#VALcolor">color</a> [<a href="Shell.html">Shell</a>]</td>
+<tr><td><a href="As_shell.html#VALcolor">color</a> [<a href="As_shell.html">As_shell</a>]</td>
 <td><div class="info">
 Colorize a string using the given style.
 </div>
 </td></tr>
-<tr><td><a href="Project.Test.html#VALcommands">commands</a> [<a href="Project.Test.html">Project.Test</a>]</td>
+<tr><td><a href="As_project.Test.html#VALcommands">commands</a> [<a href="As_project.Test.html">As_project.Test</a>]</td>
 <td><div class="info">
 The list of commands to run the test.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALcomp_byte">comp_byte</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALcomp_byte">comp_byte</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 <code class="code">comp_byte ts r build_dir</code> is the list of command-line arguments
       to use for compiling a component depending of <code class="code">ts</code> to bytecode,
@@ -262,34 +297,34 @@ The list of commands to run the test.
       external names are resolved by <code class="code">r</code>.
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VALcomp_byte">comp_byte</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="As_flags.html#VALcomp_byte">comp_byte</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 The command-line arguments for compiling compilation units in
     bytecode mode.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALcomp_native">comp_native</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALcomp_native">comp_native</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Same as <code class="code">comp_byte</code> but for native code.
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VALcomp_native">comp_native</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="As_flags.html#VALcomp_native">comp_native</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 The command-line arguments for compiling compilation units in
     native mode.
 </div>
 </td></tr>
-<tr><td><a href="Project.Bin.html#VALcompilation_units">compilation_units</a> [<a href="Project.Bin.html">Project.Bin</a>]</td>
+<tr><td><a href="As_project.Bin.html#VALcompilation_units">compilation_units</a> [<a href="As_project.Bin.html">As_project.Bin</a>]</td>
 <td><div class="info">
 The list of compilation units contained in the binary.
 </div>
 </td></tr>
-<tr><td><a href="Project.Lib.html#VALcompilation_units">compilation_units</a> [<a href="Project.Lib.html">Project.Lib</a>]</td>
+<tr><td><a href="As_project.Lib.html#VALcompilation_units">compilation_units</a> [<a href="As_project.Lib.html">As_project.Lib</a>]</td>
 <td><div class="info">
 The list of compilation units which defines the library.
 </div>
 </td></tr>
-<tr><td><a href="Project.html#VALcomponents">components</a> [<a href="Project.html">Project</a>]</td>
+<tr><td><a href="As_project.html#VALcomponents">components</a> [<a href="As_project.html">As_project</a>]</td>
 <td><div class="info">
 Return the project components.
 </div>
@@ -301,25 +336,36 @@ Configure the project by generating the build, META and .install
     make is supported).
 </div>
 </td></tr>
-<tr><td><a href="Project.C.html#VALcontainer">container</a> [<a href="Project.C.html">Project.C</a>]</td>
+<tr><td><a href="As_project.C.html#VALcontainer">container</a> [<a href="As_project.C.html">As_project.C</a>]</td>
 <td><div class="info">
 <code class="code">container t</code> is the component which contains the given C
       objects.
 </div>
 </td></tr>
-<tr><td><a href="Project.CU.html#VALcontainer">container</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALcontainer">container</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 The library the compilation unit belongs to.
 </div>
 </td></tr>
-<tr><td><a href="Project.Gen.html#VALcopy">copy</a> [<a href="Project.Gen.html">Project.Gen</a>]</td>
+<tr><td><a href="As_project.Gen.html#VALcopy">copy</a> [<a href="As_project.Gen.html">As_project.Gen</a>]</td>
 <td><div class="info">
 Copy the generator if it needs to run in an other directory.
 </div>
 </td></tr>
-<tr><td><a href="Project.CU.html#VALcopy">copy</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALcopy">copy</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 Copy the compilation unit.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.Flags.html#VALcreate">create</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
+<td><div class="info">
+Create a full command-line argument using the the given single
+      command-line arguments.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.Features.html#VALcreate">create</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+Create a feature.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.html#VALcreate">create</a> [<a href="Assemblage.html">Assemblage</a>]</td>
@@ -329,78 +375,78 @@ Copy the compilation unit.
     closure of objects in <code class="code">deps</code>.
 </div>
 </td></tr>
-<tr><td><a href="Makefile.Rule.html#VALcreate">create</a> [<a href="Makefile.Rule.html">Makefile.Rule</a>]</td>
+<tr><td><a href="As_makefile.Rule.html#VALcreate">create</a> [<a href="As_makefile.Rule.html">As_makefile.Rule</a>]</td>
 <td><div class="info">
 Generate a Makefile rule:
 </div>
 </td></tr>
-<tr><td><a href="Makefile.html#VALcreate">create</a> [<a href="Makefile.html">Makefile</a>]</td>
+<tr><td><a href="As_makefile.html#VALcreate">create</a> [<a href="As_makefile.html">As_makefile</a>]</td>
 <td><div class="info">
 Create a Makefile.
 </div>
 </td></tr>
-<tr><td><a href="Project.Test.html#VALcreate">create</a> [<a href="Project.Test.html">Project.Test</a>]</td>
+<tr><td><a href="As_project.Test.html#VALcreate">create</a> [<a href="As_project.Test.html">As_project.Test</a>]</td>
 <td><div class="info">
 Create a test.
 </div>
 </td></tr>
-<tr><td><a href="Project.C.html#VALcreate">create</a> [<a href="Project.C.html">Project.C</a>]</td>
+<tr><td><a href="As_project.C.html#VALcreate">create</a> [<a href="As_project.C.html">As_project.C</a>]</td>
 <td><div class="info">
 Create a C object file.
 </div>
 </td></tr>
-<tr><td><a href="Project.JS.html#VALcreate">create</a> [<a href="Project.JS.html">Project.JS</a>]</td>
+<tr><td><a href="As_project.JS.html#VALcreate">create</a> [<a href="As_project.JS.html">As_project.JS</a>]</td>
 <td><div class="info">
 Create a <i>.js</i> object, using <code class="code">js_of_ocaml</code>.
 </div>
 </td></tr>
-<tr><td><a href="Project.Gen.html#VALcreate">create</a> [<a href="Project.Gen.html">Project.Gen</a>]</td>
+<tr><td><a href="As_project.Gen.html#VALcreate">create</a> [<a href="As_project.Gen.html">As_project.Gen</a>]</td>
 <td><div class="info">
 Generate source files, using the given action.
 </div>
 </td></tr>
-<tr><td><a href="Project.Bin.html#VALcreate">create</a> [<a href="Project.Bin.html">Project.Bin</a>]</td>
+<tr><td><a href="As_project.Bin.html#VALcreate">create</a> [<a href="As_project.Bin.html">As_project.Bin</a>]</td>
 <td><div class="info">
 Build a binary by linking a set of compilation units.
 </div>
 </td></tr>
-<tr><td><a href="Project.Lib.html#VALcreate">create</a> [<a href="Project.Lib.html">Project.Lib</a>]</td>
+<tr><td><a href="As_project.Lib.html#VALcreate">create</a> [<a href="As_project.Lib.html">As_project.Lib</a>]</td>
 <td><div class="info">
 Create a library.
 </div>
 </td></tr>
-<tr><td><a href="Project.CU.html#VALcreate">create</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALcreate">create</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 Create a compilation unit.
 </div>
 </td></tr>
-<tr><td><a href="Project.html#VALcreate">create</a> [<a href="Project.html">Project</a>]</td>
+<tr><td><a href="As_project.html#VALcreate">create</a> [<a href="As_project.html">As_project</a>]</td>
 <td><div class="info">
 <code class="code">create cs n</code> is the project named <code class="code">n</code> with components <code class="code">cs</code>.
 </div>
 </td></tr>
-<tr><td><a href="Build_env.html#VALcreate">create</a> [<a href="Build_env.html">Build_env</a>]</td>
-<td></td></tr>
-<tr><td><a href="Action.html#VALcreate">create</a> [<a href="Action.html">Action</a>]</td>
+<tr><td><a href="As_action.html#VALcreate">create</a> [<a href="As_action.html">As_action</a>]</td>
 <td><div class="info">
 <code class="code">bash ~dir fmt</code> is a generator which produces some results by
     calling <code class="code">fmt</code> in a bash shell, running in the directory
     <code class="code">dir</code>.
 </div>
 </td></tr>
-<tr><td><a href="Resolver.html#VALcreate">create</a> [<a href="Resolver.html">Resolver</a>]</td>
+<tr><td><a href="As_build_env.html#VALcreate">create</a> [<a href="As_build_env.html">As_build_env</a>]</td>
+<td></td></tr>
+<tr><td><a href="As_resolver.html#VALcreate">create</a> [<a href="As_resolver.html">As_resolver</a>]</td>
 <td><div class="info">
 <code class="code">create ~buildir ~pkgs</code> is the resolver which prefixes <code class="code">buildir</code>
     to resolve local library names and applies <code class="code">pkgs</code> to resolve a set
     of global package names.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALcreate">create</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALcreate">create</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 Create a feature.
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VALcreate">create</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="As_flags.html#VALcreate">create</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 Create a full command-line argument using the the given single
     command-line arguments.
@@ -418,47 +464,57 @@ Create a full command-line argument using the the given single
     directory <code class="code">dir</code> with dependencies <code class="code">deps</code> and the cname <code class="code">name</code>.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALcu">cu</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALcu">cu</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Is the component a compilation unit?
 </div>
 </td></tr>
 <tr><td align="left"><br>D</td></tr>
-<tr><td><a href="Feature.html#VALdebug">debug</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="Assemblage.Flags.html#VALdebug">debug</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
+<td><div class="info">
+The <code class="code">-g</code> flags.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.Features.html#VALdebug">debug</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+Generate debug symbols?
+</div>
+</td></tr>
+<tr><td><a href="As_features.html#VALdebug">debug</a> [<a href="As_features.html">As_features</a>]</td>
 <td></td></tr>
-<tr><td><a href="Flags.html#VALdebug">debug</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="As_flags.html#VALdebug">debug</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 Add <code class="code">-g</code>.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALdebug_t">debug_t</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALdebug_elt">debug_elt</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 Generate debug symbols ?
 </div>
 </td></tr>
-<tr><td><a href="Makefile.Rule.html#VALdedup_prereqs">dedup_prereqs</a> [<a href="Makefile.Rule.html">Makefile.Rule</a>]</td>
+<tr><td><a href="As_makefile.Rule.html#VALdedup_prereqs">dedup_prereqs</a> [<a href="As_makefile.Rule.html">As_makefile.Rule</a>]</td>
 <td><div class="info">
 This is like <code class="code">$^</code>, but prerequisites listed more than once are
       duplicated in the order they were listed in the makefile.
 </div>
 </td></tr>
-<tr><td><a href="Build_env.html#VALdefault">default</a> [<a href="Build_env.html">Build_env</a>]</td>
+<tr><td><a href="As_build_env.html#VALdefault">default</a> [<a href="As_build_env.html">As_build_env</a>]</td>
 <td><div class="info">
 Default project configuration.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALdefault">default</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALdefault">default</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 Default value.
 </div>
 </td></tr>
-<tr><td><a href="OCaml.html#VALdepends">depends</a> [<a href="OCaml.html">OCaml</a>]</td>
+<tr><td><a href="As_OCaml.html#VALdepends">depends</a> [<a href="As_OCaml.html">As_OCaml</a>]</td>
 <td><div class="info">
 <code class="code">depends dir</code> computes the dependency graph of the compilation
     units in the directory <code class="code">dir</code>.
 </div>
 </td></tr>
-<tr><td><a href="Project.S.html#VALdeps">deps</a> [<a href="Project.S.html">Project.S</a>]</td>
+<tr><td><a href="As_project.S.html#VALdeps">deps</a> [<a href="As_project.S.html">As_project.S</a>]</td>
 <td><div class="info">
 <code class="code">deps t</code> is the list of dependencies of the component <code class="code">t</code>.
 </div>
@@ -468,157 +524,167 @@ Default value.
 Describe the project to stdout.
 </div>
 </td></tr>
-<tr><td><a href="Git.html#VALdescribe">describe</a> [<a href="Git.html">Git</a>]</td>
+<tr><td><a href="As_git.html#VALdescribe">describe</a> [<a href="As_git.html">As_git</a>]</td>
 <td><div class="info">
 <code class="code">desrcibe ()</code> is the output of <i>git describe</i>.
 </div>
 </td></tr>
-<tr><td><a href="Project.Test.html#VALdir">dir</a> [<a href="Project.Test.html">Project.Test</a>]</td>
+<tr><td><a href="As_project.Test.html#VALdir">dir</a> [<a href="As_project.Test.html">As_project.Test</a>]</td>
 <td><div class="info">
 The directory where to run the test.
 </div>
 </td></tr>
-<tr><td><a href="Project.CU.html#VALdir">dir</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALdir">dir</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 The source directory of the compilation unit.
 </div>
 </td></tr>
-<tr><td><a href="Project.C.html#VALdll_so">dll_so</a> [<a href="Project.C.html">Project.C</a>]</td>
+<tr><td><a href="As_project.C.html#VALdll_so">dll_so</a> [<a href="As_project.C.html">As_project.C</a>]</td>
 <td><div class="info">
 The location of the generated <code class="code">.so</code> file.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALdoc">doc</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="Assemblage.Features.html#VALdoc">doc</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+Build the documentation?
+</div>
+</td></tr>
+<tr><td><a href="As_features.html#VALdoc">doc</a> [<a href="As_features.html">As_features</a>]</td>
 <td></td></tr>
-<tr><td><a href="Project.html#VALdoc_css">doc_css</a> [<a href="Project.html">Project</a>]</td>
+<tr><td><a href="As_project.html#VALdoc_css">doc_css</a> [<a href="As_project.html">As_project</a>]</td>
 <td><div class="info">
 <code class="code">doc_css t</code> is the name of the CSS file for the project
     documentation.
 </div>
 </td></tr>
-<tr><td><a href="Project.html#VALdoc_dir">doc_dir</a> [<a href="Project.html">Project</a>]</td>
+<tr><td><a href="As_project.html#VALdoc_dir">doc_dir</a> [<a href="As_project.html">As_project</a>]</td>
 <td><div class="info">
 <code class="code">doc_dir t</code> is the the directory where the HTML documentation is
     generated.
 </div>
 </td></tr>
-<tr><td><a href="Project.html#VALdoc_intro">doc_intro</a> [<a href="Project.html">Project</a>]</td>
+<tr><td><a href="As_features.html#VALdoc_elt">doc_elt</a> [<a href="As_features.html">As_features</a>]</td>
+<td><div class="info">
+Build the documentation.
+</div>
+</td></tr>
+<tr><td><a href="As_project.html#VALdoc_intro">doc_intro</a> [<a href="As_project.html">As_project</a>]</td>
 <td><div class="info">
 <code class="code">doc_intro t</code> is the name of the intro file for the project
     documentation.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALdoc_t">doc_t</a> [<a href="Feature.html">Feature</a>]</td>
-<td><div class="info">
-Build the documentation.
-</div>
-</td></tr>
 <tr><td align="left"><br>E</td></tr>
-<tr><td><a href="Flags.html#VALempty">empty</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="Assemblage.Flags.html#VALempty">empty</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
 Empty flags.
 </div>
 </td></tr>
-<tr><td><a href="Build_env.html#VALenable">enable</a> [<a href="Build_env.html">Build_env</a>]</td>
+<tr><td><a href="As_flags.html#VALempty">empty</a> [<a href="As_flags.html">As_flags</a>]</td>
+<td><div class="info">
+Empty flags.
+</div>
+</td></tr>
+<tr><td><a href="As_build_env.html#VALenable">enable</a> [<a href="As_build_env.html">As_build_env</a>]</td>
 <td><div class="info">
 Check if the given set of flags are all enabled.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALeval">eval</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALeval">eval</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 <code class="code">eval tbl f</code> evaluates the formula <code class="code">f</code> given the truth table
     <code class="code">tbl</code>.
 </div>
 </td></tr>
-<tr><td><a href="Shell.html#VALexec">exec</a> [<a href="Shell.html">Shell</a>]</td>
+<tr><td><a href="As_shell.html#VALexec">exec</a> [<a href="As_shell.html">As_shell</a>]</td>
 <td><div class="info">
 Execute a shell command.
 </div>
 </td></tr>
-<tr><td><a href="Shell.html#VALexec_output">exec_output</a> [<a href="Shell.html">Shell</a>]</td>
+<tr><td><a href="As_shell.html#VALexec_output">exec_output</a> [<a href="As_shell.html">As_shell</a>]</td>
 <td><div class="info">
 Execute a shell command and returns its output.
 </div>
 </td></tr>
 <tr><td align="left"><br>F</td></tr>
-<tr><td><a href="Feature.html#VALfalse_">false_</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALfalse_">false_</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 The formula which is always <code class="code"><span class="keyword">false</span></code>.
 </div>
 </td></tr>
-<tr><td><a href="Shell.html#VALfatal_error">fatal_error</a> [<a href="Shell.html">Shell</a>]</td>
+<tr><td><a href="As_shell.html#VALfatal_error">fatal_error</a> [<a href="As_shell.html">As_shell</a>]</td>
 <td><div class="info">
 <code class="code">fatal_error i msg</code> signals an error and stops the program with
     the exit code <code class="code">i</code>.
 </div>
 </td></tr>
-<tr><td><a href="Project.html#VALfeatures">features</a> [<a href="Project.html">Project</a>]</td>
+<tr><td><a href="As_project.html#VALfeatures">features</a> [<a href="As_project.html">As_project</a>]</td>
 <td><div class="info">
 <code class="code">features t</code> is the collection of features used in the project.
 </div>
 </td></tr>
-<tr><td><a href="Build_env.html#VALfeatures">features</a> [<a href="Build_env.html">Build_env</a>]</td>
+<tr><td><a href="As_build_env.html#VALfeatures">features</a> [<a href="As_build_env.html">As_build_env</a>]</td>
 <td><div class="info">
 Return a list of feature with the values they are set to.
 </div>
 </td></tr>
-<tr><td><a href="Project.S.html#VALfile">file</a> [<a href="Project.S.html">Project.S</a>]</td>
+<tr><td><a href="As_project.S.html#VALfile">file</a> [<a href="As_project.S.html">As_project.S</a>]</td>
 <td><div class="info">
 <code class="code">file t r ext</code> is the location of the generated file with the
        extension <code class="code">ext</code> for the component <code class="code">t</code> and the name resolver
        <code class="code">r</code>.
 </div>
 </td></tr>
-<tr><td><a href="Project.Lib.html#VALfilename">filename</a> [<a href="Project.Lib.html">Project.Lib</a>]</td>
+<tr><td><a href="As_project.Lib.html#VALfilename">filename</a> [<a href="As_project.Lib.html">As_project.Lib</a>]</td>
 <td><div class="info">
 The library filename.
 </div>
 </td></tr>
-<tr><td><a href="Makefile.Variable.html#VALfiles">files</a> [<a href="Makefile.Variable.html">Makefile.Variable</a>]</td>
+<tr><td><a href="As_makefile.Variable.html#VALfiles">files</a> [<a href="As_makefile.Variable.html">As_makefile.Variable</a>]</td>
 <td><div class="info">
 <code class="code"><span class="constructor">VAR</span> = $(wildcard &lt;dir&gt;/*.&lt;ext&gt;)</code>
 </div>
 </td></tr>
-<tr><td><a href="Project.Gen.html#VALfiles">files</a> [<a href="Project.Gen.html">Project.Gen</a>]</td>
+<tr><td><a href="As_project.Gen.html#VALfiles">files</a> [<a href="As_project.Gen.html">As_project.Gen</a>]</td>
 <td><div class="info">
 The list of generated files.
 </div>
 </td></tr>
-<tr><td><a href="Project.html#VALfiles_of_generators">files_of_generators</a> [<a href="Project.html">Project</a>]</td>
+<tr><td><a href="As_project.html#VALfiles_of_generators">files_of_generators</a> [<a href="As_project.html">As_project</a>]</td>
 <td><div class="info">
 <code class="code">files_of_generators t r</code> is the list of files generated by custom
     generators in the project <code class="code">t</code>, using the name resolver <code class="code">r</code>.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALfilter">filter</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALfilter">filter</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Filter a list of components.
 </div>
 </td></tr>
-<tr><td><a href="Project.S.html#VALflags">flags</a> [<a href="Project.S.html">Project.S</a>]</td>
+<tr><td><a href="As_project.S.html#VALflags">flags</a> [<a href="As_project.S.html">As_project.S</a>]</td>
 <td><div class="info">
 <code class="code">flags t r</code> are the compilation flags used when generating the
       build artifacts for the project <code class="code">t</code> and the name resolver
       <code class="code">r</code>.
 </div>
 </td></tr>
-<tr><td><a href="Build_env.html#VALflags">flags</a> [<a href="Build_env.html">Build_env</a>]</td>
+<tr><td><a href="As_build_env.html#VALflags">flags</a> [<a href="As_build_env.html">As_build_env</a>]</td>
 <td><div class="info">
 Return the global comand-line flags.
 </div>
 </td></tr>
-<tr><td><a href="Project.Graph.html#VALfold">fold</a> [<a href="Project.Graph.html">Project.Graph</a>]</td>
+<tr><td><a href="As_project.Graph.html#VALfold">fold</a> [<a href="As_project.Graph.html">As_project.Graph</a>]</td>
 <td><div class="info">
 Topological fold.
 </div>
 </td></tr>
-<tr><td><a href="Project.CU.html#VALfor_pack">for_pack</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALfor_pack">for_pack</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 The (optional) pack the compilation unit is in.
 </div>
 </td></tr>
 <tr><td align="left"><br>G</td></tr>
-<tr><td><a href="Project.Component.html#VALgen">gen</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALgen">gen</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Is the component a generated source file?
 </div>
@@ -628,14 +694,14 @@ Is the component a generated source file?
 Generated OCaml source file(s).
 </div>
 </td></tr>
-<tr><td><a href="Project.CU.html#VALgenerated">generated</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALgenerated">generated</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 <code class="code">generator t</code> is either <code class="code"><span class="constructor">None</span></code>, which means that the source file
       is not generated, or <code class="code"><span class="constructor">Some</span> files</code> when the source files <code class="code">files</code>
       of the compilation unit are generated.
 </div>
 </td></tr>
-<tr><td><a href="Project.S.html#VALgenerated_files">generated_files</a> [<a href="Project.S.html">Project.S</a>]</td>
+<tr><td><a href="As_project.S.html#VALgenerated_files">generated_files</a> [<a href="As_project.S.html">As_project.S</a>]</td>
 <td><div class="info">
 <code class="code">generated_files t r</code> is the list of generated files and the
       feature which enable them, for the component <code class="code">t</code> and the name
@@ -643,67 +709,72 @@ Generated OCaml source file(s).
 </div>
 </td></tr>
 <tr><td align="left"><br>H</td></tr>
-<tr><td><a href="Makefile.Variable.html#VALhas_feature">has_feature</a> [<a href="Makefile.Variable.html">Makefile.Variable</a>]</td>
+<tr><td><a href="As_makefile.Variable.html#VALhas_feature">has_feature</a> [<a href="As_makefile.Variable.html">As_makefile.Variable</a>]</td>
 <td><div class="info">
 Is the given feature enabled.
 </div>
 </td></tr>
-<tr><td><a href="Git.html#VALhead">head</a> [<a href="Git.html">Git</a>]</td>
+<tr><td><a href="As_git.html#VALhead">head</a> [<a href="As_git.html">As_git</a>]</td>
 <td><div class="info">
 <code class="code">head ()</code> is the tip's SHA1 of the current project.
 </div>
 </td></tr>
 <tr><td align="left"><br>I</td></tr>
-<tr><td><a href="Project.S.html#VALid">id</a> [<a href="Project.S.html">Project.S</a>]</td>
+<tr><td><a href="As_project.S.html#VALid">id</a> [<a href="As_project.S.html">As_project.S</a>]</td>
 <td><div class="info">
 <code class="code">id t</code> is the unique name of the component <code class="code">t</code>.
 </div>
 </td></tr>
-<tr><td><a href="Shell.html#VALin_dir">in_dir</a> [<a href="Shell.html">Shell</a>]</td>
+<tr><td><a href="As_shell.html#VALin_dir">in_dir</a> [<a href="As_shell.html">As_shell</a>]</td>
 <td><div class="info">
 Execute a command in a given directory.
 </div>
 </td></tr>
-<tr><td><a href="Build_env.html#VALincludes">includes</a> [<a href="Build_env.html">Build_env</a>]</td>
+<tr><td><a href="As_build_env.html#VALincludes">includes</a> [<a href="As_build_env.html">As_build_env</a>]</td>
 <td><div class="info">
 Return the list of directories to include when loading `configure.ml'.
 </div>
 </td></tr>
-<tr><td><a href="Project.Bin.html#VALinstall">install</a> [<a href="Project.Bin.html">Project.Bin</a>]</td>
+<tr><td><a href="As_project.Bin.html#VALinstall">install</a> [<a href="As_project.Bin.html">As_project.Bin</a>]</td>
 <td><div class="info">
 Should the binary be installed.
 </div>
 </td></tr>
-<tr><td><a href="Project.Bin.html#VALis_toplevel">is_toplevel</a> [<a href="Project.Bin.html">Project.Bin</a>]</td>
+<tr><td><a href="As_project.Bin.html#VALis_toplevel">is_toplevel</a> [<a href="As_project.Bin.html">As_project.Bin</a>]</td>
 <td><div class="info">
 Is the binary a toplevel.
 </div>
 </td></tr>
-<tr><td><a href="Project.Graph.html#VALiter">iter</a> [<a href="Project.Graph.html">Project.Graph</a>]</td>
+<tr><td><a href="As_project.Graph.html#VALiter">iter</a> [<a href="As_project.Graph.html">As_project.Graph</a>]</td>
 <td><div class="info">
 Topoligical iteration.
 </div>
 </td></tr>
 <tr><td align="left"><br>J</td></tr>
+<tr><td><a href="Assemblage.Features.html#VALjs">js</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+Build the javascript objects?
+</div>
+</td></tr>
 <tr><td><a href="Assemblage.html#VALjs">js</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
 <code class="code">js bin args</code> is the decription of a javascript artefact generated
     by <code class="code">js_of_ocaml</code>.
 </div>
 </td></tr>
-<tr><td><a href="Project.JS.html#VALjs">js</a> [<a href="Project.JS.html">Project.JS</a>]</td>
+<tr><td><a href="As_project.JS.html#VALjs">js</a> [<a href="As_project.JS.html">As_project.JS</a>]</td>
 <td><div class="info">
 The location of the generated javascript artifacts.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALjs">js</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALjs">js</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Is the component a js_of_ocaml binary?
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALjs">js</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALjs">js</a> [<a href="As_features.html">As_features</a>]</td>
 <td></td></tr>
-<tr><td><a href="Feature.html#VALjs_t">js_t</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALjs_elt">js_elt</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 Build the javascript objects.
 </div>
@@ -715,121 +786,141 @@ Build the javascript objects.
     units <code class="code">cus</code>.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALlib">lib</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALlib">lib</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Is the component a local library?
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALlink_byte">link_byte</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALlink_byte">link_byte</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 <code class="code">link_byte deps r cus</code> is the list of command-line arguments to
       use for linking the compilation units <code class="code">cus</code> together, depending
       on the components <code class="code">ts</code> and using the name resolver <code class="code">r</code>.
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VALlink_byte">link_byte</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="As_flags.html#VALlink_byte">link_byte</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 The command-line arguments to link compilation units in bytecode
     mode.
 </div>
 </td></tr>
-<tr><td><a href="Project.C.html#VALlink_flags">link_flags</a> [<a href="Project.C.html">Project.C</a>]</td>
+<tr><td><a href="As_project.C.html#VALlink_flags">link_flags</a> [<a href="As_project.C.html">As_project.C</a>]</td>
 <td><div class="info">
 Return the C link flags.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALlink_native">link_native</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALlink_native">link_native</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td></td></tr>
-<tr><td><a href="Flags.html#VALlink_native">link_native</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="As_flags.html#VALlink_native">link_native</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 The command-line arguments to link compilation units in native
     mode.
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VALlink_shared">link_shared</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="As_flags.html#VALlink_shared">link_shared</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 The command-line arguments to link shared libraries.
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VALlinkall">linkall</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="Assemblage.Flags.html#VALlinkall">linkall</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
+<td><div class="info">
+The <code class="code">-linkall</code> flags.
+</div>
+</td></tr>
+<tr><td><a href="As_flags.html#VALlinkall">linkall</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 Add <code class="code">-linkall</code>.
 </div>
 </td></tr>
 <tr><td align="left"><br>M</td></tr>
-<tr><td><a href="Project.CU.html#VALml">ml</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALml">ml</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 Has the compilation unit an <code class="code">ml</code> file.
 </div>
 </td></tr>
-<tr><td><a href="Project.CU.html#VALmli">mli</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALmli">mli</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 Has the compilation unit an <code class="code">mli</code> file.
 </div>
 </td></tr>
-<tr><td><a href="OCaml.html#VALmodules">modules</a> [<a href="OCaml.html">OCaml</a>]</td>
+<tr><td><a href="As_OCaml.html#VALmodules">modules</a> [<a href="As_OCaml.html">As_OCaml</a>]</td>
 <td><div class="info">
 Return the list of submodules defined in the given compilation unit.
 </div>
 </td></tr>
 <tr><td align="left"><br>N</td></tr>
-<tr><td><a href="Makefile.Variable.html#VALname">name</a> [<a href="Makefile.Variable.html">Makefile.Variable</a>]</td>
+<tr><td><a href="As_makefile.Variable.html#VALname">name</a> [<a href="As_makefile.Variable.html">As_makefile.Variable</a>]</td>
 <td><div class="info">
 Variable name.
 </div>
 </td></tr>
-<tr><td><a href="Project.S.html#VALname">name</a> [<a href="Project.S.html">Project.S</a>]</td>
+<tr><td><a href="As_project.S.html#VALname">name</a> [<a href="As_project.S.html">As_project.S</a>]</td>
 <td><div class="info">
 <code class="code">name x</code> is the name that the user gave to the component
       <code class="code">t</code>.
 </div>
 </td></tr>
-<tr><td><a href="Project.html#VALname">name</a> [<a href="Project.html">Project</a>]</td>
+<tr><td><a href="As_project.html#VALname">name</a> [<a href="As_project.html">As_project</a>]</td>
 <td><div class="info">
 <code class="code">name t</code> is the project name.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALname">name</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALname">name</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 The feature name.
 </div>
 </td></tr>
-<tr><td><a href="Project.Bin.html#VALnative">native</a> [<a href="Project.Bin.html">Project.Bin</a>]</td>
+<tr><td><a href="Assemblage.Features.html#VALnative">native</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+Is native-code enabled?
+</div>
+</td></tr>
+<tr><td><a href="As_project.Bin.html#VALnative">native</a> [<a href="As_project.Bin.html">As_project.Bin</a>]</td>
 <td><div class="info">
 The location of the generated native binary.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALnative">native</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALnative">native</a> [<a href="As_features.html">As_features</a>]</td>
 <td></td></tr>
-<tr><td><a href="Feature.html#VALnative_dynlink">native_dynlink</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="Assemblage.Features.html#VALnative_dynlink">native_dynlink</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+Is dynlink for native code enabled?
+</div>
+</td></tr>
+<tr><td><a href="As_features.html#VALnative_dynlink">native_dynlink</a> [<a href="As_features.html">As_features</a>]</td>
 <td></td></tr>
-<tr><td><a href="Feature.html#VALnative_dynlink_t">native_dynlink_t</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALnative_dynlink_elt">native_dynlink_elt</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 Is dynlink for native code enabled ?
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALnative_t">native_t</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALnative_elt">native_elt</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 Is native-code enabled ?
 </div>
 </td></tr>
-<tr><td><a href="Action.html#VALnone">none</a> [<a href="Action.html">Action</a>]</td>
+<tr><td><a href="As_action.html#VALnone">none</a> [<a href="As_action.html">As_action</a>]</td>
 <td><div class="info">
 No action.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALnot">not</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="Assemblage.Features.html#VALnot_">not_</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+Negate a feature formulae.
+</div>
+</td></tr>
+<tr><td><a href="As_features.html#VALnot_">not_</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 <code class="code">not f</code> negates the formula <code class="code">f</code>.
 </div>
 </td></tr>
 <tr><td align="left"><br>O</td></tr>
-<tr><td><a href="Project.C.html#VALo">o</a> [<a href="Project.C.html">Project.C</a>]</td>
+<tr><td><a href="As_project.C.html#VALo">o</a> [<a href="As_project.C.html">As_project.C</a>]</td>
 <td><div class="info">
 The location of the object file.
 </div>
 </td></tr>
-<tr><td><a href="Project.CU.html#VALo">o</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALo">o</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 The location of the object file for the compilation unit.
 </div>
@@ -840,40 +931,40 @@ The location of the object file for the compilation unit.
     directory, obtained by running <code class="code">ocamldep</code> with the given flags.
 </div>
 </td></tr>
-<tr><td><a href="Project.Set.html#VALof_list">of_list</a> [<a href="Project.Set.html">Project.Set</a>]</td>
+<tr><td><a href="As_project.Set.html#VALof_list">of_list</a> [<a href="As_project.Set.html">As_project.Set</a>]</td>
 <td><div class="info">
 Create a set from a list of elements.
 </div>
 </td></tr>
-<tr><td><a href="Opam.Install.html#VALof_project">of_project</a> [<a href="Opam.Install.html">Opam.Install</a>]</td>
+<tr><td><a href="As_opam.Install.html#VALof_project">of_project</a> [<a href="As_opam.Install.html">As_opam.Install</a>]</td>
 <td><div class="info">
 Create an `.install` file.
 </div>
 </td></tr>
-<tr><td><a href="Makefile.html#VALof_project">of_project</a> [<a href="Makefile.html">Makefile</a>]</td>
+<tr><td><a href="As_makefile.html#VALof_project">of_project</a> [<a href="As_makefile.html">As_makefile</a>]</td>
 <td><div class="info">
 Generate a Makefile from a project description.
 </div>
 </td></tr>
-<tr><td><a href="Ocamlfind.META.html#VALof_project">of_project</a> [<a href="Ocamlfind.META.html">Ocamlfind.META</a>]</td>
+<tr><td><a href="As_ocamlfind.META.html#VALof_project">of_project</a> [<a href="As_ocamlfind.META.html">As_ocamlfind.META</a>]</td>
 <td><div class="info">
 Create a META file.
 </div>
 </td></tr>
 <tr><td align="left"><br>P</td></tr>
-<tr><td><a href="Project.CU.html#VALpack">pack</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALpack">pack</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 Pack a collection of compilation units together.
 </div>
 </td></tr>
-<tr><td><a href="Build_env.html#VALparse">parse</a> [<a href="Build_env.html">Build_env</a>]</td>
+<tr><td><a href="As_build_env.html#VALparse">parse</a> [<a href="As_build_env.html">As_build_env</a>]</td>
 <td><div class="info">
 <code class="code">parse name features</code> parse the arguments given on the
     command-line as a configuration value, for the project <code class="code">name</code> with
     the possible features <code class="code">features</code>.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALparse">parse</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALparse">parse</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 A cmldiner term which parses a feature.
 </div>
@@ -883,7 +974,7 @@ A cmldiner term which parses a feature.
 An external package.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALpkg">pkg</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALpkg">pkg</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Is the component a globally installed library in a package?
 </div>
@@ -893,57 +984,57 @@ Is the component a globally installed library in a package?
 An external pre-processor.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALpkg_pp">pkg_pp</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALpkg_pp">pkg_pp</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Is the component a globally installed syntax extension
 </div>
 </td></tr>
-<tr><td><a href="Resolver.html#VALpkgs">pkgs</a> [<a href="Resolver.html">Resolver</a>]</td>
+<tr><td><a href="As_resolver.html#VALpkgs">pkgs</a> [<a href="As_resolver.html">As_resolver</a>]</td>
 <td><div class="info">
 Resolve global package names into command-line flags.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALpp">pp</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALpp">pp</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Is the component a local syntax extension?
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALpp_byte">pp_byte</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALpp_byte">pp_byte</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 <code class="code">pp_byte ts r</code> is the list of command-line arguments to use for
       pre-processing a component depending on <code class="code">ts</code>, using the name
       resolver <code class="code">r</code>.
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VALpp_byte">pp_byte</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="As_flags.html#VALpp_byte">pp_byte</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 The command-line arguments for pre-processing files in bytecode
     mode.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALpp_native">pp_native</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALpp_native">pp_native</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Same as <code class="code">pp_native</code> but for native pre-processors.
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VALpp_native">pp_native</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="As_flags.html#VALpp_native">pp_native</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 The command-line arguments for pre-processing files in native
     mode.
 </div>
 </td></tr>
-<tr><td><a href="Makefile.Rule.html#VALprereq">prereq</a> [<a href="Makefile.Rule.html">Makefile.Rule</a>]</td>
+<tr><td><a href="As_makefile.Rule.html#VALprereq">prereq</a> [<a href="As_makefile.Rule.html">As_makefile.Rule</a>]</td>
 <td><div class="info">
 The name of the first prerequisite.
 </div>
 </td></tr>
-<tr><td><a href="Makefile.Rule.html#VALprereqs">prereqs</a> [<a href="Makefile.Rule.html">Makefile.Rule</a>]</td>
+<tr><td><a href="As_makefile.Rule.html#VALprereqs">prereqs</a> [<a href="As_makefile.Rule.html">As_makefile.Rule</a>]</td>
 <td><div class="info">
 The names of all the prerequisites that are newer than the
       target, with spaces between them.
 </div>
 </td></tr>
-<tr><td><a href="Project.S.html#VALprereqs">prereqs</a> [<a href="Project.S.html">Project.S</a>]</td>
+<tr><td><a href="As_project.S.html#VALprereqs">prereqs</a> [<a href="As_project.S.html">As_project.S</a>]</td>
 <td><div class="info">
 <code class="code">prereqs t resolver mode</code> is the list of prerequisites files to
       build, in the given <code class="code">mode</code>, before building the object <code class="code">t</code>,
@@ -960,7 +1051,7 @@ The names of all the prerequisites that are newer than the
 </div>
 </td></tr>
 <tr><td align="left"><br>Q</td></tr>
-<tr><td><a href="Ocamlfind.html#VALquery">query</a> [<a href="Ocamlfind.html">Ocamlfind</a>]</td>
+<tr><td><a href="As_ocamlfind.html#VALquery">query</a> [<a href="As_ocamlfind.html">As_ocamlfind</a>]</td>
 <td><div class="info">
 <code class="code">ocamlfind_query ~direct ?predicates ?format packages</code> is the
     result of executing <code class="code">ocamlfind query</code> with the given
@@ -968,69 +1059,81 @@ The names of all the prerequisites that are newer than the
 </div>
 </td></tr>
 <tr><td align="left"><br>R</td></tr>
-<tr><td><a href="Ocamlfind.html#VALresolver">resolver</a> [<a href="Ocamlfind.html">Ocamlfind</a>]</td>
+<tr><td><a href="As_ocamlfind.html#VALresolver">resolver</a> [<a href="As_ocamlfind.html">As_ocamlfind</a>]</td>
 <td><div class="info">
 Resolve command-line arguments for ocamlfind packages.
 </div>
 </td></tr>
-<tr><td><a href="Action.html#VALrun">run</a> [<a href="Action.html">Action</a>]</td>
+<tr><td><a href="As_action.html#VALrun">run</a> [<a href="As_action.html">As_action</a>]</td>
 <td><div class="info">
 Process the action.
 </div>
 </td></tr>
 <tr><td align="left"><br>S</td></tr>
-<tr><td><a href="Project.C.html#VALset_bin_container">set_bin_container</a> [<a href="Project.C.html">Project.C</a>]</td>
+<tr><td><a href="As_project.C.html#VALset_bin_container">set_bin_container</a> [<a href="As_project.C.html">As_project.C</a>]</td>
 <td><div class="info">
 Set the container to the given binary.
 </div>
 </td></tr>
-<tr><td><a href="Project.C.html#VALset_lib_container">set_lib_container</a> [<a href="Project.C.html">Project.C</a>]</td>
+<tr><td><a href="As_project.C.html#VALset_lib_container">set_lib_container</a> [<a href="As_project.C.html">As_project.C</a>]</td>
 <td><div class="info">
 Set the container to the given library.
 </div>
 </td></tr>
-<tr><td><a href="Makefile.Variable.html#VALshell">shell</a> [<a href="Makefile.Variable.html">Makefile.Variable</a>]</td>
+<tr><td><a href="As_makefile.Variable.html#VALshell">shell</a> [<a href="As_makefile.Variable.html">As_makefile.Variable</a>]</td>
 <td><div class="info">
 <code class="code"><span class="constructor">VAR</span> = $(shell &lt;command&gt;)</code>
 </div>
 </td></tr>
-<tr><td><a href="Shell.html#VALshow">show</a> [<a href="Shell.html">Shell</a>]</td>
+<tr><td><a href="As_shell.html#VALshow">show</a> [<a href="As_shell.html">As_shell</a>]</td>
 <td><div class="info">
 <code class="code">show msg</code> outputs the given message on stdout.
 </div>
 </td></tr>
-<tr><td><a href="Makefile.Rule.html#VALstem">stem</a> [<a href="Makefile.Rule.html">Makefile.Rule</a>]</td>
+<tr><td><a href="As_makefile.Rule.html#VALstem">stem</a> [<a href="As_makefile.Rule.html">As_makefile.Rule</a>]</td>
 <td><div class="info">
 The stem with which an implicit rule matches (see How Patterns
       Match).
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VALstub">stub</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="Assemblage.Flags.html#VALstub">stub</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
+<td><div class="info">
+<code class="code">stub s</code> adds <i>-cclib -l<code class="code">s</code> -dllib -l<code class="code">s</code></i> to the bytecode
+      linking options and <i>-cclib -l<code class="code">s</code></i> to the native linking
+      options.
+</div>
+</td></tr>
+<tr><td><a href="As_flags.html#VALstub">stub</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 <code class="code">stub s</code> Add <i>-cclib -l<code class="code">s</code> -dllib -l<code class="code">s</code></i> to the bytecode linking
     options and <i>-cclib -l<code class="code">s</code></i> to the native linking options.
 </div>
 </td></tr>
-<tr><td><a href="Makefile.Variable.html#VALsubst">subst</a> [<a href="Makefile.Variable.html">Makefile.Variable</a>]</td>
+<tr><td><a href="As_makefile.Variable.html#VALsubst">subst</a> [<a href="As_makefile.Variable.html">As_makefile.Variable</a>]</td>
 <td><div class="info">
 Create a new variable by sustituting the contents of an other one.
 </div>
 </td></tr>
-<tr><td><a href="Project.C.html#VALsymlink_c">symlink_c</a> [<a href="Project.C.html">Project.C</a>]</td>
+<tr><td><a href="As_project.C.html#VALsymlink_c">symlink_c</a> [<a href="As_project.C.html">As_project.C</a>]</td>
 <td><div class="info">
 The location of the symlinked C file.
 </div>
 </td></tr>
 <tr><td align="left"><br>T</td></tr>
-<tr><td><a href="Makefile.Rule.html#VALtarget">target</a> [<a href="Makefile.Rule.html">Makefile.Rule</a>]</td>
+<tr><td><a href="As_makefile.Rule.html#VALtarget">target</a> [<a href="As_makefile.Rule.html">As_makefile.Rule</a>]</td>
 <td><div class="info">
 The file name of the target of the rule.
 </div>
 </td></tr>
-<tr><td><a href="Makefile.Rule.html#VALtarget_member">target_member</a> [<a href="Makefile.Rule.html">Makefile.Rule</a>]</td>
+<tr><td><a href="As_makefile.Rule.html#VALtarget_member">target_member</a> [<a href="As_makefile.Rule.html">As_makefile.Rule</a>]</td>
 <td><div class="info">
 The target member name, when the target is an archive
       member.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.Features.html#VALtest">test</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+Compile and run tests?
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.html#VALtest">test</a> [<a href="Assemblage.html">Assemblage</a>]</td>
@@ -1038,16 +1141,21 @@ The target member name, when the target is an archive
 Description of a test.
 </div>
 </td></tr>
-<tr><td><a href="Project.Component.html#VALtest">test</a> [<a href="Project.Component.html">Project.Component</a>]</td>
+<tr><td><a href="As_project.Component.html#VALtest">test</a> [<a href="As_project.Component.html">As_project.Component</a>]</td>
 <td><div class="info">
 Is the component a test?
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALtest">test</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALtest">test</a> [<a href="As_features.html">As_features</a>]</td>
 <td></td></tr>
 <tr><td><a href="Assemblage.html#VALtest_bin">test_bin</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
 A test which runs a binary built in the project.
+</div>
+</td></tr>
+<tr><td><a href="As_features.html#VALtest_elt">test_elt</a> [<a href="As_features.html">As_features</a>]</td>
+<td><div class="info">
+Compile and run tests.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.html#VALtest_shell">test_shell</a> [<a href="Assemblage.html">Assemblage</a>]</td>
@@ -1055,78 +1163,88 @@ A test which runs a binary built in the project.
 A test which runs an arbitrary shell command.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALtest_t">test_t</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="Assemblage.Flags.html#VALthread">thread</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
-Compile and run tests.
+The <code class="code">-thread</code> flags.
 </div>
 </td></tr>
-<tr><td><a href="Flags.html#VALthread">thread</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="As_flags.html#VALthread">thread</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 Add <code class="code">-thread</code>.
 </div>
 </td></tr>
-<tr><td><a href="Project.Bin.html#VALtoplevel">toplevel</a> [<a href="Project.Bin.html">Project.Bin</a>]</td>
+<tr><td><a href="As_project.Bin.html#VALtoplevel">toplevel</a> [<a href="As_project.Bin.html">As_project.Bin</a>]</td>
 <td><div class="info">
 Create a custom toplevel by linking a set of compilation
       units.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALtrue_">true_</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALtrue_">true_</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 The formula which is always <code class="code"><span class="keyword">true</span></code>.
 </div>
 </td></tr>
-<tr><td><a href="Shell.html#VALtry_exec">try_exec</a> [<a href="Shell.html">Shell</a>]</td>
+<tr><td><a href="As_shell.html#VALtry_exec">try_exec</a> [<a href="As_shell.html">As_shell</a>]</td>
 <td><div class="info">
 Try to run a given command.
 </div>
 </td></tr>
 <tr><td align="left"><br>U</td></tr>
-<tr><td><a href="Project.CU.html#VALunpack">unpack</a> [<a href="Project.CU.html">Project.CU</a>]</td>
+<tr><td><a href="As_project.CU.html#VALunpack">unpack</a> [<a href="As_project.CU.html">As_project.CU</a>]</td>
 <td><div class="info">
 The (usually empty) list of packed compilation units.
 </div>
 </td></tr>
 <tr><td align="left"><br>V</td></tr>
-<tr><td><a href="Project.html#VALversion">version</a> [<a href="Project.html">Project</a>]</td>
+<tr><td><a href="As_project.html#VALversion">version</a> [<a href="As_project.html">As_project</a>]</td>
 <td><div class="info">
 <code class="code">version t</code> is the project version.
 </div>
 </td></tr>
-<tr><td><a href="Project.Graph.html#VALvertex">vertex</a> [<a href="Project.Graph.html">Project.Graph</a>]</td>
+<tr><td><a href="As_project.Graph.html#VALvertex">vertex</a> [<a href="As_project.Graph.html">As_project.Graph</a>]</td>
 <td><div class="info">
 <code class="code">vertex g</code> is the list of topologically sorted vertices.
 </div>
 </td></tr>
 <tr><td align="left"><br>W</td></tr>
-<tr><td><a href="Feature.html#VALwarn_error">warn_error</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="Assemblage.Flags.html#VALwarn_error">warn_error</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
+<td><div class="info">
+The <code class="code">-warn-error</code> flags.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.Features.html#VALwarn_error">warn_error</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+Consider warning as error?
+</div>
+</td></tr>
+<tr><td><a href="As_features.html#VALwarn_error">warn_error</a> [<a href="As_features.html">As_features</a>]</td>
 <td></td></tr>
-<tr><td><a href="Flags.html#VALwarn_error">warn_error</a> [<a href="Flags.html">Flags</a>]</td>
+<tr><td><a href="As_flags.html#VALwarn_error">warn_error</a> [<a href="As_flags.html">As_flags</a>]</td>
 <td><div class="info">
 Add <code class="code">-warn-error</code>.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALwarn_error_t">warn_error_t</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALwarn_error_elt">warn_error_elt</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 Consider warning as error.
 </div>
 </td></tr>
-<tr><td><a href="Feature.html#VALwith_default">with_default</a> [<a href="Feature.html">Feature</a>]</td>
+<tr><td><a href="As_features.html#VALwith_default">with_default</a> [<a href="As_features.html">As_features</a>]</td>
 <td><div class="info">
 Return the feature with an other default.
 </div>
 </td></tr>
-<tr><td><a href="Opam.Install.html#VALwrite">write</a> [<a href="Opam.Install.html">Opam.Install</a>]</td>
+<tr><td><a href="As_opam.Install.html#VALwrite">write</a> [<a href="As_opam.Install.html">As_opam.Install</a>]</td>
 <td><div class="info">
 Write an `.install` file.
 </div>
 </td></tr>
-<tr><td><a href="Makefile.html#VALwrite">write</a> [<a href="Makefile.html">Makefile</a>]</td>
+<tr><td><a href="As_makefile.html#VALwrite">write</a> [<a href="As_makefile.html">As_makefile</a>]</td>
 <td><div class="info">
 Generate a Makefile.
 </div>
 </td></tr>
-<tr><td><a href="Ocamlfind.META.html#VALwrite">write</a> [<a href="Ocamlfind.META.html">Ocamlfind.META</a>]</td>
+<tr><td><a href="As_ocamlfind.META.html#VALwrite">write</a> [<a href="As_ocamlfind.META.html">As_ocamlfind.META</a>]</td>
 <td><div class="info">
 Write a META file.
 </div>

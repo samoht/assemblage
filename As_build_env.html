@@ -1,0 +1,85 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="As_resolver.html">
+<link rel="next" href="As_git.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Index of module types" rel=Appendix href="index_module_types.html">
+<link title="As_flags" rel="Chapter" href="As_flags.html">
+<link title="As_features" rel="Chapter" href="As_features.html">
+<link title="As_shell" rel="Chapter" href="As_shell.html">
+<link title="As_resolver" rel="Chapter" href="As_resolver.html">
+<link title="As_build_env" rel="Chapter" href="As_build_env.html">
+<link title="As_git" rel="Chapter" href="As_git.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_makefile" rel="Chapter" href="As_makefile.html">
+<link title="As_OCaml" rel="Chapter" href="As_OCaml.html">
+<link title="As_opam" rel="Chapter" href="As_opam.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>As_build_env</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="As_resolver.html" title="As_resolver">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="As_git.html" title="As_git">Next</a>
+</div>
+<h1>Module <a href="type_As_build_env.html">As_build_env</a></h1>
+
+<pre><span class="keyword">module</span> As_build_env: <code class="code"><span class="keyword">sig</span></code> <a href="As_build_env.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Global project environment.
+<p>
+
+    The build environment (which can be an human) discovers available
+    features.<br>
+</div>
+<hr width="100%">
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info ">
+Environment values.<br>
+</div>
+
+
+<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">?features:(<a href="As_features.html#TYPEelt">As_features.elt</a> * bool) list -><br>       ?comp:string list -><br>       ?bytcomp:string list -><br>       ?natcomp:string list -><br>       ?link:string list -><br>       ?bytlink:string list -><br>       ?natlink:string list -><br>       ?pp:string list -><br>       ?includes:string list -><br>       ?auto_load:bool -> ?build_dir:string -> unit -> <a href="As_build_env.html#TYPEt">t</a></code></pre>
+<pre><span id="VALdefault"><span class="keyword">val</span> default</span> : <code class="type"><a href="As_build_env.html#TYPEt">t</a></code></pre><div class="info ">
+Default project configuration.<br>
+</div>
+
+<pre><span id="VALparse"><span class="keyword">val</span> parse</span> : <code class="type">?doc:string -><br>       ?man:string list -> string -> As_features.Set.t -> <a href="As_build_env.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">parse name features</code> parse the arguments given on the
+    command-line as a configuration value, for the project <code class="code">name</code> with
+    the possible features <code class="code">features</code>.<br>
+</div>
+
+<pre><span id="VALflags"><span class="keyword">val</span> flags</span> : <code class="type"><a href="As_build_env.html#TYPEt">t</a> -> <a href="As_flags.html#TYPEt">As_flags.t</a></code></pre><div class="info ">
+Return the global comand-line flags.<br>
+</div>
+
+<pre><span id="VALbuild_dir"><span class="keyword">val</span> build_dir</span> : <code class="type"><a href="As_build_env.html#TYPEt">t</a> -> string</code></pre><div class="info ">
+Return the directory where build artififacts are generated.<br>
+</div>
+
+<pre><span id="VALenable"><span class="keyword">val</span> enable</span> : <code class="type"><a href="As_build_env.html#TYPEt">t</a> -> <a href="As_features.html#TYPEelt">As_features.elt</a> list -> bool</code></pre><div class="info ">
+Check if the given set of flags are all enabled.<br>
+</div>
+
+<pre><span id="VALincludes"><span class="keyword">val</span> includes</span> : <code class="type"><a href="As_build_env.html#TYPEt">t</a> -> string list</code></pre><div class="info ">
+Return the list of directories to include when loading `configure.ml'.<br>
+</div>
+
+<pre><span id="VALauto_load"><span class="keyword">val</span> auto_load</span> : <code class="type"><a href="As_build_env.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+Automatically include $(shell ocamlfind query tools) before
+    loading `configure.ml'.<br>
+</div>
+
+<pre><span id="VALfeatures"><span class="keyword">val</span> features</span> : <code class="type"><a href="As_build_env.html#TYPEt">t</a> -> (<a href="As_features.html#TYPEelt">As_features.elt</a> * bool) list</code></pre><div class="info ">
+Return a list of feature with the values they are set to.<br>
+</div>
+</body></html>
