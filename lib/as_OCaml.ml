@@ -180,26 +180,19 @@ let depends ?flags ?(deps=[]) resolver dir =
   let incl = match Project.Component.comp_byte deps resolver (fun _ -> dir) with
     | [] -> ""
     | ls -> " " ^ String.concat " " ls in
-  let names =
-    Array.to_list (Sys.readdir dir)
-    |> List.filter (fun file ->
-        Filename.check_suffix file ".ml" || Filename.check_suffix file ".mli"
-      )
-    |> List.map Filename.chop_extension in
-  let files =
-    names
-    |> List.map (fun name ->
-        if Sys.file_exists (dir / name ^ ".ml") then
-          dir / name ^ ".ml"
-        else
-          dir / name ^ ".mli"
-      ) in
+  let files = 
+    Array.to_list (Sys.readdir dir) |> 
+    List.filter (fun file ->
+        Filename.check_suffix file ".ml" || Filename.check_suffix file ".mli")
+  in
+  let paths = List.map (fun file -> dir / file) files in 
   let lines =
     Shell.exec_output
       ~verbose:true
       "ocamldep -one-line -modules %s%s %s"
-      pp incl (String.concat " " files) in
-
+      pp incl (String.concat " " paths) 
+  in
+  let names = List.map Filename.chop_extension files in
   let deps_tbl = Hashtbl.create (List.length names) in
   let add_dep line =
     match split line ' ' with
@@ -217,16 +210,17 @@ let depends ?flags ?(deps=[]) resolver dir =
             String.uncapitalize m :: acc
           else
             acc
-        ) [] modules in
-      Hashtbl.add deps_tbl name deps in
+        ) [] modules 
+      in
+      Hashtbl.add deps_tbl name deps 
+  in
   List.iter add_dep lines;
-
   let cus_tbl = Hashtbl.create (List.length names) in
   let rec cu name =
     try Hashtbl.find cus_tbl name
     with Not_found ->
       let local_deps =
-        try Hashtbl.find deps_tbl name
+        try List.concat (Hashtbl.find_all deps_tbl name)
         with Not_found -> [] in
       let deps = deps @ List.map (fun x -> `CU (cu x)) local_deps in
       let cu = Project.CU.create ?flags ~dir ~deps name in
