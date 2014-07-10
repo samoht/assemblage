@@ -15,19 +15,33 @@
  *)
 
 open Printf
-open Project
+
+module Project = As_project
+module Ocamlfind = As_ocamlfind
+module OCaml = As_OCaml
+module Flags = As_flags
+module Action = As_action
+module Build_env = As_build_env
+module Shell = As_shell
+module Features = struct
+  include As_features
+  let create ~doc ~default name = atom (create ~doc ~default name)
+end
+module Makefile = As_makefile
+module Opam = As_opam
+module Resolver = As_resolver
 
 let project_list = ref []
 
 type t = Project.t
-type component = Component.t
-type cu = CU.t
-type lib = Lib.t
-type bin = Bin.t
-type gen = Gen.t
-type c = C.t
-type js = JS.t
-type test = Test.t
+type component = Project.Component.t
+type cu = Project.CU.t
+type lib = Project.Lib.t
+type bin = Project.Bin.t
+type gen = Project.Gen.t
+type c = Project.C.t
+type js = Project.JS.t
+type test = Project.Test.t
 
 let projects () =
   !project_list
@@ -38,7 +52,7 @@ let create ?flags ?doc_css ?doc_intro ?doc_dir ?version components name =
   project_list := t :: !project_list
 
 let cu ?dir deps name =
-  let u = CU.create ?dir ~deps name in
+  let u = Project.CU.create ?dir ~deps name in
   `CU u
 
 let ocamldep ~dir ?flags deps =
@@ -47,54 +61,59 @@ let ocamldep ~dir ?flags deps =
   List.map (fun cu -> `CU cu) cus
 
 let generated ?action deps f name =
-  let g = Gen.create ~deps ?action f name in
+  let g = Project.Gen.create ~deps ?action f name in
   `Gen g
 
 let nil _ = []
 
 let sorted_cus cus =
-  let g = Component.Graph.create () in
+  let g = Project.Component.Graph.create () in
   List.iter (fun (`CU cu) ->
-      Component.Graph.add_vertex g (`CU cu);
+      Project.Component.Graph.add_vertex g (`CU cu);
       List.iter (function
           | `CU dep ->
             if List.mem (`CU dep) cus then
-              Component.Graph.add_edge g (`CU dep) (`CU cu)
+              Project.Component.Graph.add_edge g (`CU dep) (`CU cu)
           | _ -> ()
-        ) (CU.deps cu)
+        ) (Project.CU.deps cu)
     ) cus;
-  let cus = Component.Graph.vertex g in
+  let cus = Project.Component.Graph.vertex g in
   List.map (function `CU cu -> cu | _ -> assert false) cus
 
 let lib ?available ?(flags=Flags.empty) ?pack ?(deps=nil) ?(c=[])
     (cus:[`CU of cu] list) name =
   let cus = sorted_cus cus in
   let c = List.map (function `C c -> c) c in
-  let l = Lib.create ?available ~flags ?pack ~deps ~c cus name in
+  let l = Project.Lib.create ?available ~flags ?pack ~deps ~c cus name in
   `Lib l
 
 let bin ?byte_only ?link_all ?install ?(deps=nil) cus name =
   let cus = sorted_cus cus in
-  let b = Bin.create ?byte_only ?link_all ?install ~deps cus name in
+  let b = Project.Bin.create ?byte_only ?link_all ?install ~deps cus name in
   `Bin b
 
 let c ?dir ?(link_flags=[]) deps libs name =
   let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
-  let c = C.create ?dir ~link_flags ~deps name in
+  let c = Project.C.create ?dir ~link_flags ~deps name in
   `C c
 
 let js b r =
   let `Bin b = b in
-  `JS (JS.create b r)
+  `JS (Project.JS.create b r)
 
 let pkg x = `Pkg x
 
 let pkg_pp x = `Pkg_pp x
 
 let test ?dir deps commands name =
-  `Test (Test.create ?dir ~deps commands name)
+  `Test (Project.Test.create ?dir ~deps commands name)
 
-let test_bin (`Bin bin) args: Test.command =
+type test_args = (component -> string) -> string list
+
+let test_bin (`Bin bin) ?args (): Project.Test.command =
+  let args = match args with
+    | None   -> (fun _ -> [])
+    | Some a -> a in
   `Bin (`Bin bin, args)
 
 let test_shell fmt =
@@ -109,12 +128,12 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) deps name =
   (* 1. compile the bindings. *)
   let deps = `Pkg "ctypes.stubs" :: deps in
   let name_bindings = name ^ "_bindings" in
-  let bindings = CU.create ?dir ~deps:deps name_bindings in
+  let bindings = Project.CU.create ?dir ~deps:deps name_bindings in
 
   let name_generator = name ^ "_generator" in
   let name_stubs = name ^ "_stubs" in
-  let bin_dir r = Bin.build_dir (Bin.create [] name_generator) r in
-  let lib_dir r = Sys.getcwd () / Lib.build_dir (Lib.create [] name) r in
+  let bin_dir r = Project.Bin.build_dir (Project.Bin.create [] name_generator) r in
+  let lib_dir r = Sys.getcwd () / Project.Lib.build_dir (Project.Lib.create [] name) r in
 
   (* 2. Generate and compile the generator. *)
   let generator =
@@ -130,8 +149,8 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) deps name =
          headers ml_stubs c_stubs library name
     in
     let ml = generated ~action [] [`ML] name_generator in
-    let comp = CU.create ~deps:[ml; `CU bindings] name_generator in
-    let bin = Bin.create ~install:false [bindings; comp] name_generator in
+    let comp = Project.CU.create ~deps:[ml; `CU bindings] name_generator in
+    let bin = Project.Bin.create ~install:false [bindings; comp] name_generator in
     `Bin bin in
 
   (* 3. Generate and compile the stubs. *)
@@ -142,9 +161,9 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) deps name =
 
   let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
   let c_stubs =
-    let c = C.create ~generated:true ~deps:[generator] ~link_flags name_stubs in
+    let c = Project.C.create ~generated:true ~deps:[generator] ~link_flags name_stubs in
     `C c in
-  let flags = Flags.(cclib link_flags @ stub name_stubs) in
+  let flags = Flags.(cclib link_flags @@@ stub name_stubs) in
   let ml = generated [generator] [`ML] name in
   let main = cu [`CU bindings; ml_stubs; c_stubs; ml] name in
   lib ~flags ?available ~c:[c_stubs] [`CU bindings; ml_stubs; main] name
@@ -188,8 +207,8 @@ let process ?(file="configure.ml") name fn =
       | [] -> Shell.fatal_error 2 "No projects are registered in `%s'." file
       | ts ->
         let features = List.fold_left (fun acc t ->
-            Feature.Set.union (Project.features t) acc
-          ) Feature.Set.empty ts in
+            Features.Set.union (Project.features t) acc
+          ) Features.Set.empty ts in
         let env = Build_env.parse name features in
         List.iter (fun t -> fn t env) ts
 
@@ -203,7 +222,7 @@ let configure `Make t env =
   Opam.Install.(write (of_project ~build_dir t))
 
 let describe t env =
-  let print_deps x = match Component.(filter pkg x @ filter pkg_pp x) with
+  let print_deps x = match Project.Component.(filter pkg x @ filter pkg_pp x) with
     | [] -> ""
     | ds -> sprintf "  ├─── [%s]\n"
               (String.concat " " (List.map (Shell.color `bold) ds)) in
@@ -216,11 +235,11 @@ let describe t env =
   let print_units us =
     let aux i n u =
       let mk f ext =
-        if f u then (Shell.color `cyan (CU.name u ^ ext)) else "" in
-      let ml = mk CU.ml ".ml" in
-      let mli = mk CU.mli ".mli" in
+        if f u then (Shell.color `cyan (Project.CU.name u ^ ext)) else "" in
+      let ml = mk Project.CU.ml ".ml" in
+      let mli = mk Project.CU.mli ".mli" in
       let modules =
-        if CU.generated u then ["--generated--"]
+        if Project.CU.generated u then ["--generated--"]
         else
           let build_dir = Build_env.build_dir env in
           OCaml.modules ~build_dir u in
@@ -236,16 +255,14 @@ let describe t env =
         (Shell.color `magenta (id l)) (print_deps (deps l));
       print_units (comps l) in
     List.iter aux ls in
-  let print_libs = print_top Lib.id Lib.deps Lib.compilation_units in
-  let print_bins = print_top Bin.id Bin.deps Bin.compilation_units in
+  let print_libs = Project.Lib.(print_top id deps compilation_units) in
+  let print_bins = Project.Bin.(print_top id deps compilation_units) in
   printf "\n%s %s %s\n\n"
     (Shell.color `yellow "==>")
     (Shell.color `underline (Project.name t)) (Project.version t);
   let components = Project.components t in
-  print_libs Component.(filter lib components);
-  print_libs Component.(filter pp  components);
-  print_bins Component.(filter bin components)
+  print_libs Project.Component.(filter lib components);
+  print_libs Project.Component.(filter pp  components);
+  print_bins Project.Component.(filter bin components)
 
-type flags = Flags.t
-
-type features = Feature.formula
+type test_command = Project.Test.command

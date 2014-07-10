@@ -29,7 +29,7 @@ type t = {
   c          : s;
 }
 
-let (@) f g = {
+let (@@@) f g = {
   comp_byte   = f.comp_byte   @ g.comp_byte  ;
   comp_native = f.comp_native @ g.comp_native;
   pp_byte     = f.pp_byte     @ g.pp_byte    ;

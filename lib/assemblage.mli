@@ -39,38 +39,148 @@
 
 (** {1:features Features} *)
 
-type features = Feature.formula
-(** The type for user-defined or system-dependent features. *)
+(** Typical OCaml project might have multiple features, which modifies
+    the list of generated artifacts. An example is a project which
+    depends on either [lwt] or [async], and which choose to compile
+    the relevant libraries only if one of the other is installed on
+    the system. Other typical feature might depend on the machine the
+    project is running on, for instance the fact that the native
+    toolchain is available or not. *)
+
+module Features: sig
+
+  (** Features. *)
+
+  type t
+  (** The type for user-defined or system-dependent features. *)
+
+  val create: doc:string -> default:bool -> string -> t
+  (** Create a feature. *)
+
+  val not_: t -> t
+  (** Negate a feature formulae. *)
+
+  val (&&&): t -> t -> t
+  (** Logical AND of feature formulaes. *)
+
+  val (|||): t -> t -> t
+  (** Logical OR of feature formulaes. *)
+
+  val native: t
+  (** Is native-code enabled? *)
+
+  val native_dynlink: t
+  (** Is dynlink for native code enabled? *)
+
+  val annot: t
+  (** Generate annot files? *)
+
+  val debug: t
+  (** Generate debug symbols? *)
+
+  val warn_error: t
+  (** Consider warning as error? *)
+
+  val test: t
+  (** Compile and run tests? *)
+
+  val doc: t
+  (** Build the documentation? *)
+
+  val js: t
+  (** Build the javascript objects? *)
+
+end
 
 (** {1:flags Flags} *)
 
-type flags = Flags.t
-(** The type for command-line arguments. *)
+(** The various compilation options that are set for a project
+    eventually reduce to tweaking the simple command-line arguments to
+    the compiler. We distinguish three different phases, where the
+    command-line can be changed: the pre-processing step, the separate
+    compilation of module implementations and signatures and the
+    linking of such compilation units to produce a library or a
+    binary. These three phases come in two modes: bytecode compilation
+    and native-code compilation. *)
+
+module Flags: sig
+
+  (** Flags. *)
+
+  type t
+  (** The type for command-line arguments. *)
+
+  val create:
+    ?comp_byte:string list ->
+    ?comp_native:string list ->
+    ?pp_byte:string list ->
+    ?pp_native:string list ->
+    ?link_byte:string list ->
+    ?link_native:string list ->
+    ?link_shared:string list ->
+    ?c:string list ->
+    unit -> t
+  (** Create a full command-line argument using the the given single
+      command-line arguments. *)
+
+  val (@@@): t -> t -> t
+  (** Append command-line flags. *)
+
+  val empty: t
+  (** Empty flags. *)
+
+  val debug: t
+  (** The [-g] flags. *)
+
+  val annot: t
+  (** The [-bin-annot] flags. *)
+
+  val warn_error: t
+  (** The [-warn-error] flags. *)
+
+  val linkall: t
+  (** The [-linkall] flags. *)
+
+  val thread: t
+  (** The [-thread] flags. *)
+
+  val cclib: string list -> t
+  (** The [-cclib x] flags. *)
+
+  val ccopt: string list -> t
+  (** The [-ccopt x] flags. *)
+
+  val stub: string -> t
+  (** [stub s] adds {i -cclib -l[s] -dllib -l[s]} to the bytecode
+      linking options and {i -cclib -l[s]} to the native linking
+      options. *)
+
+end
 
 (** {1:project Project} *)
 
-type t = Project.t
+type t
 (** The type for OCaml projects descriptions. *)
 
-type cu = Project.CU.t
+type cu
 (** The type for compilation unit descriptions. *)
 
-type lib = Project.Lib.t
+type lib
 (** The type for library descriptions. *)
 
-type bin = Project.Bin.t
+type bin
 (** The type for binary executable descriptions. *)
 
-type test = Project.Test.t
+type test
 (** The type for test descriptions. *)
 
-type js = Project.JS.t
+type js
 (** The type for [js_of_ocaml] artifact descriptions. *)
 
-type c = Project.C.t
+type c
 (** The type for C source file descriptions. *)
 
-type gen = Project.Gen.t
+type gen
 (** The type for generated OCaml source code. *)
 
 type component =
@@ -99,13 +209,14 @@ val cu: ?dir:string -> component list -> string -> [> `CU of cu]
     directory [dir] with dependencies [deps] and the cname [name]. The
     name is the same as the filename, without its extension. *)
 
-val ocamldep: dir:string -> ?flags:flags -> component list -> [> `CU of cu] list
+val ocamldep: dir:string -> ?flags:Flags.t -> component list -> [> `CU of cu] list
 (** [ocamldep ~dir] is the list of compilation units in the given
     directory, obtained by running [ocamldep] with the given flags. *)
 
-val generated: ?action:(Resolver.t -> Action.t) ->
+val generated: ?action:(As_resolver.t -> As_action.t) ->
   component list -> [`C|`ML|`MLI] list -> string -> [> `Gen of gen]
-(** Generated OCaml source file(s). *)
+(** Generated OCaml source file(s). The custom action get the name of
+    the build dir as argument. *)
 
 val c:
   ?dir:string ->
@@ -117,7 +228,7 @@ val c:
 
 val cstubs:
   ?dir:string ->
-  ?available:features ->
+  ?available:Features.t ->
   ?headers:string list ->
   ?cflags:string list ->
   ?clibs:string list ->
@@ -126,8 +237,8 @@ val cstubs:
     compilation unit [name]. *)
 
 val lib:
-  ?available:features ->
-  ?flags:flags ->
+  ?available:Features.t ->
+  ?flags:Flags.t ->
   ?pack:bool ->
   ?deps:(string -> component list) ->
   ?c:[`C of c] list ->
@@ -157,18 +268,24 @@ val pkg: string -> [> `Pkg of string]
 val pkg_pp: string -> [> `Pkg_pp of string]
 (** An external pre-processor. *)
 
-val test: ?dir:string ->
-  component list -> Project.Test.command list -> string -> [> `Test of test]
-(** Description of a test. *)
+type test_command
+(** The type for test commands. *)
 
-val test_bin: [`Bin of bin] -> Project.Test.args -> Project.Test.command
+type test_args = (component -> string) -> string list
+(** The type for command-line arguments when calling tests of executable. *)
+
+val test_bin: [`Bin of bin] -> ?args:test_args -> unit -> test_command
 (** A test which runs a binary built in the project. *)
 
-val test_shell: ('a, unit, string, Project.Test.command) format4 -> 'a
+val test_shell: ('a, unit, string, test_command) format4 -> 'a
 (** A test which runs an arbitrary shell command. *)
 
+val test: ?dir:string ->
+  component list -> test_command list -> string -> [> `Test of test]
+(** Description of a test. *)
+
 val create:
-  ?flags:flags ->
+  ?flags:Flags.t ->
   ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
   ?version:string ->
   component list -> string -> unit
@@ -178,7 +295,7 @@ val create:
 
 (** {1:tools Tools} *)
 
-type tool = Project.t -> Build_env.t -> unit
+type tool = t -> As_build_env.t -> unit
 (** The signature of tools. *)
 
 val process: ?file:string -> string -> tool -> unit

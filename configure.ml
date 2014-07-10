@@ -32,8 +32,8 @@ let mk_test name =
     "--disable-auto-load"; "-I"; build_dir lib;
   ] in
   test ~dir [] [
-    test_bin describe args;
-    test_bin configure args;
+    test_bin describe ~args ();
+    test_bin configure ~args ();
     test_shell "make";
     test_shell "make distclean";
   ] name

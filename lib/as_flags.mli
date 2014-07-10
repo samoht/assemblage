@@ -14,16 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Command line arguments.
-
-    The various compilation options that are set for a project
-    eventually reduce to tweaking the simple command-line arguments to
-    the compiler. We distinguish three different phases, where the
-    command-line can be changed: the pre-processing step, the separate
-    compilation of module implementations and signatures and the
-    linking of such compilation units to produce a library or a
-    binary. These three phases come in two modes: bytecode compilation
-    and native-code compilation. *)
+(** Command line arguments *)
 
 type t
 (** Full command-line arguments. Values of this type carry the
@@ -42,7 +33,7 @@ val create:
 (** Create a full command-line argument using the the given single
     command-line arguments. *)
 
-val (@): t -> t -> t
+val (@@@): t -> t -> t
 (** Append command-line flags. *)
 
 val comp_byte: t -> s

@@ -14,9 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Project
 open Parsetree
 open Printf
+
+module Flags = As_flags
+module Ocamlfind = As_ocamlfind
+module Project = As_project
+module Resolver = As_resolver
+module Shell = As_shell
 
 let (|>) x f = f x
 
@@ -127,23 +132,23 @@ let modules_of_mli ast =
 let modules ~build_dir cu =
   let resolver = Ocamlfind.resolver `Direct build_dir in
   let () =
-    CU.deps cu
-    |> Component.closure
-    |> Component.(filter pkg_pp)
+    Project.CU.deps cu
+    |> Project.Component.closure
+    |> Project.Component.(filter pkg_pp)
     |> Resolver.pkgs resolver
     |> init in
   let aux = function
     | `ML ->
-      let file = CU.dir cu // CU.name cu ^ ".ml" in
+      let file = Project.CU.(dir cu // name cu ^ ".ml") in
       let ast = Pparse.parse_implementation Format.err_formatter file in
       modules_of_ml ast
     | `MLI ->
-      let file = CU.dir cu // CU.name cu ^ ".mli" in
+      let file = Project.CU.(dir cu // name cu ^ ".mli") in
       let ast = Pparse.parse_interface Format.err_formatter file in
       modules_of_mli ast in
   let set =
-    if CU.mli cu then aux `MLI
-    else if CU.ml cu then aux `ML
+    if Project.CU.mli cu then aux `MLI
+    else if Project.CU.ml cu then aux `ML
     else StringSet.empty in
   StringSet.elements set
 
@@ -167,12 +172,12 @@ let split str char =
 (* XXX: ugly hack as tools/{depend.ml,ocamldep.ml} are not in
    `compiler-libs' *)
 let depends ?flags ?(deps=[]) resolver dir =
-  let pp = match Component.pp_byte deps resolver with
+  let pp = match Project.Component.pp_byte deps resolver with
     | [] -> ""
     | pp ->
       let pp = String.concat " " pp in
       sprintf "-pp \"camlp4o %s\"" pp in
-  let incl = match Component.comp_byte deps resolver (fun _ -> dir) with
+  let incl = match Project.Component.comp_byte deps resolver (fun _ -> dir) with
     | [] -> ""
     | ls -> " " ^ String.concat " " ls in
   let names =
@@ -224,7 +229,7 @@ let depends ?flags ?(deps=[]) resolver dir =
         try Hashtbl.find deps_tbl name
         with Not_found -> [] in
       let deps = deps @ List.map (fun x -> `CU (cu x)) local_deps in
-      let cu = CU.create ?flags ~dir ~deps name in
+      let cu = Project.CU.create ?flags ~dir ~deps name in
       Hashtbl.add cus_tbl name cu;
       cu in
   List.map cu names

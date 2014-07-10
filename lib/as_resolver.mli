@@ -26,7 +26,7 @@
 type t
 (** The type for internal and external name resolvers. *)
 
-val create: build_dir:string -> pkgs:(string list -> Flags.t) -> t
+val create: build_dir:string -> pkgs:(string list -> As_flags.t) -> t
 (** [create ~buildir ~pkgs] is the resolver which prefixes [buildir]
     to resolve local library names and applies [pkgs] to resolve a set
     of global package names. *)
@@ -35,5 +35,5 @@ val build_dir: t -> string -> string
 (** Resolve locally generated filename by prepending the build
     directory name. *)
 
-val pkgs: t -> string list -> Flags.t
+val pkgs: t -> string list -> As_flags.t
 (** Resolve global package names into command-line flags. *)

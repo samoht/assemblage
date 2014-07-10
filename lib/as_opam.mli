@@ -14,36 +14,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Printf
+(** Manage OPAM files. *)
 
-type shell = {
-  dir: string option;
-  cmd: string;
-}
+module Install: sig
 
-type t = shell option
+  (** OPAM install files. *)
+  type t
 
-let none = None
+  val of_project: ?meta:bool -> build_dir:string -> As_project.t -> t
+  (** Create an `.install` file. *)
 
-let create ?dir fmt =
-  ksprintf (fun cmd ->
-      Some { dir; cmd }
-    ) fmt
+  val write: ?dir:string -> t -> unit
+  (** Write an `.install` file. *)
 
-let run = function
-  | None -> ()
-  | Some s ->
-    begin match s.dir with
-      | None   -> Shell.exec "%s" s.cmd
-      | Some d -> Shell.in_dir d (fun () -> Shell.exec "%s" s.cmd)
-    end
-
-let actions = function
-  | None   -> []
-  | Some s ->
-    match s.dir with
-    | None   -> [s.cmd]
-    | Some d -> [
-        sprintf "mkdir -p %s" d;
-        sprintf "cd %s && %s" d s.cmd
-      ]
+end

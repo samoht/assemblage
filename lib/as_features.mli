@@ -25,15 +25,15 @@
     toolchain is available or not. *)
 
 type t
-(** Feature values. *)
+(** Formula of features. *)
 
-type formula
-(** Formulaes of features. *)
+type elt
+(** A single feature. *)
 
-type cnf = [ `Conflict | `And of [ `P of t | `N of t ] list ]
+type cnf = [ `Conflict | `And of [ `P of elt | `N of elt ] list ]
 (** Conjonctive Normal Form. *)
 
-module Set: Set.S with type elt = t
+module Set: Set.S with type elt = elt
 (** Set of features. *)
 
 val (++): Set.t -> Set.t -> Set.t
@@ -42,80 +42,80 @@ val (++): Set.t -> Set.t -> Set.t
 val (@): cnf -> cnf -> cnf
 (** Concatenation of CNF formulaes. *)
 
-val atoms: formula -> Set.t
+val atoms: t -> Set.t
 (** [atoms f] is the list of atoms appearing in the formula [f]. *)
 
-val cnf: formula -> cnf
+val cnf: t -> cnf
 (** [normalize f] transform [f] in a conjonctive-normal form. *)
 
-val eval: (t * bool) list -> formula -> bool
+val eval: (elt * bool) list -> t -> bool
 (** [eval tbl f] evaluates the formula [f] given the truth table
     [tbl]. If a feature [t] does not appear in [tbl] is is
     considered as associated to [false]. *)
 
-val true_: formula
+val true_: t
 (** The formula which is always [true]. *)
 
-val false_: formula
+val false_: t
 (** The formula which is always [false]. *)
 
-val atom: t -> formula
+val atom: elt -> t
 (** [atom t] is the formula containing the singleton feature [t]. *)
 
-val not: formula -> formula
+val not_: t -> t
 (** [not f] negates the formula [f]. *)
 
-val (&&): formula -> formula -> formula
+val (&&&): t -> t -> t
 (** [f1 && f2] is the conjonction of [f1] and [f2]. *)
 
-val (||): formula -> formula -> formula
+val (|||): t -> t -> t
 (** [f1 || f2] is the disjonction of [f1] and [f2]. *)
 
-val name: t -> string
+val name: elt -> string
 (** The feature name. *)
 
-val default: t -> bool
+val default: elt -> bool
 (** Default value. *)
 
-val with_default: t -> bool -> t
+val with_default: elt -> bool -> elt
 (** Return the feature with an other default. *)
 
-val create: doc:string -> default:bool -> string -> t
+val create: doc:string -> default:bool -> string -> elt
 (** Create a feature. *)
 
-val parse: t -> (t * bool) Cmdliner.Term.t
+val parse: elt -> (elt * bool) Cmdliner.Term.t
 (** A cmldiner term which parses a feature. *)
 
-val native: formula
-val native_t: t
+val native: t
+val native_elt: elt
 (** Is native-code enabled ? *)
 
-val native_dynlink: formula
-val native_dynlink_t: t
+val native_dynlink: t
+val native_dynlink_elt: elt
 (** Is dynlink for native code enabled ? *)
 
-val annot: formula
-val annot_t: t
+val annot: t
+val annot_elt: elt
 (** Generate annot files ? *)
 
-val debug: formula
-val debug_t: t
+val debug: t
+val debug_elt: elt
 (** Generate debug symbols ? *)
 
-val warn_error: formula
-val warn_error_t: t
+val warn_error: t
+val warn_error_elt: elt
 (** Consider warning as error. *)
 
-val test: formula
-val test_t: t
+val test: t
+val test_elt: elt
 (** Compile and run tests. *)
 
-val doc: formula
-val doc_t: t
+val doc: t
+val doc_elt: elt
 (** Build the documentation. *)
 
-val js: formula
-val js_t: t
+val js: t
+val js_elt: elt
 (** Build the javascript objects. *)
 
 val base: Set.t

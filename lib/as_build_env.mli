@@ -24,7 +24,7 @@ type t
 
 val create:
 
-  ?features:(Feature.t * bool) list ->
+  ?features:(As_features.elt * bool) list ->
   (** Project features. *)
 
   ?comp: string list ->
@@ -64,18 +64,18 @@ val create:
 val default: t
 (** Default project configuration. *)
 
-val parse: ?doc:string -> ?man:string list -> string -> Feature.Set.t -> t
+val parse: ?doc:string -> ?man:string list -> string -> As_features.Set.t -> t
 (** [parse name features] parse the arguments given on the
     command-line as a configuration value, for the project [name] with
     the possible features [features]. *)
 
-val flags: t -> Flags.t
+val flags: t -> As_flags.t
 (** Return the global comand-line flags. *)
 
 val build_dir: t -> string
 (** Return the directory where build artififacts are generated. *)
 
-val enable: t -> Feature.t list -> bool
+val enable: t -> As_features.elt list -> bool
 (** Check if the given set of flags are all enabled. *)
 
 val includes: t -> string list
@@ -85,5 +85,5 @@ val auto_load: t -> bool
 (** Automatically include $(shell ocamlfind query tools) before
     loading `configure.ml'. *)
 
-val features: t -> (Feature.t * bool) list
+val features: t -> (As_features.elt * bool) list
 (** Return a list of feature with the values they are set to. *)

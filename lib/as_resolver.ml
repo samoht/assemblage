@@ -14,17 +14,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Manage OPAM files. *)
+module Flags = As_flags
 
-module Install: sig
+let (/) = Filename.concat
 
-  (** OPAM install files. *)
-  type t
+type t = {
+  build_dir: string;
+  pkgs     : string list -> Flags.t;
+}
 
-  val of_project: ?meta:bool -> build_dir:string -> Project.t -> t
-  (** Create an `.install` file. *)
+let create ~build_dir ~pkgs =
+  { build_dir; pkgs }
 
-  val write: ?dir:string -> t -> unit
-  (** Write an `.install` file. *)
+let build_dir t dir = t.build_dir / dir
 
-end
+let pkgs t = t.pkgs

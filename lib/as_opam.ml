@@ -14,8 +14,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Project
 open Printf
+
+module Project = As_project
+module Features = As_features
+module Resolver = As_resolver
+module Flags = As_flags
+module OCaml = As_OCaml
 
 let (/) = Filename.concat
 
@@ -27,15 +32,15 @@ module Install = struct
   }
 
   let opt f =
-    if f = Feature.true_ then ""
+    if f = Features.true_ then ""
     else "?"
 
   let of_project ?(meta=true) ~build_dir t =
     let name = Project.name t in
-    let components = components t in
-    let libs = Component.(filter lib components) in
+    let components = Project.components t in
+    let libs = Project.Component.(filter lib components) in
     let bins =
-      List.filter Project.Bin.install Component.(filter bin components) in
+      List.filter Project.Bin.install Project.Component.(filter bin components) in
     let buf = Buffer.create 1024 in
     let resolver =
       Resolver.create
@@ -45,7 +50,7 @@ module Install = struct
       bprintf buf "lib: [\n";
       if meta then bprintf buf "  \"META\"\n";
       List.iter (fun l ->
-          let gens = Lib.generated_files l resolver in
+          let gens = Project.Lib.generated_files l resolver in
           List.iter (fun (flags, files) ->
               List.iter (fun file ->
                   bprintf buf "  \"%s%s\"\n" (opt flags) file
@@ -56,11 +61,11 @@ module Install = struct
     if bins <> [] then (
       bprintf buf "bin: [\n";
       List.iter (fun b ->
-          let gens = Bin.generated_files b resolver in
+          let gens = Project.Bin.generated_files b resolver in
           List.iter (fun (flags, files) ->
               List.iter (fun file ->
                   bprintf buf "  \"%s%s\" {\"%s\"}\n"
-                    (opt flags) file (Bin.name b)
+                    (opt flags) file (Project.Bin.name b)
                 ) files;
             ) gens;
         ) bins;
@@ -84,13 +89,13 @@ module Install = struct
       mk "index_values.html";
       mk "style.css";
       List.iter (fun l ->
-          let units = Lib.compilation_units l in
+          let units = Project.Lib.compilation_units l in
           List.iter (fun u ->
-              let name = String.capitalize (CU.name u) in
+              let name = String.capitalize (Project.CU.name u) in
               mk "%s.html" name;
               mk "type_%s.html" name;
               let modules =
-                if CU.generated u then []
+                if Project.CU.generated u then []
                 else OCaml.modules ~build_dir u in
               List.iter (fun m ->
                   mk "%s.%s.html" name m

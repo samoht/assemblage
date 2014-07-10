@@ -14,6 +14,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+module Shell = As_shell
+
 let read file =
   if Sys.file_exists file then
     let ic = open_in_bin file in

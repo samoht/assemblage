@@ -14,16 +14,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let (/) = Filename.concat
+(** Compiler-libs helpers. *)
 
-type t = {
-  build_dir: string;
-  pkgs     : string list -> Flags.t;
-}
+val modules: build_dir:string -> As_project.CU.t -> string list
+(** Return the list of submodules defined in the given compilation unit. *)
 
-let create ~build_dir ~pkgs =
-  { build_dir; pkgs }
-
-let build_dir t dir = t.build_dir / dir
-
-let pkgs t = t.pkgs
+val depends: ?flags:As_flags.t -> ?deps:As_project.Component.t list -> As_resolver.t ->
+  string -> As_project.CU.t list
+(** [depends dir] computes the dependency graph of the compilation
+    units in the directory [dir]. *)

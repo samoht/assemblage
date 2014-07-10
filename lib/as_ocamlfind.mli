@@ -36,7 +36,7 @@ val query:
     directly. Otherwise, return the ocamlfind to run to get the
     expected result. *)
 
-val resolver: mode -> string -> Resolver.t
+val resolver: mode -> string -> As_resolver.t
 (** Resolve command-line arguments for ocamlfind packages. *)
 
 module META: sig
@@ -45,7 +45,7 @@ module META: sig
 
   type t
 
-  val of_project: Project.t -> t
+  val of_project: As_project.t -> t
   (** Create a META file. *)
 
   val write: ?dir:string -> t -> unit

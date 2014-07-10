@@ -15,7 +15,11 @@
  *)
 
 open Printf
-open Project
+
+module Project = As_project
+module Shell = As_shell
+module Flags = As_flags
+module Resolver = As_resolver
 
 let (/) = Filename.concat
 
@@ -125,26 +129,27 @@ module META = struct
   type t = string
 
   let of_project t =
-    let libs = Component.(filter lib (components t)) in
+    let libs = Project.Component.(filter lib) (Project.components t) in
     let version = Project.version t in
     let buf = Buffer.create 1024 in
     let one lib =
       let requires =
-        Lib.deps lib
-        |> Component.closure
-        |> Component.(filter pkg)
+        Project.Lib.deps lib
+        |> Project.Component.closure
+        |> Project.Component.(filter pkg)
         |> String.concat " " in
+      let name = Project.Lib.name lib in
       bprintf buf "version  = \"%s\"\n" version;
       bprintf buf "requires = \"%s\"\n" requires;
-      bprintf buf "archive(byte) = \"%s.cma\"\n" (Lib.name lib);
-      bprintf buf "archive(byte, plugin) = \"%s.cma\"\n" (Lib.name lib);
-      bprintf buf "archive(native) = \"%s.cmxa\"\n" (Lib.name lib);
-      bprintf buf "archive(native, plugin) = \"%s.cmxs\"\n" (Lib.name lib);
-      bprintf buf "exist_if = \"%s.cma\"\n" (Lib.name lib) in
+      bprintf buf "archive(byte) = \"%s.cma\"\n" name;
+      bprintf buf "archive(byte, plugin) = \"%s.cma\"\n" name;
+      bprintf buf "archive(native) = \"%s.cmxa\"\n" name;
+      bprintf buf "archive(native, plugin) = \"%s.cmxs\"\n" name;
+      bprintf buf "exist_if = \"%s.cma\"\n" name in
     List.iteri (fun i lib ->
         if i = 0 then one lib
         else (
-          bprintf buf "package \"%s\" (" (Lib.name lib);
+          bprintf buf "package \"%s\" (" (Project.Lib.name lib);
           one lib;
           bprintf buf ")\n"
         )

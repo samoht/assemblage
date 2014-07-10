@@ -14,14 +14,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Compiler-libs helpers. *)
+module Shell = As_shell
+open Printf
 
-open Project
+type shell = {
+  dir: string option;
+  cmd: string;
+}
 
-val modules: build_dir:string -> CU.t -> string list
-(** Return the list of submodules defined in the given compilation unit. *)
+type t = shell option
 
-val depends: ?flags:Flags.t -> ?deps:Component.t list -> Resolver.t ->
-  string -> CU.t list
-(** [depends dir] computes the dependency graph of the compilation
-    units in the directory [dir]. *)
+let none = None
+
+let create ?dir fmt =
+  ksprintf (fun cmd ->
+      Some { dir; cmd }
+    ) fmt
+
+let run = function
+  | None -> ()
+  | Some s ->
+    begin match s.dir with
+      | None   -> Shell.exec "%s" s.cmd
+      | Some d -> Shell.in_dir d (fun () -> Shell.exec "%s" s.cmd)
+    end
+
+let actions = function
+  | None   -> []
+  | Some s ->
+    match s.dir with
+    | None   -> [s.cmd]
+    | Some d -> [
+        sprintf "mkdir -p %s" d;
+        sprintf "cd %s && %s" d s.cmd
+      ]
