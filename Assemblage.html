@@ -45,7 +45,7 @@ The Assemblage Library.
     projects.
 <p>
 
-    Describing a project is eventually leads to describe its build
+    Describing a project eventually leads to describe its build
     artifacts. The exact mapping betweem project elements and those
     build artifacts depends on the presence or absence of
     <a href="Assemblage.html#TYPEfeatures">features</a>. Examples of such features are weather to
@@ -69,7 +69,7 @@ The Assemblage Library.
 
 <pre><span id="TYPEfeatures"><span class="keyword">type</span> <code class="type"></code>features</span> = <code class="type"><a href="Feature.html#TYPEformula">Feature.formula</a></code> </pre>
 <div class="info ">
-The type of user-defined or system-dependent features.<br>
+The type for user-defined or system-dependent features.<br>
 </div>
 
 <br>
@@ -77,7 +77,7 @@ The type of user-defined or system-dependent features.<br>
 
 <pre><span id="TYPEflags"><span class="keyword">type</span> <code class="type"></code>flags</span> = <code class="type"><a href="Flags.html#TYPEt">Flags.t</a></code> </pre>
 <div class="info ">
-The type of command-line arguments.<br>
+The type for command-line arguments.<br>
 </div>
 
 <br>
@@ -85,43 +85,43 @@ The type of command-line arguments.<br>
 
 <pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> = <code class="type"><a href="Project.html#TYPEt">Project.t</a></code> </pre>
 <div class="info ">
-The type for descriptions of full OCaml projects.<br>
+The type for OCaml projects descriptions.<br>
 </div>
 
 
 <pre><span id="TYPEcu"><span class="keyword">type</span> <code class="type"></code>cu</span> = <code class="type">Project.CU.t</code> </pre>
 <div class="info ">
-The type for description of compilation units.<br>
+The type for compilation unit descriptions.<br>
 </div>
 
 
 <pre><span id="TYPElib"><span class="keyword">type</span> <code class="type"></code>lib</span> = <code class="type">Project.Lib.t</code> </pre>
 <div class="info ">
-The type for description of of libraries.<br>
+The type for library descriptions.<br>
 </div>
 
 
 <pre><span id="TYPEbin"><span class="keyword">type</span> <code class="type"></code>bin</span> = <code class="type">Project.Bin.t</code> </pre>
 <div class="info ">
-The type for description of binaries.<br>
+The type for binary executable descriptions.<br>
 </div>
 
 
 <pre><span id="TYPEtest"><span class="keyword">type</span> <code class="type"></code>test</span> = <code class="type">Project.Test.t</code> </pre>
 <div class="info ">
-The type for description of tests.<br>
+The type for test descriptions.<br>
 </div>
 
 
 <pre><span id="TYPEjs"><span class="keyword">type</span> <code class="type"></code>js</span> = <code class="type">Project.JS.t</code> </pre>
 <div class="info ">
-The type for description of <code class="code">js_of_ocaml</code> artifacts.<br>
+The type for <code class="code">js_of_ocaml</code> artifact descriptions.<br>
 </div>
 
 
 <pre><span id="TYPEc"><span class="keyword">type</span> <code class="type"></code>c</span> = <code class="type">Project.C.t</code> </pre>
 <div class="info ">
-The type for description of C source files.<br>
+The type for C source file descriptions.<br>
 </div>
 
 
@@ -134,23 +134,22 @@ The type for generated OCaml source code.<br>
 <pre><span id="TYPEcomponent"><span class="keyword">type</span> <code class="type"></code>component</span> = <code class="type">[ `Bin of <a href="Assemblage.html#TYPEbin">bin</a><br>       | `C of <a href="Assemblage.html#TYPEc">c</a><br>       | `CU of <a href="Assemblage.html#TYPEcu">cu</a><br>       | `Gen of <a href="Assemblage.html#TYPEgen">gen</a><br>       | `JS of <a href="Assemblage.html#TYPEjs">js</a><br>       | `Lib of <a href="Assemblage.html#TYPElib">lib</a><br>       | `Pkg of string<br>       | `Pkg_pp of string<br>       | `Pp of <a href="Assemblage.html#TYPElib">lib</a><br>       | `Test of <a href="Assemblage.html#TYPEtest">test</a> ]</code> </pre>
 <div class="info ">
 The type for all the possible component descriptions. A <code class="code"><span class="keywordsign">`</span><span class="constructor">CU</span> cu</code>
-    is a local compilation unit, <code class="code"><span class="keywordsign">`</span><span class="constructor">Lib</span> l</code> are local libraries, <code class="code"><span class="keywordsign">`</span><span class="constructor">Pp</span> p</code>
-    are local pre-processors and <code class="code"><span class="keywordsign">`</span><span class="constructor">Bin</span></code> are local binaries.
+    is a local compilation unit, <code class="code"><span class="keywordsign">`</span><span class="constructor">Lib</span> l</code> is a local library, <code class="code"><span class="keywordsign">`</span><span class="constructor">Pp</span> p</code>
+    is a local pre-processors and <code class="code"><span class="keywordsign">`</span><span class="constructor">Bin</span></code> is local biny.
 <p>
 
-    <code class="code"><span class="keywordsign">`</span><span class="constructor">Pkg</span> p</code> are globally installed packages and <code class="code"><span class="keywordsign">`</span><span class="constructor">Pkg_pp</span></code> are
+    <code class="code"><span class="keywordsign">`</span><span class="constructor">Pkg</span> p</code> is a globally installed packages and <code class="code"><span class="keywordsign">`</span><span class="constructor">Pkg_pp</span></code> is a
     globally installed pre-processor packages, both usually managed by
-    <i>ocamlfind</i>,<br>
+    <i>ocamlfind</i>.<br>
 </div>
 
 <br>
 <h2 id="2_TheProjectAPI">The Project API</h2><br>
 
 <pre><span id="VALcu"><span class="keyword">val</span> cu</span> : <code class="type">?dir:string -><br>       <a href="Assemblage.html#TYPEcomponent">component</a> list -> string -> [> `CU of <a href="Assemblage.html#TYPEcu">cu</a> ]</code></pre><div class="info ">
-<code class="code">cu ~lib ~dir deps name</code> is the compilation unit in the bag of
-    compilation units <code class="code">bag</code>, located in the directory <code class="code">dir</code>, which the
-    dependencies <code class="code">deps</code> and the cname <code class="code">name</code>. The name is the same as
-    the filename, without its extension.<br>
+<code class="code">cu ~dir deps name</code> is the compilation unit located in the
+    directory <code class="code">dir</code> with dependencies <code class="code">deps</code> and the cname <code class="code">name</code>. The
+    name is the same as the filename, without its extension.<br>
 </div>
 
 <pre><span id="VALocamldep"><span class="keyword">val</span> ocamldep</span> : <code class="type">dir:string -><br>       ?flags:<a href="Assemblage.html#TYPEflags">flags</a> -><br>       <a href="Assemblage.html#TYPEcomponent">component</a> list -> [> `CU of <a href="Assemblage.html#TYPEcu">cu</a> ] list</code></pre><div class="info ">
