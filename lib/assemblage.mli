@@ -21,7 +21,7 @@
     {{!tools}tools} to configure, manage, install and use OCaml
     projects.
 
-    Describing a project is eventually leads to describe its build
+    Describing a project eventually leads to describe its build
     artifacts. The exact mapping betweem project elements and those
     build artifacts depends on the presence or absence of
     {{!features}features}. Examples of such features are weather to
@@ -40,35 +40,35 @@
 (** {1:features Features} *)
 
 type features = Feature.formula
-(** The type of user-defined or system-dependent features. *)
+(** The type for user-defined or system-dependent features. *)
 
 (** {1:flags Flags} *)
 
 type flags = Flags.t
-(** The type of command-line arguments. *)
+(** The type for command-line arguments. *)
 
 (** {1:project Project} *)
 
 type t = Project.t
-(** The type for descriptions of full OCaml projects. *)
+(** The type for OCaml projects descriptions. *)
 
 type cu = Project.CU.t
-(** The type for description of compilation units. *)
+(** The type for compilation unit descriptions. *)
 
 type lib = Project.Lib.t
-(** The type for description of of libraries. *)
+(** The type for library descriptions. *)
 
 type bin = Project.Bin.t
-(** The type for description of binaries. *)
+(** The type for binary executable descriptions. *)
 
 type test = Project.Test.t
-(** The type for description of tests. *)
+(** The type for test descriptions. *)
 
 type js = Project.JS.t
-(** The type for description of [js_of_ocaml] artifacts. *)
+(** The type for [js_of_ocaml] artifact descriptions. *)
 
 type c = Project.C.t
-(** The type for description of C source files. *)
+(** The type for C source file descriptions. *)
 
 type gen = Project.Gen.t
 (** The type for generated OCaml source code. *)
@@ -85,20 +85,19 @@ type component =
   | `Test of test
   | `Gen of gen ]
 (** The type for all the possible component descriptions. A [`CU cu]
-    is a local compilation unit, [`Lib l] are local libraries, [`Pp p]
-    are local pre-processors and [`Bin] are local binaries.
+    is a local compilation unit, [`Lib l] is a local library, [`Pp p]
+    is a local pre-processors and [`Bin] is local biny.
 
-    [`Pkg p] are globally installed packages and [`Pkg_pp] are
+    [`Pkg p] is a globally installed packages and [`Pkg_pp] is a
     globally installed pre-processor packages, both usually managed by
-    {i ocamlfind}, *)
+    {i ocamlfind}. *)
 
 (** {2 The Project API} *)
 
 val cu: ?dir:string -> component list -> string -> [> `CU of cu]
-(** [cu ~lib ~dir deps name] is the compilation unit in the bag of
-    compilation units [bag], located in the directory [dir], which the
-    dependencies [deps] and the cname [name]. The name is the same as
-    the filename, without its extension. *)
+(** [cu ~dir deps name] is the compilation unit located in the
+    directory [dir] with dependencies [deps] and the cname [name]. The
+    name is the same as the filename, without its extension. *)
 
 val ocamldep: dir:string -> ?flags:flags -> component list -> [> `CU of cu] list
 (** [ocamldep ~dir] is the list of compilation units in the given
