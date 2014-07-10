@@ -17,4 +17,4 @@
 open Assemblage
 
 let () =
-  process "configure.ml" (configure `Make)
+  process "assemble.ml" (configure `Make)

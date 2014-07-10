@@ -305,7 +305,7 @@ type tool = t -> As_build_env.t -> unit
 
 val process: ?file:string -> string -> tool -> unit
 (** [process ~file name fn] reads and processes the OCaml [file] in a
-    top-level environment (the default is [configure.ml]), for the
+    top-level environment (the default is [assemble.ml]), for the
     project called [name], and apply [fn] to the projects registered
     as side-effects. *)
 

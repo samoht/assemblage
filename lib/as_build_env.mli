@@ -50,7 +50,7 @@ val create:
   (** Addition flags passed to the pre-preprocessor. *)
 
   ?includes: string list ->
-  (** List of directories to include when loading `configure.ml'. *)
+  (** List of directories to include when loading `assemble.ml'. *)
 
   ?auto_load: bool ->
   (** Automatically include $(ocamlfind query tools). *)
@@ -79,11 +79,11 @@ val enable: t -> As_features.elt list -> bool
 (** Check if the given set of flags are all enabled. *)
 
 val includes: t -> string list
-(** Return the list of directories to include when loading `configure.ml'. *)
+(** Return the list of directories to include when loading `assemble.ml'. *)
 
 val auto_load: t -> bool
 (** Automatically include $(shell ocamlfind query tools) before
-    loading `configure.ml'. *)
+    loading `assemble.ml'. *)
 
 val features: t -> (As_features.elt * bool) list
 (** Return a list of feature with the values they are set to. *)
