@@ -90,6 +90,9 @@ module Features: sig
   val js: t
   (** Build the javascript objects? *)
 
+  val full_doc: t
+  (** Build the full documentation (ignore [doc_public])? *)
+
 end
 
 (** {1:flags Flags} *)
