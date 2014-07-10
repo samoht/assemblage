@@ -159,6 +159,10 @@ end
 
 (** {1:project Project} *)
 
+(** A typical project contains the descriptions of multiple
+    components, such as libraries, binaries, tests, ... forming a
+    complex DAG of inter-related component descriptions. *)
+
 type t
 (** The type for OCaml projects descriptions. *)
 
