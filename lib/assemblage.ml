@@ -46,12 +46,12 @@ type test = Project.Test.t
 let projects () =
   !project_list
 
-let create ?flags ?doc_css ?doc_intro ?doc_dir ?version components name =
+let create ?flags ?doc_css ?doc_intro ?doc_dir ?version name components =
   let t =
     Project.create ?flags ?doc_css ?doc_intro ?doc_dir ?version components name in
   project_list := t :: !project_list
 
-let cu ?dir deps name =
+let cu ?dir name deps =
   let u = Project.CU.create ?dir ~deps name in
   `CU u
 
@@ -60,7 +60,7 @@ let ocamldep ~dir ?flags deps =
   let cus = OCaml.depends ?flags ~deps resolver dir in
   List.map (fun cu -> `CU cu) cus
 
-let generated ?action deps f name =
+let generated ?action name deps f =
   let g = Project.Gen.create ~deps ?action f name in
   `Gen g
 
@@ -81,18 +81,18 @@ let sorted_cus cus =
   List.map (function `CU cu -> cu | _ -> assert false) cus
 
 let lib ?available ?(flags=Flags.empty) ?pack ?(deps=nil) ?(c=[])
-    (cus:[`CU of cu] list) name =
+    name (cus:[`CU of cu] list) =
   let cus = sorted_cus cus in
   let c = List.map (function `C c -> c) c in
   let l = Project.Lib.create ?available ~flags ?pack ~deps ~c cus name in
   `Lib l
 
-let bin ?byte_only ?link_all ?install ?(deps=nil) cus name =
+let bin ?byte_only ?link_all ?install ?(deps=nil) name cus =
   let cus = sorted_cus cus in
   let b = Project.Bin.create ?byte_only ?link_all ?install ~deps cus name in
   `Bin b
 
-let c ?dir ?(link_flags=[]) deps libs name =
+let c ?dir ?(link_flags=[]) name deps libs =
   let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
   let c = Project.C.create ?dir ~link_flags ~deps name in
   `C c
@@ -105,7 +105,7 @@ let pkg x = `Pkg x
 
 let pkg_pp x = `Pkg_pp x
 
-let test ?dir deps commands name =
+let test ?dir name deps commands =
   `Test (Project.Test.create ?dir ~deps commands name)
 
 type test_args = (component -> string) -> string list
@@ -120,10 +120,9 @@ let test_shell fmt =
   ksprintf (fun str -> `Shell str) fmt
 
 (* Ctypes stub-generation *)
-
 let (/) = Filename.concat
 
-let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) deps name =
+let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
 
   (* 1. compile the bindings. *)
   let deps = `Pkg "ctypes.stubs" :: deps in
@@ -148,7 +147,7 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) deps name =
          "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
          headers ml_stubs c_stubs library name
     in
-    let ml = generated ~action [] [`ML] name_generator in
+    let ml = generated name_generator ~action [] [`ML] in
     let comp = Project.CU.create ~deps:[ml; `CU bindings] name_generator in
     let bin = Project.Bin.create ~install:false [bindings; comp] name_generator in
     `Bin bin in
@@ -156,17 +155,17 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) deps name =
   (* 3. Generate and compile the stubs. *)
   let ml_stubs =
     let action r = Action.create ~dir:(bin_dir r) "./%s.byte" name_generator in
-    let ml = generated ~action [generator] [`C;`ML] name_stubs in
-    cu [ml] name_stubs in
+    let ml = generated name_stubs ~action [generator] [`C;`ML] in
+    cu name_stubs [ml] in
 
   let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
   let c_stubs =
     let c = Project.C.create ~generated:true ~deps:[generator] ~link_flags name_stubs in
     `C c in
   let flags = Flags.(cclib link_flags @@@ stub name_stubs) in
-  let ml = generated [generator] [`ML] name in
-  let main = cu [`CU bindings; ml_stubs; c_stubs; ml] name in
-  lib ~flags ?available ~c:[c_stubs] [`CU bindings; ml_stubs; main] name
+  let ml = generated name [generator] [`ML] in
+  let main = cu name [`CU bindings; ml_stubs; c_stubs; ml] in
+  lib name ~flags ?available ~c:[c_stubs] [`CU bindings; ml_stubs; main]
 
 type tool = t -> Build_env.t -> unit
 

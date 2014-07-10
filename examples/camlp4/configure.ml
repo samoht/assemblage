@@ -1,15 +1,15 @@
 open Assemblage
 
-let t = cu [
+let t = cu "t" [
     pkg_pp "sexplib.syntax";
     pkg_pp "comparelib.syntax";
     pkg    "sexplib";
     pkg    "comparelib";
     pkg    "xmlm";
-  ] "t"
+  ]
 
 let lib =
-  lib [t] "mylib"
+  lib "mylib" [t]
 
 let () =
-  create [lib] "camlp4o"
+  create "camlp4o" [lib]

@@ -208,25 +208,26 @@ type component =
 
 (** {2 The Project API} *)
 
-val cu: ?dir:string -> component list -> string -> [> `CU of cu]
-(** [cu ~dir deps name] is the compilation unit located in the
+val cu: ?dir:string -> string -> component list -> [> `CU of cu]
+(** [cu name ~dir deps] is the compilation unit located in the
     directory [dir] with dependencies [deps] and the cname [name]. The
     name is the same as the filename, without its extension. *)
 
 val ocamldep: dir:string -> ?flags:Flags.t -> component list -> [> `CU of cu] list
-(** [ocamldep ~dir] is the list of compilation units in the given
-    directory, obtained by running [ocamldep] with the given flags. *)
+(** [ocamldep ~dir deps] is the list of compilation units in the given
+    directory, obtained by running [ocamldep] with the given flags and
+    dependencies. *)
 
 val generated: ?action:(As_resolver.t -> As_action.t) ->
-  component list -> [`C|`ML|`MLI] list -> string -> [> `Gen of gen]
+  string -> component list -> [`C|`ML|`MLI] list -> [> `Gen of gen]
 (** Generated OCaml source file(s). The custom action get the name of
     the build dir as argument. *)
 
 val c:
   ?dir:string ->
   ?link_flags:string list ->
-  component list -> string list -> string -> [> `C of c]
-(** [c deps libs name] is the C file [name.c], which need the C
+  string -> component list -> string list -> [> `C of c]
+(** [c name deps libs] is the C file [name.c], which need the C
     libraries [libs] to be compiled -- and it has the dependencies
     [deps]. *)
 
@@ -236,8 +237,8 @@ val cstubs:
   ?headers:string list ->
   ?cflags:string list ->
   ?clibs:string list ->
-  component list -> string -> [> `Lib of lib]
-(** [stubs deps name] is the C stub generations, using Ctypes, of the
+  string -> component list -> [> `Lib of lib]
+(** [stubs name deps] is the C stub generations, using Ctypes, of the
     compilation unit [name]. *)
 
 val lib:
@@ -246,8 +247,8 @@ val lib:
   ?pack:bool ->
   ?deps:(string -> component list) ->
   ?c:[`C of c] list ->
-  [`CU of cu] list -> string -> [> `Lib of lib]
-(** [lib units name] is the library [name] composed by the compilation
+  string -> [`CU of cu] list -> [> `Lib of lib]
+(** [lib name units] is the library [name] composed by the compilation
     units [cus]. If [lib] is set, use [ocamldep] to approximate the
     compilation units and their dependecies in the given directory. *)
 
@@ -256,8 +257,8 @@ val bin:
   ?link_all:bool ->
   ?install:bool ->
   ?deps:(string -> component list) ->
-  [`CU of cu] list -> string -> [> `Bin of bin]
-(** [bin units name] is the binary [name] obtained by compiling
+  string -> [`CU of cu] list -> [> `Bin of bin]
+(** [bin name units] is the binary [name] obtained by compiling
     the compilation units [units], with the dependencies [deps]. By
     default, the source files are located into {i bin/} (this is
     controled by the value of [dir]). *)
@@ -285,15 +286,15 @@ val test_shell: ('a, unit, string, test_command) format4 -> 'a
 (** A test which runs an arbitrary shell command. *)
 
 val test: ?dir:string ->
-  component list -> test_command list -> string -> [> `Test of test]
+  string -> component list -> test_command list -> [> `Test of test]
 (** Description of a test. *)
 
 val create:
   ?flags:Flags.t ->
   ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
   ?version:string ->
-  component list -> string -> unit
-(** [create deps name] registers the project named [name], defining
+  string -> component list -> unit
+(** [create name deps] registers the project named [name], defining
     the libraries, binaries and tests defined by the transitive
     closure of objects in [deps]. *)
 

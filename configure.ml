@@ -10,19 +10,20 @@ let optcomp  = pkg_pp "optcomp"
 (* Library *)
 
 let lib =
-  lib (ocamldep ~dir:"lib" [cmdliner; graph; compiler; optcomp]) "assemblage"
+  lib "assemblage"
+    (ocamldep ~dir:"lib" [cmdliner; graph; compiler; optcomp])
 
 let configure =
-  let configure = cu ~dir:"bin" [lib] "configure" in
-  bin ~link_all:true ~byte_only:true [configure] "configure.ml"
+  let configure = cu "configure" ~dir:"bin" [lib] in
+  bin "configure.ml" ~link_all:true ~byte_only:true [configure]
 
 let describe =
-  let describe = cu ~dir:"bin" [lib] "describe" in
-  bin ~link_all:true ~byte_only:true [describe] "describe.ml"
+  let describe = cu "describe" ~dir:"bin" [lib]  in
+  bin "describe.ml" ~link_all:true ~byte_only:true [describe]
 
 let ctypes_gen =
-  let ctypes_gen = cu ~dir:"bin" [lib] "ctypes_gen" in
-  bin ~byte_only:true [ctypes_gen] "ctypes-gen"
+  let ctypes_gen = cu "ctypes_gen" ~dir:"bin" [lib] in
+  bin "ctypes-gen" ~byte_only:true [ctypes_gen]
 
 (* Tests *)
 
@@ -31,12 +32,12 @@ let mk_test name =
   let args build_dir = [
     "--disable-auto-load"; "-I"; build_dir lib;
   ] in
-  test ~dir [] [
+  test name ~dir [] [
     test_bin describe ~args ();
     test_bin configure ~args ();
     test_shell "make";
     test_shell "make distclean";
-  ] name
+  ]
 
 let camlp4     = mk_test "camlp4"
 let multi_libs = mk_test "multi-libs"
@@ -44,6 +45,5 @@ let multi_libs = mk_test "multi-libs"
 (* The project *)
 
 let () =
-  create
+  create "assemblage"
     [lib; configure; describe; ctypes_gen; camlp4; multi_libs]
-    "assemblage"

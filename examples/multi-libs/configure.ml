@@ -1,12 +1,12 @@
 open Assemblage
 
 let a =
-  lib [cu ~dir:"a" [pkg "ezjsonm"] "a"] "lib1"
+  lib "lib1" [cu "a" ~dir:"a" [pkg "ezjsonm"]]
 
 let b =
-  let b = cu ~dir:"b" [a] "b" in
-  let c = cu ~dir:"b" [b] "c" in
-  lib [b; c] "lib2"
+  let b = cu "b" ~dir:"b" [a] in
+  let c = cu "c" ~dir:"b" [b] in
+  lib "lib2" [b; c]
 
 let () =
-  create [a; b] "multi-libs"
+  create "multi-libs" [a; b]
