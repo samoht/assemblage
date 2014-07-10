@@ -216,7 +216,7 @@ val cu: ?dir:string -> string -> component list -> [> `CU of cu]
     directory [dir] with dependencies [deps] and the cname [name]. The
     name is the same as the filename, without its extension. *)
 
-val ocamldep: dir:string -> ?flags:Flags.t -> component list -> [> `CU of cu] list
+val ocamldep: dir:string -> ?flags:Flags.t -> (string -> component list) -> [> `CU of cu] list
 (** [ocamldep ~dir deps] is the list of compilation units in the given
     directory, obtained by running [ocamldep] with the given flags and
     dependencies. *)

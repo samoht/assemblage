@@ -211,7 +211,7 @@ module rec Component: sig
 
   val link_native: t list -> As_resolver.t -> CU.t list -> string list
 
-  module Set: Set.S with type elt = t
+  module Set: Set with type elt = t
   (** Set of components. *)
 
   module Graph: Graph with type V.t = t

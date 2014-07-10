@@ -171,28 +171,36 @@ let split str char =
 
 (* XXX: ugly hack as tools/{depend.ml,ocamldep.ml} are not in
    `compiler-libs' *)
-let depends ?flags ?(deps=[]) resolver dir =
-  let pp = match Project.Component.pp_byte deps resolver with
+let depends ?flags ?(deps=fun _ -> []) resolver dir =
+  let files =
+    Array.to_list (Sys.readdir dir) |>
+    List.filter (fun file ->
+        Filename.check_suffix file ".ml" || Filename.check_suffix file ".mli")
+  in
+  let paths = List.map (fun file -> dir / file) files in
+  let names = List.map Filename.chop_extension files in
+  let all_deps =
+    List.fold_left (fun acc name ->
+        deps name
+        |> Project.Component.Set.of_list
+        |> Project.Component.Set.union acc
+      ) Project.Component.Set.empty names
+    |> Project.Component.Set.elements
+  in
+  let pp = match Project.Component.pp_byte all_deps resolver with
     | [] -> ""
     | pp ->
       let pp = String.concat " " pp in
       sprintf "-pp \"camlp4o %s\"" pp in
-  let incl = match Project.Component.comp_byte deps resolver (fun _ -> dir) with
+  let incl = match Project.Component.comp_byte all_deps resolver (fun _ -> dir) with
     | [] -> ""
     | ls -> " " ^ String.concat " " ls in
-  let files = 
-    Array.to_list (Sys.readdir dir) |> 
-    List.filter (fun file ->
-        Filename.check_suffix file ".ml" || Filename.check_suffix file ".mli")
-  in
-  let paths = List.map (fun file -> dir / file) files in 
   let lines =
     Shell.exec_output
       ~verbose:true
       "ocamldep -one-line -modules %s%s %s"
-      pp incl (String.concat " " paths) 
+      pp incl (String.concat " " paths)
   in
-  let names = List.map Filename.chop_extension files in
   let deps_tbl = Hashtbl.create (List.length names) in
   let add_dep line =
     match split line ' ' with
@@ -210,9 +218,9 @@ let depends ?flags ?(deps=[]) resolver dir =
             String.uncapitalize m :: acc
           else
             acc
-        ) [] modules 
+        ) [] modules
       in
-      Hashtbl.add deps_tbl name deps 
+      Hashtbl.add deps_tbl name deps
   in
   List.iter add_dep lines;
   let cus_tbl = Hashtbl.create (List.length names) in
@@ -222,7 +230,7 @@ let depends ?flags ?(deps=[]) resolver dir =
       let local_deps =
         try List.concat (Hashtbl.find_all deps_tbl name)
         with Not_found -> [] in
-      let deps = deps @ List.map (fun x -> `CU (cu x)) local_deps in
+      let deps = deps name @ List.map (fun x -> `CU (cu x)) local_deps in
       let cu = Project.CU.create ?flags ~dir ~deps name in
       Hashtbl.add cus_tbl name cu;
       cu in

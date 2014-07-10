@@ -323,7 +323,9 @@ end = struct
           | _ -> aux acc t
         else (
           Hashtbl.add deps_tbl (id h) 0;
-          let d' = deps h in
+          let d' = List.filter
+              (function `Pkg_pp _ | `Pp _ -> false | _     -> true)
+              (deps h)in
           aux acc (d' @ d)
         )
     in
