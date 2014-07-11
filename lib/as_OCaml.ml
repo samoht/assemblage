@@ -197,7 +197,6 @@ let depends ?flags ?(deps=fun _ -> []) resolver dir =
     | ls -> " " ^ String.concat " " ls in
   let lines =
     Shell.exec_output
-      ~verbose:true
       "ocamldep -one-line -modules %s%s %s"
       pp incl (String.concat " " paths)
   in
