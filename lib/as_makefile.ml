@@ -247,14 +247,14 @@ let native_dynlink_f = Features.(native_dynlink &&& native)
 let native_f = Features.native
 
 let comp_byte   = "comp-byte"
-let comp_opt    = "comp-opt"
+let comp_native = "comp-native"
 let link_byte   = "link-byte"
-let link_opt    = "link-opt"
+let link_native = "link-native"
 let link_shared = "link-shared"
 let pp_byte     = "pp-byte"
-let pp_opt      = "pp-opt"
+let pp_native   = "pp-native"
 let deps_byte   = "deps-byte"
-let deps_opt    = "deps-opt"
+let deps_native = "deps-native"
 let deps_shared = "deps-shared"
 
 module rec U: sig
@@ -288,13 +288,14 @@ end = struct
     Variable.(var =?= `Strings flags)
 
   let pp_byte     = pp   pp_byte   L.pp_byte     B.pp_byte     Flags.pp_byte
-  let pp_native   = pp   pp_opt    L.pp_native   B.pp_native   Flags.pp_native
+  let pp_native   = pp   pp_native L.pp_native   B.pp_native   Flags.pp_native
   let comp_byte   = flag comp_byte L.comp_byte   B.comp_byte   Flags.comp_byte
-  let comp_native = flag comp_opt  L.comp_native B.comp_native Flags.comp_native
+  let comp_native = 
+    flag comp_native L.comp_native B.comp_native Flags.comp_native
 
   let prereqs t = function
     | `Byte   -> Project.CU.id t ^ "." ^ deps_byte
-    | `Native -> Project.CU.id t ^ "." ^ deps_opt
+    | `Native -> Project.CU.id t ^ "." ^ deps_native
 
   let prereqs_var t mode =
     sprintf "$(%s)" (prereqs t mode)
@@ -400,16 +401,16 @@ end = struct
       Variable.(var =?= `Strings flags)
 
   let comp_byte   = flag comp_byte   true  Flags.comp_byte
-  let comp_native = flag comp_opt    true  Flags.comp_native
+  let comp_native = flag comp_native true  Flags.comp_native
   let pp_byte     = flag pp_byte     false Flags.pp_byte
-  let pp_native   = flag pp_opt      false Flags.pp_native
+  let pp_native   = flag pp_native   false Flags.pp_native
   let link_byte   = flag link_byte   true  Flags.link_byte
-  let link_native = flag link_opt    true  Flags.link_native
+  let link_native = flag link_native true  Flags.link_native
   let link_shared = flag link_shared true Flags.link_shared
 
   let prereqs t = function
     | `Byte   -> Project.Lib.id t ^ "." ^ deps_byte
-    | `Native -> Project.Lib.id t ^ "." ^ deps_opt
+    | `Native -> Project.Lib.id t ^ "." ^ deps_native
     | `Shared -> Project.Lib.id t ^ "." ^ deps_shared
 
   let prereqs_var t mode =
@@ -485,16 +486,16 @@ end = struct
     else
       Variable.(var =?= `Strings flags)
 
-  let comp_byte   = flag comp_byte true  Flags.comp_byte
-  let comp_native = flag comp_opt  true  Flags.comp_native
-  let link_byte   = flag link_byte true  Flags.link_byte
-  let link_native = flag link_opt  true  Flags.link_native
-  let pp_byte     = flag pp_byte   false Flags.pp_byte
-  let pp_native   = flag pp_opt    false Flags.pp_native
+  let comp_byte   = flag comp_byte   true  Flags.comp_byte
+  let comp_native = flag comp_native true  Flags.comp_native
+  let link_byte   = flag link_byte   true  Flags.link_byte
+  let link_native = flag link_native true  Flags.link_native
+  let pp_byte     = flag pp_byte     false Flags.pp_byte
+  let pp_native   = flag pp_native   false Flags.pp_native
 
   let prereqs t = function
     | `Byte   -> Project.Bin.id t ^ "." ^ deps_byte
-    | `Native -> Project.Bin.id t ^ "." ^ deps_opt
+    | `Native -> Project.Bin.id t ^ "." ^ deps_native
 
   let prereqs_var t mode =
     sprintf "$(%s)" (prereqs t mode)
@@ -722,9 +723,9 @@ let global_variables flags =
     | [] -> []
     | l  -> [Variable.(n =:= `Strings l)] in
   mk Flags.comp_byte     comp_byte
-  @ mk Flags.comp_native comp_opt
+  @ mk Flags.comp_native comp_native
   @ mk Flags.link_byte   link_byte
-  @ mk Flags.link_native link_opt
+  @ mk Flags.link_native link_native
   @ mk Flags.link_shared link_shared
   @ [
     Variable.(comp_byte =+= `Case [
@@ -739,16 +740,16 @@ let global_variables flags =
     Variable.(link_byte =+= `Case [
         [debug, "1"], `Strings Flags.(link_byte debug)
       ]);
-    Variable.(comp_opt =+= `Case [
+    Variable.(comp_native =+= `Case [
         [debug, "1"], `Strings Flags.(comp_native debug)
       ]);
-    Variable.(comp_opt =+= `Case [
+    Variable.(comp_native =+= `Case [
         [annot, "1"], `Strings Flags.(comp_native annot)
       ]);
-    Variable.(comp_opt =+= `Case [
+    Variable.(comp_native =+= `Case [
         [warn_error, "1"], `Strings Flags.(comp_native warn_error)
       ]);
-    Variable.(link_opt =+= `Case [
+    Variable.(link_native =+= `Case [
         [debug, "1"], `Strings Flags.(link_native debug)
       ]);
   ]
