@@ -1,0 +1,6 @@
+# Included by Makefile
+
+distclean::
+	rm -f bin/configure.cmi
+	rm -f bin/configure.cmo
+	rm -f configure.boot

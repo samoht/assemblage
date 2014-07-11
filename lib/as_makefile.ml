@@ -223,6 +223,7 @@ let write t =
   Variable.generates buf t.variables;
   bprintf buf "\n";
   List.iter (Rule.generate buf) t.rules;
+  bprintf buf "-include Makefile.assemble\n\n";
   let oc = open_out t.makefile in
   output_string oc (Buffer.contents buf);
   close_out oc
