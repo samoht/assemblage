@@ -97,26 +97,25 @@ module Variable = struct
       ) cs in
     `Case (List.map (fun (f, c) -> one_case f c) cs)
 
-  let generate buf ?(size=0) t =
-    let string tab c =
-      bprintf buf "%s%-*s %s %s\n"
-        tab (size - String.length tab) t.name t.assign c in
-    let rec contents tab (t:contents) = match t with
-      | `String s   -> string tab s
+  let generate buf t =
+    let string c =
+      bprintf buf "%s %s %s\n" t.name t.assign c in
+    let rec contents (t:contents) = match t with
+      | `String s   -> string s
       | `Strings ss ->
-        let sep = " \\\n" ^ String.make (size + 4) ' ' in
-        string tab (String.concat sep ss)
+        let sep = " \\\n" ^ String.make 4 ' ' in
+        string (String.concat sep ss)
       | `Case []        -> ()
       | `Case [vars, c] ->
         (* A single case handler *)
         begin match vars with
-          | []   -> contents tab c
+          | []   -> contents c
           | vars ->
             bprintf buf "ifeq (";
             List.iter (fun (var, b) ->
                 bprintf buf "$(%s:%s=)" var.name b) vars;
             bprintf buf ",)\n";
-            contents (tab ^ "  ") c;
+            contents c;
             bprintf buf "endif\n"
         end
       | `Case cases ->
@@ -128,7 +127,7 @@ module Variable = struct
             | []  ->
               (* we assume that's the default case hanlder *)
               if rest <> [] then failwith "invalid default case";
-              contents (tab ^ "  ") c;
+              contents c;
               bprintf buf "endif\n"
 
             | vars ->
@@ -136,19 +135,15 @@ module Variable = struct
               List.iter (fun (var, b) ->
                   bprintf buf "$(%s:%s=)" var.name b) vars;
               bprintf buf ",)\n";
-              contents (tab ^ "  ") c;
+              contents c;
               if List.length rest <= 1 then bprintf buf "else\n"
               else bprintf buf "else ";
               aux rest;
         in
         aux cases in
-    contents "" t.value
+    contents t.value
 
-  let generates buf ts =
-    let size = List.fold_left (fun acc t ->
-        max acc (String.length t.name)
-      ) 0 ts in
-    List.iter (generate buf ~size) ts
+  let generates buf ts = List.iter (generate buf) ts
 
   let shell name command =
     { name; assign = "=";
