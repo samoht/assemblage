@@ -880,7 +880,7 @@ end = struct
     file t r ".byte"
 
   let native t r =
-    file t r ".opt"
+    file t r ".native"
 
   let generated_files t resolver =
     let mk f = f t resolver in
