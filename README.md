@@ -54,40 +54,48 @@ of the project:
 
 ```shell
 $ thomas@piana:~/git/assemblage$ describe.ml
-+ Loading configure.ml.
 
-==> assemblage cc5a19
+==> assemblage 352f9b
 
 └─┬─ lib-assemblage
-  ├─── [cmdliner cmdliner ocamlgraph compiler-libs.toplevel opam compiler-libs.toplevel optcomp]
-  ├─ flags.ml         flags.mli
-  ├─ shell.ml         shell.mli
-  ├─ feature.ml       feature.mli
+  ├─── [ocamlgraph compiler-libs.toplevel cmdliner optcomp]
+  ├─ as_flags.ml      as_flags.mli
+  ├─ as_features.ml   as_features.mli
   ├─── Set
-  ├─ resolver.ml      resolver.mli
-  ├─ git.ml           git.mli
-  ├─ action.ml        action.mli
-  ├─ build_env.ml     build_env.mli
-  ├─ project.ml       project.mli
+  ├─ as_shell.ml      as_shell.mli
+  ├─ as_resolver.ml   as_resolver.mli
+  ├─ as_build_env.ml  as_build_env.mli
+  ├─ as_git.ml        as_git.mli
+  ├─ as_action.ml     as_action.mli
+  ├─ as_project.ml    as_project.mli
   ├─── Bin
-  ├─── Comp
-  ├─── Dep
+  ├─── C
+  ├─── CU
+  ├─── Component
+  ├─── Component.Graph
+  ├─── Component.Set
+  ├─── Gen
   ├─── JS
   ├─── Lib
+  ├─── Pkg
   ├─── Test
-  ├─ ocamlfind.ml     ocamlfind.mli
+  ├─ as_ocamlfind.ml  as_ocamlfind.mli
   ├─── META
-  ├─ OCaml.ml         OCaml.mli
-  ├─ opam.ml          opam.mli
-  ├─── Install
-  ├─ makefile.ml      makefile.mli
+  ├─ as_makefile.ml   as_makefile.mli
   ├─── Rule
   ├─── Variable
-  └─ assemblage.ml    assemblage.mli
-└─┬─ bin-configure.ml
-  └─ configure.ml
+  ├─ as_OCaml.ml      as_OCaml.mli
+  ├─ as_opam.ml       as_opam.mli
+  ├─── Install
+  ├─ assemblage.ml    assemblage.mli
+  ├─── Features
+  └─── Flags
+└─┬─ bin-ctypes-gen
+  └─ ctypes_gen.ml
 └─┬─ bin-describe.ml
   └─ describe.ml
+└─┬─ bin-configure.ml
+  └─ configure.ml
 ```
 
 You can find few examples in the `examples/` directory, where projects are built using
