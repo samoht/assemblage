@@ -15,36 +15,33 @@
  *)
 
 module Shell = As_shell
+module Resolver = As_resolver
+
 open Printf
 
-type shell = {
+type custom = {
   dir: string option;
   cmd: string;
 }
 
-type t = shell option
+type t = (Resolver.t -> custom)
 
-let none = None
-
-let create ?dir fmt =
+let custom ?dir fmt =
   ksprintf (fun cmd ->
-      Some { dir; cmd }
+      { dir; cmd }
     ) fmt
 
-let run = function
-  | None -> ()
-  | Some s ->
-    begin match s.dir with
-      | None   -> Shell.exec "%s" s.cmd
-      | Some d -> Shell.in_dir d (fun () -> Shell.exec "%s" s.cmd)
-    end
+let run t r =
+  let s = t r in
+  match s.dir with
+  | None   -> Shell.exec "%s" s.cmd
+  | Some d -> Shell.in_dir d (fun () -> Shell.exec "%s" s.cmd)
 
-let actions = function
-  | None   -> []
-  | Some s ->
-    match s.dir with
-    | None   -> [s.cmd]
-    | Some d -> [
-        sprintf "mkdir -p %s" d;
-        sprintf "cd %s && %s" d s.cmd
-      ]
+let actions t r =
+  let s = t r in
+  match s.dir with
+  | None   -> [s.cmd]
+  | Some d -> [
+      sprintf "mkdir -p %s" d;
+      sprintf "cd %s && %s" d s.cmd
+    ]

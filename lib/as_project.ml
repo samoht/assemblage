@@ -95,7 +95,7 @@ and test_command =
 and gen = {
   g_name        : string;
   mutable g_comp: cu option;
-  g_action      : (Resolver.t -> Action.t);
+  g_action      : Action.t option;
   g_deps        : component list;
   g_files       : [`C|`ML|`MLI] list;
 }
@@ -335,12 +335,12 @@ end = struct
     let incl = build_dir resolver in
     let cus = filter cu deps |> List.map (fun u -> CU.build_dir u resolver) in
     let libs = filter lib deps |> List.map (fun l -> Lib.build_dir l resolver)in
-    let includes = 
+    let includes =
       let module Sset = Set.Make (String) in
-      let iflags inc acc = sprintf "-I %s" inc :: acc in 
+      let iflags inc acc = sprintf "-I %s" inc :: acc in
       let add acc i = Sset.add i acc in
-      let incs = List.fold_left add Sset.empty (incl :: cus @ libs) in 
-      Sset.fold iflags incs [] 
+      let incs = List.fold_left add Sset.empty (incl :: cus @ libs) in
+      Sset.fold iflags incs []
     in
     let pkgs = match filter pkg deps with
     | [] -> []
@@ -348,10 +348,10 @@ end = struct
         let pkgs = Resolver.pkgs resolver pkgs in
         match mode with
         | `Byte   -> Flags.comp_byte pkgs
-        | `Native -> Flags.comp_native pkgs 
+        | `Native -> Flags.comp_native pkgs
     in
     pkgs @ [String.concat " " includes]
-           
+
   let comp_byte = comp_flags `Byte
 
   let comp_native = comp_flags `Native
@@ -922,8 +922,7 @@ end
 
 and Gen: sig
   include S with type t = gen and type component = Component.t
-  val create: ?deps:Component.t list -> ?action:(Resolver.t -> Action.t) ->
-    [`C|`ML|`MLI] list -> string -> t
+  val create: ?deps:Component.t list -> ?action:Action.t -> [`C|`ML|`MLI] list -> string -> t
   val copy: t -> t
   val files: t -> Resolver.t -> string list
   val actions: t -> Resolver.t -> string list
@@ -941,10 +940,7 @@ end = struct
   let deps t = t.g_deps
 
   let create ?(deps=[]) ?action g_files g_name =
-    let g_action = match action with
-      | None   -> (fun _ -> Action.none)
-      | Some a -> a in
-    { g_name; g_comp = None; g_files; g_action; g_deps = deps }
+    { g_name; g_comp = None; g_files; g_action = action; g_deps = deps }
 
   let copy t =
      { t with g_comp = None }
@@ -985,7 +981,9 @@ end = struct
   ]
 
   let actions t r =
-    Action.actions (t.g_action r)
+    match t.g_action with
+    | None   -> []
+    | Some a -> Action.actions a r
 
 end
 

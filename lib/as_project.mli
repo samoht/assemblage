@@ -380,8 +380,7 @@ and Gen: sig
 
   include S with type component = Component.t
 
-  val create: ?deps:Component.t list -> ?action:(As_resolver.t -> As_action.t) ->
-    [`C|`ML|`MLI] list -> string -> t
+  val create: ?deps:Component.t list -> ?action:As_action.t -> [`C|`ML|`MLI] list -> string -> t
   (** Generate source files, using the given action. *)
 
   val copy: t -> t

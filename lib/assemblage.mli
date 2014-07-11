@@ -54,6 +54,9 @@ module Features: sig
   type t
   (** The type for user-defined or system-dependent features. *)
 
+  type set
+  (** Set of features. *)
+
   val create: doc:string -> default:bool -> string -> t
   (** Create a feature. *)
 
@@ -209,7 +212,57 @@ type component =
     globally installed pre-processor packages, both usually managed by
     {i ocamlfind}. *)
 
-(** {2 The Project API} *)
+
+(** {1:resolvers Resolvers} *)
+
+(** A project defines different kinds of names: local and external
+    library names. A local library name needs to be associated with
+    the name of the local directory where the build artifacts for that
+    library are created and an external library name needs to be
+    associated with the global directory where the object files for
+    that library are installed. *)
+
+module Resolver: sig
+
+  (** Name resolvers. *)
+
+  type t
+  (** The type for internal and external name resolvers. *)
+
+  val create: build_dir:string -> pkgs:(string list -> Flags.t) -> t
+  (** [create ~buildir ~pkgs] is the resolver which prefixes [buildir]
+      to resolve local library names and applies [pkgs] to resolve a set
+      of global package names. *)
+
+  val build_dir: t -> string -> string
+  (** Resolve locally generated filename by prepending the build
+      directory name. *)
+
+  val pkgs: t -> string list -> Flags.t
+  (** Resolve global package names into command-line flags. *)
+
+end
+
+(** {1:actions Custom Actions} *)
+
+module Action: sig
+
+  (** Actions to generate source files. *)
+
+  type custom
+  (** Custom actions. *)
+
+  val custom: ?dir:string -> ('a, unit, string, custom) format4 -> 'a
+  (** [bash ~dir fmt] is a generator which produces some results by
+      calling [fmt] in a bash shell, running in the directory
+      [dir]. *)
+
+  type t = Resolver.t -> custom
+  (** Type of custom actions. *)
+
+end
+
+(** {1 The Project API} *)
 
 val cu: ?dir:string -> string -> component list -> [> `CU of cu]
 (** [cu name ~dir deps] is the compilation unit located in the
@@ -219,9 +272,10 @@ val cu: ?dir:string -> string -> component list -> [> `CU of cu]
 val ocamldep: dir:string -> ?flags:Flags.t -> (string -> component list) -> [> `CU of cu] list
 (** [ocamldep ~dir deps] is the list of compilation units in the given
     directory, obtained by running [ocamldep] with the given flags and
-    dependencies. *)
+    dependencies. [deps] is a map from compilation unit names to its
+    list of dependencies. *)
 
-val generated: ?action:(As_resolver.t -> As_action.t) ->
+val generated: ?action:Action.t ->
   string -> component list -> [`C|`ML|`MLI] list -> [> `Gen of gen]
 (** Generated OCaml source file(s). The custom action get the name of
     the build dir as argument. *)
@@ -301,9 +355,30 @@ val create:
     the libraries, binaries and tests defined by the transitive
     closure of objects in [deps]. *)
 
+(** {1:env Build Environments} *)
+
+module Build_env: sig
+  (** Global project environment.
+
+      The build environment (which can be an human) discovers available
+      features. *)
+
+  type t
+  (** Environment values. *)
+
+  val default: t
+  (** Default project configuration. *)
+
+  val parse: ?doc:string -> ?man:string list -> string -> Features.set -> t
+  (** [parse name features] parse the arguments given on the
+      command-line as a configuration value, for the project [name] with
+      the possible features [features]. *)
+
+end
+
 (** {1:tools Tools} *)
 
-type tool = t -> As_build_env.t -> unit
+type tool = t -> Build_env.t -> unit
 (** The signature of tools. *)
 
 val process: ?file:string -> string -> tool -> unit

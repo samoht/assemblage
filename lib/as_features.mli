@@ -36,6 +36,9 @@ type cnf = [ `Conflict | `And of [ `P of elt | `N of elt ] list ]
 module Set: Set.S with type elt = elt
 (** Set of features. *)
 
+type set = Set.t
+(** Set of features. *)
+
 val (++): Set.t -> Set.t -> Set.t
 (** Union of feature sets. *)
 
@@ -80,8 +83,11 @@ val default: elt -> bool
 val with_default: elt -> bool -> elt
 (** Return the feature with an other default. *)
 
-val create: doc:string -> default:bool -> string -> elt
-(** Create a feature. *)
+val create_elt: doc:string -> default:bool -> string -> elt
+(** Create a single feature. *)
+
+val create: doc:string -> default:bool -> string -> t
+(** Same as [create_elt] but for single formula. *)
 
 val parse: elt -> (elt * bool) Cmdliner.Term.t
 (** A cmldiner term which parses a feature. *)

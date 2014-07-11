@@ -40,6 +40,8 @@ module Set = Set.Make(struct
     let compare x y = String.compare x.name y.name
   end)
 
+type set = Set.t
+
 let (++) = Set.union
 
 let atoms t =
@@ -117,7 +119,11 @@ let default t = t.default
 let with_default t default =
   { t with default }
 
-let create ~doc ~default name = { name; default; doc }
+let create_elt ~doc ~default name =
+  { name; default; doc }
+
+let create ~doc ~default name =
+  atom (create_elt ~doc ~default name)
 
 let parse t =
   let default = if t.default then "$(b,enable)" else "$(b,disable)" in
@@ -139,32 +145,41 @@ let parse t =
   Term.(pure create $ enable $ disable)
 
 let native_elt =
-  create ~doc:"native code compilation." ~default:true "native"
+  create_elt
+    ~doc:"native code compilation." ~default:true "native"
 
 let native_dynlink_elt =
-  create ~doc:"native plugins for native code." ~default:true "native-dynlink"
+  create_elt
+    ~doc:"native plugins for native code." ~default:true "native-dynlink"
 
 let annot_elt =
-  create ~doc:"generation of binary annotations." ~default:true "annot"
+  create_elt
+    ~doc:"generation of binary annotations." ~default:true "annot"
 
 let debug_elt =
-  create ~doc:"generation of debug symbols." ~default:true "debug"
+  create_elt
+    ~doc:"generation of debug symbols." ~default:true "debug"
 
 let warn_error_elt =
-  create ~doc:"warning as errors." ~default:false "warn-error"
+  create_elt
+    ~doc:"warning as errors." ~default:false "warn-error"
 
 let test_elt =
-  create ~doc:"tests." ~default:false "test"
+  create_elt
+    ~doc:"tests." ~default:false "test"
 
 let doc_elt =
-  create ~doc:"the generation of documentation." ~default:true "doc"
+  create_elt
+    ~doc:"the generation of documentation." ~default:true "doc"
 
 let js_elt =
-  create ~doc:"the generation of JavaScript build artefacts, using `js_of_ocaml'."
+  create_elt
+    ~doc:"the generation of JavaScript build artefacts, using `js_of_ocaml'."
     ~default:false "js"
 
 let full_doc_elt =
-  create ~doc:"the generation of the full documentation (ie. discard the `doc_public' argument."
+  create_elt
+    ~doc:"the generation of the full documentation (ie. discard the `doc_public' argument."
     ~default:false "full-doc"
 
 let base = List.fold_left (fun set t -> Set.add t set) Set.empty [

@@ -23,10 +23,7 @@ module Flags = As_flags
 module Action = As_action
 module Build_env = As_build_env
 module Shell = As_shell
-module Features = struct
-  include As_features
-  let create ~doc ~default name = atom (create ~doc ~default name)
-end
+module Features = As_features
 module Makefile = As_makefile
 module Opam = As_opam
 module Resolver = As_resolver
@@ -143,9 +140,8 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
       let headers = match headers with
         | [] -> ""
         | hs -> sprintf "--headers %s " (String.concat "," hs) in
-      Action.create ~dir:(bin_dir r)
-         "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
-         headers ml_stubs c_stubs library name
+      Action.custom ~dir:(bin_dir r) "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
+        headers ml_stubs c_stubs library name
     in
     let ml = generated name_generator ~action [] [`ML] in
     let comp = Project.CU.create ~deps:[ml; `CU bindings] name_generator in
@@ -154,7 +150,7 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
 
   (* 3. Generate and compile the stubs. *)
   let ml_stubs =
-    let action r = Action.create ~dir:(bin_dir r) "./%s.byte" name_generator in
+    let action r = Action.custom ~dir:(bin_dir r) "./%s.byte" name_generator in
     let ml = generated name_stubs ~action [generator] [`C;`ML] in
     cu name_stubs [ml] in
 

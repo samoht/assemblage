@@ -50,6 +50,5 @@ let multi_libs = mk_test "multi-libs"
 
 let () =
   create "assemblage"
-    ~doc_public:["as_resolver"; "as_action"; "as_build_env";
-                 "assemblage"]
+    ~doc_public:["assemblage"]
     [lib; configure; describe; ctypes_gen; camlp4; multi_libs]
