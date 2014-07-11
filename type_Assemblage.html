@@ -83,7 +83,7 @@
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocamldep&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;dir:string&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">CU</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.cu&nbsp;]&nbsp;list<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">CU</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.cu&nbsp;]&nbsp;list<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;generated&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;?action:(<span class="constructor">As_resolver</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">As_action</span>.t)&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span><br>

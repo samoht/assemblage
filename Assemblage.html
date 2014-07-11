@@ -153,7 +153,7 @@ The type for all the possible component descriptions. A <code class="code"><span
     name is the same as the filename, without its extension.<br>
 </div>
 
-<pre><span id="VALocamldep"><span class="keyword">val</span> ocamldep</span> : <code class="type">dir:string -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       <a href="Assemblage.html#TYPEcomponent">component</a> list -> [> `CU of <a href="Assemblage.html#TYPEcu">cu</a> ] list</code></pre><div class="info ">
+<pre><span id="VALocamldep"><span class="keyword">val</span> ocamldep</span> : <code class="type">dir:string -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       (string -> <a href="Assemblage.html#TYPEcomponent">component</a> list) -> [> `CU of <a href="Assemblage.html#TYPEcu">cu</a> ] list</code></pre><div class="info ">
 <code class="code">ocamldep ~dir deps</code> is the list of compilation units in the given
     directory, obtained by running <code class="code">ocamldep</code> with the given flags and
     dependencies.<br>
