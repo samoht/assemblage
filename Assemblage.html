@@ -4,24 +4,22 @@
 <link rel="stylesheet" href="style.css" type="text/css">
 <meta content="text/html; charset=iso-8859-1" http-equiv="Content-Type">
 <link rel="Start" href="index.html">
-<link rel="previous" href="As_action.html">
 <link rel="Up" href="index.html">
 <link title="Index of types" rel=Appendix href="index_types.html">
 <link title="Index of values" rel=Appendix href="index_values.html">
 <link title="Index of modules" rel=Appendix href="index_modules.html">
-<link title="As_resolver" rel="Chapter" href="As_resolver.html">
-<link title="As_build_env" rel="Chapter" href="As_build_env.html">
-<link title="As_action" rel="Chapter" href="As_action.html">
 <link title="Assemblage" rel="Chapter" href="Assemblage.html"><link title="Features" rel="Section" href="#features">
 <link title="Flags" rel="Section" href="#flags">
 <link title="Project" rel="Section" href="#project">
+<link title="Resolvers" rel="Section" href="#resolvers">
+<link title="Custom Actions" rel="Section" href="#actions">
+<link title="The Project API" rel="Section" href="#1_TheProjectAPI">
+<link title="Build Environments" rel="Section" href="#env">
 <link title="Tools" rel="Section" href="#tools">
-<link title="The Project API" rel="Subsection" href="#2_TheProjectAPI">
 <title>Assemblage</title>
 </head>
 <body>
-<div class="navbar"><a class="pre" href="As_action.html" title="As_action">Previous</a>
-&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+<div class="navbar">&nbsp;<a class="up" href="index.html" title="Index">Up</a>
 &nbsp;</div>
 <h1>Module <a href="type_Assemblage.html">Assemblage</a></h1>
 
@@ -145,7 +143,20 @@ The type for all the possible component descriptions. A <code class="code"><span
 </div>
 
 <br>
-<h2 id="2_TheProjectAPI">The Project API</h2><br>
+<h1 id="resolvers">Resolvers</h1><br>
+<br>
+A project defines different kinds of names: local and external
+    library names. A local library name needs to be associated with
+    the name of the local directory where the build artifacts for that
+    library are created and an external library name needs to be
+    associated with the global directory where the object files for
+    that library are installed.<br>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Resolver.html">Resolver</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Resolver.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><br>
+<h1 id="actions">Custom Actions</h1><br>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Action.html">Action</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Action.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><br>
+<h1 id="1_TheProjectAPI">The Project API</h1><br>
 
 <pre><span id="VALcu"><span class="keyword">val</span> cu</span> : <code class="type">?dir:string -><br>       string -> <a href="Assemblage.html#TYPEcomponent">component</a> list -> [> `CU of <a href="Assemblage.html#TYPEcu">cu</a> ]</code></pre><div class="info ">
 <code class="code">cu name ~dir deps</code> is the compilation unit located in the
@@ -156,10 +167,11 @@ The type for all the possible component descriptions. A <code class="code"><span
 <pre><span id="VALocamldep"><span class="keyword">val</span> ocamldep</span> : <code class="type">dir:string -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       (string -> <a href="Assemblage.html#TYPEcomponent">component</a> list) -> [> `CU of <a href="Assemblage.html#TYPEcu">cu</a> ] list</code></pre><div class="info ">
 <code class="code">ocamldep ~dir deps</code> is the list of compilation units in the given
     directory, obtained by running <code class="code">ocamldep</code> with the given flags and
-    dependencies.<br>
+    dependencies. <code class="code">deps</code> is a map from compilation unit names to its
+    list of dependencies.<br>
 </div>
 
-<pre><span id="VALgenerated"><span class="keyword">val</span> generated</span> : <code class="type">?action:(<a href="As_resolver.html#TYPEt">As_resolver.t</a> -> <a href="As_action.html#TYPEt">As_action.t</a>) -><br>       string -><br>       <a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       [ `C | `ML | `MLI ] list -> [> `Gen of <a href="Assemblage.html#TYPEgen">gen</a> ]</code></pre><div class="info ">
+<pre><span id="VALgenerated"><span class="keyword">val</span> generated</span> : <code class="type">?action:<a href="Assemblage.Action.html#TYPEt">Action.t</a> -><br>       string -><br>       <a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       [ `C | `ML | `MLI ] list -> [> `Gen of <a href="Assemblage.html#TYPEgen">gen</a> ]</code></pre><div class="info ">
 Generated OCaml source file(s). The custom action get the name of
     the build dir as argument.<br>
 </div>
@@ -231,9 +243,12 @@ Description of a test.<br>
     closure of objects in <code class="code">deps</code>.<br>
 </div>
 <br>
+<h1 id="env">Build Environments</h1><br>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Build_env.html">Build_env</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Build_env.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><br>
 <h1 id="tools">Tools</h1><br>
 
-<pre><span id="TYPEtool"><span class="keyword">type</span> <code class="type"></code>tool</span> = <code class="type"><a href="Assemblage.html#TYPEt">t</a> -> <a href="As_build_env.html#TYPEt">As_build_env.t</a> -> unit</code> </pre>
+<pre><span id="TYPEtool"><span class="keyword">type</span> <code class="type"></code>tool</span> = <code class="type"><a href="Assemblage.html#TYPEt">t</a> -> <a href="Assemblage.Build_env.html#TYPEt">Build_env.t</a> -> unit</code> </pre>
 <div class="info ">
 The signature of tools.<br>
 </div>

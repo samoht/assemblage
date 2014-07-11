@@ -6,9 +6,6 @@
 <link title="Index of types" rel=Appendix href="index_types.html">
 <link title="Index of values" rel=Appendix href="index_values.html">
 <link title="Index of modules" rel=Appendix href="index_modules.html">
-<link title="As_resolver" rel="Chapter" href="As_resolver.html">
-<link title="As_build_env" rel="Chapter" href="As_build_env.html">
-<link title="As_action" rel="Chapter" href="As_action.html">
 <link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>Index of values</title>
 </head>
 <body>
@@ -33,11 +30,6 @@ Logical OR of feature formulaes.
 </div>
 </td></tr>
 <tr><td align="left"><br>A</td></tr>
-<tr><td><a href="As_action.html#VALactions">actions</a> [<a href="As_action.html">As_action</a>]</td>
-<td><div class="info">
-Return the action to run.
-</div>
-</td></tr>
 <tr><td><a href="Assemblage.Flags.html#VALannot">annot</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
 The <code class="code">-bin-annot</code> flags.
@@ -48,12 +40,6 @@ The <code class="code">-bin-annot</code> flags.
 Generate annot files?
 </div>
 </td></tr>
-<tr><td><a href="As_build_env.html#VALauto_load">auto_load</a> [<a href="As_build_env.html">As_build_env</a>]</td>
-<td><div class="info">
-Automatically include $(shell ocamlfind query tools) before
-    loading `assemble.ml'.
-</div>
-</td></tr>
 <tr><td align="left"><br>B</td></tr>
 <tr><td><a href="Assemblage.html#VALbin">bin</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
@@ -61,15 +47,10 @@ Automatically include $(shell ocamlfind query tools) before
     the compilation units <code class="code">units</code>, with the dependencies <code class="code">deps</code>.
 </div>
 </td></tr>
-<tr><td><a href="As_build_env.html#VALbuild_dir">build_dir</a> [<a href="As_build_env.html">As_build_env</a>]</td>
-<td><div class="info">
-Return the directory where build artififacts are generated.
-</div>
-</td></tr>
-<tr><td><a href="As_resolver.html#VALbuild_dir">build_dir</a> [<a href="As_resolver.html">As_resolver</a>]</td>
+<tr><td><a href="Assemblage.Resolver.html#VALbuild_dir">build_dir</a> [<a href="Assemblage.Resolver.html">Assemblage.Resolver</a>]</td>
 <td><div class="info">
 Resolve locally generated filename by prepending the build
-    directory name.
+      directory name.
 </div>
 </td></tr>
 <tr><td align="left"><br>C</td></tr>
@@ -97,6 +78,13 @@ Configure the project by generating the build, META and .install
     make is supported).
 </div>
 </td></tr>
+<tr><td><a href="Assemblage.Resolver.html#VALcreate">create</a> [<a href="Assemblage.Resolver.html">Assemblage.Resolver</a>]</td>
+<td><div class="info">
+<code class="code">create ~buildir ~pkgs</code> is the resolver which prefixes <code class="code">buildir</code>
+      to resolve local library names and applies <code class="code">pkgs</code> to resolve a set
+      of global package names.
+</div>
+</td></tr>
 <tr><td><a href="Assemblage.Flags.html#VALcreate">create</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
 Create a full command-line argument using the the given single
@@ -115,22 +103,6 @@ Create a feature.
     closure of objects in <code class="code">deps</code>.
 </div>
 </td></tr>
-<tr><td><a href="As_action.html#VALcreate">create</a> [<a href="As_action.html">As_action</a>]</td>
-<td><div class="info">
-<code class="code">bash ~dir fmt</code> is a generator which produces some results by
-    calling <code class="code">fmt</code> in a bash shell, running in the directory
-    <code class="code">dir</code>.
-</div>
-</td></tr>
-<tr><td><a href="As_build_env.html#VALcreate">create</a> [<a href="As_build_env.html">As_build_env</a>]</td>
-<td></td></tr>
-<tr><td><a href="As_resolver.html#VALcreate">create</a> [<a href="As_resolver.html">As_resolver</a>]</td>
-<td><div class="info">
-<code class="code">create ~buildir ~pkgs</code> is the resolver which prefixes <code class="code">buildir</code>
-    to resolve local library names and applies <code class="code">pkgs</code> to resolve a set
-    of global package names.
-</div>
-</td></tr>
 <tr><td><a href="Assemblage.html#VALcstubs">cstubs</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
 <code class="code">stubs name deps</code> is the C stub generations, using Ctypes, of the
@@ -141,6 +113,13 @@ Create a feature.
 <td><div class="info">
 <code class="code">cu name ~dir deps</code> is the compilation unit located in the
     directory <code class="code">dir</code> with dependencies <code class="code">deps</code> and the cname <code class="code">name</code>.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.Action.html#VALcustom">custom</a> [<a href="Assemblage.Action.html">Assemblage.Action</a>]</td>
+<td><div class="info">
+<code class="code">bash ~dir fmt</code> is a generator which produces some results by
+      calling <code class="code">fmt</code> in a bash shell, running in the directory
+      <code class="code">dir</code>.
 </div>
 </td></tr>
 <tr><td align="left"><br>D</td></tr>
@@ -154,7 +133,7 @@ The <code class="code">-g</code> flags.
 Generate debug symbols?
 </div>
 </td></tr>
-<tr><td><a href="As_build_env.html#VALdefault">default</a> [<a href="As_build_env.html">As_build_env</a>]</td>
+<tr><td><a href="Assemblage.Build_env.html#VALdefault">default</a> [<a href="Assemblage.Build_env.html">Assemblage.Build_env</a>]</td>
 <td><div class="info">
 Default project configuration.
 </div>
@@ -175,22 +154,7 @@ Build the documentation?
 Empty flags.
 </div>
 </td></tr>
-<tr><td><a href="As_build_env.html#VALenable">enable</a> [<a href="As_build_env.html">As_build_env</a>]</td>
-<td><div class="info">
-Check if the given set of flags are all enabled.
-</div>
-</td></tr>
 <tr><td align="left"><br>F</td></tr>
-<tr><td><a href="As_build_env.html#VALfeatures">features</a> [<a href="As_build_env.html">As_build_env</a>]</td>
-<td><div class="info">
-Return a list of feature with the values they are set to.
-</div>
-</td></tr>
-<tr><td><a href="As_build_env.html#VALflags">flags</a> [<a href="As_build_env.html">As_build_env</a>]</td>
-<td><div class="info">
-Return the global comand-line flags.
-</div>
-</td></tr>
 <tr><td><a href="Assemblage.Features.html#VALfull_doc">full_doc</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
 Build the full documentation (ignore <code class="code">doc_public</code>)?
@@ -200,12 +164,6 @@ Build the full documentation (ignore <code class="code">doc_public</code>)?
 <tr><td><a href="Assemblage.html#VALgenerated">generated</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
 Generated OCaml source file(s).
-</div>
-</td></tr>
-<tr><td align="left"><br>I</td></tr>
-<tr><td><a href="As_build_env.html#VALincludes">includes</a> [<a href="As_build_env.html">As_build_env</a>]</td>
-<td><div class="info">
-Return the list of directories to include when loading `assemble.ml'.
 </div>
 </td></tr>
 <tr><td align="left"><br>J</td></tr>
@@ -243,11 +201,6 @@ Is native-code enabled?
 Is dynlink for native code enabled?
 </div>
 </td></tr>
-<tr><td><a href="As_action.html#VALnone">none</a> [<a href="As_action.html">As_action</a>]</td>
-<td><div class="info">
-No action.
-</div>
-</td></tr>
 <tr><td><a href="Assemblage.Features.html#VALnot_">not_</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
 Negate a feature formulae.
@@ -262,11 +215,11 @@ Negate a feature formulae.
 </div>
 </td></tr>
 <tr><td align="left"><br>P</td></tr>
-<tr><td><a href="As_build_env.html#VALparse">parse</a> [<a href="As_build_env.html">As_build_env</a>]</td>
+<tr><td><a href="Assemblage.Build_env.html#VALparse">parse</a> [<a href="Assemblage.Build_env.html">Assemblage.Build_env</a>]</td>
 <td><div class="info">
 <code class="code">parse name features</code> parse the arguments given on the
-    command-line as a configuration value, for the project <code class="code">name</code> with
-    the possible features <code class="code">features</code>.
+      command-line as a configuration value, for the project <code class="code">name</code> with
+      the possible features <code class="code">features</code>.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.html#VALpkg">pkg</a> [<a href="Assemblage.html">Assemblage</a>]</td>
@@ -279,7 +232,7 @@ An external package.
 An external pre-processor.
 </div>
 </td></tr>
-<tr><td><a href="As_resolver.html#VALpkgs">pkgs</a> [<a href="As_resolver.html">As_resolver</a>]</td>
+<tr><td><a href="Assemblage.Resolver.html#VALpkgs">pkgs</a> [<a href="Assemblage.Resolver.html">Assemblage.Resolver</a>]</td>
 <td><div class="info">
 Resolve global package names into command-line flags.
 </div>
@@ -290,12 +243,6 @@ Resolve global package names into command-line flags.
     top-level environment (the default is <code class="code">assemble.ml</code>), for the
     project called <code class="code">name</code>, and apply <code class="code">fn</code> to the projects registered
     as side-effects.
-</div>
-</td></tr>
-<tr><td align="left"><br>R</td></tr>
-<tr><td><a href="As_action.html#VALrun">run</a> [<a href="As_action.html">As_action</a>]</td>
-<td><div class="info">
-Process the action.
 </div>
 </td></tr>
 <tr><td align="left"><br>S</td></tr>
