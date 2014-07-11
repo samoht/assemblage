@@ -332,31 +332,26 @@ end = struct
     aux [] ts
 
   let comp_flags mode (deps:t list) resolver build_dir =
-    let includes = Hashtbl.create 10 in
-    let add dir = Hashtbl.add includes dir true in
     let incl = build_dir resolver in
-    let cus =
-      filter cu deps
-      |> List.map (fun u -> CU.build_dir u resolver) in
-    let libs =
-      filter lib deps
-      |> List.map (fun l -> Lib.build_dir l resolver) in
-    List.iter add (incl :: cus @ libs);
-    let libs =
-      Hashtbl.fold (fun i _ acc ->
-          (sprintf "-I %s" i) :: acc
-        ) includes [] in
-    let libs = String.concat " " libs in
-    let pkgs = filter pkg deps in
-    let pkgs = match pkgs with
-      | [] -> []
-      | _  ->
+    let cus = filter cu deps |> List.map (fun u -> CU.build_dir u resolver) in
+    let libs = filter lib deps |> List.map (fun l -> Lib.build_dir l resolver)in
+    let includes = 
+      let module Sset = Set.Make (String) in
+      let iflags inc acc = sprintf "-I %s" inc :: acc in 
+      let add acc i = Sset.add i acc in
+      let incs = List.fold_left add Sset.empty (incl :: cus @ libs) in 
+      Sset.fold iflags incs [] 
+    in
+    let pkgs = match filter pkg deps with
+    | [] -> []
+    | pkgs ->
         let pkgs = Resolver.pkgs resolver pkgs in
         match mode with
         | `Byte   -> Flags.comp_byte pkgs
-        | `Native -> Flags.comp_native pkgs in
-    pkgs @ [libs]
-
+        | `Native -> Flags.comp_native pkgs 
+    in
+    pkgs @ [String.concat " " includes]
+           
   let comp_byte = comp_flags `Byte
 
   let comp_native = comp_flags `Native
