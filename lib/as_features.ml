@@ -23,6 +23,8 @@ type elt = {
   doc: string;
 }
 
+let doc t = t.doc
+
 type t =
   | True | False
   | Atom of elt
@@ -154,11 +156,11 @@ let native_dynlink_elt =
 
 let annot_elt =
   create_elt
-    ~doc:"generation of binary annotations." ~default:true "annot"
+    ~doc:"the generation of binary annotations." ~default:true "annot"
 
 let debug_elt =
   create_elt
-    ~doc:"generation of debug symbols." ~default:true "debug"
+    ~doc:"the generation of debug symbols." ~default:true "debug"
 
 let warn_error_elt =
   create_elt
@@ -168,24 +170,24 @@ let test_elt =
   create_elt
     ~doc:"tests." ~default:false "test"
 
-let doc_elt =
+let public_doc_elt =
   create_elt
-    ~doc:"the generation of documentation." ~default:true "doc"
+    ~doc:"the generation of public documentation." ~default:false "doc"
 
 let js_elt =
   create_elt
-    ~doc:"the generation of JavaScript build artefacts, using `js_of_ocaml'."
+    ~doc:"the generation of JavaScript build artefacts, using [js_of_ocaml]."
     ~default:false "js"
 
 let full_doc_elt =
   create_elt
-    ~doc:"the generation of the full documentation (ie. discard the `doc_public' argument."
+    ~doc:"the generation of the full documentation."
     ~default:false "full-doc"
 
 let base = List.fold_left (fun set t -> Set.add t set) Set.empty [
     native_elt; native_dynlink_elt;
     debug_elt; annot_elt; warn_error_elt;
-    test_elt; doc_elt; js_elt;
+    test_elt; public_doc_elt; js_elt;
     full_doc_elt;
   ]
 
@@ -195,6 +197,6 @@ let annot = atom annot_elt
 let warn_error = atom warn_error_elt
 let debug = atom debug_elt
 let test = atom test_elt
-let doc = atom doc_elt
+let public_doc = atom public_doc_elt
 let js = atom js_elt
 let full_doc = atom full_doc_elt

@@ -113,10 +113,12 @@ module Variable: sig
   val name: t -> string
   (** Variable name. *)
 
-  type contents =
+  type guard = (t * string) list
+
+  and contents =
     [ `String of string
     | `Strings of string list
-    | `Case of ((t * string) list * contents) list ]
+    | `Case of (guard * contents) list ]
   (** Contents can be either a string or case conditions. The handler
       case [(v1,c1) ... (vn,cn) * action] is the case enabled cases
       where all variables [vi] are equal to [ci]. In that case the
@@ -147,6 +149,14 @@ module Variable: sig
   val has_feature: As_features.elt -> t
   (** Is the given feature enabled. *)
 
+  type stanza = {
+    doc      : string list;
+    align    : bool;
+    simplify : bool;
+    variables: t list;
+  }
+  (** Variable stanza. *)
+
 end
 
 type t
@@ -155,7 +165,7 @@ type t
 val create:
   ?header:string list ->
   ?phony:string list ->
-  string -> Variable.t list -> Rule.t list -> t
+  string -> Variable.stanza list -> Rule.t list -> t
 (** Create a Makefile. *)
 
 val of_project:

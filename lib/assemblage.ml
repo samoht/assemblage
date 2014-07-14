@@ -74,7 +74,7 @@ let sorted_cus cus =
           | _ -> ()
         ) (Project.CU.deps cu)
     ) cus;
-  let cus = Project.Component.Graph.vertex g in
+  let cus = Project.Component.Graph.to_list g in
   List.map (function `CU cu -> cu | _ -> assert false) cus
 
 let lib ?available ?(flags=Flags.empty) ?pack ?(deps=nil) ?(c=[])

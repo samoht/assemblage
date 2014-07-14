@@ -87,11 +87,11 @@ module Features: sig
   val test: t
   (** Compile and run tests? *)
 
-  val doc: t
-  (** Build the documentation? *)
-
   val js: t
   (** Build the javascript objects? *)
+
+  val public_doc: t
+  (** Build the documentation? *)
 
   val full_doc: t
   (** Build the full documentation (ignore [doc_public])? *)

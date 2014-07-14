@@ -89,6 +89,9 @@ val create_elt: doc:string -> default:bool -> string -> elt
 val create: doc:string -> default:bool -> string -> t
 (** Same as [create_elt] but for single formula. *)
 
+val doc: elt -> string
+(** [doc f] is the feature documentation. *)
+
 val parse: elt -> (elt * bool) Cmdliner.Term.t
 (** A cmldiner term which parses a feature. *)
 
@@ -116,17 +119,17 @@ val test: t
 val test_elt: elt
 (** Compile and run tests. *)
 
-val doc: t
-val doc_elt: elt
+val public_doc: t
+val public_doc_elt: elt
 (** Build the documentation. *)
-
-val js: t
-val js_elt: elt
-(** Build the javascript objects. *)
 
 val full_doc: t
 val full_doc_elt: elt
 (** Generate the full documentation (and not just the public doc). *)
+
+val js: t
+val js_elt: elt
+(** Build the javascript objects. *)
 
 val base: Set.t
 (** The base features. *)
