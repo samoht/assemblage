@@ -21,6 +21,8 @@ module Resolver = As_resolver
 module Action = As_action
 module Git = As_git
 
+module StringSet = Set.Make (String)
+
 type component =
   [ `CU of cu
   | `Lib of lib
@@ -139,7 +141,8 @@ module type Graph = sig
   include Graph.Sig.I
   val iter: (V.t -> unit) -> t -> unit
   val fold: (V.t -> 'a -> 'a) -> t -> 'a -> 'a
-  val vertex: t -> V.t list
+  val to_list: t -> V.t list
+  val of_list: V.t list -> t
 end
 
 module type Set = sig
@@ -147,7 +150,7 @@ module type Set = sig
   val of_list: elt list -> t
 end
 
-module Graph (X: sig type t val id: t -> string end) = struct
+module Graph (X: sig type t val id: t -> string val deps: t -> t list end) = struct
     module G = Graph.Imperative.Digraph.ConcreteBidirectional(struct
         type t = X.t
         let compare x y = String.compare (X.id x) (X.id y)
@@ -156,10 +159,18 @@ module Graph (X: sig type t val id: t -> string end) = struct
       end)
     include G
     include Graph.Topological.Make(G)
-    let vertex t =
+
+    let to_list t =
       fold (fun v acc -> v :: acc) t []
       |> List.rev
-  end
+
+    let of_list ts =
+      let g = create () in
+      List.iter (fun t ->
+          List.iter (fun d -> if List.mem d ts then add_edge g d t) (X.deps t)
+        ) ts;
+      g
+end
 
 module rec Component: sig
   include S with type t = component and type component = component
@@ -311,6 +322,7 @@ end = struct
         | None   -> acc
         | Some x -> x :: acc
       ) [] l
+  |> List.rev
 
   let closure (ts:t list): t list =
     let deps_tbl = Hashtbl.create 24 in
@@ -336,11 +348,13 @@ end = struct
     let cus = filter cu deps |> List.map (fun u -> CU.build_dir u resolver) in
     let libs = filter lib deps |> List.map (fun l -> Lib.build_dir l resolver)in
     let includes =
-      let module Sset = Set.Make (String) in
+      (* We need to keep the -I flags in the right order *)
       let iflags inc acc = sprintf "-I %s" inc :: acc in
-      let add acc i = Sset.add i acc in
-      let incs = List.fold_left add Sset.empty (incl :: cus @ libs) in
-      Sset.fold iflags incs []
+      let add (seen, acc) i =
+        if StringSet.mem i seen then (seen, acc)
+        else (StringSet.add i seen, iflags i acc) in
+      let (_, incs) = List.fold_left add (StringSet.empty, []) (incl :: cus @ libs) in
+      List.rev incs
     in
     let pkgs = match filter pkg deps with
     | [] -> []
@@ -391,7 +405,7 @@ end = struct
     | [], [] -> []
     | _ , _  ->
       let libs = List.map (fun l ->
-          sprintf "-I %s %s" (Lib.build_dir l resolver)
+          sprintf "%s/%s" (Lib.build_dir l resolver)
             (match mode with
              | `Byte   -> Lib.cma  l resolver
              | `Native -> Lib.cmxa l resolver)
@@ -410,6 +424,7 @@ end = struct
   module Graph = Graph(struct
       type t = component
       let id = id
+      let deps = deps
     end)
 
   module Set = struct
@@ -554,8 +569,8 @@ end = struct
       | _  -> List.exists (fun g -> List.mem `ML g.g_files) gens in
     if not ml && not mli then (
       eprintf
-        "\027[31m[ERROR]\027[m Cannot find %s.ml or %s.mli, stopping.\n"
-        name name;
+        "\027[31m[ERROR]\027[m Cannot find %s.ml or %s.mli in `%s', stopping.\n"
+        name name (match dir with None -> "." | Some d -> d / "");
       exit 1;
     );
     let t = {
@@ -654,8 +669,6 @@ end = struct
     let pp_native = Component.pp_native deps resolver in
     let t' = Flags.create ~comp_byte ~comp_native ~pp_byte ~pp_native () in
     Flags.(t' @@@ t.cu_flags)
-
-  module Graph = Graph(struct type t = cu let id = id end)
 
 end
 

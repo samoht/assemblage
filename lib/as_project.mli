@@ -115,8 +115,11 @@ module type Graph = sig
   val fold: (V.t -> 'a -> 'a) -> t -> 'a -> 'a
   (** Topological fold. *)
 
-  val vertex: t -> V.t list
-  (** [vertex g] is the list of topologically sorted vertices. *)
+  val to_list: t -> V.t list
+  (** [to_list g] is the list of topologically sorted vertices. *)
+
+  val of_list: V.t list -> t
+  (** [of_list l] is the graph of components in the list [l]. *)
 
 end
 
