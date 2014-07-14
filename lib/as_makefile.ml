@@ -908,10 +908,10 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
         (Shell.color `underline "all")
         (Shell.color `yellow "=>");
       sprintf "@$(MAKE) $(all)";
-      sprintf "@if [ \"x${HAS_JS}\" == \"x1\" ]; then $(MAKE) js; fi";
-      sprintf "@if [ \"x${HAS_TEST}\" == \"x1\" ]; then $(MAKE) test; fi";
-      sprintf "@if [ \"x${HAS_DOC}\" == \"x1\" ]; then $(MAKE) doc; fi";
-      sprintf "@if [ \"x${HAS_FULL_DOC}\" == \"x1\" ]; then $(MAKE) full-doc; fi";
+      sprintf "@if [ \"x${HAS_JS}\" = \"x1\" ]; then $(MAKE) js; fi";
+      sprintf "@if [ \"x${HAS_TEST}\" = \"x1\" ]; then $(MAKE) test; fi";
+      sprintf "@if [ \"x${HAS_DOC}\" = \"x1\" ]; then $(MAKE) doc; fi";
+      sprintf "@if [ \"x${HAS_FULL_DOC}\" = \"x1\" ]; then $(MAKE) full-doc; fi";
       sprintf "@echo '\027[32m== Done!\027[m'";
     ] in
   let clean = Rule.create ~ext:true ~targets:["clean"] ~prereqs:[] [
