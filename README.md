@@ -42,23 +42,21 @@ of the project to be built (and installed) or not. The flag can be enabled or
 disabled either programmatically (ie. in the project description itself) or
 passed on the command-line using an integrated `Cmdliner` interface.
 
-The package also installs a `opam-configure` helper scripts, which can be used
-to configure an OCaml project using the state of OPAM in the user computer.
-
 ### Examples
 
 There are currently two tools installed by *Assemblage*: `configure.ml` and
-`describe.ml`. `configure.ml` reads a project description and generates the
-files to build, install and use the project. `describe.ml` displays a summary
-of the project:
+`describe.ml`. `configure.ml` reads a project description (usually,
+an `asssemble.ml` file located at the root of the project) and generates the
+boilerplate files to build, install and use the project. `describe.ml` simply
+displays a summary of the project:
 
 ```shell
 $ thomas@piana:~/git/assemblage$ describe.ml
 
-==> assemblage 352f9b
+==> assemblage 527f65
 
 └─┬─ lib-assemblage
-  ├─── [ocamlgraph compiler-libs.toplevel cmdliner optcomp]
+  ├─── [cmdliner compiler-libs.toplevel ocamlgraph optcomp]
   ├─ as_flags.ml      as_flags.mli
   ├─ as_features.ml   as_features.mli
   ├─── Set
@@ -88,14 +86,17 @@ $ thomas@piana:~/git/assemblage$ describe.ml
   ├─ as_opam.ml       as_opam.mli
   ├─── Install
   ├─ assemblage.ml    assemblage.mli
+  ├─── Action
+  ├─── Build_env
   ├─── Features
-  └─── Flags
-└─┬─ bin-ctypes-gen
-  └─ ctypes_gen.ml
-└─┬─ bin-describe.ml
-  └─ describe.ml
+  ├─── Flags
+  └─── Resolver
 └─┬─ bin-configure.ml
   └─ configure.ml
+└─┬─ bin-describe.ml
+  └─ describe.ml
+└─┬─ bin-ctypes-gen
+  └─ ctypes_gen.ml
 ```
 
 You can find few examples in the `examples/` directory, where projects are built using
