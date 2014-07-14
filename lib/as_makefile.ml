@@ -848,16 +848,18 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
           ) t)
     |> List.map Variable.has_feature in
   let variables =
+    let tool name =
+      let native = [ (Variable.has_feature Features.native_elt, "1") ] in
+      `Case [ (native, `String (name ^ ".opt")); ([], `String name) ] in
     Variable.stanza ~doc:[""; "Main project configuration"; ""] []
     :: Variable.stanza
       ~align:true
-      ~simplify:false
       Variable.([
           ("BUILDIR"     =?= `String buildir);
-          ("OCAMLOPT"    =?= `String "ocamlopt");
-          ("OCAMLC"      =?= `String "ocamlc");
+          ("OCAMLOPT"    =?= tool "ocamlopt");
+          ("OCAMLC"      =?= tool "ocamlc");
           ("CAMLP4O"     =?= `String "camlp4o");
-          ("OCAMLDOC"    =?= `String "ocamldoc");
+          ("OCAMLDOC"    =?= tool "ocamldoc");
           ("JS_OF_OCAML" =?= `String "js_of_ocaml");
           ("OCAMLMKLIB"  =?= `String "ocamlmklib");
         ])
@@ -940,7 +942,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
              (Shell.color `underline (Project.Component.id c))
              (match c with `Lib _ -> "library" | `Bin _ -> "executable" | _ -> "component")
              (Project.Component.name c)
-           ) targets
+         ) targets
        @ [sprintf "@echo ' - %s -- build the documentation.'" (Shell.color `underline "doc");
           sprintf "@echo ' - %s -- build and run the test.'" (Shell.color `underline "test");
           sprintf "@echo ' - %s -- build the js_of_ocaml targets.'" (Shell.color `underline "js");
@@ -953,9 +955,9 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
             (Shell.color `underline "VAR=val");
           "@echo"; ]
        @ List.map (fun f ->
-              let v = Variable.has_feature f in
-              let k_v = v.Variable.name ^ "=" ^ Variable.name v in
-              sprintf "@echo ' - %s -- %s'" (Shell.color `underline k_v) (Features.doc f)
+           let v = Variable.has_feature f in
+           let k_v = v.Variable.name ^ "=" ^ Variable.name v in
+           sprintf "@echo ' - %s -- %s'" (Shell.color `underline k_v) (Features.doc f)
          ) project_features
        @ [ "@echo" ]
       ) in
