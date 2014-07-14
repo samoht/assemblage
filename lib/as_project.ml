@@ -21,6 +21,8 @@ module Resolver = As_resolver
 module Action = As_action
 module Git = As_git
 
+module StringSet = Set.Make (String)
+
 type component =
   [ `CU of cu
   | `Lib of lib
@@ -336,11 +338,13 @@ end = struct
     let cus = filter cu deps |> List.map (fun u -> CU.build_dir u resolver) in
     let libs = filter lib deps |> List.map (fun l -> Lib.build_dir l resolver)in
     let includes =
-      let module Sset = Set.Make (String) in
+      (* We need to keep the -I flags in the right order *)
       let iflags inc acc = sprintf "-I %s" inc :: acc in
-      let add acc i = Sset.add i acc in
-      let incs = List.fold_left add Sset.empty (incl :: cus @ libs) in
-      Sset.fold iflags incs []
+      let add (seen, acc) i =
+        if StringSet.mem i seen then (seen, acc)
+        else (StringSet.add i seen, iflags i acc) in
+      let (_, incs) = List.fold_left add (StringSet.empty, []) (incl :: cus @ libs) in
+      List.rev incs
     in
     let pkgs = match filter pkg deps with
     | [] -> []
@@ -391,7 +395,7 @@ end = struct
     | [], [] -> []
     | _ , _  ->
       let libs = List.map (fun l ->
-          sprintf "-I %s %s" (Lib.build_dir l resolver)
+          sprintf "%s/%s" (Lib.build_dir l resolver)
             (match mode with
              | `Byte   -> Lib.cma  l resolver
              | `Native -> Lib.cmxa l resolver)
