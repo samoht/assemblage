@@ -17,7 +17,7 @@
 open Printf
 open Cmdliner
 
-type elt = {
+type atom = {
   name: string;
   default: bool;
   doc: string;
@@ -27,18 +27,18 @@ let doc t = t.doc
 
 type t =
   | True | False
-  | Atom of elt
+  | Atom of atom
   | Not of t
   | And of t * t
   | Or of t * t
 
 type cnf =
-  [ `Conflict | `And of [ `P of elt | `N of elt ] list ]
+  [ `Conflict | `And of [ `P of atom | `N of atom ] list ]
 
 let atom t = Atom t
 
 module Set = Set.Make(struct
-    type t = elt
+    type t = atom
     let compare x y = String.compare x.name y.name
   end)
 
@@ -121,11 +121,11 @@ let default t = t.default
 let with_default t default =
   { t with default }
 
-let create_elt ~doc ~default name =
+let create_atom ~doc ~default name =
   { name; default; doc }
 
 let create ~doc ~default name =
-  atom (create_elt ~doc ~default name)
+  atom (create_atom ~doc ~default name)
 
 let parse t =
   let default = if t.default then "$(b,enable)" else "$(b,disable)" in
@@ -146,57 +146,57 @@ let parse t =
     (t, v) in
   Term.(pure create $ enable $ disable)
 
-let native_elt =
-  create_elt
+let native_atom =
+  create_atom
     ~doc:"native code compilation." ~default:true "native"
 
-let native_dynlink_elt =
-  create_elt
+let native_dynlink_atom =
+  create_atom
     ~doc:"native plugins for native code." ~default:true "native-dynlink"
 
-let annot_elt =
-  create_elt
+let annot_atom =
+  create_atom
     ~doc:"the generation of binary annotations." ~default:true "annot"
 
-let debug_elt =
-  create_elt
+let debug_atom =
+  create_atom
     ~doc:"the generation of debug symbols." ~default:true "debug"
 
-let warn_error_elt =
-  create_elt
+let warn_error_atom =
+  create_atom
     ~doc:"warning as errors." ~default:false "warn-error"
 
-let test_elt =
-  create_elt
+let test_atom =
+  create_atom
     ~doc:"tests." ~default:false "test"
 
-let public_doc_elt =
-  create_elt
+let public_doc_atom =
+  create_atom
     ~doc:"the generation of public documentation." ~default:false "doc"
 
-let js_elt =
-  create_elt
+let js_atom =
+  create_atom
     ~doc:"the generation of JavaScript build artefacts, using [js_of_ocaml]."
     ~default:false "js"
 
-let full_doc_elt =
-  create_elt
+let full_doc_atom =
+  create_atom
     ~doc:"the generation of the full documentation."
     ~default:false "full-doc"
 
 let base = List.fold_left (fun set t -> Set.add t set) Set.empty [
-    native_elt; native_dynlink_elt;
-    debug_elt; annot_elt; warn_error_elt;
-    test_elt; public_doc_elt; js_elt;
-    full_doc_elt;
+    native_atom; native_dynlink_atom;
+    debug_atom; annot_atom; warn_error_atom;
+    test_atom; public_doc_atom; js_atom;
+    full_doc_atom;
   ]
 
-let native = atom native_elt
-let native_dynlink = atom native_dynlink_elt
-let annot = atom annot_elt
-let warn_error = atom warn_error_elt
-let debug = atom debug_elt
-let test = atom test_elt
-let public_doc = atom public_doc_elt
-let js = atom js_elt
-let full_doc = atom full_doc_elt
+let native = atom native_atom
+let native_dynlink = atom native_dynlink_atom
+let annot = atom annot_atom
+let warn_error = atom warn_error_atom
+let debug = atom debug_atom
+let test = atom test_atom
+let public_doc = atom public_doc_atom
+let js = atom js_atom
+let full_doc = atom full_doc_atom

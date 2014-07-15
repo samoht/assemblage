@@ -55,7 +55,7 @@ let mk (fn:'a): 'a Term.t =
   Term.(pure (fun () -> fn) $ global)
 
 type t = {
-  features: (As_features.elt * bool) list;
+  features: (As_features.atom * bool) list;
   flags: As_flags.t;
   includes: string list;
   auto_load: bool;
