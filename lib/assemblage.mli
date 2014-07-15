@@ -37,6 +37,64 @@
 
     {e Release %%VERSION%% - %%AUTHOR%% } *)
 
+(** {1:project Project}
+
+    A project is a set of components. Each component describes a
+    logical build unit like a compilation unit, a library, a binary, a
+    test, the documentation of a library, etc. Components may depend
+    on each other. *)
+
+type t
+(** The type for OCaml projects descriptions. Simply a set of 
+    components. *)
+
+type comp_unit
+(** The type for compilation unit descriptions. *)
+
+type lib
+(** The type for library descriptions. *)
+
+type pkg = string
+(** The type for package descriptions. *) 
+
+type bin
+(** The type for binary executable descriptions. *)
+
+type test
+(** The type for test descriptions. *)
+
+type js
+(** The type for [js_of_ocaml] artifact descriptions. *)
+
+type c
+(** The type for C source file descriptions. *)
+
+type gen
+(** The type for generated OCaml source code. *)
+
+type component =
+  [ `Unit of comp_unit
+  | `Lib of lib
+  | `Pp of lib
+  | `Pkg_pp of pkg
+  | `Pkg of pkg
+  | `Bin of bin
+  | `C of c
+  | `JS of js
+  | `Test of test
+  | `Gen of gen ]
+(** The type for components.  
+    {ul 
+    {- [`Unit u] u is a project compilation unit.}
+    {- [`Lib l] is a project library.}
+    {- [`Pp p] is a project pre-processor}
+    {- [`Bin b] is a project binary.}
+    {- [`Test b] is a project test.}
+    {- [`Pkg p] is an external named package.} 
+    {- [`Pkg_pp p] is an external named pre-processor package.}
+    {- FIXME}} *)
+
+
 (** {1:features Features} *)
 
   (** Features.
@@ -80,6 +138,14 @@ module Features: sig
 
   val (|||) : t -> t -> t
   (** [f ||| f'] is true iff either [f] or [f'] is true. *)
+
+  (** {1 Package features} *) 
+
+  val of_pkg : ?default:bool -> ?doc:string -> [`Pkg of pkg ] -> t 
+  (** [of_pkg pkg] is true iff package [pkg] is available. *) 
+
+  val of_pkg_pp : ?default:bool -> ?doc:string -> [`Pkg_pp of pkg ] -> t 
+  (** [of_pkg_pp pkg] is true iff pre-processor package [pkg] is available. *) 
 
   (** {1 Built-in features} *) 
 
@@ -176,56 +242,6 @@ module Flags: sig
       options. *)
 
 end
-
-(** {1:project Project} *)
-
-(** A typical project contains the descriptions of multiple
-    components, such as libraries, binaries, tests, ... forming a
-    complex DAG of inter-related component descriptions. *)
-
-type t
-(** The type for OCaml projects descriptions. *)
-
-type comp_unit
-(** The type for compilation unit descriptions. *)
-
-type lib
-(** The type for library descriptions. *)
-
-type bin
-(** The type for binary executable descriptions. *)
-
-type test
-(** The type for test descriptions. *)
-
-type js
-(** The type for [js_of_ocaml] artifact descriptions. *)
-
-type c
-(** The type for C source file descriptions. *)
-
-type gen
-(** The type for generated OCaml source code. *)
-
-type component =
-  [ `Unit of comp_unit
-  | `Lib of lib
-  | `Pp of lib
-  | `Pkg_pp of string
-  | `Pkg of string
-  | `Bin of bin
-  | `C of c
-  | `JS of js
-  | `Test of test
-  | `Gen of gen ]
-(** The type for all the possible component descriptions. A [`CU cu]
-    is a local compilation unit, [`Lib l] is a local library, [`Pp p]
-    is a local pre-processors and [`Bin] is local biny.
-
-    [`Pkg p] is a globally installed packages and [`Pkg_pp] is a
-    globally installed pre-processor packages, both usually managed by
-    {i ocamlfind}. *)
-
 
 (** {1:resolvers Resolvers} *)
 

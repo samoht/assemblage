@@ -23,6 +23,7 @@ type component = As_project.Component.t
 type comp_unit = As_project.Unit.t
 type lib = As_project.Lib.t
 type bin = As_project.Bin.t
+type pkg = As_project.Pkg.t
 type gen = As_project.Gen.t
 type c = As_project.C.t
 type js = As_project.JS.t
@@ -269,4 +270,22 @@ module Build_env = As_build_env
 module Action = As_action
 module Resolver = As_resolver
 module Flags = As_flags
-module Features = As_features
+module Features = struct 
+  include As_features
+
+  let of_pkg ?default ?doc (`Pkg pkg) =
+    let name = As_project.Pkg.name pkg in
+    let doc = match doc with 
+    | None -> sprintf "%s package available" name
+    | Some doc -> doc 
+    in
+    create name ?default ~doc
+    
+  let of_pkg_pp ?default ?doc (`Pkg_pp pkg) =
+    let name = As_project.Pkg.name pkg in
+    let doc = match doc with
+    | None -> sprintf "%s pre-processor package available" name
+    | Some doc -> doc 
+    in
+    create name ?default ~doc 
+end
