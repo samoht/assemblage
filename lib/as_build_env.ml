@@ -15,8 +15,6 @@
  *)
 
 open Cmdliner
-module Features = As_features
-module Flags = As_flags
 
 let global_option_section = "COMMON OPTIONS"
 let help_sections = [
@@ -57,8 +55,8 @@ let mk (fn:'a): 'a Term.t =
   Term.(pure (fun () -> fn) $ global)
 
 type t = {
-  features: (Features.elt * bool) list;
-  flags: Flags.t;
+  features: (As_features.elt * bool) list;
+  flags: As_flags.t;
   includes: string list;
   auto_load: bool;
   build_dir: string;
@@ -77,7 +75,7 @@ let create
     ?(auto_load=true)
     ?(build_dir="_build")
     () =
-  let flags = Flags.create
+  let flags = As_flags.create
       ~comp_byte:  (comp @ bytcomp)
       ~comp_native:(comp @ natcomp)
       ~link_byte:  (link @ bytlink)
@@ -94,7 +92,7 @@ let flags t = t.flags
 
 let default = {
   features = [];
-  flags = Flags.empty;
+  flags = As_flags.empty;
   auto_load = true;
   includes = [];
   build_dir = "_build";
@@ -111,8 +109,8 @@ let term_of_list list =
   List.fold_left aux (Term.pure []) list
 
 let term features: t Cmdliner.Term.t =
-  let features = Features.Set.elements features in
-  let features = term_of_list (List.map Features.parse features) in
+  let features = As_features.Set.elements features in
+  let features = term_of_list (List.map As_features.parse features) in
   let comp =
     let doc = Arg.info
         ~doc:"Additional options passed to both the native and bytecode the \

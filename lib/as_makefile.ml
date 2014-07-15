@@ -16,13 +16,6 @@
 
 open Printf
 
-module Project = As_project
-module Features = As_features
-module Flags = As_flags
-module Ocamlfind = As_ocamlfind
-module Resolver = As_resolver
-module Shell = As_shell
-
 let (/) x y = Filename.concat x y
 
 let (//) x y =
@@ -78,13 +71,13 @@ module Variable = struct
     | `String _   -> false
 
   let has_feature f =
-    let var = String.uppercase (Features.name f) in
+    let var = String.uppercase (As_features.name f) in
     let var = String.map (function '-' -> '_' | x -> x) var in
-    ("HAS_" ^ var) =?= `String (if Features.default f then "1" else "0")
+    ("HAS_" ^ var) =?= `String (if As_features.default f then "1" else "0")
 
   (* build the guard pattern *)
   let guard features =
-    match Features.cnf features with
+    match As_features.cnf features with
     | `Conflict -> failwith "invalid handler case"
     | `And l    ->
       List.map (function
@@ -95,7 +88,7 @@ module Variable = struct
   (* build the full handler cases *)
   let case available cs =
     let cs = List.filter (fun (f,_) ->
-        Features.(cnf (available &&& f)) <> `Conflict
+        As_features.(cnf (available &&& f)) <> `Conflict
       ) cs in
     `Case (List.map (fun (f, c) -> guard f, c) cs)
 
@@ -298,16 +291,16 @@ let buildir = "$(BUILDIR)"
 
 let echo_prereqs name =
   sprintf "@echo '%s %s %s'"
-    (Shell.color `underline name)
-    (Shell.color `yellow "=>")
+    (As_shell.color `underline name)
+    (As_shell.color `yellow "=>")
     Rule.prereqs
 
 let resolver =
-  Ocamlfind.resolver `Makefile buildir
+  As_ocamlfind.resolver `Makefile buildir
 
-let native_dynlink_f = Features.(native_dynlink &&& native)
+let native_dynlink_f = As_features.(native_dynlink &&& native)
 
-let native_f = Features.native
+let native_f = As_features.native
 
 let comp_byte   = "comp-byte"
 let comp_native = "comp-native"
@@ -321,17 +314,17 @@ let deps_native = "deps-native"
 let deps_shared = "deps-shared"
 
 module rec U: sig
-  val rules    : Project.CU.t -> Rule.t list
-  val variables: Project.CU.t -> Variable.stanza
+  val rules    : As_project.CU.t -> Rule.t list
+  val variables: As_project.CU.t -> Variable.stanza
 end = struct
 
   let pp suffix varlib varbin fn t =
-    let var = Project.CU.id t ^ "." ^ suffix in
-    let lib = match Project.CU.container t with
+    let var = As_project.CU.id t ^ "." ^ suffix in
+    let lib = match As_project.CU.container t with
       | None          -> None
       | Some (`Lib l) -> Some (varlib l)
       | Some (`Bin b) -> Some (varbin b) in
-    match lib, fn (Project.CU.flags t resolver) with
+    match lib, fn (As_project.CU.flags t resolver) with
     | None  , [] -> None
     | Some l, [] -> if Variable.is_empty l then None else Some l
     | None  , u  -> Some (Variable.(var =?= `Strings u))
@@ -342,32 +335,32 @@ end = struct
         Some (Variable.(var =?= `Strings (Variable.name l :: u)))
 
   let flag suffix varlib varbin fn t =
-    let var    = Project.CU.id t ^ "." ^ suffix in
-    let global = match Project.CU.container t with
+    let var    = As_project.CU.id t ^ "." ^ suffix in
+    let global = match As_project.CU.container t with
       | None          -> []
       | Some (`Lib l) -> [Variable.name (varlib l)]
       | Some (`Bin b) -> [Variable.name (varbin b)] in
-    let flags = fn (Project.CU.flags t resolver) @ global in
+    let flags = fn (As_project.CU.flags t resolver) @ global in
     Variable.(var =?= `Strings flags)
 
-  let pp_byte     = pp   pp_byte   L.pp_byte     B.pp_byte     Flags.pp_byte
-  let pp_native   = pp   pp_native L.pp_native   B.pp_native   Flags.pp_native
-  let comp_byte   = flag comp_byte L.comp_byte   B.comp_byte   Flags.comp_byte
+  let pp_byte     = pp   pp_byte   L.pp_byte     B.pp_byte     As_flags.pp_byte
+  let pp_native   = pp   pp_native L.pp_native   B.pp_native   As_flags.pp_native
+  let comp_byte   = flag comp_byte L.comp_byte   B.comp_byte   As_flags.comp_byte
   let comp_native =
-    flag comp_native L.comp_native B.comp_native Flags.comp_native
+    flag comp_native L.comp_native B.comp_native As_flags.comp_native
 
   let prereqs t = function
-    | `Byte   -> Project.CU.id t ^ "." ^ deps_byte
-    | `Native -> Project.CU.id t ^ "." ^ deps_native
+    | `Byte   -> As_project.CU.id t ^ "." ^ deps_byte
+    | `Native -> As_project.CU.id t ^ "." ^ deps_native
 
   let prereqs_var t mode =
     sprintf "$(%s)" (prereqs t mode)
 
   let variables t =
     Variable.stanza
-      ~doc:[sprintf "Compilation unit %s" (Project.CU.dir t // Project.CU.name t)]
-      (Variable.(prereqs t `Byte =?= `Strings (Project.CU.prereqs t resolver `Byte))
-       :: Variable.(prereqs t `Native =?= `Strings (Project.CU.prereqs t resolver `Native))
+      ~doc:[sprintf "Compilation unit %s" (As_project.CU.dir t // As_project.CU.name t)]
+      (Variable.(prereqs t `Byte =?= `Strings (As_project.CU.prereqs t resolver `Byte))
+       :: Variable.(prereqs t `Native =?= `Strings (As_project.CU.prereqs t resolver `Native))
        :: comp_byte t
        :: comp_native t
        :: (match pp_byte t with
@@ -382,40 +375,40 @@ end = struct
     let pp = match pp_byte t with
       | None   -> ""
       | Some v -> sprintf "-pp '$(CAMLP4O) %s' " (Variable.name v) in
-    let for_pack = match Project.CU.for_pack t with
+    let for_pack = match As_project.CU.for_pack t with
       | None   -> ""
       | Some p -> sprintf "-for-pack %s " p in
     let flags = for_pack ^ pp in
-    let target ext = Project.CU.file t resolver ext in
-    let source ext = Project.CU.(dir t // name t ^ ext) in
+    let target ext = As_project.CU.file t resolver ext in
+    let source ext = As_project.CU.(dir t // name t ^ ext) in
 
-    match Project.CU.unpack t with
+    match As_project.CU.unpack t with
     | [] -> (* Normal compilation unit. *)
       let ln = (* link source file to target directory *)
-        match Project.CU.generated t with
+        match As_project.CU.generated t with
         | false ->
           let aux exists ext =
             let source = source ext in
             let target = target ext in
             if exists t then
               [Rule.create ~targets:[target] ~prereqs:[source] [
-                  sprintf "mkdir -p %s" (Project.CU.build_dir t resolver);
+                  sprintf "mkdir -p %s" (As_project.CU.build_dir t resolver);
                   sprintf "ln -sf $(shell pwd)/%s %s" source target
                 ]]
             else [] in
-          aux Project.CU.ml ".ml" @ aux Project.CU.mli ".mli"
+          aux As_project.CU.ml ".ml" @ aux As_project.CU.mli ".mli"
         | true -> [] in
       let cmi = (* generate cmis *)
         let targets, prereqs =
-          if Project.CU.mli t then [target ".cmi"], [target ".mli"]
-          else if Project.CU.ml t then [target ".cmo"; target ".cmi"], [target ".ml"]
+          if As_project.CU.mli t then [target ".cmi"], [target ".mli"]
+          else if As_project.CU.ml t then [target ".cmo"; target ".cmi"], [target ".ml"]
           else [], [] in
         [Rule.create ~targets ~prereqs:(prereqs @ [prereqs_var t `Byte]) [
             sprintf "$(OCAMLC) -c %s%s %s"
               flags (Variable.name (comp_byte t)) Rule.prereq
           ]] in
       let cmo = (* Generate cmos *)
-        if Project.CU.mli t && Project.CU.ml t then
+        if As_project.CU.mli t && As_project.CU.ml t then
           [Rule.create ~targets:[target ".cmo"]
              ~prereqs:[target ".ml"; target ".cmi"; prereqs_var t `Byte]
              [sprintf "$(OCAMLC) -c %s%s %s"
@@ -432,13 +425,13 @@ end = struct
 
     | units -> (* Packed units *)
       let byte =
-        let cmo = List.map (fun u -> Project.CU.cmo u resolver) units in
+        let cmo = List.map (fun u -> As_project.CU.cmo u resolver) units in
         Rule.create ~targets:[target ".cmo"; target ".cmi"] ~prereqs:cmo [
           sprintf "$(OCAMLC) -pack %s%s -o %s"
             flags Rule.prereq Rule.target_member
         ] in
       let native =
-        let cmx = List.map (fun u -> Project.CU.cmx u resolver) units in
+        let cmx = List.map (fun u -> As_project.CU.cmx u resolver) units in
         Rule.create ~targets:[target ".cmx"] ~prereqs:cmx [
           sprintf "$(OCAMLOPT) -pack %s%s -o %s"
             flags Rule.prereq Rule.target_member
@@ -448,49 +441,49 @@ end = struct
 end
 
 and L: sig
-  val rules      : Project.Lib.t -> Rule.t list
-  val variables  : Project.Lib.t -> Variable.stanza
-  val comp_byte  : Project.Lib.t -> Variable.t
-  val comp_native: Project.Lib.t -> Variable.t
-  val pp_byte    : Project.Lib.t -> Variable.t
-  val pp_native  : Project.Lib.t -> Variable.t
+  val rules      : As_project.Lib.t -> Rule.t list
+  val variables  : As_project.Lib.t -> Variable.stanza
+  val comp_byte  : As_project.Lib.t -> Variable.t
+  val comp_native: As_project.Lib.t -> Variable.t
+  val pp_byte    : As_project.Lib.t -> Variable.t
+  val pp_native  : As_project.Lib.t -> Variable.t
 end = struct
 
   let flag suffix with_glob fn t =
-    let var   = Project.Lib.id t ^ "." ^ suffix in
+    let var   = As_project.Lib.id t ^ "." ^ suffix in
     let glob  = sprintf "$(%s)" suffix in
-    let flags = fn (Project.Lib.flags t resolver) in
+    let flags = fn (As_project.Lib.flags t resolver) in
     if with_glob then
       Variable.(var =?= `Strings (glob :: flags))
     else
       Variable.(var =?= `Strings flags)
 
-  let comp_byte   = flag comp_byte   true  Flags.comp_byte
-  let comp_native = flag comp_native true  Flags.comp_native
-  let pp_byte     = flag pp_byte     false Flags.pp_byte
-  let pp_native   = flag pp_native   false Flags.pp_native
-  let link_byte   = flag link_byte   true  Flags.link_byte
-  let link_native = flag link_native true  Flags.link_native
-  let link_shared = flag link_shared true Flags.link_shared
+  let comp_byte   = flag comp_byte   true  As_flags.comp_byte
+  let comp_native = flag comp_native true  As_flags.comp_native
+  let pp_byte     = flag pp_byte     false As_flags.pp_byte
+  let pp_native   = flag pp_native   false As_flags.pp_native
+  let link_byte   = flag link_byte   true  As_flags.link_byte
+  let link_native = flag link_native true  As_flags.link_native
+  let link_shared = flag link_shared true As_flags.link_shared
 
   let prereqs t = function
-    | `Byte   -> Project.Lib.id t ^ "." ^ deps_byte
-    | `Native -> Project.Lib.id t ^ "." ^ deps_native
-    | `Shared -> Project.Lib.id t ^ "." ^ deps_shared
+    | `Byte   -> As_project.Lib.id t ^ "." ^ deps_byte
+    | `Native -> As_project.Lib.id t ^ "." ^ deps_native
+    | `Shared -> As_project.Lib.id t ^ "." ^ deps_shared
 
   let prereqs_var t mode =
     sprintf "$(%s)" (prereqs t mode)
 
   let variables t =
     let vars =
-      let cma  = Project.Lib.cma t resolver in
-      let cmxa = Project.Lib.cmxa t resolver in
-      let cmxs = Project.Lib.cmxs t resolver in
+      let cma  = As_project.Lib.cma t resolver in
+      let cmxa = As_project.Lib.cmxa t resolver in
+      let cmxs = As_project.Lib.cmxs t resolver in
       let native = [ native_f, `Strings [cma; cmxa] ] in
       let native_dynlink = [ native_dynlink_f, `Strings [cmxs] ] in
-      Variable.(Project.Lib.id t =:= `Strings [cma])
-      :: Variable.(Project.Lib.id t =+= case (Project.Lib.available t) native)
-      :: Variable.(Project.Lib.id t =+= case (Project.Lib.available t) native_dynlink)
+      Variable.(As_project.Lib.id t =:= `Strings [cma])
+      :: Variable.(As_project.Lib.id t =+= case (As_project.Lib.available t) native)
+      :: Variable.(As_project.Lib.id t =+= case (As_project.Lib.available t) native_dynlink)
       :: comp_byte t
       :: comp_native t
       :: pp_byte t
@@ -498,24 +491,24 @@ end = struct
       :: link_byte t
       :: link_native t
       :: link_shared t
-      :: Variable.(prereqs t `Byte =?= `Strings (Project.Lib.prereqs t resolver `Byte))
-      :: Variable.(prereqs t `Native =?= `Strings (Project.Lib.prereqs t resolver `Native))
+      :: Variable.(prereqs t `Byte =?= `Strings (As_project.Lib.prereqs t resolver `Byte))
+      :: Variable.(prereqs t `Native =?= `Strings (As_project.Lib.prereqs t resolver `Native))
       :: [] in
     Variable.stanza
-      ~doc:[sprintf "Library %s" (Project.Lib.name t)]
+      ~doc:[sprintf "Library %s" (As_project.Lib.name t)]
       vars
 
   let rules t =
     let byte =
       Rule.create
-        ~targets:[Project.Lib.cma t resolver]
+        ~targets:[As_project.Lib.cma t resolver]
         ~prereqs:[prereqs_var t `Byte] [
         sprintf "$(OCAMLC) -a %s -o %s" (Variable.name (link_byte t)) Rule.target
       ] in
     let native mode =
       let file, arg = match mode with
-        | `Shared -> Project.Lib.cmxs t resolver, "-shared"
-        | `Native -> Project.Lib.cmxa t resolver, "-a" in
+        | `Shared -> As_project.Lib.cmxs t resolver, "-shared"
+        | `Native -> As_project.Lib.cmxa t resolver, "-a" in
       let link = match mode with
         | `Shared -> link_shared t
         | `Native -> link_native t in
@@ -526,9 +519,9 @@ end = struct
          arg (Variable.name link) Rule.target
       ] in
     Rule.create
-      ~targets:[Project.Lib.id t]
-      ~prereqs:[sprintf "$(%s)" (Project.Lib.id t)]
-      [echo_prereqs (Project.Lib.id t)]
+      ~targets:[As_project.Lib.id t]
+      ~prereqs:[sprintf "$(%s)" (As_project.Lib.id t)]
+      [echo_prereqs (As_project.Lib.id t)]
     :: byte
     :: native `Native
     :: native `Shared
@@ -537,33 +530,33 @@ end = struct
 end
 
 and B: sig
-  val rules      : Project.Bin.t -> Rule.t list
-  val variables  : Project.Bin.t -> Variable.stanza
-  val comp_byte  : Project.Bin.t -> Variable.t
-  val comp_native: Project.Bin.t -> Variable.t
-  val pp_byte    : Project.Bin.t -> Variable.t
-  val pp_native  : Project.Bin.t -> Variable.t
+  val rules      : As_project.Bin.t -> Rule.t list
+  val variables  : As_project.Bin.t -> Variable.stanza
+  val comp_byte  : As_project.Bin.t -> Variable.t
+  val comp_native: As_project.Bin.t -> Variable.t
+  val pp_byte    : As_project.Bin.t -> Variable.t
+  val pp_native  : As_project.Bin.t -> Variable.t
 end = struct
 
   let flag suffix with_glob fn t =
-    let var   = Project.Bin.id t ^ "." ^ suffix in
+    let var   = As_project.Bin.id t ^ "." ^ suffix in
     let glob  = sprintf "$(%s)" suffix in
-    let flags = fn (Project.Bin.flags t resolver) in
+    let flags = fn (As_project.Bin.flags t resolver) in
     if with_glob then
       Variable.(var =?= `Strings (glob :: flags))
     else
       Variable.(var =?= `Strings flags)
 
-  let comp_byte   = flag comp_byte   true  Flags.comp_byte
-  let comp_native = flag comp_native true  Flags.comp_native
-  let link_byte   = flag link_byte   true  Flags.link_byte
-  let link_native = flag link_native true  Flags.link_native
-  let pp_byte     = flag pp_byte     false Flags.pp_byte
-  let pp_native   = flag pp_native   false Flags.pp_native
+  let comp_byte   = flag comp_byte   true  As_flags.comp_byte
+  let comp_native = flag comp_native true  As_flags.comp_native
+  let link_byte   = flag link_byte   true  As_flags.link_byte
+  let link_native = flag link_native true  As_flags.link_native
+  let pp_byte     = flag pp_byte     false As_flags.pp_byte
+  let pp_native   = flag pp_native   false As_flags.pp_native
 
   let prereqs t = function
-    | `Byte   -> Project.Bin.id t ^ "." ^ deps_byte
-    | `Native -> Project.Bin.id t ^ "." ^ deps_native
+    | `Byte   -> As_project.Bin.id t ^ "." ^ deps_byte
+    | `Native -> As_project.Bin.id t ^ "." ^ deps_native
 
   let prereqs_var t mode =
     sprintf "$(%s)" (prereqs t mode)
@@ -571,40 +564,40 @@ end = struct
   let variables t =
     let vars =
       let cs = [
-        native_f      , `Strings [Project.Bin.byte t resolver; Project.Bin.native t resolver];
-        Features.true_, `String  (Project.Bin.byte t resolver);
+        native_f      , `Strings [As_project.Bin.byte t resolver; As_project.Bin.native t resolver];
+        As_features.true_, `String  (As_project.Bin.byte t resolver);
       ] in
-      Variable.(Project.Bin.id t =?= case (Project.Bin.available t) cs)
+      Variable.(As_project.Bin.id t =?= case (As_project.Bin.available t) cs)
       :: comp_byte t
       :: comp_native t
       :: pp_byte t
       :: pp_native t
       :: link_byte t
       :: link_native t
-      :: Variable.(prereqs t `Byte   =?= `Strings (Project.Bin.prereqs t resolver `Byte))
-      :: Variable.(prereqs t `Native =?= `Strings (Project.Bin.prereqs t resolver `Native))
+      :: Variable.(prereqs t `Byte   =?= `Strings (As_project.Bin.prereqs t resolver `Byte))
+      :: Variable.(prereqs t `Native =?= `Strings (As_project.Bin.prereqs t resolver `Native))
       :: [] in
     Variable.stanza
-      ~doc:[sprintf "Binary %s" (Project.Bin.name t)]
+      ~doc:[sprintf "Binary %s" (As_project.Bin.name t)]
       vars
 
   let rules t =
     Rule.create
-      ~targets:[Project.Bin.id t]
-      ~prereqs:[sprintf "$(%s)" (Project.Bin.id t)]
-      [echo_prereqs (Project.Bin.id t)]
+      ~targets:[As_project.Bin.id t]
+      ~prereqs:[sprintf "$(%s)" (As_project.Bin.id t)]
+      [echo_prereqs (As_project.Bin.id t)]
     ::
     Rule.create
-      ~targets:[Project.Bin.byte t resolver]
+      ~targets:[As_project.Bin.byte t resolver]
       ~prereqs:[prereqs_var t `Byte] [
-      sprintf "mkdir -p %s" (Project.Bin.build_dir t resolver);
+      sprintf "mkdir -p %s" (As_project.Bin.build_dir t resolver);
       sprintf "$(OCAMLC) %s -o %s" (Variable.name (link_byte t)) Rule.target;
     ]
     ::
     Rule.create
-      ~targets:[Project.Bin.native t resolver]
+      ~targets:[As_project.Bin.native t resolver]
       ~prereqs:[prereqs_var t `Native] [
-      sprintf "mkdir -p %s" (Project.Bin.build_dir t resolver);
+      sprintf "mkdir -p %s" (As_project.Bin.build_dir t resolver);
       sprintf "$(OCAMLOPT) %s -o %s" (Variable.name (link_native t)) Rule.target;
     ]
     :: []
@@ -612,8 +605,8 @@ end = struct
 end
 
 and G: sig
-  val rules    : Project.Gen.t -> Rule.t list
-  val variables: Project.Gen.t -> Variable.stanza
+  val rules    : As_project.Gen.t -> Rule.t list
+  val variables: As_project.Gen.t -> Variable.stanza
 end = struct
 
   (* XXX: improve the generated variables and rules *)
@@ -623,35 +616,35 @@ end = struct
   let rules t =
     [
       Rule.create
-        ~targets:(Project.Gen.files t resolver)
-        ~prereqs:(Project.Gen.prereqs t resolver `Byte)
-        (Project.Gen.actions t resolver)
+        ~targets:(As_project.Gen.files t resolver)
+        ~prereqs:(As_project.Gen.prereqs t resolver `Byte)
+        (As_project.Gen.actions t resolver)
     ]
 end
 
 module T = struct
 
   let variables ts =
-    [Variable.("test" =:= `String (String.concat " " (List.map Project.Test.id ts)))]
+    [Variable.("test" =:= `String (String.concat " " (List.map As_project.Test.id ts)))]
 
   let rules ts =
     Rule.create ~targets:["test"] ~prereqs:["$(test)"] []
     :: List.map (fun t ->
         Rule.create
-          ~targets:[Project.Test.id t]
-          ~prereqs:(Project.Test.prereqs t resolver `Byte) (
-          let dir = match Project.Test.dir t with
+          ~targets:[As_project.Test.id t]
+          ~prereqs:(As_project.Test.prereqs t resolver `Byte) (
+          let dir = match As_project.Test.dir t with
             | None   -> ""
             | Some d -> sprintf "cd %s &&" d in
           List.map (function
               | `Shell cmd            -> String.concat " " [dir; cmd]
               | `Bin (`Bin bin, args) ->
                 let args = args (fun c ->
-                    Sys.getcwd () / Project.Component.build_dir c resolver
+                    Sys.getcwd () / As_project.Component.build_dir c resolver
                   ) in
-                let bin = Sys.getcwd () / Project.Bin.byte bin resolver in
+                let bin = Sys.getcwd () / As_project.Bin.byte bin resolver in
                 String.concat " " [dir; bin; String.concat " " args]
-            ) (Project.Test.commands t)
+            ) (As_project.Test.commands t)
         )
       ) ts
 
@@ -660,10 +653,10 @@ end
 module D = struct
 
   let target l =
-    "doc-" ^ Project.Lib.id l
+    "doc-" ^ As_project.Lib.id l
 
   let full_target l =
-    "full-doc-" ^ Project.Lib.id l
+    "full-doc-" ^ As_project.Lib.id l
 
   let variables libs =
     [Variable.("doc"      =:= `String (String.concat " " (List.map target libs)));
@@ -674,30 +667,30 @@ module D = struct
       let targets = [if full_doc then full_target l else target l] in
       Rule.create
         ~targets
-        ~prereqs:[Project.Lib.id l] [
+        ~prereqs:[As_project.Lib.id l] [
         sprintf "mkdir -p %s" dir;
         let files =
-          Project.Lib.compilation_units l
+          As_project.Lib.compilation_units l
           |> conmap (fun u ->
-              let name = Project.CU.name u in
+              let name = As_project.CU.name u in
               if full_doc || List.mem name public then
-                ["$(BUILDIR)" / Project.Lib.id l /
-                 if Project.CU.mli u then name ^ ".mli" else name ^ ".ml"]
+                ["$(BUILDIR)" / As_project.Lib.id l /
+                 if As_project.CU.mli u then name ^ ".mli" else name ^ ".ml"]
               else
                 [])
           |> String.concat " " in
-        let deps = Project.Lib.deps l |> Project.Component.closure in
+        let deps = As_project.Lib.deps l |> As_project.Component.closure in
         let libs =
           deps
-          |> Project.Component.(filter lib)
+          |> As_project.Component.(filter lib)
           |> (fun d -> l :: d)
           |> List.map (fun l -> sprintf "-I %s"
-                          (Resolver.build_dir resolver (Project.Lib.id l)))
+                          (As_resolver.build_dir resolver (As_project.Lib.id l)))
           |> String.concat " " in
         let pkgs =
           deps
-          |> Project.Component.(filter pkg)
-          |> (fun pkgs -> Flags.comp_byte (Resolver.pkgs resolver pkgs))
+          |> As_project.Component.(filter pkg)
+          |> (fun pkgs -> As_flags.comp_byte (As_resolver.pkgs resolver pkgs))
           |> String.concat " " in
         let css = match css with
           | None   -> ""
@@ -718,16 +711,16 @@ end
 module J = struct
 
   let variables l =
-    [Variable.("js" =:= `String (String.concat " " (List.map Project.JS.id l)))]
+    [Variable.("js" =:= `String (String.concat " " (List.map As_project.JS.id l)))]
 
   let rules jss =
     Rule.create ~targets:["js"] ~prereqs:["$(js)"] []
     :: List.map (fun j ->
         Rule.create
-          ~targets:[Project.JS.id j]
-          ~prereqs:(Project.JS.prereqs j resolver `Byte) [
+          ~targets:[As_project.JS.id j]
+          ~prereqs:(As_project.JS.prereqs j resolver `Byte) [
           sprintf "$(JS_OF_OCAML) %s %s"
-            (String.concat " " (Flags.link_byte (Project.JS.flags j resolver)))
+            (String.concat " " (As_flags.link_byte (As_project.JS.flags j resolver)))
             Rule.prereq
         ]) jss
 
@@ -736,34 +729,34 @@ end
 module C = struct
 
   let variables l =
-    [Variable.("c" =:= `String (String.concat " " (List.map Project.C.id l)))]
+    [Variable.("c" =:= `String (String.concat " " (List.map As_project.C.id l)))]
 
   let rules cs r =
     (* XXX: handle the case where opam is not installed *)
-    let lib_dir = List.hd (Shell.exec_output "opam config var lib") in
+    let lib_dir = List.hd (As_shell.exec_output "opam config var lib") in
     Rule.create ~targets:["c"] ~prereqs:["$(c)"] []
     :: conmap (fun c -> [
           (* XXX: add symlink rule *)
           Rule.create
-            ~targets:[Project.C.id c]
-            ~prereqs:[Project.C.dll_so c r]
+            ~targets:[As_project.C.id c]
+            ~prereqs:[As_project.C.dll_so c r]
             [];
           Rule.create
-            ~targets:[Project.C.o c r]
-            ~prereqs:[Project.C.symlink_c c r]
+            ~targets:[As_project.C.o c r]
+            ~prereqs:[As_project.C.symlink_c c r]
             [sprintf "cd %s && $(OCAMLC) -c -I %s %s %s"
-               (Filename.dirname (Project.C.symlink_c c r))
+               (Filename.dirname (As_project.C.symlink_c c r))
                lib_dir
-               (Filename.basename (Project.C.symlink_c c r))
+               (Filename.basename (As_project.C.symlink_c c r))
                (String.concat " " (
-                   List.map (sprintf "-ccopt %s") (Project.C.link_flags c)))];
+                   List.map (sprintf "-ccopt %s") (As_project.C.link_flags c)))];
           Rule.create
-            ~targets:[Project.C.dll_so c r]
-            ~prereqs:[Project.C.o c r]
+            ~targets:[As_project.C.dll_so c r]
+            ~prereqs:[As_project.C.o c r]
            [sprintf "$(OCAMLMKLIB) -o %s %s %s"
-              (Project.C.file c resolver "")
+              (As_project.C.file c resolver "")
               Rule.prereqs
-              (String.concat " " (Project.C.link_flags c))
+              (String.concat " " (As_project.C.link_flags c))
            ];
         ]
       ) cs
@@ -771,59 +764,59 @@ module C = struct
 end
 
 let global_variables flags =
-  let debug = Variable.has_feature Features.debug_elt in
-  let annot = Variable.has_feature Features.annot_elt in
-  let warn_error = Variable.has_feature Features.warn_error_elt in
+  let debug = Variable.has_feature As_features.debug_elt in
+  let annot = Variable.has_feature As_features.annot_elt in
+  let warn_error = Variable.has_feature As_features.warn_error_elt in
   let mk fn n = match fn flags with
     | [] -> []
     | l  -> [Variable.(n =:= `Strings l)] in
   let vars =
-    mk Flags.comp_byte   comp_byte
-    @ mk Flags.comp_native comp_native
-    @ mk Flags.link_byte   link_byte
-    @ mk Flags.link_native link_native
-    @ mk Flags.link_shared link_shared
+    mk As_flags.comp_byte   comp_byte
+    @ mk As_flags.comp_native comp_native
+    @ mk As_flags.link_byte   link_byte
+    @ mk As_flags.link_native link_native
+    @ mk As_flags.link_shared link_shared
     @ [
       Variable.(comp_byte =+= `Case [
-          [debug, "1"], `Strings Flags.(comp_byte debug)
+          [debug, "1"], `Strings As_flags.(comp_byte debug)
         ]);
       Variable.(comp_byte =+= `Case [
-          [annot, "1"], `Strings Flags.(comp_byte annot)
+          [annot, "1"], `Strings As_flags.(comp_byte annot)
         ]);
       Variable.(comp_byte =+= `Case [
-          [warn_error, "1"], `Strings Flags.(comp_byte warn_error)
+          [warn_error, "1"], `Strings As_flags.(comp_byte warn_error)
         ]);
       Variable.(link_byte =+= `Case [
-          [debug, "1"], `Strings Flags.(link_byte debug)
+          [debug, "1"], `Strings As_flags.(link_byte debug)
         ]);
       Variable.(comp_native =+= `Case [
-          [debug, "1"], `Strings Flags.(comp_native debug)
+          [debug, "1"], `Strings As_flags.(comp_native debug)
         ]);
       Variable.(comp_native =+= `Case [
-          [annot, "1"], `Strings Flags.(comp_native annot)
+          [annot, "1"], `Strings As_flags.(comp_native annot)
         ]);
       Variable.(comp_native =+= `Case [
-          [warn_error, "1"], `Strings Flags.(comp_native warn_error)
+          [warn_error, "1"], `Strings As_flags.(comp_native warn_error)
         ]);
       Variable.(link_native =+= `Case [
-          [debug, "1"], `Strings Flags.(link_native debug)
+          [debug, "1"], `Strings As_flags.(link_native debug)
         ]);
     ] in
   Variable.stanza ~align:true ~simplify:true vars
 
 let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
-  let components = Project.components t in
-  let libs  = Project.Component.(filter lib components) in
-  let pps   = Project.Component.(filter pp components) in
-  let bins  = Project.Component.(filter bin components) in
-  let tests = Project.Component.(filter test components) in
-  let jss   = Project.Component.(filter js components) in
-  let gens  = Project.Component.(filter gen components) in
-  let cs    = Project.Component.(filter c components) in
-  let cus   = Project.Component.(
+  let components = As_project.components t in
+  let libs  = As_project.Component.(filter lib components) in
+  let pps   = As_project.Component.(filter pp components) in
+  let bins  = As_project.Component.(filter bin components) in
+  let tests = As_project.Component.(filter test components) in
+  let jss   = As_project.Component.(filter js components) in
+  let gens  = As_project.Component.(filter gen components) in
+  let cs    = As_project.Component.(filter c components) in
+  let cus   = As_project.Component.(
       (components
-       @ List.map (fun x -> `CU x) (conmap Project.Lib.compilation_units (libs @ pps))
-       @ List.map (fun x -> `CU x) (conmap Project.Bin.compilation_units bins))
+       @ List.map (fun x -> `CU x) (conmap As_project.Lib.compilation_units (libs @ pps))
+       @ List.map (fun x -> `CU x) (conmap As_project.Bin.compilation_units bins))
       |> Graph.of_list
       |> Graph.to_list
       |> filter cu) in
@@ -831,25 +824,25 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
     List.map (fun l -> `Lib l) (libs @ pps)
     @ List.map (fun b -> `Bin b) bins in
   let all =
-    let targets = List.map Project.Component.id targets in
+    let targets = List.map As_project.Component.id targets in
     Variable.("all" =:= `String (String.concat " " targets)) in
   let global_variables =
     global_variables flags in
   let project_features =
-    Project.features t
-    |> Features.Set.elements in
+    As_project.features t
+    |> As_features.Set.elements in
   let feature_variables =
     project_features
     |> (fun t ->
         List.map (fun elt ->
             if List.mem_assoc elt features then
-              Features.with_default elt (List.assoc elt features)
+              As_features.with_default elt (List.assoc elt features)
             else elt
           ) t)
     |> List.map Variable.has_feature in
   let variables =
     let tool name =
-      let native = [ (Variable.has_feature Features.native_elt, "1") ] in
+      let native = [ (Variable.has_feature As_features.native_elt, "1") ] in
       `Case [ (native, `String (name ^ ".opt")); ([], `String name) ] in
     Variable.stanza ~doc:[""; "Main project configuration"; ""] []
     :: Variable.stanza
@@ -899,16 +892,16 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
     @ C.rules cs resolver
     @ T.rules tests
     @ D.rules
-      ?css:(Project.doc_css t)
-      ?intro:(Project.doc_intro t)
-      ~dir:(Project.doc_dir t)
-      (Project.doc_public t) libs
+      ?css:(As_project.doc_css t)
+      ?intro:(As_project.doc_intro t)
+      ~dir:(As_project.doc_dir t)
+      (As_project.doc_public t) libs
     @ J.rules jss
   in
   let main = Rule.create ~ext:true ~targets:["all"] ~prereqs:[] [
       sprintf "@echo '%s %s ${all}'"
-        (Shell.color `underline "all")
-        (Shell.color `yellow "=>");
+        (As_shell.color `underline "all")
+        (As_shell.color `yellow "=>");
       sprintf "@$(MAKE) $(all)";
       sprintf "@if [ \"x${HAS_JS}\" = \"x1\" ]; then $(MAKE) js; fi";
       sprintf "@if [ \"x${HAS_TEST}\" = \"x1\" ]; then $(MAKE) test; fi";
@@ -922,42 +915,42 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
     ] in
   let distclean = Rule.create ~ext:true ~targets:["distclean"] ~prereqs:["clean"] (
       sprintf "rm -f %s %s.install META %s/*.html"
-        makefile  (Project.name t) (Project.doc_dir t)
+        makefile  (As_project.name t) (As_project.doc_dir t)
       ::
       List.map (fun file ->
           sprintf "rm -rf %s.ml" file
-        ) (Project.files_of_generators t resolver)
+        ) (As_project.files_of_generators t resolver)
     ) in
   let install = Rule.create ~ext:true ~targets:["install"] ~prereqs:["all"] [
       sprintf "@opam-installer --prefix $(shell opam config var prefix) \
-               %s.install" (Project.name t)
+               %s.install" (As_project.name t)
     ] in
   let help = Rule.create ~targets:["help"] ~prereqs:[]
       ([sprintf "@echo 'The following targets are available (use \"make %s\"):'"
-          (Shell.color `underline "<target>");
+          (As_shell.color `underline "<target>");
         "@echo";
-        sprintf "@echo ' - %s -- build all the active targets.'" (Shell.color `underline "all")]
+        sprintf "@echo ' - %s -- build all the active targets.'" (As_shell.color `underline "all")]
        @ List.map (fun c ->
            sprintf "@echo ' - %s -- build the %s %s.'"
-             (Shell.color `underline (Project.Component.id c))
+             (As_shell.color `underline (As_project.Component.id c))
              (match c with `Lib _ -> "library" | `Bin _ -> "executable" | _ -> "component")
-             (Project.Component.name c)
+             (As_project.Component.name c)
          ) targets
-       @ [sprintf "@echo ' - %s -- build the documentation.'" (Shell.color `underline "doc");
-          sprintf "@echo ' - %s -- build and run the test.'" (Shell.color `underline "test");
-          sprintf "@echo ' - %s -- build the js_of_ocaml targets.'" (Shell.color `underline "js");
-          sprintf "@echo ' - %s -- clean the build artefacts.'" (Shell.color `underline "clean");
+       @ [sprintf "@echo ' - %s -- build the documentation.'" (As_shell.color `underline "doc");
+          sprintf "@echo ' - %s -- build and run the test.'" (As_shell.color `underline "test");
+          sprintf "@echo ' - %s -- build the js_of_ocaml targets.'" (As_shell.color `underline "js");
+          sprintf "@echo ' - %s -- clean the build artefacts.'" (As_shell.color `underline "clean");
           sprintf "@echo ' - %s -- clean the project to prepare the release.'"
-            (Shell.color `underline "distclean");
+            (As_shell.color `underline "distclean");
           "@echo";
           "@echo";
           sprintf "@echo 'Current configuration (use \"make %s\" to modify):'"
-            (Shell.color `underline "VAR=val");
+            (As_shell.color `underline "VAR=val");
           "@echo"; ]
        @ List.map (fun f ->
            let v = Variable.has_feature f in
            let k_v = v.Variable.name ^ "=" ^ Variable.name v in
-           sprintf "@echo ' - %s -- %s'" (Shell.color `underline k_v) (Features.doc f)
+           sprintf "@echo ' - %s -- %s'" (As_shell.color `underline k_v) (As_features.doc f)
          ) project_features
        @ [ "@echo" ]
       ) in

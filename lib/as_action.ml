@@ -14,9 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Shell = As_shell
-module Resolver = As_resolver
-
 open Printf
 
 type custom = {
@@ -24,7 +21,7 @@ type custom = {
   cmd: string;
 }
 
-type t = (Resolver.t -> custom)
+type t = (As_resolver.t -> custom)
 
 let custom ?dir fmt =
   ksprintf (fun cmd ->
@@ -34,8 +31,8 @@ let custom ?dir fmt =
 let run t r =
   let s = t r in
   match s.dir with
-  | None   -> Shell.exec "%s" s.cmd
-  | Some d -> Shell.in_dir d (fun () -> Shell.exec "%s" s.cmd)
+  | None   -> As_shell.exec "%s" s.cmd
+  | Some d -> As_shell.in_dir d (fun () -> As_shell.exec "%s" s.cmd)
 
 let actions t r =
   let s = t r in

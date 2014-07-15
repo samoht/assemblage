@@ -17,12 +17,6 @@
 open Parsetree
 open Printf
 
-module Flags = As_flags
-module Ocamlfind = As_ocamlfind
-module Project = As_project
-module Resolver = As_resolver
-module Shell = As_shell
-
 let (|>) x f = f x
 
 module StringSet = Set.Make(struct
@@ -59,7 +53,7 @@ end
 #endif
 
 let init flags =
-  match Flags.pp_byte flags with
+  match As_flags.pp_byte flags with
   | [] -> Clflags.preprocessor := None;
   | pp ->
     let pp = String.concat " " pp in
@@ -130,25 +124,25 @@ let modules_of_mli ast =
   List.fold_left (sig_item (fun x -> x)) StringSet.empty ast
 
 let modules ~build_dir cu =
-  let resolver = Ocamlfind.resolver `Direct build_dir in
+  let resolver = As_ocamlfind.resolver `Direct build_dir in
   let () =
-    Project.CU.deps cu
-    |> Project.Component.closure
-    |> Project.Component.(filter pkg_pp)
-    |> Resolver.pkgs resolver
+    As_project.CU.deps cu
+    |> As_project.Component.closure
+    |> As_project.Component.(filter pkg_pp)
+    |> As_resolver.pkgs resolver
     |> init in
   let aux = function
     | `ML ->
-      let file = Project.CU.(dir cu // name cu ^ ".ml") in
+      let file = As_project.CU.(dir cu // name cu ^ ".ml") in
       let ast = Pparse.parse_implementation Format.err_formatter file in
       modules_of_ml ast
     | `MLI ->
-      let file = Project.CU.(dir cu // name cu ^ ".mli") in
+      let file = As_project.CU.(dir cu // name cu ^ ".mli") in
       let ast = Pparse.parse_interface Format.err_formatter file in
       modules_of_mli ast in
   let set =
-    if Project.CU.mli cu then aux `MLI
-    else if Project.CU.ml cu then aux `ML
+    if As_project.CU.mli cu then aux `MLI
+    else if As_project.CU.ml cu then aux `ML
     else StringSet.empty in
   StringSet.elements set
 
@@ -182,21 +176,21 @@ let depends ?flags ?(deps=fun _ -> []) resolver dir =
   let all_deps =
     List.fold_left (fun acc name ->
         deps name
-        |> Project.Component.Set.of_list
-        |> Project.Component.Set.union acc
-      ) Project.Component.Set.empty names
-    |> Project.Component.Set.elements
+        |> As_project.Component.Set.of_list
+        |> As_project.Component.Set.union acc
+      ) As_project.Component.Set.empty names
+    |> As_project.Component.Set.elements
   in
-  let pp = match Project.Component.pp_byte all_deps resolver with
+  let pp = match As_project.Component.pp_byte all_deps resolver with
     | [] -> ""
     | pp ->
       let pp = String.concat " " pp in
       sprintf "-pp \"camlp4o %s\"" pp in
-  let incl = match Project.Component.comp_byte all_deps resolver (fun _ -> dir) with
+  let incl = match As_project.Component.comp_byte all_deps resolver (fun _ -> dir) with
     | [] -> ""
     | ls -> " " ^ String.concat " " ls in
   let lines =
-    Shell.exec_output
+    As_shell.exec_output
       "ocamldep -one-line -modules %s%s %s"
       pp incl (String.concat " " paths)
   in
@@ -230,7 +224,7 @@ let depends ?flags ?(deps=fun _ -> []) resolver dir =
         try List.concat (Hashtbl.find_all deps_tbl name)
         with Not_found -> [] in
       let deps = deps name @ List.map (fun x -> `CU (cu x)) local_deps in
-      let cu = Project.CU.create ?flags ~dir ~deps name in
+      let cu = As_project.CU.create ?flags ~dir ~deps name in
       Hashtbl.add cus_tbl name cu;
       cu in
   List.map cu names

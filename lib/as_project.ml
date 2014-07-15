@@ -15,11 +15,6 @@
  *)
 
 open Printf
-module Flags = As_flags
-module Features = As_features
-module Resolver = As_resolver
-module Action = As_action
-module Git = As_git
 
 module StringSet = Set.Make (String)
 
@@ -42,7 +37,7 @@ and cu = {
   mutable cu_container: [`Lib of lib | `Bin of bin] option;
   mutable cu_for_pack : string option;
   mutable cu_pack     : cu list;
-  mutable cu_flags    : Flags.t;
+  mutable cu_flags    : As_flags.t;
   cu_generated        : bool;
   cu_mli              : bool;
   cu_ml               : bool;
@@ -53,16 +48,16 @@ and lib = {
   l_cus             : cu list;
   l_cs              : c list;
   mutable l_filename: string;
-  l_available       : Features.t;
-  mutable l_flags   : Flags.t;
+  l_available       : As_features.t;
+  mutable l_flags   : As_flags.t;
 }
 
 and bin = {
   b_deps     : component list;
   b_comps    : cu list;
   b_name     : string;
-  b_available: Features.t;
-  b_flags    : Flags.t;
+  b_available: As_features.t;
+  b_flags    : As_flags.t;
   b_toplevel : bool;
   b_install  : bool;
 }
@@ -97,7 +92,7 @@ and test_command =
 and gen = {
   g_name        : string;
   mutable g_comp: cu option;
-  g_action      : Action.t option;
+  g_action      : As_action.t option;
   g_deps        : component list;
   g_files       : [`C|`ML|`MLI] list;
 }
@@ -105,7 +100,7 @@ and gen = {
 type t = {
   name      : string;
   version   : string;
-  flags     : Flags.t;
+  flags     : As_flags.t;
   components: component list;
   doc_css   : string option;
   doc_intro : string option;
@@ -119,11 +114,11 @@ module type S = sig
   val id: t -> string
   val name: t -> string
   val deps: t -> component list
-  val build_dir: t -> Resolver.t -> string
-  val file: t -> Resolver.t -> string -> string
-  val generated_files: t -> Resolver.t -> (Features.t * string list) list
-  val flags: t -> Resolver.t -> Flags.t
-  val prereqs: t -> Resolver.t -> [`Byte|`Native|`Shared] -> string list
+  val build_dir: t -> As_resolver.t -> string
+  val file: t -> As_resolver.t -> string -> string
+  val generated_files: t -> As_resolver.t -> (As_features.t * string list) list
+  val flags: t -> As_resolver.t -> As_flags.t
+  val prereqs: t -> As_resolver.t -> [`Byte|`Native|`Shared] -> string list
 end
 
 let (/) x y = Filename.concat x y
@@ -186,12 +181,12 @@ module rec Component: sig
   val test: t -> test option
   val filter: (t -> 'a option) -> t list -> 'a list
   val closure: t list -> t list
-  val comp_byte: t list -> Resolver.t -> (Resolver.t -> string) -> string list
-  val comp_native: t list -> Resolver.t -> (Resolver.t -> string) -> string list
-  val pp_byte: t list -> Resolver.t -> string list
-  val pp_native: t list -> Resolver.t -> string list
-  val link_byte: t list -> Resolver.t -> cu list -> string list
-  val link_native: t list -> Resolver.t -> cu list -> string list
+  val comp_byte: t list -> As_resolver.t -> (As_resolver.t -> string) -> string list
+  val comp_native: t list -> As_resolver.t -> (As_resolver.t -> string) -> string list
+  val pp_byte: t list -> As_resolver.t -> string list
+  val pp_native: t list -> As_resolver.t -> string list
+  val link_byte: t list -> As_resolver.t -> cu list -> string list
+  val link_native: t list -> As_resolver.t -> cu list -> string list
   module Graph: Graph with type V.t = component
   module Set: Set with type elt = component
 end = struct
@@ -359,10 +354,10 @@ end = struct
     let pkgs = match filter pkg deps with
     | [] -> []
     | pkgs ->
-        let pkgs = Resolver.pkgs resolver pkgs in
+        let pkgs = As_resolver.pkgs resolver pkgs in
         match mode with
-        | `Byte   -> Flags.comp_byte pkgs
-        | `Native -> Flags.comp_native pkgs
+        | `Byte   -> As_flags.comp_byte pkgs
+        | `Native -> As_flags.comp_native pkgs
     in
     pkgs @ [String.concat " " includes]
 
@@ -388,10 +383,10 @@ end = struct
     let pkgs = match pkgs with
       | [] -> []
       | _  ->
-        let pkgs = Resolver.pkgs resolver pkgs in
+        let pkgs = As_resolver.pkgs resolver pkgs in
         match mode with
-        | `Byte   -> Flags.link_byte pkgs
-        | `Native -> Flags.link_native pkgs in
+        | `Byte   -> As_flags.link_byte pkgs
+        | `Native -> As_flags.link_native pkgs in
     pkgs @ libs @ comps
 
   let link_byte = link_flags `Byte
@@ -411,10 +406,10 @@ end = struct
              | `Native -> Lib.cmxa l resolver)
         ) libs in
       let pkgs =
-        let pkgs = Resolver.pkgs resolver pkgs in
+        let pkgs = As_resolver.pkgs resolver pkgs in
         match mode with
-        | `Byte   -> Flags.pp_byte pkgs
-        | `Native -> Flags.pp_native pkgs in
+        | `Byte   -> As_flags.pp_byte pkgs
+        | `Native -> As_flags.pp_native pkgs in
       pkgs @ libs
 
   let pp_byte = pp_flags `Byte
@@ -459,7 +454,7 @@ end = struct
   let prereqs _t _r _mode = []
 
   let flags t r =
-    Resolver.pkgs r [t]
+    As_resolver.pkgs r [t]
 
   let build_dir _t _r =
     failwith "Pkg.build_dir"
@@ -476,7 +471,7 @@ end
 and CU: sig
   include S with type t = cu and type component = Component.t
   val create:
-    ?flags:Flags.t ->
+    ?flags:As_flags.t ->
     ?dir:string ->
     ?deps:Component.t list -> string -> t
   val copy: t -> t
@@ -486,12 +481,12 @@ and CU: sig
   val ml: t -> bool
   val for_pack: t -> string option
   val generated: t -> bool
-  val pack: ?flags:Flags.t -> t list -> string -> t
+  val pack: ?flags:As_flags.t -> t list -> string -> t
   val unpack: t -> t list
-  val cmi: t -> Resolver.t -> string
-  val cmo: t -> Resolver.t -> string
-  val cmx: t -> Resolver.t -> string
-  val o: t -> Resolver.t -> string
+  val cmi: t -> As_resolver.t -> string
+  val cmo: t -> As_resolver.t -> string
+  val cmx: t -> As_resolver.t -> string
+  val o: t -> As_resolver.t -> string
   (* not expored *)
   val set_lib_container: t -> Lib.t -> unit
   val set_bin_container: t -> Bin.t -> unit
@@ -533,7 +528,7 @@ end = struct
 
   let build_dir t resolver =
     match t.cu_container with
-    | None          -> Resolver.build_dir resolver ""
+    | None          -> As_resolver.build_dir resolver ""
     | Some (`Lib l) -> Lib.build_dir l resolver
     | Some (`Bin b) -> Bin.build_dir b resolver
 
@@ -557,7 +552,7 @@ end = struct
     t.cu_deps <- t.cu_deps @ deps
 
   let create
-      ?(flags=Flags.empty)
+      ?(flags=As_flags.empty)
       ?dir ?(deps=[])
       name =
     let gens = Component.(filter gen) deps in
@@ -593,7 +588,7 @@ end = struct
       ) gens;
     t
 
-  let pack ?(flags=Flags.empty) comps name =
+  let pack ?(flags=As_flags.empty) comps name =
     List.iter (fun u -> u.cu_for_pack <- Some (String.capitalize name)) comps;
     {
       cu_name      = name;
@@ -632,9 +627,9 @@ end = struct
   let generated_files t resolver =
     let mk f = f t resolver in
     [
-      Features.true_ , [mk cmi ; mk cmo ];
-      Features.native, [mk o   ; mk cmx ];
-      Features.annot , [mk cmt ; mk cmti];
+      As_features.true_ , [mk cmi ; mk cmo ];
+      As_features.native, [mk o   ; mk cmx ];
+      As_features.annot , [mk cmt ; mk cmti];
     ]
 
   let prereqs t resolver mode =
@@ -667,16 +662,16 @@ end = struct
     let comp_native = Component.comp_native deps resolver (build_dir t) in
     let pp_byte = Component.pp_byte deps resolver in
     let pp_native = Component.pp_native deps resolver in
-    let t' = Flags.create ~comp_byte ~comp_native ~pp_byte ~pp_native () in
-    Flags.(t' @@@ t.cu_flags)
+    let t' = As_flags.create ~comp_byte ~comp_native ~pp_byte ~pp_native () in
+    As_flags.(t' @@@ t.cu_flags)
 
 end
 
 and Lib: sig
   include S with type t = lib and type component = Component.t
   val create:
-    ?available:Features.t ->
-    ?flags:Flags.t ->
+    ?available:As_features.t ->
+    ?flags:As_flags.t ->
     ?pack:bool ->
     ?deps:(string -> Component.t list) ->
     ?c:C.t list ->
@@ -684,11 +679,11 @@ and Lib: sig
   val filename: t -> string
   val compilation_units: t -> CU.t list
   val c_objects: t -> C.t list
-  val available: t -> Features.t
-  val cma: t -> Resolver.t -> string
-  val cmxa: t -> Resolver.t -> string
-  val a: t -> Resolver.t -> string
-  val cmxs: t -> Resolver.t -> string
+  val available: t -> As_features.t
+  val cma: t -> As_resolver.t -> string
+  val cmxa: t -> As_resolver.t -> string
+  val a: t -> As_resolver.t -> string
+  val cmxs: t -> As_resolver.t -> string
   (* not exported *)
   val set_filename: t -> string -> unit
 end = struct
@@ -710,7 +705,7 @@ end = struct
   let name t = t.l_name
 
   let build_dir t resolver =
-    Resolver.build_dir resolver (id t)
+    As_resolver.build_dir resolver (id t)
 
   let compilation_units t = t.l_cus
 
@@ -726,8 +721,8 @@ end = struct
   let nil _ = []
 
   let create
-      ?(available=Features.true_)
-      ?(flags=Flags.empty)
+      ?(available=As_features.true_)
+      ?(flags=As_flags.empty)
       ?(pack=false) ?(deps=nil) ?(c=[]) cus name =
     let cus' = if pack then [CU.pack cus name] else cus in
     let t = {
@@ -762,8 +757,8 @@ end = struct
     let mk f = f t resolver in
     [
       t.l_available                              , [mk cma]       ;
-      Features.(native         &&& t.l_available), [mk cmxa; mk a];
-      Features.(native_dynlink &&& t.l_available), [mk cmxs]      ;
+      As_features.(native         &&& t.l_available), [mk cmxa; mk a];
+      As_features.(native_dynlink &&& t.l_available), [mk cmxs]      ;
     ]
     @ conmap (fun u -> CU.generated_files u resolver) t.l_cus
 
@@ -771,8 +766,8 @@ end = struct
     let comps = compilation_units t in
     let link_byte = Component.link_byte [] resolver comps in
     let link_native = Component.link_native [] resolver comps in
-    let t' = Flags.create ~link_byte ~link_native () in
-    Flags.(t' @@@ t.l_flags)
+    let t' = As_flags.create ~link_byte ~link_native () in
+    As_flags.(t' @@@ t.l_flags)
 
   let rec prereqs t resolver mode =
     let c_deps = match mode with
@@ -790,26 +785,26 @@ end
 and Bin: sig
   include S with type t = bin and type component = Component.t
   val create:
-    ?available:Features.t ->
+    ?available:As_features.t ->
     ?byte_only:bool ->
     ?link_all:bool ->
     ?install:bool ->
-    ?flags:Flags.t ->
+    ?flags:As_flags.t ->
     ?deps:(string -> Component.t list) ->
     CU.t list -> string -> t
   val toplevel:
-    ?available:Features.t ->
-    ?flags:Flags.t ->
+    ?available:As_features.t ->
+    ?flags:As_flags.t ->
     ?custom:bool ->
     ?install:bool ->
     ?deps:(string -> Component.t list) ->
     CU.t list -> string -> t
   val compilation_units: t -> CU.t list
-  val available: t -> Features.t
+  val available: t -> As_features.t
   val is_toplevel: t -> bool
   val install: t -> bool
-  val byte: t -> Resolver.t -> string
-  val native: t -> Resolver.t -> string
+  val byte: t -> As_resolver.t -> string
+  val native: t -> As_resolver.t -> string
 end = struct
 
   type t = bin
@@ -822,7 +817,7 @@ end = struct
   let compilation_units t = t.b_comps
 
   let build_dir t resolver =
-    Resolver.build_dir resolver (id t)
+    As_resolver.build_dir resolver (id t)
 
   let is_toplevel t = t.b_toplevel
 
@@ -837,17 +832,17 @@ end = struct
   let nil _ = []
 
   let create
-      ?(available=Features.true_)
+      ?(available=As_features.true_)
       ?(byte_only=false)
       ?(link_all=false)
       ?(install=true)
-      ?(flags=Flags.empty)
+      ?(flags=As_flags.empty)
       ?(deps=nil)
       comps name =
     let available =
-      if byte_only then Features.(not_ native &&& available) else available in
+      if byte_only then As_features.(not_ native &&& available) else available in
     let flags =
-      if link_all then Flags.(linkall @@@ flags) else flags in
+      if link_all then As_flags.(linkall @@@ flags) else flags in
     List.iter (fun cu ->
         CU.add_deps cu (deps (CU.name cu))
       ) comps;
@@ -869,20 +864,20 @@ end = struct
     t
 
   let toplevel
-      ?(available=Features.true_)
-      ?(flags=Flags.empty)
+      ?(available=As_features.true_)
+      ?(flags=As_flags.empty)
       ?(custom=false)
       ?install
       ?(deps=nil)
       comps name =
-    let available = Features.(not_ native &&& available) in
+    let available = As_features.(not_ native &&& available) in
     let deps x =
       `Pkg "compiler-libs.toplevel" :: deps x in
     let link_byte = [
       (if custom then "-custom " else "") ^ "-I +compiler-libs topstart.cmo"
     ] in
-    let nflags = Flags.create ~link_byte () in
-    let flags = Flags.(nflags @@@ flags) in
+    let nflags = As_flags.create ~link_byte () in
+    let flags = As_flags.(nflags @@@ flags) in
     let t = create ~available ~flags ~link_all:true ~deps ?install comps name in
     { t with b_toplevel = true }
 
@@ -899,7 +894,7 @@ end = struct
     let mk f = f t resolver in
     [
       t.b_available                      , [mk byte  ];
-      Features.(native &&& t.b_available), [mk native];
+      As_features.(native &&& t.b_available), [mk native];
     ]
 
   (* XXX: handle native pps *)
@@ -928,17 +923,17 @@ end = struct
     let comp_native = Component.comp_native (deps t) resolver (build_dir t) in
     let link_byte = Component.link_byte all_deps resolver comps in
     let link_native = Component.link_native all_deps resolver comps in
-    let t' = Flags.create ~link_byte ~link_native ~comp_byte ~comp_native () in
-    Flags.(t.b_flags @@@ t')
+    let t' = As_flags.create ~link_byte ~link_native ~comp_byte ~comp_native () in
+    As_flags.(t.b_flags @@@ t')
 
 end
 
 and Gen: sig
   include S with type t = gen and type component = Component.t
-  val create: ?deps:Component.t list -> ?action:Action.t -> [`C|`ML|`MLI] list -> string -> t
+  val create: ?deps:Component.t list -> ?action:As_action.t -> [`C|`ML|`MLI] list -> string -> t
   val copy: t -> t
-  val files: t -> Resolver.t -> string list
-  val actions: t -> Resolver.t -> string list
+  val files: t -> As_resolver.t -> string list
+  val actions: t -> As_resolver.t -> string list
 end = struct
 
   type t = gen
@@ -960,7 +955,7 @@ end = struct
 
   let build_dir t r =
     match t.g_comp with
-    | None   -> Resolver.build_dir r ""
+    | None   -> As_resolver.build_dir r ""
     | Some u -> CU.build_dir u r
 
   let prereqs t r mode =
@@ -971,7 +966,7 @@ end = struct
         | `Native -> Bin.native b r
       ) bins
 
-  let flags _t _r = Flags.empty
+  let flags _t _r = As_flags.empty
 
   let file t r ext =
     build_dir t r / t.g_name ^ ext
@@ -990,13 +985,13 @@ end = struct
       ) t.g_files
 
   let generated_files t r = [
-    Features.true_, files t r
+    As_features.true_, files t r
   ]
 
   let actions t r =
     match t.g_action with
     | None   -> []
-    | Some a -> Action.actions a r
+    | Some a -> As_action.actions a r
 
 end
 
@@ -1009,9 +1004,9 @@ and C: sig
   val set_lib_container: t -> Lib.t -> unit
   val set_bin_container: t -> Bin.t -> unit
   val link_flags: t -> string list
-  val dll_so: t -> Resolver.t -> string
-  val symlink_c: t -> Resolver.t -> string
-  val o: t -> Resolver.t -> string
+  val dll_so: t -> As_resolver.t -> string
+  val symlink_c: t -> As_resolver.t -> string
+  val o: t -> As_resolver.t -> string
 end = struct
 
   type t = c
@@ -1035,7 +1030,7 @@ end = struct
     match t.c_container with
     | Some (`Lib l) -> Lib.build_dir l r
     | Some (`Bin b) -> Bin.build_dir b r
-    | None          -> Resolver.build_dir r (id t)
+    | None          -> As_resolver.build_dir r (id t)
 
   let container t = t.c_container
 
@@ -1063,9 +1058,9 @@ end = struct
   let deps t = t.c_deps
 
   let generated_files t r =
-    [Features.true_, [dll_so t r]]
+    [As_features.true_, [dll_so t r]]
 
-  let flags _t _r = Flags.empty
+  let flags _t _r = As_flags.empty
 
   let link_flags t = t.c_link_flags
 
@@ -1105,7 +1100,7 @@ end = struct
         | _ -> acc
       ) [] t.t_deps
 
-  let flags _t _r = Flags.empty
+  let flags _t _r = As_flags.empty
 
   let generated_files _t _r = []
 
@@ -1139,7 +1134,7 @@ end
 and JS: sig
   include S with type t = js and type component = Component.t
   val create: Bin.t -> string list -> t
-  val js: t -> Resolver.t -> string
+  val js: t -> As_resolver.t -> string
 end = struct
 
   type t = js
@@ -1168,7 +1163,7 @@ end = struct
     Bin.file (bin t) r ".js"
 
   let flags t _r =
-    Flags.create ~link_byte:t.j_args ()
+    As_flags.create ~link_byte:t.j_args ()
 
   let build_dir t r =
     Bin.build_dir (bin t) r
@@ -1177,7 +1172,7 @@ end = struct
     [Bin.byte (bin t) r]
 
   let generated_files t r =
-    [Features.js, [js t r]]
+    [As_features.js, [js t r]]
 
   let deps t =
     [`Bin (bin t)]
@@ -1213,17 +1208,17 @@ let files_of_generators t resolver =
     ) [] comps
 
 let create
-    ?(flags=Flags.empty)
+    ?(flags=As_flags.empty)
     ?doc_css ?doc_intro  ?(doc_dir="doc") ?doc_public
     ?version
     components name =
   let version = match version with
     | Some v -> v
     | None   ->
-      match Git.describe () with
+      match As_git.describe () with
       | Some v -> v
       | None   ->
-        match Git.head () with
+        match As_git.head () with
         | Some v -> v
         | None   -> "version-not-set"
   in
@@ -1245,17 +1240,17 @@ let create
 
 let unionmap fn t =
   List.fold_left (fun set t ->
-      Features.(set ++ (fn t))
-    ) Features.Set.empty t
+      As_features.(set ++ (fn t))
+    ) As_features.Set.empty t
 
 let features t =
   let libs =
     let libs = Component.(filter lib t.components) in
-    unionmap (fun x -> Features.atoms (Lib.available x)) libs in
+    unionmap (fun x -> As_features.atoms (Lib.available x)) libs in
   let pps  =
     let pps = Component.(filter pp t.components) in
-    unionmap (fun x -> Features.atoms (Lib.available x)) pps in
+    unionmap (fun x -> As_features.atoms (Lib.available x)) pps in
   let bins =
     let bins = Component.(filter bin t.components) in
-    unionmap (fun x -> Features.atoms (Bin.available x)) bins in
-  Features.(base ++ libs ++ pps ++ bins)
+    unionmap (fun x -> As_features.atoms (Bin.available x)) bins in
+  As_features.(base ++ libs ++ pps ++ bins)

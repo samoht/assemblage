@@ -16,11 +16,6 @@
 
 open Printf
 
-module Project = As_project
-module Shell = As_shell
-module Flags = As_flags
-module Resolver = As_resolver
-
 let (/) = Filename.concat
 
 let (|>) x f = f x
@@ -52,7 +47,7 @@ let query_direct ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
   let cmd = query_indirect ?predicates ?format ~uniq ~recursive packages in
   try Hashtbl.find cache cmd
   with Not_found ->
-    let r = String.concat " " (Shell.exec_output "%s" cmd) in
+    let r = String.concat " " (As_shell.exec_output "%s" cmd) in
     Hashtbl.add cache cmd r;
     r
 
@@ -116,29 +111,29 @@ let pkgs ~mode names =
   let comp_native = comp_native ~mode names in
   let link_byte   = link_byte   ~mode names in
   let link_native = link_native ~mode names in
-  Flags.create
+  As_flags.create
     ~pp_byte ~pp_native
     ~comp_byte ~comp_native
     ~link_byte ~link_native ()
 
 let resolver mode build_dir =
-  Resolver.create ~build_dir ~pkgs:(pkgs ~mode)
+  As_resolver.create ~build_dir ~pkgs:(pkgs ~mode)
 
 module META = struct
 
   type t = string
 
   let of_project t =
-    let libs = Project.Component.(filter lib) (Project.components t) in
-    let version = Project.version t in
+    let libs = As_project.Component.(filter lib) (As_project.components t) in
+    let version = As_project.version t in
     let buf = Buffer.create 1024 in
     let one lib =
       let requires =
-        Project.Lib.deps lib
-        |> Project.Component.closure
-        |> Project.Component.(filter pkg)
+        As_project.Lib.deps lib
+        |> As_project.Component.closure
+        |> As_project.Component.(filter pkg)
         |> String.concat " " in
-      let name = Project.Lib.name lib in
+      let name = As_project.Lib.name lib in
       bprintf buf "version  = \"%s\"\n" version;
       bprintf buf "requires = \"%s\"\n" requires;
       bprintf buf "archive(byte) = \"%s.cma\"\n" name;
@@ -149,7 +144,7 @@ module META = struct
     List.iteri (fun i lib ->
         if i = 0 then one lib
         else (
-          bprintf buf "package \"%s\" (" (Project.Lib.name lib);
+          bprintf buf "package \"%s\" (" (As_project.Lib.name lib);
           one lib;
           bprintf buf ")\n"
         )

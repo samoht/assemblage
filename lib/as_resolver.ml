@@ -14,13 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Flags = As_flags
-
 let (/) = Filename.concat
 
 type t = {
   build_dir: string;
-  pkgs     : string list -> Flags.t;
+  pkgs     : string list -> As_flags.t;
 }
 
 let create ~build_dir ~pkgs =

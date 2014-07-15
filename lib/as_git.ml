@@ -14,8 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Shell = As_shell
-
 let read file =
   if Sys.file_exists file then
     let ic = open_in_bin file in
@@ -42,8 +40,8 @@ let head () =
     | Some sha1 -> Some sha1
 
 let describe ?(chop_v=false) () =
-  if Shell.try_exec "git describe --always" then
-    match Shell.exec_output "git describe --always" with
+  if As_shell.try_exec "git describe --always" then
+    match As_shell.exec_output "git describe --always" with
     | d::_ ->
       let len = String.length d in
       if chop_v && len > 0 && d.[0] = 'v' then
