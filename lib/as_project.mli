@@ -139,7 +139,7 @@ module rec Component: sig
   (** Component descriptions. *)
 
   type t =
-    [ `CU of CU.t
+    [ `Unit of Unit.t
     | `Lib of Lib.t
     | `Pp of Lib.t
     | `Pkg_pp of Pkg.t
@@ -153,7 +153,7 @@ module rec Component: sig
 
   include S with type t := t and type component = t
 
-  val cu: t -> CU.t option
+  val unit: t -> Unit.t option
   (** Is the component a compilation unit? *)
 
   val lib: t -> Lib.t option
@@ -207,12 +207,12 @@ module rec Component: sig
   val pp_native: t list -> As_resolver.t -> string list
   (** Same as [pp_native] but for native pre-processors. *)
 
-  val link_byte: t list -> As_resolver.t -> CU.t list -> string list
+  val link_byte: t list -> As_resolver.t -> Unit.t list -> string list
   (** [link_byte deps r cus] is the list of command-line arguments to
       use for linking the compilation units [cus] together, depending
       on the components [ts] and using the name resolver [r]. *)
 
-  val link_native: t list -> As_resolver.t -> CU.t list -> string list
+  val link_native: t list -> As_resolver.t -> Unit.t list -> string list
 
   module Set: Set with type elt = t
   (** Set of components. *)
@@ -222,7 +222,7 @@ module rec Component: sig
 
 end
 
-and CU: sig
+and Unit : sig
 
   (** Signature for compilation units. *)
 
@@ -290,7 +290,7 @@ and Lib: sig
     ?pack:bool ->
     ?deps:(string -> Component.t list) ->
     ?c:C.t list ->
-    CU.t list -> string -> t
+    Unit.t list -> string -> t
   (** Create a library. *)
 
   val filename: t -> string
@@ -298,7 +298,7 @@ and Lib: sig
       this could be updated when the library is put in a named project
       to [project.name]. *)
 
-  val compilation_units: t -> CU.t list
+  val units: t -> Unit.t list
   (** The list of compilation units which defines the library. *)
 
   val c_objects: t -> C.t list
@@ -336,7 +336,7 @@ and Bin: sig
     ?install:bool ->
     ?flags:As_flags.t ->
     ?deps:(string -> Component.t list) ->
-    CU.t list -> string -> t
+    Unit.t list -> string -> t
   (** Build a binary by linking a set of compilation units. *)
 
   val toplevel:
@@ -345,11 +345,11 @@ and Bin: sig
     ?custom:bool ->
     ?install:bool ->
     ?deps:(string -> Component.t list) ->
-    CU.t list -> string -> t
+    Unit.t list -> string -> t
   (** Create a custom toplevel by linking a set of compilation
       units. *)
 
-  val compilation_units: t -> CU.t list
+  val units: t -> Unit.t list
   (** The list of compilation units contained in the binary. *)
 
   val available: t -> As_features.t

@@ -172,7 +172,7 @@ end
 type t
 (** The type for OCaml projects descriptions. *)
 
-type cu
+type comp_unit
 (** The type for compilation unit descriptions. *)
 
 type lib
@@ -194,7 +194,7 @@ type gen
 (** The type for generated OCaml source code. *)
 
 type component =
-  [ `CU of cu
+  [ `Unit of comp_unit
   | `Lib of lib
   | `Pp of lib
   | `Pkg_pp of string
@@ -264,12 +264,14 @@ end
 
 (** {1 The Project API} *)
 
-val cu: ?dir:string -> string -> component list -> [> `CU of cu]
-(** [cu name ~dir deps] is the compilation unit located in the
+val unit: ?dir:string -> string -> component list -> 
+  [> `Unit of comp_unit]
+(** [unit name ~dir deps] is the compilation unit located in the
     directory [dir] with dependencies [deps] and the cname [name]. The
     name is the same as the filename, without its extension. *)
 
-val ocamldep: dir:string -> ?flags:Flags.t -> (string -> component list) -> [> `CU of cu] list
+val ocamldep: dir:string -> ?flags:Flags.t -> (string -> component list) -> 
+  [> `Unit of comp_unit] list
 (** [ocamldep ~dir deps] is the list of compilation units in the given
     directory, obtained by running [ocamldep] with the given flags and
     dependencies. [deps] is a map from compilation unit names to its
@@ -304,7 +306,7 @@ val lib:
   ?pack:bool ->
   ?deps:(string -> component list) ->
   ?c:[`C of c] list ->
-  string -> [`CU of cu] list -> [> `Lib of lib]
+  string -> [`Unit of comp_unit] list -> [> `Lib of lib]
 (** [lib name units] is the library [name] composed by the compilation
     units [cus]. If [lib] is set, use [ocamldep] to approximate the
     compilation units and their dependecies in the given directory. *)
@@ -314,7 +316,7 @@ val bin:
   ?link_all:bool ->
   ?install:bool ->
   ?deps:(string -> component list) ->
-  string -> [`CU of cu] list -> [> `Bin of bin]
+  string -> [`Unit of comp_unit] list -> [> `Bin of bin]
 (** [bin name units] is the binary [name] obtained by compiling
     the compilation units [units], with the dependencies [deps]. By
     default, the source files are located into {i bin/} (this is
