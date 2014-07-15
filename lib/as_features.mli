@@ -14,24 +14,32 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Project features.
+(** Project features. *)
 
-    Typical OCaml project might have multiple features, which modifies
-    the list of generated artifacts. An example is a project which
-    depends on either [lwt] or [async], and which choose to compile
-    the relevant libraries only if one of the other is installed on
-    the system. Other typical feature might depend on the machine the
-    project is running on, for instance the fact that the native
-    toolchain is available or not. *)
-
-type t
-(** Formula of features. *)
+(** {1 Atomic features} *)
 
 type atom
 (** An atomic feature. *)
 
-type cnf = [ `Conflict | `And of [ `P of atom | `N of atom ] list ]
-(** Conjonctive Normal Form. *)
+val create_atom: ?default:bool -> string -> doc:string ->  atom
+(** Create a single feature. *)
+
+val name: atom -> string
+(** The atomic feature name. *)
+
+val default: atom -> bool
+(** The atomic feature default value. *)
+
+val doc: atom -> string
+(** [doc f] is the feature documentation. *)
+
+val with_default: atom -> bool -> atom
+(** Return the feature with an other default. *)
+
+val parse: atom -> (atom * bool) Cmdliner.Term.t
+(** A cmdliner term which parses an atomic feature. *)
+
+(** {1 Atomic feature sets} *) 
 
 module Set: Set.S with type elt = atom
 (** Sets of atoms. *)
@@ -42,19 +50,13 @@ type set = Set.t
 val (++): Set.t -> Set.t -> Set.t
 (** Union of atom sets. *)
 
-val (@): cnf -> cnf -> cnf
-(** Concatenation of CNF formulaes. *)
+(** {1 Features} *)
 
-val atoms: t -> Set.t
-(** [atoms f] is the set of atoms appearing in the formula [f]. *)
+type t
+(** Formula of features. *)
 
-val cnf: t -> cnf
-(** [normalize f] transform [f] in a conjonctive-normal form. *)
-
-val eval: (atom * bool) list -> t -> bool
-(** [eval tbl f] evaluates the formula [f] given the truth table
-    [tbl]. If a feature [t] does not appear in [tbl] is is
-    considered as associated to [false]. *)
+val create: ?default:bool -> string -> doc:string ->  t
+(** Same as [create_atom] but for single formula. *)
 
 val true_: t
 (** The formula which is always [true]. *)
@@ -74,26 +76,24 @@ val (&&&): t -> t -> t
 val (|||): t -> t -> t
 (** [f1 || f2] is the disjonction of [f1] and [f2]. *)
 
-val name: atom -> string
-(** The atomic feature name. *)
+val atoms: t -> Set.t
+(** [atoms f] is the set of atoms appearing in the formula [f]. *)
 
-val default: atom -> bool
-(** The atomic feature default value. *)
+val eval: (atom * bool) list -> t -> bool
+(** [eval tbl f] evaluates the formula [f] given the truth table
+    [tbl]. If a feature [t] does not appear in [tbl] is is
+    considered as associated to [false]. *)
 
-val with_default: atom -> bool -> atom
-(** Return the feature with an other default. *)
+type cnf = [ `Conflict | `And of [ `P of atom | `N of atom ] list ]
+(** Conjonctive Normal Form. *)
 
-val create_atom: doc:string -> default:bool -> string -> atom
-(** Create a single feature. *)
+val (@): cnf -> cnf -> cnf
+(** Concatenation of CNF formulaes. *)
 
-val create: doc:string -> default:bool -> string -> t
-(** Same as [create_atom] but for single formula. *)
+val cnf: t -> cnf
+(** [normalize f] transform [f] in a conjonctive-normal form. *)
 
-val doc: atom -> string
-(** [doc f] is the feature documentation. *)
-
-val parse: atom -> (atom * bool) Cmdliner.Term.t
-(** A cmdliner term which parses an atomic feature. *)
+(** {1 Built-in features} *)
 
 val native: t
 val native_atom: atom
@@ -102,6 +102,10 @@ val native_atom: atom
 val native_dynlink: t
 val native_dynlink_atom: atom
 (** Is dynlink for native code enabled ? *)
+
+val js: t
+val js_atom: atom
+(** Build the javascript objects. *)
 
 val annot: t
 val annot_atom: atom
@@ -127,9 +131,5 @@ val full_doc: t
 val full_doc_atom: atom
 (** Generate the full documentation (and not just the public doc). *)
 
-val js: t
-val js_atom: atom
-(** Build the javascript objects. *)
-
-val base: Set.t
-(** The base features. *)
+val builtin: Set.t
+(** The set of built-in atomic features. *)

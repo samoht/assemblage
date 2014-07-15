@@ -39,63 +39,77 @@
 
 (** {1:features Features} *)
 
-(** Typical OCaml project might have multiple features, which modifies
-    the list of generated artifacts. An example is a project which
-    depends on either [lwt] or [async], and which choose to compile
-    the relevant libraries only if one of the other is installed on
-    the system. Other typical feature might depend on the machine the
-    project is running on, for instance the fact that the native
-    toolchain is available or not. *)
+  (** Features.
 
+      Features allow to condition the build of project components
+      and/or certain of their build artifacts according to the build
+      environment. The {{!buildenv}build environment} determines
+      which features are enabled or disabled.
+
+      Examples of features are: native compilation availability, 
+      optional package availability, debug build support, etc. *)
 module Features: sig
 
-  (** Features. *)
-
-  type t
-  (** The type for user-defined or system-dependent features. *)
+  (** {1 Features} *)
 
   type set
-  (** Set of features. *)
+  (** Set of features. FIXME: remove this. *)
 
-  val create: doc:string -> default:bool -> string -> t
-  (** Create a feature. *)
+  type t
+  (** The type for features. Given a build environment a value of this type 
+      denotes a boolean value. *)
 
-  val not_: t -> t
-  (** Negate a feature formulae. *)
+  val create : ?default:bool -> string -> doc:string -> t
+  (** [create default name doc] is a feature named [name].  [default]
+      (defaults to [true]) indicates the boolean value the feature
+      takes if the build environment doesn't determine it.  [doc] is
+      used for documenting the feature in various contexts, keep it
+      short and to the point. *)
 
-  val (&&&): t -> t -> t
-  (** Logical AND of feature formulaes. *)
+  val true_ : t
+  (** [true_] is always true. *)
 
-  val (|||): t -> t -> t
-  (** Logical OR of feature formulaes. *)
+  val false_ : t 
+  (** [false_] is always false. *)
 
-  val native: t
-  (** Is native-code enabled? *)
+  val not_ : t -> t
+  (** [not_ f] is true iff [f] is false. *)
 
-  val native_dynlink: t
-  (** Is dynlink for native code enabled? *)
+  val (&&&) : t -> t -> t
+  (** [f &&& f'] is true iff both [f] and [f'] are true. *)
 
-  val annot: t
-  (** Generate annot files? *)
+  val (|||) : t -> t -> t
+  (** [f ||| f'] is true iff either [f] or [f'] is true. *)
 
-  val debug: t
-  (** Generate debug symbols? *)
+  (** {1 Built-in features} *) 
 
-  val warn_error: t
-  (** Consider warning as error? *)
+  val native : t
+  (** [native] is true iff native code compilation is available. *)
 
-  val test: t
-  (** Compile and run tests? *)
+  val native_dynlink : t
+  (** [native_dynlink] is true iff native code dynamic linking is available. *)
 
-  val js: t
-  (** Build the javascript objects? *)
+  val js : t
+  (** [js] is true iff JavaScript compilation is available. *)
 
-  val public_doc: t
-  (** Build the documentation? *)
+  val annot : t
+  (** [annot] is true iff binary annotations files must be built. *)
 
-  val full_doc: t
-  (** Build the full documentation (ignore [doc_public])? *)
+  val debug : t
+  (** [debug] is true iff builds must support debugging. *)
 
+  val warn_error : t
+  (** [warn_error] is true iff builds must consider warnings as errors. *)
+
+  val test : t
+  (** [test] is true iff tests must be built. *) 
+
+  val public_doc : t
+  (** [public_doc] is true iff the public documentation must be built. *)
+
+  val full_doc : t
+  (** [full_doc] is true iff the full documentation must be built. 
+      FIXME. *)
 end
 
 (** {1:flags Flags} *)
@@ -357,7 +371,7 @@ val create:
     the libraries, binaries and tests defined by the transitive
     closure of objects in [deps]. *)
 
-(** {1:env Build Environments} *)
+(** {1:buildenv Build Environments} *)
 
 module Build_env: sig
   (** Global project environment.
