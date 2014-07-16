@@ -1,0 +1,5 @@
+_build
+doc/*.html
+META
+assemblage.install
+Makefile

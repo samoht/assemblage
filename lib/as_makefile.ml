@@ -768,9 +768,9 @@ module C = struct
 end
 
 let global_variables flags =
-  let debug = Variable.has_feature As_features.debug_elt in
-  let annot = Variable.has_feature As_features.annot_elt in
-  let warn_error = Variable.has_feature As_features.warn_error_elt in
+  let debug = Variable.has_feature As_features.debug_atom in
+  let annot = Variable.has_feature As_features.annot_atom in
+  let warn_error = Variable.has_feature As_features.warn_error_atom in
   let mk fn n = match fn flags with
     | [] -> []
     | l  -> [Variable.(n =:= `Strings l)] in
@@ -848,7 +848,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
     |> List.map Variable.has_feature in
   let variables =
     let tool name =
-      let native = [ (Variable.has_feature As_features.native_elt, "1") ] in
+      let native = [ (Variable.has_feature As_features.native_atom, "1") ] in
       `Case [ (native, `String (name ^ ".opt")); ([], `String name) ] in
     Variable.stanza ~doc:[""; "Main project configuration"; ""] []
     :: Variable.stanza

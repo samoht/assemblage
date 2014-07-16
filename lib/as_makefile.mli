@@ -146,7 +146,7 @@ module Variable: sig
   val files: string -> dir:string -> ext:string -> t
   (** [VAR = $(wildcard <dir>/*.<ext>)] *)
 
-  val has_feature: As_features.elt -> t
+  val has_feature: As_features.atom -> t
   (** Is the given feature enabled. *)
 
   type stanza = {
@@ -172,7 +172,7 @@ val of_project:
   ?buildir:string ->
   ?makefile:string ->
   flags:As_flags.t ->
-  features:(As_features.elt * bool) list ->
+  features:(As_features.atom * bool) list ->
   As_project.t -> t
 (** Generate a Makefile from a project description. The optional build
     environment is used to set default values of variables. These

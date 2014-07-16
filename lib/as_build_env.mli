@@ -24,7 +24,7 @@ type t
 
 val create:
 
-  ?features:(As_features.elt * bool) list ->
+  ?features:(As_features.atom * bool) list ->
   (** Project features. *)
 
   ?comp: string list ->
@@ -75,7 +75,7 @@ val flags: t -> As_flags.t
 val build_dir: t -> string
 (** Return the directory where build artififacts are generated. *)
 
-val enable: t -> As_features.elt list -> bool
+val enable: t -> As_features.atom list -> bool
 (** Check if the given set of flags are all enabled. *)
 
 val includes: t -> string list
@@ -85,5 +85,5 @@ val auto_load: t -> bool
 (** Automatically include $(shell ocamlfind query tools) before
     loading `assemble.ml'. *)
 
-val features: t -> (As_features.elt * bool) list
+val features: t -> (As_features.atom * bool) list
 (** Return a list of feature with the values they are set to. *)

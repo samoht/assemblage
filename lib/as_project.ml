@@ -1089,4 +1089,4 @@ let features t =
   let bins =
     let bins = Component.(filter bin t.components) in
     unionmap (fun x -> As_features.atoms (Bin.available x)) bins in
-  As_features.(base ++ libs ++ pps ++ bins)
+  As_features.(builtin ++ libs ++ pps ++ bins)

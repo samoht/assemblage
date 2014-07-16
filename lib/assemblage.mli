@@ -37,65 +37,145 @@
 
     {e Release %%VERSION%% - %%AUTHOR%% } *)
 
+(** {1:project Project}
+
+    A project is a set of components. Each component describes a
+    logical build unit like a compilation unit, a library, a binary, a
+    test, the documentation of a library, etc. Components may depend
+    on each other. *)
+
+type t
+(** The type for OCaml projects descriptions. Simply a set of 
+    components. *)
+
+type comp_unit
+(** The type for compilation unit descriptions. *)
+
+type lib
+(** The type for library descriptions. *)
+
+type pkg = string
+(** The type for package descriptions. *) 
+
+type bin
+(** The type for binary executable descriptions. *)
+
+type test
+(** The type for test descriptions. *)
+
+type js
+(** The type for [js_of_ocaml] artifact descriptions. *)
+
+type c
+(** The type for C source file descriptions. *)
+
+type gen
+(** The type for generated OCaml source code. *)
+
+type component =
+  [ `Unit of comp_unit
+  | `Lib of lib
+  | `Pp of lib
+  | `Pkg_pp of pkg
+  | `Pkg of pkg
+  | `Bin of bin
+  | `C of c
+  | `JS of js
+  | `Test of test
+  | `Gen of gen ]
+(** The type for components.  
+    {ul 
+    {- [`Unit u] u is a project compilation unit.}
+    {- [`Lib l] is a project library.}
+    {- [`Pp p] is a project pre-processor}
+    {- [`Bin b] is a project binary.}
+    {- [`Test b] is a project test.}
+    {- [`Pkg p] is an external named package.} 
+    {- [`Pkg_pp p] is an external named pre-processor package.}
+    {- FIXME}} *)
+
+
 (** {1:features Features} *)
 
-(** Typical OCaml project might have multiple features, which modifies
-    the list of generated artifacts. An example is a project which
-    depends on either [lwt] or [async], and which choose to compile
-    the relevant libraries only if one of the other is installed on
-    the system. Other typical feature might depend on the machine the
-    project is running on, for instance the fact that the native
-    toolchain is available or not. *)
+  (** Features.
 
+      Features allow to condition the build of project components
+      and/or certain of their build artifacts according to the build
+      environment. The {{!buildenv}build environment} determines
+      which features are enabled or disabled.
+
+      Examples of features are: native compilation availability, 
+      optional package availability, debug build support, etc. *)
 module Features: sig
 
-  (** Features. *)
-
-  type t
-  (** The type for user-defined or system-dependent features. *)
+  (** {1 Features} *)
 
   type set
-  (** Set of features. *)
+  (** Set of features. FIXME: remove this. *)
 
-  val create: doc:string -> default:bool -> string -> t
-  (** Create a feature. *)
+  type t
+  (** The type for features. Given a build environment a value of this type 
+      denotes a boolean value. *)
 
-  val not_: t -> t
-  (** Negate a feature formulae. *)
+  val create : ?default:bool -> string -> doc:string -> t
+  (** [create default name doc] is a feature named [name].  [default]
+      (defaults to [true]) indicates the boolean value the feature
+      takes if the build environment doesn't determine it.  [doc] is
+      used for documenting the feature in various contexts, keep it
+      short and to the point. *)
 
-  val (&&&): t -> t -> t
-  (** Logical AND of feature formulaes. *)
+  val true_ : t
+  (** [true_] is always true. *)
 
-  val (|||): t -> t -> t
-  (** Logical OR of feature formulaes. *)
+  val false_ : t 
+  (** [false_] is always false. *)
 
-  val native: t
-  (** Is native-code enabled? *)
+  val not_ : t -> t
+  (** [not_ f] is true iff [f] is false. *)
 
-  val native_dynlink: t
-  (** Is dynlink for native code enabled? *)
+  val (&&&) : t -> t -> t
+  (** [f &&& f'] is true iff both [f] and [f'] are true. *)
 
-  val annot: t
-  (** Generate annot files? *)
+  val (|||) : t -> t -> t
+  (** [f ||| f'] is true iff either [f] or [f'] is true. *)
 
-  val debug: t
-  (** Generate debug symbols? *)
+  (** {1 Package features} *) 
 
-  val warn_error: t
-  (** Consider warning as error? *)
+  val of_pkg : ?default:bool -> ?doc:string -> [`Pkg of pkg ] -> t 
+  (** [of_pkg pkg] is true iff package [pkg] is available. *) 
 
-  val test: t
-  (** Compile and run tests? *)
+  val of_pkg_pp : ?default:bool -> ?doc:string -> [`Pkg_pp of pkg ] -> t 
+  (** [of_pkg_pp pkg] is true iff pre-processor package [pkg] is available. *) 
 
-  val js: t
-  (** Build the javascript objects? *)
+  (** {1 Built-in features} *) 
 
-  val public_doc: t
-  (** Build the documentation? *)
+  val native : t
+  (** [native] is true iff native code compilation is available. *)
 
-  val full_doc: t
-  (** Build the full documentation (ignore [doc_public])? *)
+  val native_dynlink : t
+  (** [native_dynlink] is true iff native code dynamic linking is available. *)
 
+  val js : t
+  (** [js] is true iff JavaScript compilation is available. *)
+
+  val annot : t
+  (** [annot] is true iff binary annotations files must be built. *)
+
+  val debug : t
+  (** [debug] is true iff builds must support debugging. *)
+
+  val warn_error : t
+  (** [warn_error] is true iff builds must consider warnings as errors. *)
+
+  val test : t
+  (** [test] is true iff tests must be built. *) 
+
+  val public_doc : t
+  (** [public_doc] is true iff the public documentation must be built. *)
+
+  val full_doc : t
+  (** [full_doc] is true iff the full documentation must be built. 
+      FIXME. *)
 end
 
 (** {1:flags Flags} *)
@@ -162,56 +242,6 @@ module Flags: sig
       options. *)
 
 end
-
-(** {1:project Project} *)
-
-(** A typical project contains the descriptions of multiple
-    components, such as libraries, binaries, tests, ... forming a
-    complex DAG of inter-related component descriptions. *)
-
-type t
-(** The type for OCaml projects descriptions. *)
-
-type comp_unit
-(** The type for compilation unit descriptions. *)
-
-type lib
-(** The type for library descriptions. *)
-
-type bin
-(** The type for binary executable descriptions. *)
-
-type test
-(** The type for test descriptions. *)
-
-type js
-(** The type for [js_of_ocaml] artifact descriptions. *)
-
-type c
-(** The type for C source file descriptions. *)
-
-type gen
-(** The type for generated OCaml source code. *)
-
-type component =
-  [ `Unit of comp_unit
-  | `Lib of lib
-  | `Pp of lib
-  | `Pkg_pp of string
-  | `Pkg of string
-  | `Bin of bin
-  | `C of c
-  | `JS of js
-  | `Test of test
-  | `Gen of gen ]
-(** The type for all the possible component descriptions. A [`CU cu]
-    is a local compilation unit, [`Lib l] is a local library, [`Pp p]
-    is a local pre-processors and [`Bin] is local biny.
-
-    [`Pkg p] is a globally installed packages and [`Pkg_pp] is a
-    globally installed pre-processor packages, both usually managed by
-    {i ocamlfind}. *)
-
 
 (** {1:resolvers Resolvers} *)
 
@@ -357,7 +387,7 @@ val create:
     the libraries, binaries and tests defined by the transitive
     closure of objects in [deps]. *)
 
-(** {1:env Build Environments} *)
+(** {1:buildenv Build Environments} *)
 
 module Build_env: sig
   (** Global project environment.

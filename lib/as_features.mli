@@ -14,47 +14,49 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Project features.
+(** Project features. *)
 
-    Typical OCaml project might have multiple features, which modifies
-    the list of generated artifacts. An example is a project which
-    depends on either [lwt] or [async], and which choose to compile
-    the relevant libraries only if one of the other is installed on
-    the system. Other typical feature might depend on the machine the
-    project is running on, for instance the fact that the native
-    toolchain is available or not. *)
+(** {1 Atomic features} *)
+
+type atom
+(** An atomic feature. *)
+
+val create_atom: ?default:bool -> string -> doc:string ->  atom
+(** Create a single feature. *)
+
+val name: atom -> string
+(** The atomic feature name. *)
+
+val default: atom -> bool
+(** The atomic feature default value. *)
+
+val doc: atom -> string
+(** [doc f] is the feature documentation. *)
+
+val with_default: atom -> bool -> atom
+(** Return the feature with an other default. *)
+
+val parse: atom -> (atom * bool) Cmdliner.Term.t
+(** A cmdliner term which parses an atomic feature. *)
+
+(** {1 Atomic feature sets} *) 
+
+module Set: Set.S with type elt = atom
+(** Sets of atoms. *)
+
+type set = Set.t
+(** The type for sets of atoms. *)
+
+val (++): Set.t -> Set.t -> Set.t
+(** Union of atom sets. *)
+
+(** {1 Features} *)
 
 type t
 (** Formula of features. *)
 
-type elt
-(** A single feature. *)
-
-type cnf = [ `Conflict | `And of [ `P of elt | `N of elt ] list ]
-(** Conjonctive Normal Form. *)
-
-module Set: Set.S with type elt = elt
-(** Set of features. *)
-
-type set = Set.t
-(** Set of features. *)
-
-val (++): Set.t -> Set.t -> Set.t
-(** Union of feature sets. *)
-
-val (@): cnf -> cnf -> cnf
-(** Concatenation of CNF formulaes. *)
-
-val atoms: t -> Set.t
-(** [atoms f] is the list of atoms appearing in the formula [f]. *)
-
-val cnf: t -> cnf
-(** [normalize f] transform [f] in a conjonctive-normal form. *)
-
-val eval: (elt * bool) list -> t -> bool
-(** [eval tbl f] evaluates the formula [f] given the truth table
-    [tbl]. If a feature [t] does not appear in [tbl] is is
-    considered as associated to [false]. *)
+val create: ?default:bool -> string -> doc:string ->  t
+(** Same as [create_atom] but for single formula. *)
 
 val true_: t
 (** The formula which is always [true]. *)
@@ -62,7 +64,7 @@ val true_: t
 val false_: t
 (** The formula which is always [false]. *)
 
-val atom: elt -> t
+val atom: atom -> t
 (** [atom t] is the formula containing the singleton feature [t]. *)
 
 val not_: t -> t
@@ -74,62 +76,60 @@ val (&&&): t -> t -> t
 val (|||): t -> t -> t
 (** [f1 || f2] is the disjonction of [f1] and [f2]. *)
 
-val name: elt -> string
-(** The feature name. *)
+val atoms: t -> Set.t
+(** [atoms f] is the set of atoms appearing in the formula [f]. *)
 
-val default: elt -> bool
-(** Default value. *)
+val eval: (atom * bool) list -> t -> bool
+(** [eval tbl f] evaluates the formula [f] given the truth table
+    [tbl]. If a feature [t] does not appear in [tbl] is is
+    considered as associated to [false]. *)
 
-val with_default: elt -> bool -> elt
-(** Return the feature with an other default. *)
+type cnf = [ `Conflict | `And of [ `P of atom | `N of atom ] list ]
+(** Conjonctive Normal Form. *)
 
-val create_elt: doc:string -> default:bool -> string -> elt
-(** Create a single feature. *)
+val (@): cnf -> cnf -> cnf
+(** Concatenation of CNF formulaes. *)
 
-val create: doc:string -> default:bool -> string -> t
-(** Same as [create_elt] but for single formula. *)
+val cnf: t -> cnf
+(** [normalize f] transform [f] in a conjonctive-normal form. *)
 
-val doc: elt -> string
-(** [doc f] is the feature documentation. *)
-
-val parse: elt -> (elt * bool) Cmdliner.Term.t
-(** A cmldiner term which parses a feature. *)
+(** {1 Built-in features} *)
 
 val native: t
-val native_elt: elt
+val native_atom: atom
 (** Is native-code enabled ? *)
 
 val native_dynlink: t
-val native_dynlink_elt: elt
+val native_dynlink_atom: atom
 (** Is dynlink for native code enabled ? *)
 
+val js: t
+val js_atom: atom
+(** Build the javascript objects. *)
+
 val annot: t
-val annot_elt: elt
+val annot_atom: atom
 (** Generate annot files ? *)
 
 val debug: t
-val debug_elt: elt
+val debug_atom: atom
 (** Generate debug symbols ? *)
 
 val warn_error: t
-val warn_error_elt: elt
+val warn_error_atom: atom
 (** Consider warning as error. *)
 
 val test: t
-val test_elt: elt
+val test_atom: atom
 (** Compile and run tests. *)
 
 val public_doc: t
-val public_doc_elt: elt
+val public_doc_atom: atom
 (** Build the documentation. *)
 
 val full_doc: t
-val full_doc_elt: elt
+val full_doc_atom: atom
 (** Generate the full documentation (and not just the public doc). *)
 
-val js: t
-val js_elt: elt
-(** Build the javascript objects. *)
-
-val base: Set.t
-(** The base features. *)
+val builtin: Set.t
+(** The set of built-in atomic features. *)
