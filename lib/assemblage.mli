@@ -24,14 +24,14 @@
     Describing a project eventually leads to describe its build
     artifacts. The exact mapping betweem project elements and those
     build artifacts depends on the presence or absence of
-    {{!features}features}. Examples of such features are weather to
+    {{!Features}features}. Examples of such features are weather to
     compile and run the tests (user-defined feature), the presence of
     the native compiler (system-dependant feature), compiling a
     library using [async] or [lwt] as a backend (environment-dependant
     feature), ...
 
     Finally, generating build artifacts means refining the project
-    description into concrete {{!flags}command-line arguments} to pass
+    description into concrete {{!Flags}command line arguments} to pass
     to the different compilers ([ocamlc], [ocamlopt]) on the different
     compilation and linking phases.
 
@@ -94,15 +94,14 @@ type component =
     {- [`Pkg_pp p] is an external named pre-processor package.}
     {- FIXME}} *)
 
-
-(** {1:features Features} *)
+(** {1:featuresandflags Features and flags} *)
 
   (** Features.
 
-      Features allow to condition the build of project components
-      and/or certain of their build artifacts according to the build
-      environment. The {{!buildenv}build environment} determines
-      which features are enabled or disabled.
+      Features declare booleans to be determined by the
+      {{!buildenv}build environment}. They allow to condition the
+      application of certain {{!Flags}flags} and restrict the build of
+      project components or of certain of their artifacts.
 
       Examples of features are: native compilation availability,
       optional package availability, debug build support, etc. *)
@@ -170,69 +169,89 @@ module Features: sig
       FIXME. *)
 end
 
-(** {1:flags Flags} *)
+(** Flags
 
-(** The various compilation options that are set for a project
-    eventually reduce to tweaking the simple command-line arguments to
-    the compiler. We distinguish three different phases, where the
-    command-line can be changed: the pre-processing step, the separate
-    compilation of module implementations and signatures and the
-    linking of such compilation units to produce a library or a
-    binary. These three phases come in two modes: bytecode compilation
-    and native-code compilation. *)
+    Flags values denote sets of partial command line arguments given
+    to tools in a given context. Currently the following contexts are
+    defined:
 
+    {ul
+    {- [pp_byte], pre-processing step for byte code compilation.}
+    {- [pp_native], pre-processing step for native code compilation.}
+    {- [comp_byte], byte code compilation.}
+    {- [comp_native], native code compilation.}
+    {- [comp_js], JavaScript compilation.}
+    {- [comp_c], C compilation.}
+    {- [link_byte], byte code linking.}
+    {- [link_native], native code linking.}
+    {- [link_js], JavaScript linking.}
+    {- FIXME, Q: do we do it that way or should we adopt a variant
+       based approac ? This approach doesn't scale but do we need
+       to scale (ocamljava, toploops ?) ? C context should be confronted
+       to the real world, are we missing something here ?}} *)
 module Flags: sig
 
-  (** Flags. *)
+  (** {1:flags Flags} *)
 
   type t
-  (** The type for command-line arguments. *)
+  (** The type for contextualized, partial, command line arguments. *)
 
-  val create:
-    ?comp_byte:string list ->
-    ?comp_native:string list ->
+  val create :
+    ?available:Features.t ->
     ?pp_byte:string list ->
     ?pp_native:string list ->
+    ?comp_byte:string list ->
+    ?comp_native:string list ->
+    ?comp_js: string list ->
     ?link_byte:string list ->
     ?link_native:string list ->
+    ?link_js:string list ->
     ?link_shared:string list ->
     ?c:string list ->
     unit -> t
-  (** Create a full command-line argument using the the given single
-      command-line arguments. *)
+  (** [create available comp_byte...] is a flags value with the given
+      partial command lines for the corresponding context (they
+      default to []) . Flags are only available in a given context
+      whenever the feature [available] is true (defaults to
+      {!Features.true_}). *)
 
   val (@@@): t -> t -> t
-  (** Append command-line flags. *)
+  (** [f @@@ f'] concatenates (context wise) [f'] to [f]. [f'] and
+      [f'] remain available according to their own [available] argument. *)
 
-  val empty: t
-  (** Empty flags. *)
+  (** {1 Built-in flags} *)
 
-  val debug: t
-  (** The [-g] flags. *)
+  val empty : t
+  (** [empty] is [create ()].  *)
 
-  val annot: t
-  (** The [-bin-annot] flags. *)
+  val debug : t
+  (** [debug] is the debug flag as needed per context, only
+      available when {!Features.debug} is true. *)
 
-  val warn_error: t
-  (** The [-warn-error] flags. *)
+  val annot : t
+  (** [annot] is the [-bin-annot] flag in appropriate contexts, only
+      available when {!Features.annot} is true. *)
 
-  val linkall: t
-  (** The [-linkall] flags. *)
+  val warn_error : t
+  (** [warn_error] is the [-warn-error] in appropriate contexts, only
+      available when {!Features.warn_error} is true. *)
 
-  val thread: t
-  (** The [-thread] flags. *)
+  val linkall : t
+  (** [linkall] is the [-linkall] flag in appropriate contexts. *)
 
-  val cclib: string list -> t
+  val thread : t
+  (** [thread] is the [-thread] flag in appropriate contexts. *)
+
+  val cclib : string list -> t
   (** The [-cclib x] flags. *)
 
-  val ccopt: string list -> t
+  val ccopt : string list -> t
   (** The [-ccopt x] flags. *)
 
-  val stub: string -> t
+  val stub : string -> t
   (** [stub s] adds {i -cclib -l[s] -dllib -l[s]} to the bytecode
       linking options and {i -cclib -l[s]} to the native linking
       options. *)
-
 end
 
 (** {1:resolvers Resolvers} *)
@@ -261,7 +280,7 @@ module Resolver: sig
       directory name. *)
 
   val pkgs: t -> string list -> Flags.t
-  (** Resolve global package names into command-line flags. *)
+  (** Resolve global package names into command line flags. *)
 
 end
 
@@ -364,7 +383,7 @@ type test_command
 (** The type for test commands. *)
 
 type test_args = (component -> string) -> string list
-(** The type for command-line arguments when calling tests of executable. *)
+(** The type for command line arguments when calling tests of executable. *)
 
 val test_bin: [`Bin of bin] -> ?args:test_args -> unit -> test_command
 (** A test which runs a binary built in the project. *)
@@ -401,7 +420,7 @@ module Build_env: sig
 
   val parse: ?doc:string -> ?man:string list -> string -> Features.set -> t
   (** [parse name features] parse the arguments given on the
-      command-line as a configuration value, for the project [name] with
+      command line as a configuration value, for the project [name] with
       the possible features [features]. *)
 
 end
