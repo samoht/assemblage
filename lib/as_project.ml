@@ -152,7 +152,7 @@ module type Set = sig
   val of_list: elt list -> t
 end
 
-module Graph (X: sig type t val id: t -> string val deps: t -> t list end) = 
+module Graph (X: sig type t val id: t -> string val deps: t -> t list end) =
 struct
     module G = Graph.Imperative.Digraph.ConcreteBidirectional(struct
         type t = X.t
@@ -189,15 +189,15 @@ module rec Component: sig
   val test: t -> test option
   val filter: (t -> 'a option) -> t list -> 'a list
   val closure: t list -> t list
-  val comp_byte: t list -> As_resolver.t -> (As_resolver.t -> string) -> 
+  val comp_byte: t list -> As_resolver.t -> (As_resolver.t -> string) ->
     string list
-  val comp_native: t list -> As_resolver.t -> (As_resolver.t -> string) -> 
+  val comp_native: t list -> As_resolver.t -> (As_resolver.t -> string) ->
     string list
   val pp_byte: t list -> As_resolver.t -> string list
   val pp_native: t list -> As_resolver.t -> string list
-  val link_byte: t list -> As_resolver.t -> comp_unit list -> 
+  val link_byte: t list -> As_resolver.t -> comp_unit list ->
     string list
-  val link_native: t list -> As_resolver.t -> comp_unit list -> 
+  val link_native: t list -> As_resolver.t -> comp_unit list ->
     string list
   module Graph: Graph with type V.t = component
   module Set: Set with type elt = component
@@ -216,7 +216,7 @@ end = struct
     | `Test t -> Test.id t
     | `JS js  -> JS.id js
     | `Gen g  -> Gen.id g
-                   
+
   let name = function
     | `Unit cu  -> Unit.name cu
     | `Lib l

@@ -45,7 +45,7 @@
     on each other. *)
 
 type t
-(** The type for OCaml projects descriptions. Simply a set of 
+(** The type for OCaml projects descriptions. Simply a set of
     components. *)
 
 type comp_unit
@@ -54,8 +54,8 @@ type comp_unit
 type lib
 (** The type for library descriptions. *)
 
-type pkg = string
-(** The type for package descriptions. *) 
+type pkg
+(** The type for package descriptions. *)
 
 type bin
 (** The type for binary executable descriptions. *)
@@ -83,14 +83,14 @@ type component =
   | `JS of js
   | `Test of test
   | `Gen of gen ]
-(** The type for components.  
-    {ul 
+(** The type for components.
+    {ul
     {- [`Unit u] u is a project compilation unit.}
     {- [`Lib l] is a project library.}
     {- [`Pp p] is a project pre-processor}
     {- [`Bin b] is a project binary.}
     {- [`Test b] is a project test.}
-    {- [`Pkg p] is an external named package.} 
+    {- [`Pkg p] is an external named package.}
     {- [`Pkg_pp p] is an external named pre-processor package.}
     {- FIXME}} *)
 
@@ -104,7 +104,7 @@ type component =
       environment. The {{!buildenv}build environment} determines
       which features are enabled or disabled.
 
-      Examples of features are: native compilation availability, 
+      Examples of features are: native compilation availability,
       optional package availability, debug build support, etc. *)
 module Features: sig
 
@@ -114,7 +114,7 @@ module Features: sig
   (** Set of features. FIXME: remove this. *)
 
   type t
-  (** The type for features. Given a build environment a value of this type 
+  (** The type for features. Given a build environment a value of this type
       denotes a boolean value. *)
 
   val create : ?default:bool -> string -> doc:string -> t
@@ -127,7 +127,7 @@ module Features: sig
   val true_ : t
   (** [true_] is always true. *)
 
-  val false_ : t 
+  val false_ : t
   (** [false_] is always false. *)
 
   val not_ : t -> t
@@ -139,15 +139,15 @@ module Features: sig
   val (|||) : t -> t -> t
   (** [f ||| f'] is true iff either [f] or [f'] is true. *)
 
-  (** {1 Package features} *) 
+  (** {1 Package features} *)
 
-  val of_pkg : ?default:bool -> ?doc:string -> [`Pkg of pkg ] -> t 
-  (** [of_pkg pkg] is true iff package [pkg] is available. *) 
+  val of_pkg : ?default:bool -> ?doc:string -> [`Pkg of pkg ] -> t
+  (** [of_pkg pkg] is true iff package [pkg] is available. *)
 
-  val of_pkg_pp : ?default:bool -> ?doc:string -> [`Pkg_pp of pkg ] -> t 
-  (** [of_pkg_pp pkg] is true iff pre-processor package [pkg] is available. *) 
+  val of_pkg_pp : ?default:bool -> ?doc:string -> [`Pkg_pp of pkg ] -> t
+  (** [of_pkg_pp pkg] is true iff pre-processor package [pkg] is available. *)
 
-  (** {1 Built-in features} *) 
+  (** {1 Built-in features} *)
 
   val native : t
   (** [native] is true iff native code compilation is available. *)
@@ -168,13 +168,13 @@ module Features: sig
   (** [warn_error] is true iff builds must consider warnings as errors. *)
 
   val test : t
-  (** [test] is true iff tests must be built. *) 
+  (** [test] is true iff tests must be built. *)
 
   val public_doc : t
   (** [public_doc] is true iff the public documentation must be built. *)
 
   val full_doc : t
-  (** [full_doc] is true iff the full documentation must be built. 
+  (** [full_doc] is true iff the full documentation must be built.
       FIXME. *)
 end
 
@@ -301,7 +301,7 @@ val unit : ?available:Features.t -> ?dir:string -> string ->
     It is only available whenever [available] is true,
     it must be build with [flags] and depends on [deps]. *)
 
-val ocamldep: dir:string -> ?flags:Flags.t -> (string -> component list) -> 
+val ocamldep: dir:string -> ?flags:Flags.t -> (string -> component list) ->
   [> `Unit of comp_unit] list
 (** [ocamldep ~dir deps] is the list of compilation units in the given
     directory, obtained by running [ocamldep] with the given flags and

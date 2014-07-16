@@ -358,11 +358,11 @@ end = struct
 
   let variables t =
     Variable.stanza
-      ~doc:[sprintf "Compilation unit %s" 
+      ~doc:[sprintf "Compilation unit %s"
               (As_project.Unit.dir t // As_project.Unit.name t)]
-      (Variable.(prereqs t `Byte =?= 
+      (Variable.(prereqs t `Byte =?=
                  `Strings (As_project.Unit.prereqs t resolver `Byte))
-       :: Variable.(prereqs t `Native =?= 
+       :: Variable.(prereqs t `Native =?=
                     `Strings (As_project.Unit.prereqs t resolver `Native))
        :: comp_byte t
        :: comp_native t
@@ -821,9 +821,9 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
   let cs    = As_project.Component.(filter c components) in
   let cus   = As_project.Component.(
       (components
-       @ List.map (fun x -> `Unit x) 
+       @ List.map (fun x -> `Unit x)
          (conmap As_project.Lib.units (libs @ pps))
-       @ List.map (fun x -> `Unit x) 
+       @ List.map (fun x -> `Unit x)
          (conmap As_project.Bin.units bins))
       |> Graph.of_list
       |> Graph.to_list

@@ -30,10 +30,10 @@ type test = As_project.Test.t
 let project_list = ref []
 let projects () = !project_list
 
-let create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version name 
+let create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version name
     components =
   let t =
-    As_project.create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version 
+    As_project.create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version
       components name in
   project_list := t :: !project_list
 
@@ -118,10 +118,10 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
 
   let name_generator = name ^ "_generator" in
   let name_stubs = name ^ "_stubs" in
-  let bin_dir r = As_project.Bin.build_dir 
+  let bin_dir r = As_project.Bin.build_dir
       (As_project.Bin.create [] name_generator) r in
-  let lib_dir r = 
-    Sys.getcwd () / As_project.Lib.build_dir (As_project.Lib.create [] name) r 
+  let lib_dir r =
+    Sys.getcwd () / As_project.Lib.build_dir (As_project.Lib.create [] name) r
   in
 
   (* 2. Generate and compile the generator. *)
@@ -133,7 +133,7 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
       let headers = match headers with
         | [] -> ""
         | hs -> sprintf "--headers %s " (String.concat "," hs) in
-      As_action.custom ~dir:(bin_dir r) 
+      As_action.custom ~dir:(bin_dir r)
         "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
         headers ml_stubs c_stubs library name
     in
@@ -141,8 +141,8 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
     let comp =
       As_project.Unit.create ~deps:[ml; `Unit bindings] name_generator
     in
-    let bin = 
-      As_project.Bin.create ~install:false [bindings; comp] name_generator 
+    let bin =
+      As_project.Bin.create ~install:false [bindings; comp] name_generator
     in
     `Bin bin in
 
@@ -155,7 +155,7 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
 
   let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
   let c_stubs =
-    let c = As_project.C.create ~generated:true ~deps:[generator] ~link_flags 
+    let c = As_project.C.create ~generated:true ~deps:[generator] ~link_flags
         name_stubs in
     `C c in
   let flags = As_flags.(cclib link_flags @@@ stub name_stubs) in
@@ -233,7 +233,7 @@ let describe t env =
   let print_units us =
     let aux i n u =
       let mk f ext =
-        if f u then (As_shell.color `cyan (As_project.Unit.name u ^ ext)) else 
+        if f u then (As_shell.color `cyan (As_project.Unit.name u ^ ext)) else
         ""
       in
       let ml = mk As_project.Unit.ml ".ml" in
@@ -271,22 +271,22 @@ module Build_env = As_build_env
 module Action = As_action
 module Resolver = As_resolver
 module Flags = As_flags
-module Features = struct 
+module Features = struct
   include As_features
 
   let of_pkg ?default ?doc (`Pkg pkg) =
     let name = As_project.Pkg.name pkg in
-    let doc = match doc with 
+    let doc = match doc with
     | None -> sprintf "%s package available" name
-    | Some doc -> doc 
+    | Some doc -> doc
     in
     create name ?default ~doc
-    
+
   let of_pkg_pp ?default ?doc (`Pkg_pp pkg) =
     let name = As_project.Pkg.name pkg in
     let doc = match doc with
     | None -> sprintf "%s pre-processor package available" name
-    | Some doc -> doc 
+    | Some doc -> doc
     in
-    create name ?default ~doc 
+    create name ?default ~doc
 end
