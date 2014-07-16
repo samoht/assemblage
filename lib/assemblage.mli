@@ -139,14 +139,6 @@ module Features: sig
   val (|||) : t -> t -> t
   (** [f ||| f'] is true iff either [f] or [f'] is true. *)
 
-  (** {1 Package features} *)
-
-  val of_pkg : ?default:bool -> ?doc:string -> [`Pkg of pkg ] -> t
-  (** [of_pkg pkg] is true iff package [pkg] is available. *)
-
-  val of_pkg_pp : ?default:bool -> ?doc:string -> [`Pkg_pp of pkg ] -> t
-  (** [of_pkg_pp pkg] is true iff pre-processor package [pkg] is available. *)
-
   (** {1 Built-in features} *)
 
   val native : t

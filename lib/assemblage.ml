@@ -271,22 +271,4 @@ module Build_env = As_build_env
 module Action = As_action
 module Resolver = As_resolver
 module Flags = As_flags
-module Features = struct
-  include As_features
-
-  let of_pkg ?default ?doc (`Pkg pkg) =
-    let name = As_project.Pkg.name pkg in
-    let doc = match doc with
-    | None -> sprintf "%s package available" name
-    | Some doc -> doc
-    in
-    create name ?default ~doc
-
-  let of_pkg_pp ?default ?doc (`Pkg_pp pkg) =
-    let name = As_project.Pkg.name pkg in
-    let doc = match doc with
-    | None -> sprintf "%s pre-processor package available" name
-    | Some doc -> doc
-    in
-    create name ?default ~doc
-end
+module Features = As_features
