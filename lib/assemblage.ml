@@ -16,8 +16,6 @@
 
 open Printf
 
-let project_list = ref []
-
 type t = As_project.t
 type component = As_project.Component.t
 type comp_unit = As_project.Unit.t
@@ -29,8 +27,8 @@ type c = As_project.C.t
 type js = As_project.JS.t
 type test = As_project.Test.t
 
-let projects () =
-  !project_list
+let project_list = ref []
+let projects () = !project_list
 
 let create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version name 
     components =
@@ -39,9 +37,8 @@ let create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version name
       components name in
   project_list := t :: !project_list
 
-let unit ?dir name deps =
-  let u = As_project.Unit.create ?dir ~deps name in
-  `Unit u
+let unit ?available ?dir name deps =
+  `Unit (As_project.Unit.create ?available ?dir ~deps name)
 
 let ocamldep ~dir ?flags deps =
   let resolver = As_ocamlfind.resolver `Direct (Sys.getcwd ()) in
@@ -89,9 +86,11 @@ let js b r =
   let `Bin b = b in
   `JS (As_project.JS.create b r)
 
-let pkg x = `Pkg x
+let pkg ?available ?opt name =
+  `Pkg (As_project.Pkg.create ?available ?opt name ~is_pp:false)
 
-let pkg_pp x = `Pkg_pp x
+let pkg_pp ?available ?opt name =
+  `Pkg_pp (As_project.Pkg.create ?available ?opt name ~is_pp:false)
 
 let test ?dir name deps commands =
   `Test (As_project.Test.create ?dir ~deps commands name)
@@ -113,7 +112,7 @@ let (/) = Filename.concat
 let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
 
   (* 1. compile the bindings. *)
-  let deps = `Pkg "ctypes.stubs" :: deps in
+  let deps = `Pkg As_project.Pkg.ctypes_stub :: deps in
   let name_bindings = name ^ "_bindings" in
   let bindings = As_project.Unit.create ?dir ~deps:deps name_bindings in
 
@@ -138,8 +137,8 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
         "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
         headers ml_stubs c_stubs library name
     in
-    let ml = generated name_generator ~action [] [`ML] in
-    let comp = 
+    let ml = generated name_generator ~action [] [`Ml] in
+    let comp =
       As_project.Unit.create ~deps:[ml; `Unit bindings] name_generator
     in
     let bin = 
@@ -151,7 +150,7 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
   let ml_stubs =
     let action r = As_action.custom ~dir:(bin_dir r) "./%s.byte" name_generator
     in
-    let ml = generated name_stubs ~action [generator] [`C;`ML] in
+    let ml = generated name_stubs ~action [generator] [`C; `Ml] in
     unit name_stubs [ml] in
 
   let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
@@ -160,7 +159,7 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
         name_stubs in
     `C c in
   let flags = As_flags.(cclib link_flags @@@ stub name_stubs) in
-  let ml = generated name [generator] [`ML] in
+  let ml = generated name [generator] [`Ml] in
   let main = unit name [`Unit bindings; ml_stubs; c_stubs; ml] in
   lib name ~flags ?available ~c:[c_stubs] [`Unit bindings; ml_stubs; main]
 
@@ -218,11 +217,13 @@ let configure `Make t env =
   As_opam.Install.(write (of_project ~build_dir t))
 
 let describe t env =
-  let print_deps x = 
-    match As_project.Component.(filter pkg x @ filter pkg_pp x) with
-    | [] -> ""
-    | ds -> sprintf "  ├─── [%s]\n"
-              (String.concat " " (List.map (As_shell.color `bold) ds)) in
+  let print_deps x =
+    let bold_name pkg = As_shell.color `bold (As_project.Pkg.name pkg) in
+    let pkgs = As_project.Component.(filter pkg x @ filter pkg_pp x) in
+    match String.concat " " (List.map bold_name pkgs) with
+    | "" -> ""
+    | pkgs -> sprintf "  ├─── [%s]\n" pkgs
+  in
   let print_modules last ms =
     let aux i n m =
       printf "  %s %s\n"

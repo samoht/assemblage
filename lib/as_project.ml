@@ -30,8 +30,8 @@ type component =
   | `Lib of lib
   | `Pp of lib
   | `Bin of bin
-  | `Pkg_pp of string
-  | `Pkg of string
+  | `Pkg_pp of pkg
+  | `Pkg of pkg
   | `C of c
   | `JS of js
   | `Test of test
@@ -39,12 +39,13 @@ type component =
 
 and comp_unit = {
   cu_name             : string;
+  cu_available        : As_features.t;
+  mutable cu_flags    : As_flags.t;
   cu_dir              : string option;
   mutable cu_deps     : component list;
   mutable cu_container: [`Lib of lib | `Bin of bin] option;
   mutable cu_for_pack : string option;
   mutable cu_pack     : comp_unit list;
-  mutable cu_flags    : As_flags.t;
   cu_generated        : bool;
   cu_mli              : bool;
   cu_ml               : bool;
@@ -52,26 +53,32 @@ and comp_unit = {
 
 and lib = {
   l_name            : string;
+  l_available       : As_features.t;
+  mutable l_flags   : As_flags.t;
   l_cus             : comp_unit list;
   l_cs              : c list;
   mutable l_filename: string;
-  l_available       : As_features.t;
-  mutable l_flags   : As_flags.t;
+}
+
+and pkg = {
+  p_name : string;
+  p_available : As_features.t;
 }
 
 and bin = {
+  b_name     : string;
+  b_available : As_features.t;
+  b_flags    : As_flags.t;
   b_deps     : component list;
   b_comps    : comp_unit list;
-  b_name     : string;
-  b_available: As_features.t;
-  b_flags    : As_flags.t;
   b_toplevel : bool;
   b_install  : bool;
 }
 
 and c = {
-  c_dir              : string option;
   c_name             : string;
+  c_available        : As_features.t;
+  c_dir              : string option;
   c_link_flags       : string list;
   c_deps             : component list;
   c_generated        : bool;
@@ -80,6 +87,7 @@ and c = {
 
 and test = {
   t_name     : string;
+  t_available : As_features.t;
   t_dir      : string option;
   t_commands : test_command list;
   t_deps     : component list;
@@ -87,6 +95,7 @@ and test = {
 
 and js = {
   j_bin : bin;
+  j_available : As_features.t;
   j_args: string list;
 }
 
@@ -98,10 +107,11 @@ and test_command =
 
 and gen = {
   g_name        : string;
+  g_available   : As_features.t;
   mutable g_comp: comp_unit option;
   g_action      : As_action.t option;
   g_deps        : component list;
-  g_files       : [`C|`ML|`MLI] list;
+  g_files       : [`C |`Ml | `Mli] list;
 }
 
 type t = {
@@ -115,11 +125,12 @@ type t = {
   doc_public: string list;
 }
 
-module type S = sig
+module type Component_base = sig
   type t
   type component
   val id: t -> string
   val name: t -> string
+  val available: t -> As_features.t
   val deps: t -> component list
   val build_dir: t -> As_resolver.t -> string
   val file: t -> As_resolver.t -> string -> string
@@ -165,12 +176,12 @@ struct
 end
 
 module rec Component: sig
-  include S with type t = component and type component = component
+  include Component_base with type t = component and type component = component
   val unit: t -> comp_unit option
   val lib: t -> lib option
-  val pkg: t -> string option
+  val pkg: t -> pkg option
   val pp: t -> lib option
-  val pkg_pp: t -> string option
+  val pkg_pp: t -> pkg option
   val bin: t -> bin option
   val c: t -> c option
   val js: t -> js option
@@ -217,6 +228,18 @@ end = struct
     | `Test t -> Test.name t
     | `JS js  -> JS.name js
     | `Gen g  -> Gen.name g
+
+  let available = function
+  | `Unit cu  -> Unit.available cu
+  | `Lib l
+  | `Pp l   -> Lib.available l
+  | `Bin b  -> Bin.available b
+  | `C c    -> C.available c
+  | `Pkg_pp p
+  | `Pkg p  -> Pkg.available p
+  | `Test t -> Test.available t
+  | `JS js  -> JS.available js
+  | `Gen g  -> Gen.available g
 
   let prereqs = function
     | `Unit cu  -> Unit.prereqs cu
@@ -322,7 +345,7 @@ end = struct
           Hashtbl.add deps_tbl (id h) 0;
           let d' = List.filter
               (function `Pkg_pp _ | `Pp _ -> false | _     -> true)
-              (deps h)in
+              (deps h) in
           aux acc (d' @ d)
         )
     in
@@ -339,13 +362,14 @@ end = struct
       let add (seen, acc) i =
         if StringSet.mem i seen then (seen, acc)
         else (StringSet.add i seen, iflags i acc) in
-      let (_, incs) = 
+      let (_, incs) =
         List.fold_left add (StringSet.empty, []) (incl :: cus @ libs) in
       List.rev incs
     in
     let pkgs = match filter pkg deps with
     | [] -> []
     | pkgs ->
+        let pkgs = List.map Pkg.name pkgs in
         let pkgs = As_resolver.pkgs resolver pkgs in
         match mode with
         | `Byte   -> As_flags.comp_byte pkgs
@@ -374,6 +398,7 @@ end = struct
     let pkgs = match pkgs with
       | [] -> []
       | _  ->
+        let pkgs = List.map Pkg.name pkgs in
         let pkgs = As_resolver.pkgs resolver pkgs in
         match mode with
         | `Byte   -> As_flags.link_byte pkgs
@@ -396,6 +421,7 @@ end = struct
              | `Native -> Lib.cmxa l resolver)
         ) libs in
       let pkgs =
+        let pkgs = List.map Pkg.name pkgs in
         let pkgs = As_resolver.pkgs resolver pkgs in
         match mode with
         | `Byte   -> As_flags.pp_byte pkgs
@@ -412,12 +438,12 @@ end = struct
     end)
 
   module Set = struct
-    
+
     include Set.Make(struct
         type t = component
         let compare x y = String.compare (id x) (id y)
       end)
-        
+
     let of_list l =
       let add set elt = add elt set in
       List.fold_left add empty l
@@ -425,28 +451,53 @@ end = struct
 end
 
 and Pkg: sig
-  include S with type t = string and type component = Component.t
+  include Component_base with type t = pkg and type component = Component.t
+  val create : ?available:As_features.t -> ?opt:bool -> string ->
+    is_pp:bool -> t
+
+  val compiler_libs_toplevel : t
+  val ctypes_stub : t
 end = struct
-  type t = string  
+  type t = pkg
   type tmp = component
   type component = tmp
-    
-  let id t = "pkg-" ^ t
-  let name t = t
+
+  let create ?(available = As_features.true_) ?(opt = false) name ~is_pp =
+    let opt_feature name is_pp =
+      let kind = if is_pp then " pre-processeor" else "" in
+      let doc = sprintf "%s%s package available" name kind in
+      As_features.create name ~default:true ~doc
+    in
+    let pkg_f = if opt then opt_feature name is_pp else As_features.true_ in
+    let p_available = As_features.(available &&& pkg_f) in
+    { p_name = name; p_available }
+
+  let id t = "pkg-" ^ t.p_name
+  let name t = t.p_name
+  let available t = t.p_available
   let prereqs _t _r _mode = []
-  let flags t r = As_resolver.pkgs r [t]
+  let flags t r = As_resolver.pkgs r [t.p_name]
   let build_dir _t _r = failwith "Pkg.build_dir"
   let deps _t = []
   let generated_files _t _r = []
   let file _t _r _ext = failwith "Pkg.file"
+
+  (* Builtin packages *)
+
+  let compiler_libs_toplevel = create "compiler-libs.toplevel" ~is_pp:false
+  let ctypes_stub = create "ctypes.stubs" ~is_pp:false
 end
 
 and Unit: sig
-  include S with type t = comp_unit and type component = Component.t
-  val create:
+  include Component_base with
+    type t = comp_unit and type component = Component.t
+
+  val create :
+    ?available:As_features.t ->
     ?flags:As_flags.t ->
     ?dir:string ->
     ?deps:Component.t list -> string -> t
+
   val copy: t -> t
   val dir: t -> string option
   val container: t -> [`Lib of Lib.t |`Bin of Bin.t]  option
@@ -454,13 +505,14 @@ and Unit: sig
   val ml: t -> bool
   val for_pack: t -> string option
   val generated: t -> bool
-  val pack: ?flags:As_flags.t -> t list -> string -> t
+  val pack : ?available:As_features.t ->
+    ?flags:As_flags.t -> t list -> string -> t
   val unpack: t -> t list
   val cmi: t -> As_resolver.t -> string
   val cmo: t -> As_resolver.t -> string
   val cmx: t -> As_resolver.t -> string
   val o: t -> As_resolver.t -> string
-  (* not expored *)
+  (* not exported *)
   val set_lib_container: t -> Lib.t -> unit
   val set_bin_container: t -> Bin.t -> unit
   val add_deps: t -> Component.t list -> unit
@@ -478,9 +530,9 @@ end = struct
   let ml t = t.cu_ml
   let mli t = t.cu_mli
   let generated t = t.cu_generated
-
   let rec copy t =
     { cu_dir       = t.cu_dir;
+      cu_available = t.cu_available;
       cu_deps      = t.cu_deps;
       cu_name      = t.cu_name;
       cu_container = t.cu_container;
@@ -501,6 +553,7 @@ end = struct
     | Some (`Bin b) -> Bin.build_dir b resolver
 
   let name t = t.cu_name
+  let available t = t.cu_available
   let deps t = t.cu_deps
   let container t = t.cu_container
   let for_pack t = t.cu_for_pack
@@ -509,57 +562,47 @@ end = struct
   let set_bin_container t bin = t.cu_container <- Some (`Bin bin)
   let add_deps t deps = t.cu_deps <- t.cu_deps @ deps
 
-  let create
-      ?(flags=As_flags.empty)
-      ?dir ?(deps=[])
-      name =
+  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
+      ?dir ?(deps = []) name
+    =
     let gens = Component.(filter gen) deps in
     let mli = match gens with
-      | [] -> Sys.file_exists (dir // name ^ ".mli")
-      | _  -> List.exists (fun g -> List.mem `MLI g.g_files) gens in
+    | [] -> Sys.file_exists (dir // name ^ ".mli")
+    | _  -> List.exists (fun g -> List.mem `Mli g.g_files) gens
+    in
     let ml = match gens with
-      | [] -> Sys.file_exists (dir // name ^ ".ml")
-      | _  -> List.exists (fun g -> List.mem `ML g.g_files) gens in
-    if not ml && not mli then (
-      eprintf
-        "\027[31m[ERROR]\027[m Cannot find %s.ml or %s.mli in `%s', stopping.\n"
-        name name (match dir with None -> "." | Some d -> d / "");
-      exit 1;
-    );
-    let t = {
-      cu_name      = name;
-      cu_dir       = dir ;
-      cu_deps      = deps;
-      cu_flags     = flags;
-      cu_container = None;
-      cu_for_pack  = None;
-      cu_pack      = [];
-      cu_generated = gens <> [];
-      cu_ml        = ml;
-      cu_mli       = mli;
-    } in
+    | [] -> Sys.file_exists (dir // name ^ ".ml")
+    | _  -> List.exists (fun g -> List.mem `Ml g.g_files) gens
+    in
+    if not ml && not mli
+    then
+      As_shell.fatal_error 1
+        "unit %s: cannot find %s.ml or %s.mli in `%s', stopping.\n"
+        name name name (match dir with None -> "." | Some d -> d / "")
+    else
+    let cu_generated = gens <> [] in
+    let t =
+      { cu_name = name; cu_available = available; cu_dir = dir; cu_deps = deps;
+        cu_flags = flags; cu_container = None; cu_for_pack = None; cu_pack = [];
+        cu_generated; cu_ml = ml; cu_mli = mli; }
+    in
+    (* FIXME: mutation *)
     List.iter (fun g ->
         let g = match g.g_comp with
-          | None   -> g
-          | Some _ -> { g with g_comp = None } in
+        | None   -> g
+        | Some _ -> { g with g_comp = None } in
         g.g_comp <- Some t
       ) gens;
     t
 
-  let pack ?(flags=As_flags.empty) comps name =
+  let pack ?(available = As_features.true_) ?(flags = As_flags.empty) comps
+      name
+    =
+    (* FIXME: mutation *)
     List.iter (fun u -> u.cu_for_pack <- Some (String.capitalize name)) comps;
-    {
-      cu_name      = name;
-      cu_flags     = flags;
-      cu_dir       = None;
-      cu_container = None;
-      cu_for_pack  = None;
-      cu_deps      = [];
-      cu_pack      = comps;
-      cu_ml        = false;
-      cu_mli       = false;
-      cu_generated = false;
-    }
+    { cu_name = name; cu_available = available; cu_flags = flags; cu_dir = None;
+      cu_container = None; cu_for_pack = None; cu_deps = []; cu_pack = comps;
+      cu_ml = false; cu_mli = false; cu_generated = false; }
 
   let file t r ext = build_dir t r / t.cu_name ^ ext
   let cmi t r = file t r ".cmi"
@@ -613,8 +656,8 @@ end = struct
 end
 
 and Lib: sig
-  include S with type t = lib and type component = Component.t
-  val create:
+  include Component_base with type t = lib and type component = Component.t
+  val create :
     ?available:As_features.t ->
     ?flags:As_flags.t ->
     ?pack:bool ->
@@ -654,19 +697,15 @@ end = struct
   let available t = t.l_available
   let nil _ = []
 
-  let create
-      ?(available=As_features.true_)
-      ?(flags=As_flags.empty)
-      ?(pack=false) ?(deps=nil) ?(c=[]) cus name =
+  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
+      ?(pack = false) ?(deps = nil) ?(c = []) cus name
+    =
     let cus' = if pack then [Unit.pack cus name] else cus in
-    let t = {
-      l_name      = name;
-      l_cus       = cus';
-      l_cs        = c;
-      l_available = available;
-      l_flags     = flags;
-      l_filename  = name;
-    } in
+    let t =
+      { l_name = name; l_available = available; l_cus = cus'; l_cs = c;
+        l_flags = flags; l_filename = name; }
+    in
+    (* FIXME: mutation *)
     List.iter (fun u -> Unit.add_deps u (deps (Unit.name u))) cus;
     List.iter (fun u -> Unit.set_lib_container u t) (cus' @ cus);
     List.iter (fun c -> C.set_lib_container c t) c;
@@ -708,8 +747,8 @@ end = struct
 end
 
 and Bin: sig
-  include S with type t = bin and type component = Component.t
-  val create:
+  include Component_base with type t = bin and type component = Component.t
+  val create :
     ?available:As_features.t ->
     ?byte_only:bool ->
     ?link_all:bool ->
@@ -745,16 +784,12 @@ end = struct
   let available t = t.b_available
   let nil _ = []
 
-  let create
-      ?(available=As_features.true_)
-      ?(byte_only=false)
-      ?(link_all=false)
-      ?(install=true)
-      ?(flags=As_flags.empty)
-      ?(deps=nil)
-      comps name =
+  let create ?(available = As_features.true_) ?(byte_only = false)
+      ?(link_all = false) ?(install = true) ?(flags = As_flags.empty)
+      ?(deps = nil) comps name
+    =
     let available =
-      if byte_only then As_features.(not_ native &&& available) else available 
+      if byte_only then As_features.(not_ native &&& available) else available
     in
     let flags =
       if link_all then As_flags.(linkall @@@ flags) else flags in
@@ -766,15 +801,11 @@ end = struct
           Component.Set.(union deps (of_list (Unit.deps cu)))
         ) Component.Set.empty comps
       |> Component.Set.elements in
-    let t = {
-      b_deps      = deps;
-      b_flags     = flags;
-      b_available = available;
-      b_name      = name;
-      b_comps     = comps;
-      b_toplevel  = false;
-      b_install   = install
-    } in
+    let t =
+      { b_deps = deps; b_available = available; b_flags = flags;
+        b_name = name; b_comps = comps; b_toplevel = false;
+        b_install = install }
+    in
     List.iter (fun u -> Unit.set_bin_container u t) comps;
     t
 
@@ -786,8 +817,8 @@ end = struct
       ?(deps=nil)
       comps name =
     let available = As_features.(not_ native &&& available) in
-    let deps x =
-      `Pkg "compiler-libs.toplevel" :: deps x in
+    let deps x = `Pkg (Pkg.compiler_libs_toplevel) :: deps x in
+    (* FIXME : does it mean we want flags for Pkg too ? *)
     let link_byte = [
       (if custom then "-custom " else "") ^ "-I +compiler-libs topstart.cmo"
     ] in
@@ -799,7 +830,7 @@ end = struct
   let file t r ext = build_dir t r / t.b_name ^ ext
   let byte t r = file t r ".byte"
   let native t r = file t r ".native"
-      
+
   let generated_files t resolver =
     let mk f = f t resolver in
     [
@@ -840,9 +871,10 @@ end = struct
 end
 
 and Gen: sig
-  include S with type t = gen and type component = Component.t
-  val create: ?deps:Component.t list -> ?action:As_action.t -> 
-    [`C | `ML | `MLI ] list -> string -> t
+  include Component_base with type t = gen and type component = Component.t
+  val create: ?available:As_features.t ->
+    ?deps:Component.t list -> ?action:As_action.t ->
+    [`C | `Ml | `Mli ] list -> string -> t
   val copy: t -> t
   val files: t -> As_resolver.t -> string list
   val actions: t -> As_resolver.t -> string list
@@ -853,10 +885,14 @@ end = struct
 
   let id t = "gen-" ^ t.g_name
   let name t = t.g_name
+  let available g = g.g_available
   let deps t = t.g_deps
 
-  let create ?(deps=[]) ?action g_files g_name =
-    { g_name; g_comp = None; g_files; g_action = action; g_deps = deps }
+  let create ?(available = As_features.true_) ?(deps = []) ?action g_files
+      g_name
+    =
+    { g_name; g_available = available; g_comp = None; g_files;
+      g_action = action; g_deps = deps }
 
   let copy t = { t with g_comp = None }
 
@@ -877,28 +913,25 @@ end = struct
   let file t r ext = build_dir t r / t.g_name ^ ext
   let ml t r = file t r ".ml"
   let mli t r = file t r ".mli"
-  
+
   let files t r =
     List.map (function
         | `C    -> file t r ".c"
-        | `ML   -> ml t r
-        | `MLI  -> mli t r
+        | `Ml   -> ml t r
+        | `Mli  -> mli t r
       ) t.g_files
 
-  let generated_files t r = [
-    As_features.true_, files t r
-  ]
-
+  let generated_files t r = [ As_features.true_, files t r ]
   let actions t r =
     match t.g_action with
     | None   -> []
     | Some a -> As_action.actions a r
-
 end
 
 and C: sig
-  include S with type t = c and type component = Component.t
-  val create:
+  include Component_base with type t = c and type component = Component.t
+  val create :
+    ?available:As_features.t ->
     ?dir:string -> ?generated:bool -> ?link_flags:string list ->
     ?deps:Component.t list -> string -> t
   val container: t -> [`Lib of Lib.t |`Bin of Bin.t]  option
@@ -913,16 +946,16 @@ end = struct
   type tmp = component
   type component = tmp
 
-  let name t = t.c_name
   let id t = "c-" ^ t.c_name
+  let name t = t.c_name
+  let available t = t.c_available
 
-  let create ?dir ?(generated=false) ?(link_flags=[]) ?(deps=[]) name =
-    { c_dir        = dir;
-      c_name       = name;
-      c_link_flags = link_flags;
-      c_deps       = deps;
-      c_generated  = generated;
-      c_container  = None }
+  let create ?(available = As_features.true_) ?dir ?(generated = false)
+      ?(link_flags = []) ?(deps = []) name
+    =
+    { c_name = name; c_available = available; c_dir = dir;
+      c_link_flags = link_flags; c_deps = deps; c_generated = generated;
+      c_container = None }
 
   let build_dir t r =
     match t.c_container with
@@ -945,11 +978,11 @@ end = struct
 end
 
 and Test: sig
-  include S with type t = test and type component = Component.t
+  include Component_base with type t = test and type component = Component.t
   type args = test_args
   type command = test_command
-  val create: ?dir:string -> ?deps:Component.t list -> command list -> 
-    string -> t
+  val create: ?available:As_features.t ->
+    ?dir:string -> ?deps:Component.t list -> command list -> string -> t
   val dir: t -> string option
   val commands: t -> command list
 end = struct
@@ -961,6 +994,8 @@ end = struct
 
   let id t = "test-" ^ t.t_name
   let name t = t.t_name
+  let available t = t.t_available
+
   let prereqs t r mode =
     List.fold_left (fun acc -> function
         | `Bin bin ->
@@ -978,26 +1013,23 @@ end = struct
   let file _t _r _ext = failwith "Test.file"
   let build_dir _t _r = failwith "Test.build_dir"
   let deps t = t.t_deps
-  let create ?dir ?(deps=[]) commands name =
+  let create ?(available = As_features.true_) ?dir ?(deps = []) cmds name =
     let bin_deps =
-      List.fold_left (fun acc -> function
-          | `Shell _           -> acc
-          | `Bin (`Bin bin, _) -> `Bin bin :: acc
-        ) [] commands in
-    {
-      t_name     = name;
-      t_dir      = dir;
-      t_commands = commands;
-      t_deps     = bin_deps @ deps;
-    }
+      let add_dep acc = function
+      | `Shell _ -> acc | `Bin (`Bin bin, _) -> `Bin bin :: acc
+      in
+      List.fold_left add_dep [] cmds
+    in
+    { t_name = name; t_available = available; t_dir = dir;
+      t_commands = cmds; t_deps = bin_deps @ deps; }
 
   let commands t = t.t_commands
   let dir t = t.t_dir
 end
 
 and JS: sig
-  include S with type t = js and type component = Component.t
-  val create: Bin.t -> string list -> t
+  include Component_base with type t = js and type component = Component.t
+  val create: ?available:As_features.t -> Bin.t -> string list -> t
   val js: t -> As_resolver.t -> string
 end = struct
   type t = js
@@ -1006,11 +1038,11 @@ end = struct
 
   let bin t = t.j_bin
   let name t = Bin.name (bin t)
+  let available t = t.j_available
+
   let id t = Bin.id t.j_bin ^ "-js"
-  let create bin args = {
-    j_bin  = bin;
-    j_args = args;
-  }
+  let create ?(available = As_features.true_) bin args =
+    { j_bin  = bin; j_available = available; j_args = args; }
 
   let file t r e = Bin.file (bin t) r e
   let js t r = Bin.file (bin t) r ".js"

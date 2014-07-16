@@ -132,6 +132,7 @@ module META = struct
         As_project.Lib.deps lib
         |> As_project.Component.closure
         |> As_project.Component.(filter pkg)
+        |> List.map As_project.Pkg.name
         |> String.concat " " in
       let name = As_project.Lib.name lib in
       bprintf buf "version  = \"%s\"\n" version;

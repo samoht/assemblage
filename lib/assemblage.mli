@@ -294,11 +294,12 @@ end
 
 (** {1 The Project API} *)
 
-val unit: ?dir:string -> string -> component list -> 
-  [> `Unit of comp_unit]
-(** [unit name ~dir deps] is the compilation unit located in the
-    directory [dir] with dependencies [deps] and the cname [name]. The
-    name is the same as the filename, without its extension. *)
+val unit : ?available:Features.t -> ?dir:string -> string ->
+  component list -> [> `Unit of comp_unit]
+(** [unit name ~dir ~available ~flags deps] is a compilation unit
+    named [name] (the filename without extension) present in directory [dir].
+    It is only available whenever [available] is true,
+    it must be build with [flags] and depends on [deps]. *)
 
 val ocamldep: dir:string -> ?flags:Flags.t -> (string -> component list) -> 
   [> `Unit of comp_unit] list
@@ -308,7 +309,7 @@ val ocamldep: dir:string -> ?flags:Flags.t -> (string -> component list) ->
     list of dependencies. *)
 
 val generated: ?action:Action.t ->
-  string -> component list -> [`C|`ML|`MLI] list -> [> `Gen of gen]
+  string -> component list -> [`C | `Ml | `Mli] list -> [> `Gen of gen]
 (** Generated OCaml source file(s). The custom action get the name of
     the build dir as argument. *)
 
@@ -356,11 +357,16 @@ val js: [`Bin of bin] -> string list -> [> `JS of js]
 (** [js bin args] is the decription of a javascript artefact generated
     by [js_of_ocaml]. *)
 
-val pkg: string -> [> `Pkg of string]
-(** An external package. *)
+val pkg : ?available:Features.t -> ?opt:bool -> string -> [> `Pkg of pkg]
+(** [pkg available opt name] is an external package named [name]. It is
+    only available whenever [available] is true. If [opt] is true (defaults
+    to [false]) a feature [f] is automatically created for the package
+    and anded to [available]. *)
 
-val pkg_pp: string -> [> `Pkg_pp of string]
-(** An external pre-processor. *)
+val pkg_pp : ?available:Features.t -> ?opt:bool -> string ->
+  [> `Pkg_pp of pkg]
+(** [pkg_pp available opt name] is like {!pkg} except it denotes
+    an external pre-processor package. *)
 
 type test_command
 (** The type for test commands. *)
