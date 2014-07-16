@@ -18,15 +18,15 @@ let lib =
   lib "assemblage" (ocamldep ~dir:"lib" deps)
 
 let configure =
-  let configure = cu "configure" ~dir:"bin" [lib] in
+  let configure = unit "configure" ~dir:"bin" [lib] in
   bin "configure.ml" ~link_all:true ~byte_only:true [configure]
 
 let describe =
-  let describe = cu "describe" ~dir:"bin" [lib]  in
+  let describe = unit "describe" ~dir:"bin" [lib]  in
   bin "describe.ml" ~link_all:true ~byte_only:true [describe]
 
 let ctypes_gen =
-  let ctypes_gen = cu "ctypes_gen" ~dir:"bin" [lib] in
+  let ctypes_gen = unit "ctypes_gen" ~dir:"bin" [lib] in
   bin "ctypes-gen" ~byte_only:true [ctypes_gen]
 
 (* Tests *)

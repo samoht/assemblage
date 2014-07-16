@@ -20,7 +20,7 @@ let project_list = ref []
 
 type t = As_project.t
 type component = As_project.Component.t
-type cu = As_project.CU.t
+type comp_unit = As_project.Unit.t
 type lib = As_project.Lib.t
 type bin = As_project.Bin.t
 type gen = As_project.Gen.t
@@ -31,19 +31,21 @@ type test = As_project.Test.t
 let projects () =
   !project_list
 
-let create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version name components =
+let create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version name 
+    components =
   let t =
-    As_project.create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version components name in
+    As_project.create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version 
+      components name in
   project_list := t :: !project_list
 
-let cu ?dir name deps =
-  let u = As_project.CU.create ?dir ~deps name in
-  `CU u
+let unit ?dir name deps =
+  let u = As_project.Unit.create ?dir ~deps name in
+  `Unit u
 
 let ocamldep ~dir ?flags deps =
   let resolver = As_ocamlfind.resolver `Direct (Sys.getcwd ()) in
   let cus = As_OCaml.depends ?flags ~deps resolver dir in
-  List.map (fun cu -> `CU cu) cus
+  List.map (fun cu -> `Unit cu) cus
 
 let generated ?action name deps f =
   let g = As_project.Gen.create ~deps ?action f name in
@@ -53,20 +55,20 @@ let nil _ = []
 
 let sorted_cus cus =
   let g = As_project.Component.Graph.create () in
-  List.iter (fun (`CU cu) ->
-      As_project.Component.Graph.add_vertex g (`CU cu);
+  List.iter (fun (`Unit cu) ->
+      As_project.Component.Graph.add_vertex g (`Unit cu);
       List.iter (function
-          | `CU dep ->
-            if List.mem (`CU dep) cus then
-              As_project.Component.Graph.add_edge g (`CU dep) (`CU cu)
+          | `Unit dep ->
+            if List.mem (`Unit dep) cus then
+              As_project.Component.Graph.add_edge g (`Unit dep) (`Unit cu)
           | _ -> ()
-        ) (As_project.CU.deps cu)
+        ) (As_project.Unit.deps cu)
     ) cus;
   let cus = As_project.Component.Graph.to_list g in
-  List.map (function `CU cu -> cu | _ -> assert false) cus
+  List.map (function `Unit cu -> cu | _ -> assert false) cus
 
 let lib ?available ?(flags=As_flags.empty) ?pack ?(deps=nil) ?(c=[])
-    name (cus:[`CU of cu] list) =
+    name (cus:[`Unit of comp_unit] list) =
   let cus = sorted_cus cus in
   let c = List.map (function `C c -> c) c in
   let l = As_project.Lib.create ?available ~flags ?pack ~deps ~c cus name in
@@ -112,12 +114,15 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
   (* 1. compile the bindings. *)
   let deps = `Pkg "ctypes.stubs" :: deps in
   let name_bindings = name ^ "_bindings" in
-  let bindings = As_project.CU.create ?dir ~deps:deps name_bindings in
+  let bindings = As_project.Unit.create ?dir ~deps:deps name_bindings in
 
   let name_generator = name ^ "_generator" in
   let name_stubs = name ^ "_stubs" in
-  let bin_dir r = As_project.Bin.build_dir (As_project.Bin.create [] name_generator) r in
-  let lib_dir r = Sys.getcwd () / As_project.Lib.build_dir (As_project.Lib.create [] name) r in
+  let bin_dir r = As_project.Bin.build_dir 
+      (As_project.Bin.create [] name_generator) r in
+  let lib_dir r = 
+    Sys.getcwd () / As_project.Lib.build_dir (As_project.Lib.create [] name) r 
+  in
 
   (* 2. Generate and compile the generator. *)
   let generator =
@@ -128,28 +133,35 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
       let headers = match headers with
         | [] -> ""
         | hs -> sprintf "--headers %s " (String.concat "," hs) in
-      As_action.custom ~dir:(bin_dir r) "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
+      As_action.custom ~dir:(bin_dir r) 
+        "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
         headers ml_stubs c_stubs library name
     in
     let ml = generated name_generator ~action [] [`ML] in
-    let comp = As_project.CU.create ~deps:[ml; `CU bindings] name_generator in
-    let bin = As_project.Bin.create ~install:false [bindings; comp] name_generator in
+    let comp = 
+      As_project.Unit.create ~deps:[ml; `Unit bindings] name_generator
+    in
+    let bin = 
+      As_project.Bin.create ~install:false [bindings; comp] name_generator 
+    in
     `Bin bin in
 
   (* 3. Generate and compile the stubs. *)
   let ml_stubs =
-    let action r = As_action.custom ~dir:(bin_dir r) "./%s.byte" name_generator in
+    let action r = As_action.custom ~dir:(bin_dir r) "./%s.byte" name_generator
+    in
     let ml = generated name_stubs ~action [generator] [`C;`ML] in
-    cu name_stubs [ml] in
+    unit name_stubs [ml] in
 
   let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
   let c_stubs =
-    let c = As_project.C.create ~generated:true ~deps:[generator] ~link_flags name_stubs in
+    let c = As_project.C.create ~generated:true ~deps:[generator] ~link_flags 
+        name_stubs in
     `C c in
   let flags = As_flags.(cclib link_flags @@@ stub name_stubs) in
   let ml = generated name [generator] [`ML] in
-  let main = cu name [`CU bindings; ml_stubs; c_stubs; ml] in
-  lib name ~flags ?available ~c:[c_stubs] [`CU bindings; ml_stubs; main]
+  let main = unit name [`Unit bindings; ml_stubs; c_stubs; ml] in
+  lib name ~flags ?available ~c:[c_stubs] [`Unit bindings; ml_stubs; main]
 
 type tool = t -> As_build_env.t -> unit
 
@@ -205,7 +217,8 @@ let configure `Make t env =
   As_opam.Install.(write (of_project ~build_dir t))
 
 let describe t env =
-  let print_deps x = match As_project.Component.(filter pkg x @ filter pkg_pp x) with
+  let print_deps x = 
+    match As_project.Component.(filter pkg x @ filter pkg_pp x) with
     | [] -> ""
     | ds -> sprintf "  ├─── [%s]\n"
               (String.concat " " (List.map (As_shell.color `bold) ds)) in
@@ -218,11 +231,13 @@ let describe t env =
   let print_units us =
     let aux i n u =
       let mk f ext =
-        if f u then (As_shell.color `cyan (As_project.CU.name u ^ ext)) else "" in
-      let ml = mk As_project.CU.ml ".ml" in
-      let mli = mk As_project.CU.mli ".mli" in
+        if f u then (As_shell.color `cyan (As_project.Unit.name u ^ ext)) else 
+        ""
+      in
+      let ml = mk As_project.Unit.ml ".ml" in
+      let mli = mk As_project.Unit.mli ".mli" in
       let modules =
-        if As_project.CU.generated u then ["--generated--"]
+        if As_project.Unit.generated u then ["--generated--"]
         else
           let build_dir = As_build_env.build_dir env in
           As_OCaml.modules ~build_dir u in
@@ -238,8 +253,8 @@ let describe t env =
         (As_shell.color `magenta (id l)) (print_deps (deps l));
       print_units (comps l) in
     List.iter aux ls in
-  let print_libs = As_project.Lib.(print_top id deps compilation_units) in
-  let print_bins = As_project.Bin.(print_top id deps compilation_units) in
+  let print_libs = As_project.Lib.(print_top id deps units) in
+  let print_bins = As_project.Bin.(print_top id deps units) in
   printf "\n%s %s %s\n\n"
     (As_shell.color `yellow "==>")
     (As_shell.color `underline (As_project.name t)) (As_project.version t);

@@ -83,13 +83,13 @@ module Install = struct
       mk "index_values.html";
       mk "style.css";
       List.iter (fun l ->
-          let units = As_project.Lib.compilation_units l in
+          let units = As_project.Lib.units l in
           List.iter (fun u ->
-              let name = String.capitalize (As_project.CU.name u) in
+              let name = String.capitalize (As_project.Unit.name u) in
               mk "%s.html" name;
               mk "type_%s.html" name;
               let modules =
-                if As_project.CU.generated u then []
+                if As_project.Unit.generated u then []
                 else As_OCaml.modules ~build_dir u in
               List.iter (fun m ->
                   mk "%s.%s.html" name m

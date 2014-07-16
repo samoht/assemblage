@@ -126,23 +126,23 @@ let modules_of_mli ast =
 let modules ~build_dir cu =
   let resolver = As_ocamlfind.resolver `Direct build_dir in
   let () =
-    As_project.CU.deps cu
+    As_project.Unit.deps cu
     |> As_project.Component.closure
     |> As_project.Component.(filter pkg_pp)
     |> As_resolver.pkgs resolver
     |> init in
   let aux = function
     | `ML ->
-      let file = As_project.CU.(dir cu // name cu ^ ".ml") in
+      let file = As_project.Unit.(dir cu // name cu ^ ".ml") in
       let ast = Pparse.parse_implementation Format.err_formatter file in
       modules_of_ml ast
     | `MLI ->
-      let file = As_project.CU.(dir cu // name cu ^ ".mli") in
+      let file = As_project.Unit.(dir cu // name cu ^ ".mli") in
       let ast = Pparse.parse_interface Format.err_formatter file in
       modules_of_mli ast in
   let set =
-    if As_project.CU.mli cu then aux `MLI
-    else if As_project.CU.ml cu then aux `ML
+    if As_project.Unit.mli cu then aux `MLI
+    else if As_project.Unit.ml cu then aux `ML
     else StringSet.empty in
   StringSet.elements set
 
@@ -223,8 +223,8 @@ let depends ?flags ?(deps=fun _ -> []) resolver dir =
       let local_deps =
         try List.concat (Hashtbl.find_all deps_tbl name)
         with Not_found -> [] in
-      let deps = deps name @ List.map (fun x -> `CU (cu x)) local_deps in
-      let cu = As_project.CU.create ?flags ~dir ~deps name in
+      let deps = deps name @ List.map (fun x -> `Unit (cu x)) local_deps in
+      let cu = As_project.Unit.create ?flags ~dir ~deps name in
       Hashtbl.add cus_tbl name cu;
       cu in
   List.map cu names
