@@ -61,10 +61,13 @@ let js b r =
   `JS (As_project.JS.create b r)
 
 let pkg ?available ?flags ?opt name =
-  `Pkg (As_project.Pkg.create ?available ?flags ?opt name ~is_pp:false)
+  `Pkg (As_project.Pkg.create ?available ?flags ?opt name `OCaml)
 
 let pkg_pp ?available ?flags ?opt name =
-  `Pkg_pp (As_project.Pkg.create ?available ?flags ?opt name ~is_pp:true)
+  `Pkg_pp (As_project.Pkg.create ?available ?flags ?opt name `OCaml_pp)
+
+let pkg_c ?available ?flags ?opt name =
+  `Pkg (As_project.Pkg.create ?available ?flags ?opt name `C)
 
 let lib ?available ?flags ?pack ?(deps = nil) ?(c = []) name cus =
   let c = List.map (function `C c -> c) c in
@@ -100,10 +103,10 @@ let ocamldep ~dir ?flags deps =
   let cus = As_OCaml.depends ?flags ~deps resolver dir in
   List.map (fun cu -> `Unit cu) cus
 
-let (/) = Filename.concat
 let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
     name deps
   =
+  let (/) = Filename.concat in
   (* 1. compile the bindings. *)
   let deps = `Pkg As_project.Pkg.ctypes_stub :: deps in
   let name_bindings = name ^ "_bindings" in

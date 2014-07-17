@@ -86,7 +86,8 @@ and js =
 and pkg =
   { p_name : string;
     p_available : As_features.t;
-    p_flags : As_flags.t; }
+    p_flags : As_flags.t;
+    p_kind : [`OCaml | `OCaml_pp | `C ]; }
 
 and lib =
   { l_name : string;
@@ -819,24 +820,31 @@ end
 
 and Pkg: sig
   include Component_base with type t = pkg
+  type kind = [ `OCaml | `OCaml_pp | `C ]
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?opt:bool -> string -> is_pp:bool -> t
+    ?opt:bool -> string -> kind -> t
+  val kind : t -> kind
   val compiler_libs_toplevel : t
   val ctypes_stub : t
 end = struct
+  type kind = [ `OCaml | `OCaml_pp | `C ]
   type t = pkg
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(opt = false) name ~is_pp
+      ?(opt = false) name kind
     =
-    let opt_feature name is_pp =
-      let kind = if is_pp then " pre-processeor" else "" in
-      let doc = sprintf "%s%s package available" name kind in
+    let opt_feature name kind =
+      let kind = match kind with
+      | `OCaml -> "OCaml"
+      | `OCaml_pp -> "OCaml pre-processor"
+      | `C -> "C"
+      in
+      let doc = sprintf "%s %s package available" name kind in
       As_features.create name ~default:true ~doc
     in
-    let pkg_f = if opt then opt_feature name is_pp else As_features.true_ in
+    let pkg_f = if opt then opt_feature name kind else As_features.true_ in
     let p_available = As_features.(available &&& pkg_f) in
-    { p_name = name; p_flags = flags; p_available }
+    { p_name = name; p_flags = flags; p_available; p_kind = kind }
 
   let id t = "pkg-" ^ t.p_name
   let name t = t.p_name
@@ -847,11 +855,12 @@ end = struct
   let deps _t = []
   let generated_files _t _r = []
   let file _t _r _ext = failwith "Pkg.file"
+  let kind t = t.p_kind
 
   (* Builtin packages *)
 
-  let compiler_libs_toplevel = create "compiler-libs.toplevel" ~is_pp:false
-  let ctypes_stub = create "ctypes.stubs" ~is_pp:false
+  let compiler_libs_toplevel = create "compiler-libs.toplevel" `OCaml
+  let ctypes_stub = create "ctypes.stubs" `OCaml
 end
 
 and Lib: sig

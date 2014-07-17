@@ -370,7 +370,7 @@ val js : [`Bin of bin] -> string list -> [> `JS of js]
 
 val pkg : ?available:Features.t -> ?flags:Flags.t ->
   ?opt:bool -> string -> [> `Pkg of pkg]
-(** [pkg available opt name] is an external package named [name]. It is
+(** [pkg available opt name] is an external OCaml package named [name]. It is
     only available whenever [available] is true. If [opt] is true (defaults
     to [false]) a feature [f] is automatically created for the package
     and anded to [available]. *)
@@ -378,7 +378,12 @@ val pkg : ?available:Features.t -> ?flags:Flags.t ->
 val pkg_pp : ?available:Features.t -> ?flags:Flags.t ->
   ?opt:bool -> string -> [> `Pkg_pp of pkg]
 (** [pkg_pp available opt name] is like {!pkg} except it denotes
-    an external pre-processor package. *)
+    an external OCaml pre-processor package. *)
+
+val pkg_c : ?available:Features.t -> ?flags:Flags.t ->
+  ?opt:bool -> string -> [> `Pkg of pkg ]
+(** [pkg_c available opt name] is like {!pkg} except it denotes an
+    external C package. *)
 
 type test_command
 (** The type for test commands. *)

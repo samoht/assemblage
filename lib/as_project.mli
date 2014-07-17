@@ -316,13 +316,16 @@ module JS : sig
   (** The location of the generated javascript artifacts. *)
 end
 
-(** External package (globally installed using [ocamlfind]. *)
+(** External package. *)
 module Pkg : sig
-
   include Component_base with type t = pkg
 
+  type kind = [ `OCaml | `OCaml_pp | `C ]
+
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?opt:bool -> string -> is_pp:bool -> t
+    ?opt:bool -> string -> kind -> t
+
+  val kind : t -> kind
 
   (** {1 Built-in packages} *)
 
