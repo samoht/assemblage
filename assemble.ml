@@ -49,6 +49,5 @@ let multi_libs = mk_test "multi-libs"
 (* The project *)
 
 let () =
-  create "assemblage"
-    ~doc_public:["assemblage"]
-    [lib; configure; describe; ctypes_gen; camlp4; multi_libs]
+  let cs = [lib; configure; describe; ctypes_gen; camlp4; multi_libs] in
+  add (create "assemblage" ~doc_public:["assemblage"] cs)
