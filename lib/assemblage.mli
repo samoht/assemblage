@@ -300,36 +300,34 @@ type component =
     {- [`Pkg_pp p] is an external named pre-processor package.}
     {- FIXME}} *)
 
-val unit : ?available:Features.t -> ?dir:string -> string ->
+val unit : ?available:Features.t -> ?flags:Flags.t -> ?dir:string -> string ->
   component list -> [> `Unit of comp_unit]
 (** [unit name ~dir ~available ~flags deps] is a compilation unit
     named [name] (the filename without extension) present in directory [dir].
     It is only available whenever [available] is true,
     it must be build with [flags] and depends on [deps]. *)
 
-val generated : ?action:Action.t -> string ->
-  component list -> [`C | `Ml | `Mli] list -> [> `Gen of gen]
+val generated : ?available:Features.t -> ?flags:Flags.t ->
+  ?action:Action.t -> string -> component list -> [`C | `Ml | `Mli] list ->
+  [> `Gen of gen]
 (** Generated OCaml source file(s). The custom action get the name of
     the build dir as argument. *)
 
-val c : ?dir:string -> ?link_flags:string list ->
-  string -> component list -> string list -> [> `C of c]
+val c : ?available:Features.t -> ?flags:Flags.t -> ?dir:string ->
+  ?link_flags:string list -> string -> component list -> string list ->
+  [> `C of c]
 (** [c name deps libs] is the C file [name.c], which need the C
     libraries [libs] to be compiled -- and it has the dependencies
     [deps]. *)
 
-val lib :
-  ?available:Features.t ->
-  ?flags:Flags.t ->
-  ?pack:bool ->
-  ?deps:(string -> component list) ->
-  ?c:[`C of c] list ->
-  string -> [`Unit of comp_unit] list -> [> `Lib of lib]
+val lib : ?available:Features.t -> ?flags:Flags.t ->
+  ?pack:bool -> ?deps:(string -> component list) ->
+  ?c:[`C of c] list -> string -> [`Unit of comp_unit] list -> [> `Lib of lib]
 (** [lib name units] is the library [name] composed by the compilation
     units [cus]. If [lib] is set, use [ocamldep] to approximate the
     compilation units and their dependecies in the given directory. *)
 
-val bin :
+val bin : ?available:Features.t -> ?flags:Flags.t ->
   ?byte_only:bool ->
   ?link_all:bool ->
   ?install:bool ->
@@ -344,14 +342,15 @@ val js : [`Bin of bin] -> string list -> [> `JS of js]
 (** [js bin args] is the decription of a javascript artefact generated
     by [js_of_ocaml]. *)
 
-val pkg : ?available:Features.t -> ?opt:bool -> string -> [> `Pkg of pkg]
+val pkg : ?available:Features.t -> ?flags:Flags.t ->
+  ?opt:bool -> string -> [> `Pkg of pkg]
 (** [pkg available opt name] is an external package named [name]. It is
     only available whenever [available] is true. If [opt] is true (defaults
     to [false]) a feature [f] is automatically created for the package
     and anded to [available]. *)
 
-val pkg_pp : ?available:Features.t -> ?opt:bool -> string ->
-  [> `Pkg_pp of pkg]
+val pkg_pp : ?available:Features.t -> ?flags:Flags.t ->
+  ?opt:bool -> string -> [> `Pkg_pp of pkg]
 (** [pkg_pp available opt name] is like {!pkg} except it denotes
     an external pre-processor package. *)
 
@@ -367,7 +366,7 @@ val test_bin : [`Bin of bin] -> ?args:test_args -> unit -> test_command
 val test_shell : ('a, unit, string, test_command) format4 -> 'a
 (** A test which runs an arbitrary shell command. *)
 
-val test : ?dir:string ->
+val test : ?available:Features.t -> ?flags:Flags.t -> ?dir:string ->
   string -> component list -> test_command list -> [> `Test of test]
 (** Description of a test. *)
 
@@ -380,13 +379,9 @@ val ocamldep : dir:string -> ?flags:Flags.t -> (string -> component list) ->
     dependencies. [deps] is a map from compilation unit names to its
     list of dependencies. *)
 
-val cstubs :
-  ?dir:string ->
-  ?available:Features.t ->
-  ?headers:string list ->
-  ?cflags:string list ->
-  ?clibs:string list ->
-  string -> component list -> [> `Lib of lib]
+val cstubs : ?available:Features.t -> ?dir:string -> ?headers:string list ->
+  ?cflags:string list -> ?clibs:string list -> string -> component list ->
+  [> `Lib of lib]
 (** [stubs name deps] is the C stub generations, using Ctypes, of the
     compilation unit [name]. *)
 

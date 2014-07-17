@@ -14,14 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** EDSL to describe OCaml projects.
+(** Project
 
-    A typical project contains the descriptions of multiple
-    components, such as libraries, binaries, tests, ... forming a
-    complex DAG of inter-related descriptions. The module signature
-    {{!Graph}Graph} models the relation between components. Although
-    each kind of components has some particularities, but they all
-    extend the signature {!Component_base} defined below. *)
+    A datastructure to describe projects. Models a project as a
+    description of a set of components such as libraries, binaries,
+    tests, etc. forming a DAG.
+
+    Each component as its own particularities but they all extend
+    the {!Component_base} signature. The module signature {{!Graph}Graph}
+    models the relation between components. *)
 
 type t
 (** The type for describing projects. *)
@@ -76,6 +77,11 @@ module type Component_base = sig
   val available: t -> As_features.t
   (** [available c] is true if component [c] is available. *)
 
+  val flags: t -> As_resolver.t -> As_flags.t
+  (** [flags t r] are the compilation flags used when generating the
+      build artifacts for the project [t] and the name resolver
+      [r].  *)
+
   val deps: t -> component list
   (** [deps t] is the list of dependencies of the component [t]. *)
 
@@ -93,17 +99,11 @@ module type Component_base = sig
       feature which enable them, for the component [t] and the name
       resolver [r]. *)
 
-  val flags: t -> As_resolver.t -> As_flags.t
-  (** [flags t r] are the compilation flags used when generating the
-      build artifacts for the project [t] and the name resolver
-      [r].  *)
-
   val prereqs: t -> As_resolver.t -> [`Byte | `Native | `Shared] -> string list
   (** [prereqs t resolver mode] is the list of prerequisites files to
       build, in the given [mode], before building the object [t],
       where [resolver] is used to compute the location of generated
       files. *)
-
 end
 
 module type Graph = sig
@@ -233,11 +233,8 @@ and Unit : sig
 
   include Component_base with type component = Component.t
 
-  val create :
-    ?available:As_features.t ->
-    ?flags:As_flags.t ->
-    ?dir:string ->
-    ?deps:Component.t list -> string -> t
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?dir:string -> ?deps:Component.t list -> string -> t
   (** Create a compilation unit. *)
 
   val copy: t -> t
@@ -291,13 +288,9 @@ and Lib: sig
 
   include Component_base with type component = Component.t
 
-  val create :
-    ?available:As_features.t ->
-    ?flags:As_flags.t ->
-    ?pack:bool ->
-    ?deps:(string -> Component.t list) ->
-    ?c:C.t list ->
-    Unit.t list -> string -> t
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?pack:bool -> ?deps:(string -> Component.t list) ->
+    ?c:C.t list -> Unit.t list -> string -> t
   (** Create a library. *)
 
   val filename: t -> string
@@ -333,22 +326,14 @@ and Bin: sig
 
   include Component_base with type component = Component.t
 
-  val create :
-    ?available:As_features.t ->
-    ?byte_only:bool ->
-    ?link_all:bool ->
-    ?install:bool ->
-    ?flags:As_flags.t ->
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?byte_only:bool -> ?link_all:bool -> ?install:bool ->
     ?deps:(string -> Component.t list) ->
     Unit.t list -> string -> t
   (** Build a binary by linking a set of compilation units. *)
 
-  val toplevel:
-    ?available:As_features.t ->
-    ?flags:As_flags.t ->
-    ?custom:bool ->
-    ?install:bool ->
-    ?deps:(string -> Component.t list) ->
+  val toplevel : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?custom:bool -> ?install:bool -> ?deps:(string -> Component.t list) ->
     Unit.t list -> string -> t
   (** Create a custom toplevel by linking a set of compilation
       units. *)
@@ -376,8 +361,8 @@ and Pkg: sig
 
   include Component_base with type component = Component.t
 
-  val create : ?available:As_features.t -> ?opt:bool -> string ->
-    is_pp:bool -> t
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?opt:bool -> string -> is_pp:bool -> t
 
   (** {1 Built-in packages} *)
 
@@ -391,8 +376,9 @@ and Gen: sig
 
   include Component_base with type component = Component.t
 
-  val create : ?available:As_features.t -> ?deps:Component.t list ->
-    ?action:As_action.t -> [`C | `Ml | `Mli] list -> string -> t
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?deps:Component.t list -> ?action:As_action.t -> [`C | `Ml | `Mli] list ->
+    string -> t
   (** Generate source files, using the given action. *)
 
   val copy: t -> t
@@ -427,6 +413,7 @@ and C: sig
 
   val create :
     ?available:As_features.t ->
+    ?flags:As_flags.t ->
     ?dir:string -> ?generated:bool -> ?link_flags:string list ->
     ?deps:Component.t list -> string -> t
   (** Create a C object file. *)
@@ -469,7 +456,7 @@ and Test: sig
     [ `Bin of [`Bin of Bin.t] * args
     | `Shell of string ]
 
-  val create : ?available:As_features.t -> ?dir:string ->
+  val create : ?available:As_features.t -> ?flags:As_flags.t -> ?dir:string ->
     ?deps:Component.t list -> command list -> string  -> t
   (** Create a test. *)
 
@@ -482,7 +469,8 @@ end
 
 val create:
   ?flags:As_flags.t ->
-  ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string -> ?doc_public:string list ->
+  ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
+  ?doc_public:string list ->
   ?version:string ->
   Component.t list -> string -> t
 (** [create cs n] is the project named [n] with components [cs]. *)
