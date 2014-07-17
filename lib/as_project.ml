@@ -27,15 +27,17 @@ module StringSet = Set.Make (String)
 
 type component =
   [ `Unit of comp_unit
+  | `Gen of gen
+  | `File of file
+  | `C of c
+  | `JS of js
+  | `Pkg_pp of pkg
+  | `Pkg of pkg
   | `Lib of lib
   | `Pp of lib
   | `Bin of bin
-  | `Pkg_pp of pkg
-  | `Pkg of pkg
-  | `C of c
-  | `JS of js
-  | `Test of test
-  | `Gen of gen ]
+  | `Dir of dir
+  | `Test of test ]
 
 and comp_unit =
   { cu_name : string;
@@ -49,6 +51,13 @@ and comp_unit =
     cu_generated : bool;
     cu_mli : bool;
     cu_ml  : bool; }
+
+and file =
+  { f_name : string;
+    f_available : As_features.t;
+    f_flags : As_flags.t;
+    f_deps : component list;
+    f_dir : string option; }
 
 and gen =
   { g_name : string;
@@ -95,6 +104,16 @@ and bin =
     b_comps : comp_unit list;
     b_toplevel : bool;
     b_install : bool; }
+
+and dir =
+  { d_name :
+      [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
+      | `Misc | `Stublibs | `Man | `Other of string ];
+    d_available : As_features.t;
+    d_flags : As_flags.t;
+    d_deps : component list;
+    d_install : bool;
+    d_contents : component list; }
 
 and test_args = (component -> string) -> string list
 and test_command =
@@ -171,7 +190,8 @@ end
 
 module rec Component : sig
   include Component_base with type t = component
-  val unit: t -> comp_unit option
+  val unit : t -> comp_unit option
+  val file_ : t -> file option
   val gen: t -> gen option
   val c: t -> c option
   val js: t -> js option
@@ -180,6 +200,7 @@ module rec Component : sig
   val lib: t -> lib option
   val pp: t -> lib option
   val bin: t -> bin option
+  val dir: t -> dir option
   val test: t -> test option
   val filter: (t -> 'a option) -> t list -> 'a list
   val closure: t list -> t list
@@ -201,6 +222,7 @@ end = struct
 
   let id = function
   | `Unit cu  -> Unit.id cu
+  | `File f -> File.id f
   | `Gen g  -> Gen.id g
   | `C c    -> C.id c
   | `JS js  -> JS.id js
@@ -209,10 +231,12 @@ end = struct
   | `Lib l
   | `Pp l   -> Lib.id l
   | `Bin b  -> Bin.id b
+  | `Dir d -> Dir.id d
   | `Test t -> Test.id t
 
   let name = function
   | `Unit cu  -> Unit.name cu
+  | `File f -> File.name f
   | `Gen g  -> Gen.name g
   | `C c    -> C.name c
   | `JS js  -> JS.name js
@@ -221,10 +245,12 @@ end = struct
   | `Lib l
   | `Pp l   -> Lib.name l
   | `Bin b  -> Bin.name b
+  | `Dir d -> Dir.name d
   | `Test t -> Test.name t
 
   let available = function
   | `Unit cu  -> Unit.available cu
+  | `File f -> File.available f
   | `Gen g  -> Gen.available g
   | `C c    -> C.available c
   | `JS js  -> JS.available js
@@ -233,10 +259,12 @@ end = struct
   | `Lib l
   | `Pp l   -> Lib.available l
   | `Bin b  -> Bin.available b
+  | `Dir d -> Dir.available d
   | `Test t -> Test.available t
 
   let prereqs = function
   | `Unit cu  -> Unit.prereqs cu
+  | `File f -> File.prereqs f
   | `Gen g  -> Gen.prereqs g
   | `C c    -> C.prereqs c
   | `JS js  -> JS.prereqs js
@@ -245,10 +273,12 @@ end = struct
   | `Lib l
   | `Pp l   -> Lib.prereqs l
   | `Bin b  -> Bin.prereqs b
+  | `Dir d -> Dir.prereqs d
   | `Test t -> Test.prereqs t
 
   let flags = function
   | `Unit cu  -> Unit.flags cu
+  | `File f -> File.flags f
   | `Gen g  -> Gen.flags g
   | `C c    -> C.flags c
   | `JS js  -> JS.flags js
@@ -257,10 +287,12 @@ end = struct
   | `Lib l
   | `Pp l   -> Lib.flags l
   | `Bin b  -> Bin.flags b
+  | `Dir d -> Dir.flags d
   | `Test t -> Test.flags t
 
   let generated_files = function
   | `Unit cu  -> Unit.generated_files cu
+  | `File f -> File.generated_files f
   | `Gen g  -> Gen.generated_files g
   | `C c    -> C.generated_files c
   | `JS js  -> JS.generated_files js
@@ -269,10 +301,12 @@ end = struct
   | `Lib l
   | `Pp l   -> Lib.generated_files l
   | `Bin b  -> Bin.generated_files b
+  | `Dir d -> Dir.generated_files d
   | `Test t -> Test.generated_files t
 
   let file = function
   | `Unit cu  -> Unit.file cu
+  | `File f -> File.file f
   | `Gen g  -> Gen.file g
   | `C c    -> C.file c
   | `JS js  -> JS.file js
@@ -281,10 +315,12 @@ end = struct
   | `Lib l
   | `Pp l   -> Lib.file l
   | `Bin b  -> Bin.file b
+  | `Dir d -> Dir.file d
   | `Test t -> Test.file t
 
   let build_dir = function
   | `Unit cu  -> Unit.build_dir cu
+  | `File f -> File.build_dir f
   | `Gen g  -> Gen.build_dir g
   | `C c    -> C.build_dir c
   | `JS js  -> JS.build_dir js
@@ -293,10 +329,12 @@ end = struct
   | `Lib l
   | `Pp l   -> Lib.build_dir l
   | `Bin b  -> Bin.build_dir b
+  | `Dir d -> Dir.build_dir d
   | `Test t -> Test.build_dir t
 
   let deps = function
   | `Unit cu  -> Unit.deps cu
+  | `File f -> File.deps f
   | `Gen g  -> Gen.deps g
   | `C c    -> C.deps c
   | `JS js  -> JS.deps js
@@ -305,9 +343,11 @@ end = struct
   | `Lib l
   | `Pp l   -> Lib.deps l
   | `Bin b  -> Bin.deps b
+  | `Dir d -> Dir.deps d
   | `Test t -> Test.deps t
 
-  let unit = function `Unit x -> Some x  | _ -> None
+  let unit = function `Unit x -> Some x | _ -> None
+  let file_ = function `File x -> Some x | _ -> None
   let gen = function `Gen x -> Some x | _ -> None
   let c = function `C c -> Some c | _ -> None
   let js = function `JS x -> Some x | _ -> None
@@ -316,6 +356,7 @@ end = struct
   let lib = function `Lib x -> Some x | _ -> None
   let pp = function `Pp x -> Some x | _ -> None
   let bin = function `Bin x -> Some x | _ -> None
+  let dir = function `Dir x -> Some x | _ -> None
   let test = function `Test x -> Some x | _ -> None
 
   let filter fn l =
@@ -607,6 +648,32 @@ end = struct
     As_flags.(t' @@@ t.cu_flags)
 
 end
+
+and File : sig
+  include Component_base with type t = file
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?deps:component list -> ?dir:string -> string -> file
+end = struct
+  type t = file
+
+  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
+      ?(deps = []) ?dir f_name =
+    { f_name; f_available = available; f_flags = flags; f_deps = deps;
+      f_dir = dir }
+
+  let id f = "file-" ^ f.f_name
+  let name f = f.f_name
+  let available f = f.f_available
+  let flags f _ = f.f_flags
+  let deps f = f.f_deps
+  let prereqs _ _ _ = []
+  let file _ = invalid_arg "File.file: not applicable"
+  let build_dir _ = invalid_arg "File.build_dir: not applicable"
+  let generated_files f r =
+    let file = As_resolver.build_dir r f.f_name in
+    [f.f_available, [ file ]]
+end
+
 
 and Gen: sig
   include Component_base with type t = gen
@@ -978,6 +1045,41 @@ end = struct
     in
     As_flags.(t' @@@ t.b_flags)
 
+end
+
+and Dir : sig
+  include Component_base with type t = dir
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?deps:component list -> ?install:bool ->
+    [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
+    | `Misc | `Stublibs | `Man | `Other of string ] -> component list -> dir
+end = struct
+  type t = dir
+
+  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
+      ?(deps = []) ?(install = true) d_name d_contents =
+    { d_name; d_available = available; d_flags = flags; d_deps = deps;
+      d_install = install; d_contents = d_contents; }
+
+  let name d = match d.d_name with
+  | `Lib -> "lib" | `Bin -> "bin" | `Sbin -> "sbin" | `Toplevel -> "toplevel"
+  | `Share -> "share" | `Share_root -> "share-root" | `Etc -> "etc"
+  | `Doc -> "doc" | `Misc -> "misc" | `Stublibs -> "stublibs"
+  | `Man -> "man" | `Other n -> n
+
+  let id d = "dir-" ^ (name d)
+  let available d = d.d_available
+  let flags d _ = d.d_flags
+  let deps d = d.d_deps
+  let prereqs _ _ _ = [] (* FIXME mode doesn't make sense *)
+  let file _ = invalid_arg "Dir.file: not applicable"
+  let build_dir d r = As_resolver.build_dir r (id d)
+  let generated_files d r =
+    let add c =
+      let refine_avail (a, files) = As_features.(d.d_available &&& a), files in
+      List.map refine_avail (Component.generated_files c r)
+    in
+    List.flatten (List.map add d.d_contents)
 end
 
 and Test: sig

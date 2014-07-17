@@ -26,16 +26,19 @@
 
 type comp_unit
 type gen
+type file
 type c
 type js
 type pkg
 type lib
 type bin
+type dir
 type test
 
 type component =
   [ `Unit of comp_unit
   | `Gen of gen
+  | `File of file
   | `C of c
   | `JS of js
   | `Pkg_pp of pkg
@@ -43,6 +46,7 @@ type component =
   | `Lib of lib
   | `Pp of lib
   | `Bin of bin
+  | `Dir of dir
   | `Test of test ]
 
 (** Common signature shared by all components. *)
@@ -130,34 +134,17 @@ module Component : sig
   include Component_base with type t = component
 
   val unit : t -> comp_unit option
-  (** Is the component a compilation unit? *)
-
+  val file_ : t -> file option
   val gen : t -> gen option
-  (** Is the component a generated source file? *)
-
   val c : t -> c option
-  (** Is the component a C file? *)
-
   val js : t -> js option
-  (** Is the component a js_of_ocaml binary? *)
-
   val pkg : t -> pkg option
-  (** Is the component a globally installed library in a package? *)
-
   val pkg_pp : t -> pkg option
-  (** Is the component a globally installed syntax extension *)
-
   val lib : t -> lib option
-  (** Is the component a local library? *)
-
   val pp : t -> lib option
-  (** Is the component a local syntax extension? *)
-
   val bin : t -> bin option
-  (** Is the component a binary? *)
-
+  val dir : t -> dir option
   val test : t -> test option
-  (** Is the component a test? *)
 
   val filter : (t -> 'a option) -> t list -> 'a list
   (** Filter a list of components. *)
@@ -250,6 +237,13 @@ module Unit : sig
 
   val o : t -> As_resolver.t -> string
   (** The location of the object file for the compilation unit. *)
+end
+
+(** Static file *)
+module File : sig
+  include Component_base with type t = file
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?deps:component list -> ?dir:string -> string -> file
 end
 
 (** Source file generator. *)
@@ -403,6 +397,16 @@ module Bin : sig
 
   val native : t -> As_resolver.t -> string
   (** The location of the generated native binary. *)
+end
+
+(** Directory with build artifacts *)
+module Dir : sig
+  include Component_base with type t = dir
+
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?deps:component list -> ?install:bool ->
+    [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
+    | `Misc | `Stublibs | `Man | `Other of string ] -> component list -> dir
 end
 
 module Test : sig

@@ -31,12 +31,14 @@ module Action = As_action
 type t = As_project.t
 type component = As_project.Component.t
 type comp_unit = As_project.Unit.t
-type lib = As_project.Lib.t
-type bin = As_project.Bin.t
-type pkg = As_project.Pkg.t
+type file = As_project.File.t
 type gen = As_project.Gen.t
 type c = As_project.C.t
 type js = As_project.JS.t
+type pkg = As_project.Pkg.t
+type lib = As_project.Lib.t
+type bin = As_project.Bin.t
+type dir = As_project.Dir.t
 type test = As_project.Test.t
 
 let nil _ = []
@@ -44,12 +46,25 @@ let nil _ = []
 let unit ?available ?flags ?dir name deps =
   `Unit (As_project.Unit.create ?available ?flags ?dir ~deps name)
 
+let file ?available ?flags ?deps ?dir name =
+  `File (As_project.File.create ?available ?flags ?deps ?dir name)
+
 let generated ?available ?flags ?action name deps f =
   `Gen (As_project.Gen.create ?available ?flags ~deps ?action f name)
 
 let c ?available ?flags ?dir ?(link_flags = []) name deps libs =
   let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
   `C (As_project.C.create ?available ?flags ?dir ~link_flags ~deps name)
+
+let js b r =
+  let `Bin b = b in
+  `JS (As_project.JS.create b r)
+
+let pkg ?available ?flags ?opt name =
+  `Pkg (As_project.Pkg.create ?available ?flags ?opt name ~is_pp:false)
+
+let pkg_pp ?available ?flags ?opt name =
+  `Pkg_pp (As_project.Pkg.create ?available ?flags ?opt name ~is_pp:true)
 
 let sorted_cus cus =
   let g = As_project.Component.Graph.create () in
@@ -75,15 +90,8 @@ let bin ?available ?flags ?byte_only ?link_all ?install ?(deps = nil) name cus =
   `Bin (As_project.Bin.create ?available ?flags ?byte_only ?link_all ?install
           ~deps cus name)
 
-let js b r =
-  let `Bin b = b in
-  `JS (As_project.JS.create b r)
-
-let pkg ?available ?flags ?opt name =
-  `Pkg (As_project.Pkg.create ?available ?flags ?opt name ~is_pp:false)
-
-let pkg_pp ?available ?flags ?opt name =
-  `Pkg_pp (As_project.Pkg.create ?available ?flags ?opt name ~is_pp:true)
+let dir ?available ?flags ?deps ?install name contents =
+  `Dir (As_project.Dir.create ?available ?flags ?deps ?install name contents)
 
 type test_command = As_project.Test.command
 let test ?available ?flags ?dir name deps commands =

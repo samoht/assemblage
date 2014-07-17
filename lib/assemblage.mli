@@ -257,38 +257,46 @@ end
 type comp_unit
 (** The type for compilation unit descriptions. *)
 
-type lib
-(** The type for library descriptions. *)
-
-type pkg
-(** The type for package descriptions. *)
-
-type bin
-(** The type for binary executable descriptions. *)
-
-type test
-(** The type for test descriptions. *)
-
-type js
-(** The type for [js_of_ocaml] artifact descriptions. *)
-
-type c
-(** The type for C source file descriptions. *)
+type file
+(** The type for static files. *)
 
 type gen
 (** The type for generated OCaml source code. *)
 
+type c
+(** The type for C source file descriptions. *)
+
+type js
+(** The type for [js_of_ocaml] artifact descriptions. *)
+
+type pkg
+(** The type for package descriptions. *)
+
+type lib
+(** The type for library descriptions. *)
+
+type bin
+(** The type for binary executable descriptions. *)
+
+type dir
+(** The type for directory of artifacts descriptions. *)
+
+type test
+(** The type for test descriptions. *)
+
 type component =
   [ `Unit of comp_unit
+  | `File of file
+  | `C of c
+  | `JS of js
+  | `Gen of gen
   | `Lib of lib
   | `Pp of lib
   | `Pkg_pp of pkg
   | `Pkg of pkg
   | `Bin of bin
-  | `C of c
-  | `JS of js
-  | `Test of test
-  | `Gen of gen ]
+  | `Dir of dir
+  | `Test of test ]
 (** The type for components.
     {ul
     {- [`Unit u] u is a project compilation unit.}
@@ -305,7 +313,13 @@ val unit : ?available:Features.t -> ?flags:Flags.t -> ?dir:string -> string ->
 (** [unit name ~dir ~available ~flags deps] is a compilation unit
     named [name] (the filename without extension) present in directory [dir].
     It is only available whenever [available] is true,
-    it must be build with [flags] and depends on [deps]. *)
+    it must be build with [flags] and depends on [deps] to be built. *)
+
+val file : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
+  ?dir:string -> string -> [> `File of file ]
+(** [file name ~dir ~available ~flags deps] is a static file [name] present
+    in directory [dir]. It is only available whenever [available] is true
+    and depends on [deps] to be built. *)
 
 val generated : ?available:Features.t -> ?flags:Flags.t ->
   ?action:Action.t -> string -> component list -> [`C | `Ml | `Mli] list ->
@@ -337,6 +351,18 @@ val bin : ?available:Features.t -> ?flags:Flags.t ->
     the compilation units [units], with the dependencies [deps]. By
     default, the source files are located into {i bin/} (this is
     controled by the value of [dir]). *)
+
+val dir : ?available:As_features.t -> ?flags:As_flags.t ->
+  ?deps:component list -> ?install:bool ->
+  [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
+  | `Misc | `Stublibs | `Man | `Other of string ] -> component list ->
+  [> `Dir of dir ]
+(** [dir name ~available ~flags ~deps contents] is a directory named
+    [name] that contains the build artefacts of the component [contents].
+    If [install] is [true] (default), the artifacts are installed in the
+    corresponding directory under the install prefix. It is only available
+    whenever [available] is true, it must be build with [flags] and
+    depends on [deps] and [contents] to be built. *)
 
 val js : [`Bin of bin] -> string list -> [> `JS of js]
 (** [js bin args] is the decription of a javascript artefact generated
