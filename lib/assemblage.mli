@@ -37,63 +37,6 @@
 
     {e Release %%VERSION%% - %%AUTHOR%% } *)
 
-(** {1:project Project}
-
-    A project is a set of components. Each component describes a
-    logical build unit like a compilation unit, a library, a binary, a
-    test, the documentation of a library, etc. Components may depend
-    on each other. *)
-
-type t
-(** The type for OCaml projects descriptions. Simply a set of
-    components. *)
-
-type comp_unit
-(** The type for compilation unit descriptions. *)
-
-type lib
-(** The type for library descriptions. *)
-
-type pkg
-(** The type for package descriptions. *)
-
-type bin
-(** The type for binary executable descriptions. *)
-
-type test
-(** The type for test descriptions. *)
-
-type js
-(** The type for [js_of_ocaml] artifact descriptions. *)
-
-type c
-(** The type for C source file descriptions. *)
-
-type gen
-(** The type for generated OCaml source code. *)
-
-type component =
-  [ `Unit of comp_unit
-  | `Lib of lib
-  | `Pp of lib
-  | `Pkg_pp of pkg
-  | `Pkg of pkg
-  | `Bin of bin
-  | `C of c
-  | `JS of js
-  | `Test of test
-  | `Gen of gen ]
-(** The type for components.
-    {ul
-    {- [`Unit u] u is a project compilation unit.}
-    {- [`Lib l] is a project library.}
-    {- [`Pp p] is a project pre-processor}
-    {- [`Bin b] is a project binary.}
-    {- [`Test b] is a project test.}
-    {- [`Pkg p] is an external named package.}
-    {- [`Pkg_pp p] is an external named pre-processor package.}
-    {- FIXME}} *)
-
 (** {1:featuresandflags Features and flags} *)
 
   (** Features.
@@ -105,7 +48,7 @@ type component =
 
       Examples of features are: native compilation availability,
       optional package availability, debug build support, etc. *)
-module Features: sig
+module Features : sig
 
   (** {1 Features} *)
 
@@ -189,7 +132,7 @@ end
        based approac ? This approach doesn't scale but do we need
        to scale (ocamljava, toploops ?) ? C context should be confronted
        to the real world, are we missing something here ?}} *)
-module Flags: sig
+module Flags : sig
 
   (** {1:flags Flags} *)
 
@@ -215,7 +158,7 @@ module Flags: sig
       whenever the feature [available] is true (defaults to
       {!Features.true_}). *)
 
-  val (@@@): t -> t -> t
+  val (@@@) : t -> t -> t
   (** [f @@@ f'] concatenates (context wise) [f'] to [f]. [f'] and
       [f'] remain available according to their own [available] argument. *)
 
@@ -270,16 +213,16 @@ module Resolver: sig
   type t
   (** The type for internal and external name resolvers. *)
 
-  val create: build_dir:string -> pkgs:(string list -> Flags.t) -> t
+  val create : build_dir:string -> pkgs:(string list -> Flags.t) -> t
   (** [create ~buildir ~pkgs] is the resolver which prefixes [buildir]
       to resolve local library names and applies [pkgs] to resolve a set
       of global package names. *)
 
-  val build_dir: t -> string -> string
+  val build_dir : t -> string -> string
   (** Resolve locally generated filename by prepending the build
       directory name. *)
 
-  val pkgs: t -> string list -> Flags.t
+  val pkgs : t -> string list -> Flags.t
   (** Resolve global package names into command line flags. *)
 
 end
@@ -293,7 +236,7 @@ module Action: sig
   type custom
   (** Custom actions. *)
 
-  val custom: ?dir:string -> ('a, unit, string, custom) format4 -> 'a
+  val custom : ?dir:string -> ('a, unit, string, custom) format4 -> 'a
   (** [bash ~dir fmt] is a generator which produces some results by
       calling [fmt] in a bash shell, running in the directory
       [dir]. *)
@@ -303,7 +246,59 @@ module Action: sig
 
 end
 
-(** {1 The Project API} *)
+(** {1:comps Components}
+
+    A project is a set of components. Each component describes a
+    logical build unit like a compilation unit, a library, a binary, a
+    test, the documentation of a library, etc. A component can depend
+    on other components, either because it needs the dependencies to
+    be part of it or because it needs them to be build. *)
+
+type comp_unit
+(** The type for compilation unit descriptions. *)
+
+type lib
+(** The type for library descriptions. *)
+
+type pkg
+(** The type for package descriptions. *)
+
+type bin
+(** The type for binary executable descriptions. *)
+
+type test
+(** The type for test descriptions. *)
+
+type js
+(** The type for [js_of_ocaml] artifact descriptions. *)
+
+type c
+(** The type for C source file descriptions. *)
+
+type gen
+(** The type for generated OCaml source code. *)
+
+type component =
+  [ `Unit of comp_unit
+  | `Lib of lib
+  | `Pp of lib
+  | `Pkg_pp of pkg
+  | `Pkg of pkg
+  | `Bin of bin
+  | `C of c
+  | `JS of js
+  | `Test of test
+  | `Gen of gen ]
+(** The type for components.
+    {ul
+    {- [`Unit u] u is a project compilation unit.}
+    {- [`Lib l] is a project library.}
+    {- [`Pp p] is a project pre-processor}
+    {- [`Bin b] is a project binary.}
+    {- [`Test b] is a project test.}
+    {- [`Pkg p] is an external named package.}
+    {- [`Pkg_pp p] is an external named pre-processor package.}
+    {- FIXME}} *)
 
 val unit : ?available:Features.t -> ?dir:string -> string ->
   component list -> [> `Unit of comp_unit]
@@ -312,37 +307,18 @@ val unit : ?available:Features.t -> ?dir:string -> string ->
     It is only available whenever [available] is true,
     it must be build with [flags] and depends on [deps]. *)
 
-val ocamldep: dir:string -> ?flags:Flags.t -> (string -> component list) ->
-  [> `Unit of comp_unit] list
-(** [ocamldep ~dir deps] is the list of compilation units in the given
-    directory, obtained by running [ocamldep] with the given flags and
-    dependencies. [deps] is a map from compilation unit names to its
-    list of dependencies. *)
-
-val generated: ?action:Action.t ->
-  string -> component list -> [`C | `Ml | `Mli] list -> [> `Gen of gen]
+val generated : ?action:Action.t -> string ->
+  component list -> [`C | `Ml | `Mli] list -> [> `Gen of gen]
 (** Generated OCaml source file(s). The custom action get the name of
     the build dir as argument. *)
 
-val c:
-  ?dir:string ->
-  ?link_flags:string list ->
+val c : ?dir:string -> ?link_flags:string list ->
   string -> component list -> string list -> [> `C of c]
 (** [c name deps libs] is the C file [name.c], which need the C
     libraries [libs] to be compiled -- and it has the dependencies
     [deps]. *)
 
-val cstubs:
-  ?dir:string ->
-  ?available:Features.t ->
-  ?headers:string list ->
-  ?cflags:string list ->
-  ?clibs:string list ->
-  string -> component list -> [> `Lib of lib]
-(** [stubs name deps] is the C stub generations, using Ctypes, of the
-    compilation unit [name]. *)
-
-val lib:
+val lib :
   ?available:Features.t ->
   ?flags:Flags.t ->
   ?pack:bool ->
@@ -353,7 +329,7 @@ val lib:
     units [cus]. If [lib] is set, use [ocamldep] to approximate the
     compilation units and their dependecies in the given directory. *)
 
-val bin:
+val bin :
   ?byte_only:bool ->
   ?link_all:bool ->
   ?install:bool ->
@@ -364,7 +340,7 @@ val bin:
     default, the source files are located into {i bin/} (this is
     controled by the value of [dir]). *)
 
-val js: [`Bin of bin] -> string list -> [> `JS of js]
+val js : [`Bin of bin] -> string list -> [> `JS of js]
 (** [js bin args] is the decription of a javascript artefact generated
     by [js_of_ocaml]. *)
 
@@ -385,19 +361,45 @@ type test_command
 type test_args = (component -> string) -> string list
 (** The type for command line arguments when calling tests of executable. *)
 
-val test_bin: [`Bin of bin] -> ?args:test_args -> unit -> test_command
+val test_bin : [`Bin of bin] -> ?args:test_args -> unit -> test_command
 (** A test which runs a binary built in the project. *)
 
-val test_shell: ('a, unit, string, test_command) format4 -> 'a
+val test_shell : ('a, unit, string, test_command) format4 -> 'a
 (** A test which runs an arbitrary shell command. *)
 
-val test: ?dir:string ->
+val test : ?dir:string ->
   string -> component list -> test_command list -> [> `Test of test]
 (** Description of a test. *)
 
-val create:
+(** {1:componenthelpers Component helpers} *)
+
+val ocamldep : dir:string -> ?flags:Flags.t -> (string -> component list) ->
+  [> `Unit of comp_unit] list
+(** [ocamldep ~dir deps] is the list of compilation units in the given
+    directory, obtained by running [ocamldep] with the given flags and
+    dependencies. [deps] is a map from compilation unit names to its
+    list of dependencies. *)
+
+val cstubs :
+  ?dir:string ->
+  ?available:Features.t ->
+  ?headers:string list ->
+  ?cflags:string list ->
+  ?clibs:string list ->
+  string -> component list -> [> `Lib of lib]
+(** [stubs name deps] is the C stub generations, using Ctypes, of the
+    compilation unit [name]. *)
+
+(** {1:projects Projects} *)
+
+type t
+(** The type for OCaml projects descriptions. Simply a set of
+    components. *)
+
+val create :
   ?flags:Flags.t ->
-  ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string -> ?doc_public:string list ->
+  ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
+  ?doc_public:string list ->
   ?version:string ->
   string -> component list -> unit
 (** [create name deps] registers the project named [name], defining
@@ -415,10 +417,10 @@ module Build_env: sig
   type t
   (** Environment values. *)
 
-  val default: t
+  val default : t
   (** Default project configuration. *)
 
-  val parse: ?doc:string -> ?man:string list -> string -> Features.set -> t
+  val parse : ?doc:string -> ?man:string list -> string -> Features.set -> t
   (** [parse name features] parse the arguments given on the
       command line as a configuration value, for the project [name] with
       the possible features [features]. *)
@@ -430,16 +432,16 @@ end
 type tool = t -> Build_env.t -> unit
 (** The signature of tools. *)
 
-val process: ?file:string -> string -> tool -> unit
+val process : ?file:string -> string -> tool -> unit
 (** [process ~file name fn] reads and processes the OCaml [file] in a
     top-level environment (the default is [assemble.ml]), for the
     project called [name], and apply [fn] to the projects registered
     as side-effects. *)
 
-val configure: [`Make] -> tool
+val configure : [`Make] -> tool
 (** Configure the project by generating the build, META and .install
     files, using the given build system backend (currently, only GNU
     make is supported). *)
 
-val describe: tool
+val describe : tool
 (** Describe the project to stdout. *)
