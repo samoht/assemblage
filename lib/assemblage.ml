@@ -66,27 +66,11 @@ let pkg ?available ?flags ?opt name =
 let pkg_pp ?available ?flags ?opt name =
   `Pkg_pp (As_project.Pkg.create ?available ?flags ?opt name ~is_pp:true)
 
-let sorted_cus cus =
-  let g = As_project.Component.Graph.create () in
-  List.iter (fun (`Unit cu) ->
-      As_project.Component.Graph.add_vertex g (`Unit cu);
-      List.iter (function
-          | `Unit dep ->
-            if List.mem (`Unit dep) cus then
-              As_project.Component.Graph.add_edge g (`Unit dep) (`Unit cu)
-          | _ -> ()
-        ) (As_project.Unit.deps cu)
-    ) cus;
-  let cus = As_project.Component.Graph.to_list g in
-  List.map (function `Unit cu -> cu | _ -> assert false) cus
-
 let lib ?available ?flags ?pack ?(deps = nil) ?(c = []) name cus =
-  let cus = sorted_cus cus in
   let c = List.map (function `C c -> c) c in
   `Lib (As_project.Lib.create ?available ?flags ?pack ~deps ~c cus name)
 
 let bin ?available ?flags ?byte_only ?link_all ?install ?(deps = nil) name cus =
-  let cus = sorted_cus cus in
   `Bin (As_project.Bin.create ?available ?flags ?byte_only ?link_all ?install
           ~deps cus name)
 
@@ -123,8 +107,7 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
   (* 1. compile the bindings. *)
   let deps = `Pkg As_project.Pkg.ctypes_stub :: deps in
   let name_bindings = name ^ "_bindings" in
-  let bindings = As_project.Unit.create ?dir ~deps:deps name_bindings in
-
+  let bindings = unit ?dir name_bindings deps in
   let name_generator = name ^ "_generator" in
   let name_stubs = name ^ "_stubs" in
   let bin_dir r = As_project.Bin.build_dir
@@ -146,8 +129,7 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
         headers ml_stubs c_stubs library name
     in
     let ml = generated name_generator ~action [] [`Ml] in
-    let comp =
-      As_project.Unit.create ~deps:[ml; `Unit bindings] name_generator
+    let comp = unit name_generator [ml; bindings]
     in
     let bin =
       As_project.Bin.create ~install:false [bindings; comp] name_generator
@@ -166,8 +148,8 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
     `C c in
   let flags = As_flags.(cclib link_flags @@@ stub name_stubs) in
   let ml = generated name [generator] [`Ml] in
-  let main = unit name [`Unit bindings; ml_stubs; c_stubs; ml] in
-  lib name ~flags ?available ~c:[c_stubs] [`Unit bindings; ml_stubs; main]
+  let main = unit name [bindings; ml_stubs; c_stubs; ml] in
+  lib name ~flags ?available ~c:[c_stubs] [bindings; ml_stubs; main]
 
 (* Projects *)
 

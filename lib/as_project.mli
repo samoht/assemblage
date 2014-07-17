@@ -337,7 +337,7 @@ module Lib : sig
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?pack:bool -> ?deps:(string -> Component.t list) ->
-    ?c:c list -> Unit.t list -> string -> t
+    ?c:c list -> [`Unit of Unit.t ] list -> string -> t
   (** Create a library. *)
 
   val filename : t -> string
@@ -374,12 +374,12 @@ module Bin : sig
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?byte_only:bool -> ?link_all:bool -> ?install:bool ->
     ?deps:(string -> Component.t list) ->
-    Unit.t list -> string -> t
+    [ `Unit of Unit.t ] list -> string -> t
   (** Build a binary by linking a set of compilation units. *)
 
   val toplevel : ?available:As_features.t -> ?flags:As_flags.t ->
     ?custom:bool -> ?install:bool -> ?deps:(string -> Component.t list) ->
-    Unit.t list -> string -> t
+    [`Unit of Unit.t ] list -> string -> t
   (** Create a custom toplevel by linking a set of compilation
       units. *)
 

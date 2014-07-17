@@ -512,6 +512,7 @@ and Unit: sig
   val set_lib_container: t -> Lib.t -> unit
   val set_bin_container: t -> Bin.t -> unit
   val add_deps: t -> Component.t list -> unit
+  val sort : [ `Unit of t ] list -> t list
 end = struct
   type t = comp_unit
 
@@ -647,6 +648,19 @@ end = struct
     let t' = As_flags.create ~comp_byte ~comp_native ~pp_byte ~pp_native () in
     As_flags.(t' @@@ t.cu_flags)
 
+  let sort cus =
+    let g = Component.Graph.create () in
+    List.iter (fun (`Unit cu) ->
+        Component.Graph.add_vertex g (`Unit cu);
+        List.iter (function
+          | `Unit dep ->
+              if List.mem (`Unit dep) cus then
+                Component.Graph.add_edge g (`Unit dep) (`Unit cu)
+          | _ -> ()
+          ) (deps cu)
+      ) cus;
+    let cus = Component.Graph.to_list g in
+    List.map (function `Unit cu -> cu | _ -> assert false) cus
 end
 
 and File : sig
@@ -848,7 +862,7 @@ and Lib: sig
     ?pack:bool ->
     ?deps:(string -> Component.t list) ->
     ?c:C.t list ->
-    Unit.t list -> string -> t
+    [`Unit of Unit.t ] list -> string -> t
   val filename: t -> string
   val units: t -> Unit.t list
   val c_objects: t -> C.t list
@@ -883,6 +897,7 @@ end = struct
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(pack = false) ?(deps = nil) ?(c = []) cus name
     =
+    let cus = Unit.sort cus in
     let cus' = if pack then [Unit.pack cus name] else cus in
     let t =
       { l_name = name; l_available = available; l_cus = cus'; l_cs = c;
@@ -937,14 +952,14 @@ and Bin: sig
     ?byte_only:bool ->
     ?link_all:bool ->
     ?install:bool ->
-    ?deps:(string -> Component.t list) -> Unit.t list -> string -> t
+    ?deps:(string -> Component.t list) -> [`Unit of Unit.t ] list -> string -> t
   val toplevel:
     ?available:As_features.t ->
     ?flags:As_flags.t ->
     ?custom:bool ->
     ?install:bool ->
     ?deps:(string -> Component.t list) ->
-    Unit.t list -> string -> t
+    [`Unit of Unit.t ] list -> string -> t
   val units: t -> Unit.t list
   val available: t -> As_features.t
   val is_toplevel: t -> bool
@@ -968,6 +983,7 @@ end = struct
       ?(byte_only = false) ?(link_all = false) ?(install = true)
       ?(deps = nil) comps name
     =
+    let cus = Unit.sort comps in
     let available =
       if byte_only then As_features.(not_ native &&& available) else available
     in
@@ -977,18 +993,18 @@ end = struct
     (* FIXME: side effect *)
     List.iter (fun cu ->
         Unit.add_deps cu (deps (Unit.name cu))
-      ) comps;
+      ) cus;
     let deps =
       List.fold_left (fun deps cu ->
           Component.Set.(union deps (of_list (Unit.deps cu)))
-        ) Component.Set.empty comps
+        ) Component.Set.empty cus
       |> Component.Set.elements in
     let t =
       { b_deps = deps; b_available = available; b_flags = flags;
-        b_name = name; b_comps = comps; b_toplevel = false;
+        b_name = name; b_comps = cus; b_toplevel = false;
         b_install = install }
     in
-    List.iter (fun u -> Unit.set_bin_container u t) comps;
+    List.iter (fun u -> Unit.set_bin_container u t) cus;
     t
 
   let toplevel ?(available = As_features.true_) ?(flags = As_flags.empty)
