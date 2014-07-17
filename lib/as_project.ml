@@ -31,7 +31,6 @@ type component =
   | `File of file
   | `C of c
   | `JS of js
-  | `Pkg_pp of pkg
   | `Pkg of pkg
   | `Lib of lib
   | `Pp of lib
@@ -198,6 +197,7 @@ module rec Component : sig
   val js: t -> js option
   val pkg: t -> pkg option
   val pkg_pp: t -> pkg option
+  val pkg_c : t -> pkg option
   val lib: t -> lib option
   val pp: t -> lib option
   val bin: t -> bin option
@@ -227,8 +227,7 @@ end = struct
   | `Gen g  -> Gen.id g
   | `C c    -> C.id c
   | `JS js  -> JS.id js
-  | `Pkg p
-  | `Pkg_pp p -> Pkg.id p
+  | `Pkg p  -> Pkg.id p
   | `Lib l
   | `Pp l   -> Lib.id l
   | `Bin b  -> Bin.id b
@@ -241,8 +240,7 @@ end = struct
   | `Gen g  -> Gen.name g
   | `C c    -> C.name c
   | `JS js  -> JS.name js
-  | `Pkg p
-  | `Pkg_pp p -> Pkg.name p
+  | `Pkg p -> Pkg.name p
   | `Lib l
   | `Pp l   -> Lib.name l
   | `Bin b  -> Bin.name b
@@ -255,8 +253,7 @@ end = struct
   | `Gen g  -> Gen.available g
   | `C c    -> C.available c
   | `JS js  -> JS.available js
-  | `Pkg p
-  | `Pkg_pp p -> Pkg.available p
+  | `Pkg p -> Pkg.available p
   | `Lib l
   | `Pp l   -> Lib.available l
   | `Bin b  -> Bin.available b
@@ -269,8 +266,7 @@ end = struct
   | `Gen g  -> Gen.prereqs g
   | `C c    -> C.prereqs c
   | `JS js  -> JS.prereqs js
-  | `Pkg p
-  | `Pkg_pp p -> Pkg.prereqs p
+  | `Pkg p -> Pkg.prereqs p
   | `Lib l
   | `Pp l   -> Lib.prereqs l
   | `Bin b  -> Bin.prereqs b
@@ -283,8 +279,7 @@ end = struct
   | `Gen g  -> Gen.flags g
   | `C c    -> C.flags c
   | `JS js  -> JS.flags js
-  | `Pkg p
-  | `Pkg_pp p -> Pkg.flags p
+  | `Pkg p -> Pkg.flags p
   | `Lib l
   | `Pp l   -> Lib.flags l
   | `Bin b  -> Bin.flags b
@@ -297,8 +292,7 @@ end = struct
   | `Gen g  -> Gen.generated_files g
   | `C c    -> C.generated_files c
   | `JS js  -> JS.generated_files js
-  | `Pkg p
-  | `Pkg_pp p -> Pkg.generated_files p
+  | `Pkg p -> Pkg.generated_files p
   | `Lib l
   | `Pp l   -> Lib.generated_files l
   | `Bin b  -> Bin.generated_files b
@@ -311,8 +305,7 @@ end = struct
   | `Gen g  -> Gen.file g
   | `C c    -> C.file c
   | `JS js  -> JS.file js
-  | `Pkg p
-  | `Pkg_pp p -> Pkg.file p
+  | `Pkg p -> Pkg.file p
   | `Lib l
   | `Pp l   -> Lib.file l
   | `Bin b  -> Bin.file b
@@ -325,8 +318,7 @@ end = struct
   | `Gen g  -> Gen.build_dir g
   | `C c    -> C.build_dir c
   | `JS js  -> JS.build_dir js
-  | `Pkg p
-  | `Pkg_pp p -> Pkg.build_dir p
+  | `Pkg p -> Pkg.build_dir p
   | `Lib l
   | `Pp l   -> Lib.build_dir l
   | `Bin b  -> Bin.build_dir b
@@ -339,8 +331,7 @@ end = struct
   | `Gen g  -> Gen.deps g
   | `C c    -> C.deps c
   | `JS js  -> JS.deps js
-  | `Pkg p
-  | `Pkg_pp p -> Pkg.deps p
+  | `Pkg p -> Pkg.deps p
   | `Lib l
   | `Pp l   -> Lib.deps l
   | `Bin b  -> Bin.deps b
@@ -352,8 +343,9 @@ end = struct
   let gen = function `Gen x -> Some x | _ -> None
   let c = function `C c -> Some c | _ -> None
   let js = function `JS x -> Some x | _ -> None
-  let pkg = function `Pkg x -> Some x | _ -> None
-  let pkg_pp = function `Pkg_pp x -> Some x | _ -> None
+  let pkg = function `Pkg x when Pkg.kind x = `OCaml -> Some x | _ -> None
+  let pkg_pp = function `Pkg x when Pkg.kind x = `OCaml_pp -> Some x | _ -> None
+  let pkg_c = function `Pkg x when Pkg.kind x = `C -> Some x | _ -> None
   let lib = function `Lib x -> Some x | _ -> None
   let pp = function `Pp x -> Some x | _ -> None
   let bin = function `Bin x -> Some x | _ -> None
@@ -380,7 +372,10 @@ end = struct
         else (
           Hashtbl.add deps_tbl (id h) 0;
           let d' = List.filter
-              (function `Pkg_pp _ | `Pp _ -> false | _     -> true)
+              (function
+                | `Pkg pkg when Pkg.kind pkg = `OCaml_pp -> false
+                | `Pp _ -> false
+                | _     -> true)
               (deps h) in
           aux acc (d' @ d)
         )

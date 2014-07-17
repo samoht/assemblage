@@ -41,7 +41,6 @@ type component =
   | `File of file
   | `C of c
   | `JS of js
-  | `Pkg_pp of pkg
   | `Pkg of pkg
   | `Lib of lib
   | `Pp of lib
@@ -140,6 +139,7 @@ module Component : sig
   val js : t -> js option
   val pkg : t -> pkg option
   val pkg_pp : t -> pkg option
+  val pkg_c : t -> pkg option
   val lib : t -> lib option
   val pp : t -> lib option
   val bin : t -> bin option

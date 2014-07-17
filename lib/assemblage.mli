@@ -292,7 +292,6 @@ type component =
   | `Gen of gen
   | `Lib of lib
   | `Pp of lib
-  | `Pkg_pp of pkg
   | `Pkg of pkg
   | `Bin of bin
   | `Dir of dir
@@ -305,7 +304,6 @@ type component =
     {- [`Bin b] is a project binary.}
     {- [`Test b] is a project test.}
     {- [`Pkg p] is an external named package.}
-    {- [`Pkg_pp p] is an external named pre-processor package.}
     {- FIXME}} *)
 
 val unit : ?available:Features.t -> ?flags:Flags.t -> ?dir:string -> string ->
@@ -376,7 +374,7 @@ val pkg : ?available:Features.t -> ?flags:Flags.t ->
     and anded to [available]. *)
 
 val pkg_pp : ?available:Features.t -> ?flags:Flags.t ->
-  ?opt:bool -> string -> [> `Pkg_pp of pkg]
+  ?opt:bool -> string -> [> `Pkg of pkg]
 (** [pkg_pp available opt name] is like {!pkg} except it denotes
     an external OCaml pre-processor package. *)
 

@@ -64,7 +64,7 @@ let pkg ?available ?flags ?opt name =
   `Pkg (As_project.Pkg.create ?available ?flags ?opt name `OCaml)
 
 let pkg_pp ?available ?flags ?opt name =
-  `Pkg_pp (As_project.Pkg.create ?available ?flags ?opt name `OCaml_pp)
+  `Pkg (As_project.Pkg.create ?available ?flags ?opt name `OCaml_pp)
 
 let pkg_c ?available ?flags ?opt name =
   `Pkg (As_project.Pkg.create ?available ?flags ?opt name `C)
