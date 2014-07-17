@@ -397,10 +397,14 @@ val create :
   ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
   ?doc_public:string list ->
   ?version:string ->
-  string -> component list -> unit
+  string -> component list -> t
 (** [create name deps] registers the project named [name], defining
     the libraries, binaries and tests defined by the transitive
     closure of objects in [deps]. *)
+
+val add : t -> unit
+(** [add t] registers the project [t] for use by the assemblage
+    command line tools. *)
 
 (** {1:buildenv Build Environments} *)
 

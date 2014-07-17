@@ -7,9 +7,6 @@ let t = unit "t" [
     pkg    "comparelib";
     pkg    "xmlm";
   ]
-    
-let lib =
-  lib "mylib" [t]
 
-let () =
-  create "camlp4o" [lib]
+let lib = lib "mylib" [t]
+let () = add (create "camlp4o" [lib])
