@@ -131,7 +131,6 @@ type t = {
 
 module type Component_base = sig
   type t
-  type component
   val id: t -> string
   val name: t -> string
   val available: t -> As_features.t
@@ -180,7 +179,7 @@ struct
 end
 
 module rec Component: sig
-  include Component_base with type t = component and type component = component
+  include Component_base with type t = component
   val unit: t -> comp_unit option
   val lib: t -> lib option
   val pkg: t -> pkg option
@@ -455,7 +454,7 @@ end = struct
 end
 
 and Pkg: sig
-  include Component_base with type t = pkg and type component = Component.t
+  include Component_base with type t = pkg
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?opt:bool -> string ->
     is_pp:bool -> t
@@ -464,8 +463,6 @@ and Pkg: sig
   val ctypes_stub : t
 end = struct
   type t = pkg
-  type tmp = component
-  type component = tmp
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(opt = false) name ~is_pp
@@ -496,8 +493,7 @@ end = struct
 end
 
 and Unit: sig
-  include Component_base with
-    type t = comp_unit and type component = Component.t
+  include Component_base with type t = comp_unit
 
   val create :
     ?available:As_features.t ->
@@ -525,8 +521,6 @@ and Unit: sig
   val add_deps: t -> Component.t list -> unit
 end = struct
   type t = comp_unit
-  type tmp = component
-  type component = tmp
 
   let id t =
     match t.cu_container with
@@ -663,7 +657,7 @@ end = struct
 end
 
 and Lib: sig
-  include Component_base with type t = lib and type component = Component.t
+  include Component_base with type t = lib
   val create :
     ?available:As_features.t ->
     ?flags:As_flags.t ->
@@ -683,8 +677,6 @@ and Lib: sig
   val set_filename: t -> string -> unit
 end = struct
   type t = lib
-  type tmp = component
-  type component = tmp
 
   let id t = "lib-" ^ t.l_name
 
@@ -754,7 +746,7 @@ end = struct
 end
 
 and Bin: sig
-  include Component_base with type t = bin and type component = Component.t
+  include Component_base with type t = bin
   val create :
     ?available:As_features.t ->
     ?flags:As_flags.t ->
@@ -777,8 +769,6 @@ and Bin: sig
   val native: t -> As_resolver.t -> string
 end = struct
   type t = bin
-  type tmp = component
-  type component = tmp
 
   let id t = "bin-" ^ t.b_name
   let units t = t.b_comps
@@ -874,7 +864,7 @@ end = struct
 end
 
 and Gen: sig
-  include Component_base with type t = gen and type component = Component.t
+  include Component_base with type t = gen
 
   val create: ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:Component.t list -> ?action:As_action.t ->
@@ -884,8 +874,6 @@ and Gen: sig
   val actions: t -> As_resolver.t -> string list
 end = struct
   type t = gen
-  type tmp = component
-  type component = tmp
 
   let id t = "gen-" ^ t.g_name
   let name t = t.g_name
@@ -933,7 +921,7 @@ end = struct
 end
 
 and C: sig
-  include Component_base with type t = c and type component = Component.t
+  include Component_base with type t = c
   val create :
     ?available:As_features.t -> ?flags:As_flags.t ->
     ?dir:string -> ?generated:bool -> ?link_flags:string list ->
@@ -947,8 +935,6 @@ and C: sig
   val o: t -> As_resolver.t -> string
 end = struct
   type t = c
-  type tmp = component
-  type component = tmp
 
   let id t = "c-" ^ t.c_name
   let name t = t.c_name
@@ -982,7 +968,7 @@ end = struct
 end
 
 and Test: sig
-  include Component_base with type t = test and type component = Component.t
+  include Component_base with type t = test
   type args = test_args
   type command = test_command
   val create: ?available:As_features.t -> ?flags:As_flags.t ->
@@ -993,8 +979,6 @@ end = struct
   type args = test_args
   type command = test_command
   type t = test
-  type tmp = component
-  type component = tmp
 
   let id t = "test-" ^ t.t_name
   let name t = t.t_name
@@ -1034,13 +1018,11 @@ end = struct
 end
 
 and JS: sig
-  include Component_base with type t = js and type component = Component.t
+  include Component_base with type t = js
   val create: ?available:As_features.t -> Bin.t -> string list -> t
   val js: t -> As_resolver.t -> string
 end = struct
   type t = js
-  type tmp = component
-  type component = tmp
 
   let bin t = t.j_bin
   let name t = Bin.name (bin t)
