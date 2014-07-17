@@ -16,6 +16,18 @@
 
 open Printf
 
+(* Features and flags *)
+
+module Features = As_features
+module Flags = As_flags
+
+(* Resolvers and actions *)
+
+module Resolver = As_resolver
+module Action = As_action
+
+(* Components *)
+
 type t = As_project.t
 type component = As_project.Component.t
 type comp_unit = As_project.Unit.t
@@ -27,29 +39,17 @@ type c = As_project.C.t
 type js = As_project.JS.t
 type test = As_project.Test.t
 
-let project_list = ref []
-let projects () = !project_list
-
-let create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version name
-    components =
-  let t =
-    As_project.create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version
-      components name in
-  project_list := t :: !project_list
-
-let unit ?available ?dir name deps =
-  `Unit (As_project.Unit.create ?available ?dir ~deps name)
-
-let ocamldep ~dir ?flags deps =
-  let resolver = As_ocamlfind.resolver `Direct (Sys.getcwd ()) in
-  let cus = As_OCaml.depends ?flags ~deps resolver dir in
-  List.map (fun cu -> `Unit cu) cus
-
-let generated ?action name deps f =
-  let g = As_project.Gen.create ~deps ?action f name in
-  `Gen g
-
 let nil _ = []
+
+let unit ?available ?flags ?dir name deps =
+  `Unit (As_project.Unit.create ?available ?flags ?dir ~deps name)
+
+let generated ?available ?flags ?action name deps f =
+  `Gen (As_project.Gen.create ?available ?flags ~deps ?action f name)
+
+let c ?available ?flags ?dir ?(link_flags = []) name deps libs =
+  let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
+  `C (As_project.C.create ?available ?flags ?dir ~link_flags ~deps name)
 
 let sorted_cus cus =
   let g = As_project.Component.Graph.create () in
@@ -65,52 +65,53 @@ let sorted_cus cus =
   let cus = As_project.Component.Graph.to_list g in
   List.map (function `Unit cu -> cu | _ -> assert false) cus
 
-let lib ?available ?(flags=As_flags.empty) ?pack ?(deps=nil) ?(c=[])
-    name (cus:[`Unit of comp_unit] list) =
+let lib ?available ?flags ?pack ?(deps = nil) ?(c = []) name cus =
   let cus = sorted_cus cus in
   let c = List.map (function `C c -> c) c in
-  let l = As_project.Lib.create ?available ~flags ?pack ~deps ~c cus name in
-  `Lib l
+  `Lib (As_project.Lib.create ?available ?flags ?pack ~deps ~c cus name)
 
-let bin ?byte_only ?link_all ?install ?(deps=nil) name cus =
+let bin ?available ?flags ?byte_only ?link_all ?install ?(deps = nil) name cus =
   let cus = sorted_cus cus in
-  let b = As_project.Bin.create ?byte_only ?link_all ?install ~deps cus name in
-  `Bin b
-
-let c ?dir ?(link_flags=[]) name deps libs =
-  let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
-  let c = As_project.C.create ?dir ~link_flags ~deps name in
-  `C c
+  `Bin (As_project.Bin.create ?available ?flags ?byte_only ?link_all ?install
+          ~deps cus name)
 
 let js b r =
   let `Bin b = b in
   `JS (As_project.JS.create b r)
 
-let pkg ?available ?opt name =
-  `Pkg (As_project.Pkg.create ?available ?opt name ~is_pp:false)
+let pkg ?available ?flags ?opt name =
+  `Pkg (As_project.Pkg.create ?available ?flags ?opt name ~is_pp:false)
 
-let pkg_pp ?available ?opt name =
-  `Pkg_pp (As_project.Pkg.create ?available ?opt name ~is_pp:false)
+let pkg_pp ?available ?flags ?opt name =
+  `Pkg_pp (As_project.Pkg.create ?available ?flags ?opt name ~is_pp:true)
 
-let test ?dir name deps commands =
-  `Test (As_project.Test.create ?dir ~deps commands name)
+type test_command = As_project.Test.command
+let test ?available ?flags ?dir name deps commands =
+  `Test (As_project.Test.create ?available ?flags ?dir ~deps commands name)
 
 type test_args = (component -> string) -> string list
 
 let test_bin (`Bin bin) ?args (): As_project.Test.command =
   let args = match args with
-    | None   -> (fun _ -> [])
-    | Some a -> a in
+  | None   -> (fun _ -> [])
+  | Some a -> a
+  in
   `Bin (`Bin bin, args)
 
 let test_shell fmt =
   ksprintf (fun str -> `Shell str) fmt
 
-(* Ctypes stub-generation *)
+(* Component helpers *)
+
+let ocamldep ~dir ?flags deps =
+  let resolver = As_ocamlfind.resolver `Direct (Sys.getcwd ()) in
+  let cus = As_OCaml.depends ?flags ~deps resolver dir in
+  List.map (fun cu -> `Unit cu) cus
+
 let (/) = Filename.concat
-
-let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
-
+let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
+    name deps
+  =
   (* 1. compile the bindings. *)
   let deps = `Pkg As_project.Pkg.ctypes_stub :: deps in
   let name_bindings = name ^ "_bindings" in
@@ -123,7 +124,6 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
   let lib_dir r =
     Sys.getcwd () / As_project.Lib.build_dir (As_project.Lib.create [] name) r
   in
-
   (* 2. Generate and compile the generator. *)
   let generator =
     let action r =
@@ -145,14 +145,12 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
       As_project.Bin.create ~install:false [bindings; comp] name_generator
     in
     `Bin bin in
-
   (* 3. Generate and compile the stubs. *)
   let ml_stubs =
     let action r = As_action.custom ~dir:(bin_dir r) "./%s.byte" name_generator
     in
     let ml = generated name_stubs ~action [generator] [`C; `Ml] in
     unit name_stubs [ml] in
-
   let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
   let c_stubs =
     let c = As_project.C.create ~generated:true ~deps:[generator] ~link_flags
@@ -162,6 +160,21 @@ let cstubs ?dir ?available ?(headers=[]) ?(cflags=[]) ?(clibs=[]) name deps =
   let ml = generated name [generator] [`Ml] in
   let main = unit name [`Unit bindings; ml_stubs; c_stubs; ml] in
   lib name ~flags ?available ~c:[c_stubs] [`Unit bindings; ml_stubs; main]
+
+(* Projects *)
+
+let project_list = ref []
+let projects () = !project_list
+let create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version name
+    components =
+  let t =
+    As_project.create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version
+      components name in
+  project_list := t :: !project_list
+
+(* Tools *)
+
+module Build_env = As_build_env
 
 type tool = t -> As_build_env.t -> unit
 
@@ -177,7 +190,7 @@ let includes () =
     | _ :: t         -> aux acc t in
   aux [] sys_argl
 
-let process ?(file="assemble.ml") name fn =
+let process ?(file = "assemble.ml") name fn =
   let includes = includes () in
   let auto_load = auto_load () in
   As_shell.show "Loading %s. %s"
@@ -264,11 +277,3 @@ let describe t env =
   print_libs As_project.Component.(filter lib components);
   print_libs As_project.Component.(filter pp  components);
   print_bins As_project.Component.(filter bin components)
-
-type test_command = As_project.Test.command
-
-module Build_env = As_build_env
-module Action = As_action
-module Resolver = As_resolver
-module Flags = As_flags
-module Features = As_features

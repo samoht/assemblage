@@ -16,106 +16,104 @@
 
 open Printf
 
-type s = string list
+type args = string list
+type atom =
+  { available : As_features.t;
+    pp_byte : args;
+    pp_native : args;
+    comp_byte : args;
+    comp_native : args;
+    comp_js : args;
+    link_byte : args;
+    link_native : args;
+    link_js : args;
+    link_shared : args;
+    c : args; }
 
-type t = {
-  comp_byte  : s;
-  comp_native: s;
-  pp_byte    : s;
-  pp_native  : s;
-  link_byte  : s;
-  link_native: s;
-  link_shared: s;
-  c          : s;
-}
+type t = atom list
+let (@@@) fs fs' = fs @ fs'
 
-let (@@@) f g = {
-  comp_byte   = f.comp_byte   @ g.comp_byte  ;
-  comp_native = f.comp_native @ g.comp_native;
-  pp_byte     = f.pp_byte     @ g.pp_byte    ;
-  pp_native   = f.pp_native   @ g.pp_native  ;
-  link_byte   = f.link_byte   @ g.link_byte  ;
-  link_native = f.link_native @ g.link_native;
-  link_shared = f.link_shared @ g.link_shared;
-  c           = f.c           @ g.c          ;
-}
+let create ?(available = As_features.true_)
+    ?(pp_byte = []) ?(pp_native = [])
+    ?(comp_byte = []) ?(comp_native = []) ?(comp_js = [])
+    ?(link_byte = []) ?(link_native = []) ?(link_js = []) ?(link_shared = [])
+    ?(c = []) ()
+  =
+  [ { available;
+      pp_byte; pp_native;
+      comp_byte; comp_native; comp_js;
+      link_byte; link_native; link_js; link_shared;
+      c; } ]
 
-let create
-    ?(comp_byte=[]) ?(comp_native=[])
-    ?(pp_byte=[])   ?(pp_native=[])
-    ?(link_byte=[]) ?(link_native=[]) ?(link_shared=[])
-    ?(c=[])
-    () =
-  { comp_byte; comp_native;
-    pp_byte; pp_native;
-    link_byte; link_native; link_shared;
-    c; }
 
-let empty =
-  { comp_byte = []; comp_native = [];
-    pp_byte = []; pp_native = [];
-    link_byte = []; link_native = []; link_shared = [];
-    c = ["-fPIC -Wall -O3"]; }
+let empty = create ()
 
-let comp_byte t = t.comp_byte
+let get _ field fs =
+  let rec loop acc = function
+  | [] -> List.flatten (List.rev acc)
+  | atom :: atoms ->
+      let available = true (* FIXME As_features.eval ctx t.features *) in
+      let acc' = if available then ((field atom) :: acc) else acc in
+      loop acc' atoms
+  in
+  loop [] fs
 
-let comp_native t = t.comp_native
+(* FIXME these functions need an evaluation context as argument *)
 
-let pp_byte t = t.pp_byte
+let ctx = ()
+let pp_byte fs = get ctx (fun a -> a.pp_byte) fs
+let pp_native fs = get ctx (fun a -> a.pp_native) fs
+let comp_byte fs = get ctx (fun a -> a.comp_byte) fs
+let comp_native fs = get ctx (fun a -> a.comp_native) fs
+let comp_js fs = get ctx (fun a -> a.comp_js) fs
+let link_byte fs = get ctx (fun a -> a.link_byte) fs
+let link_js fs = get ctx (fun a -> a.comp_js) fs
+let link_native fs = get ctx (fun a -> a.link_native) fs
+let link_shared fs = get ctx (fun a -> a.link_shared) fs
+let c fs = get ctx (fun a -> a.c) fs
 
-let pp_native t = t.pp_native
-
-let link_byte t = t.link_byte
-
-let link_native t = t.link_native
-
-let link_shared t = t.link_shared
-
-let c t = t.c
+(* Built-in flags *)
 
 let debug =
   let f = ["-g"] in
-  { empty with
-    comp_byte   = f; comp_native = f;
-    link_byte   = f; link_native = f; link_shared = f;
-    c = ["-fPIC -Wall -g"];
-  }
+  let js_f = [ "-pretty"; "-debuginfo"; "-sourcemap"] in
+  create
+    ~comp_byte:f ~comp_native:f ~comp_js:js_f
+    ~link_byte:f ~link_native:f ~link_shared:f
+    ~c:f ()
 
 let annot =
   let f = ["-bin-annot"] in
-  { empty with comp_byte = f; comp_native = f }
+  create ~comp_byte:f ~comp_native:f ()
 
 let linkall =
   let f = ["-linkall"] in
-  { empty with link_byte = f; link_native = f }
+  create ~link_byte:f ~link_native:f ~link_js:f ()
 
 let warn_error =
   let f = ["-warn-error A-44-4 -w A-44-4"] in
-  { empty with comp_byte = f; comp_native = f }
+  create ~comp_byte:f ~comp_native:f ()
 
 let thread =
   let f = ["-thread"] in
-  { empty with
-    comp_byte = f; comp_native = f;
-    link_byte = f; link_native = f; link_shared = f; }
+  create
+    ~comp_byte:f ~comp_native:f
+    ~link_byte:f ~link_native:f ~link_shared:f ()
 
 let cclib args =
   let f = List.map (sprintf "-cclib %s") args in
-  { empty with
-    link_byte = f; link_native = f; c = args; link_shared = f;
-  }
+  create
+    ~link_byte:f ~link_native:f ~link_shared:f
+    ~c:args ()
 
 let ccopt args =
   let f = List.map (sprintf "-ccopt %s") args in
-  { empty with
-    comp_byte = f; comp_native = f;
-    link_byte = f; link_native = f; link_shared = f;
-    c = args;
-  }
+  create
+    ~comp_byte:f ~comp_native:f
+    ~link_byte:f ~link_native:f ~link_shared:f
+    ~c:args ()
 
-let stub s =
-  { empty with
-    link_byte   = [sprintf "-cclib -l%s -dllib -l%s" s s];
-    link_native = [sprintf "-cclib -l%s" s];
-    link_shared = [];
-  }
+let stub s = create
+    ~link_byte:[sprintf "-cclib -l%s -dllib -l%s" s s]
+    ~link_native:[sprintf "-cclib -l%s" s]
+    ~link_shared:[] ()
