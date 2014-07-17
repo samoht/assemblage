@@ -306,9 +306,9 @@ type component =
     {- [`Pkg p] is an external named package.}
     {- FIXME}} *)
 
-val unit : ?available:Features.t -> ?flags:Flags.t -> ?dir:string -> string ->
-  component list -> [> `Unit of comp_unit]
-(** [unit name ~dir ~available ~flags deps] is a compilation unit
+val unit : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
+  ?dir:string -> string -> [> `Unit of comp_unit]
+(** [unit name ~dir ~available ~flags ~deps] is a compilation unit
     named [name] (the filename without extension) present in directory [dir].
     It is only available whenever [available] is true,
     it must be build with [flags] and depends on [deps] to be built. *)
@@ -320,30 +320,27 @@ val file : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
     and depends on [deps] to be built. *)
 
 val generated : ?available:Features.t -> ?flags:Flags.t ->
-  ?action:Action.t -> string -> component list -> [`C | `Ml | `Mli] list ->
-  [> `Gen of gen]
+  ?deps:component list -> ?action:Action.t -> string ->
+  [`C | `Ml | `Mli] list -> [> `Gen of gen]
 (** Generated OCaml source file(s). The custom action get the name of
     the build dir as argument. *)
 
-val c : ?available:Features.t -> ?flags:Flags.t -> ?dir:string ->
-  ?link_flags:string list -> string -> component list -> string list ->
+val c : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
+    ?dir:string -> ?link_flags:string list -> string -> string list ->
   [> `C of c]
 (** [c name deps libs] is the C file [name.c], which need the C
     libraries [libs] to be compiled -- and it has the dependencies
     [deps]. *)
 
-val lib : ?available:Features.t -> ?flags:Flags.t ->
-  ?pack:bool -> ?deps:(string -> component list) ->
-  ?c:[`C of c] list -> string -> [`Unit of comp_unit] list -> [> `Lib of lib]
+val lib : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
+  ?pack:bool -> ?c:[`C of c] list -> string -> [`Unit of comp_unit] list ->
+  [> `Lib of lib]
 (** [lib name units] is the library [name] composed by the compilation
     units [cus]. If [lib] is set, use [ocamldep] to approximate the
     compilation units and their dependecies in the given directory. *)
 
-val bin : ?available:Features.t -> ?flags:Flags.t ->
-  ?byte_only:bool ->
-  ?link_all:bool ->
-  ?install:bool ->
-  ?deps:(string -> component list) ->
+val bin : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
+    ?byte_only:bool -> ?link_all:bool -> ?install:bool ->
   string -> [`Unit of comp_unit] list -> [> `Bin of bin]
 (** [bin name units] is the binary [name] obtained by compiling
     the compilation units [units], with the dependencies [deps]. By
@@ -366,20 +363,20 @@ val js : [`Bin of bin] -> string list -> [> `JS of js]
 (** [js bin args] is the decription of a javascript artefact generated
     by [js_of_ocaml]. *)
 
-val pkg : ?available:Features.t -> ?flags:Flags.t ->
-  ?opt:bool -> string -> [> `Pkg of pkg]
+val pkg : ?available:Features.t -> ?flags:Flags.t -> ?opt:bool -> string ->
+  [> `Pkg of pkg]
 (** [pkg available opt name] is an external OCaml package named [name]. It is
     only available whenever [available] is true. If [opt] is true (defaults
     to [false]) a feature [f] is automatically created for the package
     and anded to [available]. *)
 
-val pkg_pp : ?available:Features.t -> ?flags:Flags.t ->
-  ?opt:bool -> string -> [> `Pkg of pkg]
+val pkg_pp : ?available:Features.t -> ?flags:Flags.t -> ?opt:bool -> string ->
+  [> `Pkg of pkg]
 (** [pkg_pp available opt name] is like {!pkg} except it denotes
     an external OCaml pre-processor package. *)
 
-val pkg_c : ?available:Features.t -> ?flags:Flags.t ->
-  ?opt:bool -> string -> [> `Pkg of pkg ]
+val pkg_c : ?available:Features.t -> ?flags:Flags.t -> ?opt:bool -> string ->
+  [> `Pkg of pkg ]
 (** [pkg_c available opt name] is like {!pkg} except it denotes an
     external C package. *)
 
@@ -395,8 +392,8 @@ val test_bin : [`Bin of bin] -> ?args:test_args -> unit -> test_command
 val test_shell : ('a, unit, string, test_command) format4 -> 'a
 (** A test which runs an arbitrary shell command. *)
 
-val test : ?available:Features.t -> ?flags:Flags.t -> ?dir:string ->
-  string -> component list -> test_command list -> [> `Test of test]
+val test : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
+  ?dir:string -> string -> test_command list -> [> `Test of test]
 (** Description of a test. *)
 
 (** {1:componenthelpers Component helpers} *)

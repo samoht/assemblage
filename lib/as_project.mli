@@ -192,7 +192,7 @@ module Unit : sig
   include Component_base with type t = comp_unit
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?dir:string -> ?deps:Component.t list -> string -> t
+    ?deps:component list -> ?dir:string -> string -> t
   (** Create a compilation unit. *)
 
   val copy : t -> t
@@ -252,7 +252,7 @@ module Gen : sig
   include Component_base with type t = gen
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:Component.t list -> ?action:As_action.t -> [`C | `Ml | `Mli] list ->
+    ?deps:component list -> ?action:As_action.t -> [`C | `Ml | `Mli] list ->
     string -> t
   (** Generate source files, using the given action. *)
 
@@ -273,11 +273,9 @@ module C : sig
 
   include Component_base with type t = c
 
-  val create :
-    ?available:As_features.t ->
-    ?flags:As_flags.t ->
-    ?dir:string -> ?generated:bool -> ?link_flags:string list ->
-    ?deps:Component.t list -> string -> t
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?deps:component list -> ?dir:string -> ?generated:bool ->
+    ?link_flags:string list -> string -> t
   (** Create a C object file. *)
 
   val container : t -> [`Lib of lib |`Bin of bin]  option
@@ -339,8 +337,8 @@ module Lib : sig
   include Component_base with type t = lib
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?pack:bool -> ?deps:(string -> Component.t list) ->
-    ?c:c list -> [`Unit of Unit.t ] list -> string -> t
+    ?deps:component list -> ?pack:bool -> ?c:c list ->
+    [`Unit of Unit.t ] list -> string -> t
   (** Create a library. *)
 
   val filename : t -> string
@@ -375,13 +373,12 @@ module Bin : sig
   include Component_base with type t = bin
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?byte_only:bool -> ?link_all:bool -> ?install:bool ->
-    ?deps:(string -> Component.t list) ->
-    [ `Unit of Unit.t ] list -> string -> t
+    ?deps:component list -> ?byte_only:bool -> ?link_all:bool ->
+    ?install:bool -> [ `Unit of Unit.t ] list -> string -> t
   (** Build a binary by linking a set of compilation units. *)
 
   val toplevel : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?custom:bool -> ?install:bool -> ?deps:(string -> Component.t list) ->
+    ?deps:component list -> ?custom:bool -> ?install:bool ->
     [`Unit of Unit.t ] list -> string -> t
   (** Create a custom toplevel by linking a set of compilation
       units. *)
@@ -426,8 +423,8 @@ module Test : sig
     [ `Bin of [`Bin of Bin.t] * args
     | `Shell of string ]
 
-  val create : ?available:As_features.t -> ?flags:As_flags.t -> ?dir:string ->
-    ?deps:Component.t list -> command list -> string  -> t
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?deps:component list -> ?dir:string -> string -> command list -> t
   (** Create a test. *)
 
   val dir : t -> string option

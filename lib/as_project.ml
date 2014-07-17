@@ -42,8 +42,8 @@ and comp_unit =
   { u_name : string;
     u_available : As_features.t;
     mutable u_flags : As_flags.t;
-    u_dir : string option;
     mutable u_deps : component list;
+    u_dir : string option;
     mutable u_container: [`Lib of lib | `Bin of bin] option;
     mutable u_for_pack : string option;
     mutable u_pack : comp_unit list;
@@ -62,18 +62,18 @@ and gen =
   { g_name : string;
     g_available : As_features.t;
     g_flags : As_flags.t;
+    g_deps : component list;
     mutable g_comp : comp_unit option;
     g_action : As_action.t option;
-    g_deps : component list;
     g_files : [`C |`Ml | `Mli] list; }
 
 and c =
   { c_name : string;
     c_available : As_features.t;
     c_flags : As_flags.t;
+    c_deps : component list;
     c_dir : string option;
     c_link_flags : string list;
-    c_deps : component list;
     c_generated : bool;
     mutable c_container: [`Lib of lib | `Bin of bin] option; }
 
@@ -124,9 +124,9 @@ and test =
   { t_name : string;
     t_available : As_features.t;
     t_flags : As_flags.t;
+    t_deps : component list;
     t_dir : string option;
-    t_commands : test_command list;
-    t_deps : component list; }
+    t_commands : test_command list; }
 
 type t =
   { name : string;
@@ -483,12 +483,8 @@ end
 and Unit: sig
   include Component_base with type t = comp_unit
 
-  val create :
-    ?available:As_features.t ->
-    ?flags:As_flags.t ->
-    ?dir:string ->
-    ?deps:Component.t list -> string -> t
-
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?deps:Component.t list -> ?dir:string -> string -> t
   val copy: t -> t
   val dir: t -> string option
   val container: t -> [`Lib of Lib.t |`Bin of Bin.t]  option
@@ -572,7 +568,7 @@ end = struct
     else
     let u_generated = gens <> [] in
     let t =
-      { u_name = name; u_available = available; u_dir = dir; u_deps = deps;
+      { u_name = name; u_available = available; u_deps = deps; u_dir = dir;
         u_flags = flags; u_container = None; u_for_pack = None; u_pack = [];
         u_generated; u_ml = ml; u_mli = mli; }
     in
@@ -704,8 +700,8 @@ end = struct
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(deps = []) ?action g_files g_name
     =
-    { g_name; g_available = available; g_flags = flags; g_comp = None; g_files;
-      g_action = action; g_deps = deps }
+    { g_name; g_available = available; g_flags = flags; g_deps = deps;
+      g_comp = None; g_files; g_action = action; }
 
   let copy t = { t with g_comp = None }
 
@@ -743,10 +739,9 @@ end
 
 and C: sig
   include Component_base with type t = c
-  val create :
-    ?available:As_features.t -> ?flags:As_flags.t ->
-    ?dir:string -> ?generated:bool -> ?link_flags:string list ->
-    ?deps:Component.t list -> string -> t
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?deps:Component.t list -> ?dir:string -> ?generated:bool ->
+    ?link_flags:string list -> string -> t
   val container: t -> [`Lib of Lib.t |`Bin of Bin.t]  option
   val set_lib_container: t -> Lib.t -> unit
   val set_bin_container: t -> Bin.t -> unit
@@ -762,10 +757,10 @@ end = struct
   let available t = t.c_available
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?dir ?(generated = false) ?(link_flags = []) ?(deps = []) name
+      ?(deps = []) ?dir ?(generated = false) ?(link_flags = []) name
     =
-    { c_name = name; c_available = available; c_flags = flags; c_dir = dir;
-      c_link_flags = link_flags; c_deps = deps; c_generated = generated;
+    { c_name = name; c_available = available; c_flags = flags; c_deps = deps;
+      c_dir = dir; c_link_flags = link_flags; c_generated = generated;
       c_container = None }
 
   let build_dir t r =
@@ -862,8 +857,8 @@ and Lib: sig
   val create :
     ?available:As_features.t ->
     ?flags:As_flags.t ->
+    ?deps:Component.t list ->
     ?pack:bool ->
-    ?deps:(string -> Component.t list) ->
     ?c:C.t list ->
     [`Unit of Unit.t ] list -> string -> t
   val filename: t -> string
@@ -895,10 +890,9 @@ end = struct
   let filename t = t.l_filename
   let set_filename t f = t.l_filename <- f
   let available t = t.l_available
-  let nil _ = []
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(pack = false) ?(deps = nil) ?(c = []) us name
+      ?(deps = []) ?(pack = false) ?(c = []) us name
     =
     let us = Unit.sort us in
     let us' = if pack then [Unit.pack us name] else us in
@@ -907,7 +901,7 @@ end = struct
         l_flags = flags; l_filename = name; }
     in
     (* FIXME: mutation *)
-    List.iter (fun u -> Unit.add_deps u (deps (Unit.name u))) us;
+    List.iter (fun u -> Unit.add_deps u deps) us;
     List.iter (fun u -> Unit.set_lib_container u t) (us' @ us);
     List.iter (fun c -> C.set_lib_container c t) c;
     t
@@ -952,16 +946,17 @@ and Bin: sig
   val create :
     ?available:As_features.t ->
     ?flags:As_flags.t ->
+    ?deps:Component.t list ->
     ?byte_only:bool ->
     ?link_all:bool ->
     ?install:bool ->
-    ?deps:(string -> Component.t list) -> [`Unit of Unit.t ] list -> string -> t
+    [`Unit of Unit.t ] list -> string -> t
   val toplevel:
     ?available:As_features.t ->
     ?flags:As_flags.t ->
+    ?deps:Component.t list ->
     ?custom:bool ->
     ?install:bool ->
-    ?deps:(string -> Component.t list) ->
     [`Unit of Unit.t ] list -> string -> t
   val units: t -> Unit.t list
   val available: t -> As_features.t
@@ -980,11 +975,10 @@ end = struct
   let name t = t.b_name
   let deps t = t.b_deps
   let available t = t.b_available
-  let nil _ = []
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(byte_only = false) ?(link_all = false) ?(install = true)
-      ?(deps = nil) comps name
+      ?(deps = []) ?(byte_only = false) ?(link_all = false) ?(install = true)
+      comps name
     =
     let us = Unit.sort comps in
     let available =
@@ -995,7 +989,7 @@ end = struct
     in
     (* FIXME: side effect *)
     List.iter (fun u ->
-        Unit.add_deps u (deps (Unit.name u))
+        Unit.add_deps u deps
       ) us;
     let deps =
       List.fold_left (fun deps u ->
@@ -1003,18 +997,17 @@ end = struct
         ) Component.Set.empty us
       |> Component.Set.elements in
     let t =
-      { b_deps = deps; b_available = available; b_flags = flags;
-        b_name = name; b_comps = us; b_toplevel = false;
-        b_install = install }
+      { b_name = name; b_available = available; b_flags = flags; b_deps = deps;
+        b_comps = us; b_toplevel = false; b_install = install }
     in
     List.iter (fun u -> Unit.set_bin_container u t) us;
     t
 
   let toplevel ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(custom = false) ?install ?(deps = nil) comps name
+      ?(deps = []) ?(custom = false) ?install comps name
     =
     let available = As_features.(not_ native &&& available) in
-    let deps x = `Pkg (Pkg.compiler_libs_toplevel) :: deps x in
+    let deps = `Pkg (Pkg.compiler_libs_toplevel) :: deps in
     let link_byte = [
       (if custom then "-custom " else "") ^ "-I +compiler-libs topstart.cmo"
     ] in
@@ -1106,7 +1099,7 @@ and Test: sig
   type args = test_args
   type command = test_command
   val create: ?available:As_features.t -> ?flags:As_flags.t ->
-    ?dir:string -> ?deps:Component.t list -> command list -> string -> t
+    ?deps:Component.t list -> ?dir:string -> string -> command list -> t
   val dir: t -> string option
   val commands: t -> command list
 end = struct
@@ -1136,7 +1129,7 @@ end = struct
   let build_dir _t _r = failwith "Test.build_dir"
   let deps t = t.t_deps
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?dir ?(deps = []) cmds name
+      ?(deps = []) ?dir name cmds
     =
     let bin_deps =
       let add_dep acc = function
@@ -1144,8 +1137,8 @@ end = struct
       in
       List.fold_left add_dep [] cmds
     in
-    { t_name = name; t_available = available; t_flags = flags; t_dir = dir;
-      t_commands = cmds; t_deps = bin_deps @ deps; }
+    { t_name = name; t_available = available; t_flags = flags;
+      t_deps = bin_deps @ deps; t_dir = dir; t_commands = cmds;  }
 
   let commands t = t.t_commands
   let dir t = t.t_dir
