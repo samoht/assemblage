@@ -358,11 +358,11 @@ end = struct
 
   let variables t =
     Variable.stanza
-      ~doc:[sprintf "Compilation unit %s" 
+      ~doc:[sprintf "Compilation unit %s"
               (As_project.Unit.dir t // As_project.Unit.name t)]
-      (Variable.(prereqs t `Byte =?= 
+      (Variable.(prereqs t `Byte =?=
                  `Strings (As_project.Unit.prereqs t resolver `Byte))
-       :: Variable.(prereqs t `Native =?= 
+       :: Variable.(prereqs t `Native =?=
                     `Strings (As_project.Unit.prereqs t resolver `Native))
        :: comp_byte t
        :: comp_native t
@@ -404,7 +404,7 @@ end = struct
       let cmi = (* generate cmis *)
         let targets, prereqs =
           if As_project.Unit.mli t then [target ".cmi"], [target ".mli"]
-          else if As_project.Unit.ml t then [target ".cmo"; target ".cmi"], 
+          else if As_project.Unit.ml t then [target ".cmo"; target ".cmi"],
                                           [target ".ml"]
           else [], [] in
         [Rule.create ~targets ~prereqs:(prereqs @ [prereqs_var t `Byte]) [
@@ -689,11 +689,13 @@ module D = struct
           |> As_project.Component.(filter lib)
           |> (fun d -> l :: d)
           |> List.map (fun l -> sprintf "-I %s"
-                          (As_resolver.build_dir resolver (As_project.Lib.id l)))
+                          (As_resolver.build_dir resolver
+                             (As_project.Lib.id l)))
           |> String.concat " " in
         let pkgs =
           deps
           |> As_project.Component.(filter pkg)
+          |> List.map As_project.Pkg.name
           |> (fun pkgs -> As_flags.comp_byte (As_resolver.pkgs resolver pkgs))
           |> String.concat " " in
         let css = match css with
@@ -819,9 +821,9 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
   let cs    = As_project.Component.(filter c components) in
   let cus   = As_project.Component.(
       (components
-       @ List.map (fun x -> `Unit x) 
+       @ List.map (fun x -> `Unit x)
          (conmap As_project.Lib.units (libs @ pps))
-       @ List.map (fun x -> `Unit x) 
+       @ List.map (fun x -> `Unit x)
          (conmap As_project.Bin.units bins))
       |> Graph.of_list
       |> Graph.to_list
