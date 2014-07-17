@@ -112,6 +112,7 @@ and test =
 type t =
   { name : string;
     version : string;
+    available : As_features.t;
     flags : As_flags.t;
     components : component list;
     doc_css : string option;
@@ -1051,8 +1052,9 @@ let files_of_generators t resolver =
         ml @ mli @ acc
     ) [] comps
 
-let create ?(flags = As_flags.empty) ?doc_css ?doc_intro  ?(doc_dir = "doc")
-    ?doc_public ?version components name =
+let create ?(available = As_features.true_) ?(flags = As_flags.empty)
+    ?doc_css ?doc_intro  ?(doc_dir = "doc")
+    ?doc_public ?version name components =
   let version = match version with
     | Some v -> v
     | None   ->
@@ -1076,7 +1078,7 @@ let create ?(flags = As_flags.empty) ?doc_css ?doc_intro  ?(doc_dir = "doc")
         | `Unit cu -> [Unit.name cu]
         | _      -> []
       ) components in
-  { name; version; flags; components;
+  { name; version; available; flags; components;
     doc_css; doc_intro; doc_dir; doc_public }
 
 let unionmap fn t =

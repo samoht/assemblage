@@ -435,12 +435,10 @@ end
 type t
 (** The type for describing projects. *)
 
-val create :
-  ?flags:As_flags.t ->
+val create : ?available:As_features.t -> ?flags:As_flags.t ->
   ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
-  ?doc_public:string list ->
-  ?version:string ->
-  Component.t list -> string -> t
+  ?doc_public:string list -> ?version:string ->
+  string -> Component.t list -> t
 (** [create cs n] is the project named [n] with components [cs]. *)
 
 val components : t -> Component.t list

@@ -165,11 +165,12 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
 
 let project_list = ref []
 let projects () = !project_list
-let create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version name
-    components =
+let create ?available ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public
+    ?version name components =
   let t =
-    As_project.create ?flags ?doc_css ?doc_intro ?doc_dir ?doc_public ?version
-      components name in
+    As_project.create ?available ?flags ?doc_css ?doc_intro ?doc_dir
+      ?doc_public ?version name components
+  in
   project_list := t :: !project_list
 
 (* Tools *)
