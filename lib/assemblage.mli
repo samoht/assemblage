@@ -398,12 +398,25 @@ val test : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
 
 (** {1:componenthelpers Component helpers} *)
 
-val ocamldep : dir:string -> ?flags:Flags.t -> (string -> component list) ->
-  [> `Unit of comp_unit] list
-(** [ocamldep ~dir deps] is the list of compilation units in the given
-    directory, obtained by running [ocamldep] with the given flags and
-    dependencies. [deps] is a map from compilation unit names to its
-    list of dependencies. *)
+val ocamldep :
+  ?keep:(string -> bool) ->
+  ?deps:(string -> component list) ->
+  ?unit:(string -> component list -> [ `Unit of comp_unit]) ->
+  dir:string -> unit -> [> `Unit of comp_unit] list
+(** [ocamldep ~dir ~keep ~deps ~unit ()] is the list of compilation
+    units derived as follows.
+
+    First the set of compilation unit names is derived by looking for
+    any ml and mli files in [dir]. This set is then filtered by
+    keeping only the unit names that satisfy the [keep] predicate
+    (defaults to [fun _ -> true]).
+
+    For each found compilation name [n] a first set of dependencies is
+    determined by calling [deps n] (e.g. to specify packages and
+    pre-processors). ocamldep is then invoked and the resulting
+    compilation units are constructed by [unit n deps'] where [deps']
+    is the union of deps found by ocamldep and [deps n] ([unit]
+    defaults to [fun n deps' -> unit ~dir n deps']). *)
 
 val cstubs : ?available:Features.t -> ?dir:string -> ?headers:string list ->
   ?cflags:string list -> ?clibs:string list -> string -> component list ->

@@ -12,10 +12,10 @@ let optcomp  = pkg_pp "optcomp"
 let lib =
   let deps = [cmdliner; graph] in
   let deps = function
-    | "as_OCaml"   -> optcomp :: compiler :: deps
-    | "assemblage" -> compiler :: deps
-    | _            -> deps in
-  lib "assemblage" (ocamldep ~dir:"lib" deps)
+  | "as_OCaml"   -> optcomp :: compiler :: deps
+  | "assemblage" -> compiler :: deps
+  | _            -> deps in
+  lib "assemblage" (ocamldep ~dir:"lib" ~deps ())
 
 let configure =
   let configure = unit "configure" ~dir:"bin" ~deps:[lib] in

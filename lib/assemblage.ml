@@ -96,10 +96,9 @@ let test_shell fmt =
 
 (* Component helpers *)
 
-let ocamldep ~dir ?flags deps =
+let ocamldep ?keep ?deps ?unit ~dir () =
   let resolver = As_ocamlfind.resolver `Direct (Sys.getcwd ()) in
-  let cus = As_OCaml.depends ?flags ~deps resolver dir in
-  List.map (fun cu -> `Unit cu) cus
+  List.map (fun u -> `Unit u) (As_OCaml.depends ?keep ?deps ?unit resolver dir)
 
 let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
     name deps
