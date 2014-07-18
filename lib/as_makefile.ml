@@ -813,7 +813,7 @@ let global_variables flags =
 let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
   let components = As_project.components t in
   let libs  = As_project.Component.(filter lib components) in
-  let pps   = As_project.Component.(filter pp components) in
+  let pps   = As_project.Component.(filter lib_pp components) in
   let bins  = As_project.Component.(filter bin components) in
   let tests = As_project.Component.(filter test components) in
   let jss   = As_project.Component.(filter js components) in

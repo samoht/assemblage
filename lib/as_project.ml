@@ -32,7 +32,6 @@ type component =
   | `JS of js
   | `Pkg of pkg
   | `Lib of lib
-  | `Pp of lib
   | `Bin of bin
   | `Dir of dir
   | `Test of test ]
@@ -84,6 +83,7 @@ and lib =
   { l_name : string;
     l_available : As_features.t;
     mutable l_flags : As_flags.t;
+    l_kind : [ `OCaml | `OCaml_pp ];
     l_us : comp_unit list;
     l_cs  : c list;
     mutable l_filename : string; }
@@ -190,7 +190,7 @@ module rec Component : sig
   val pkg_pp: t -> pkg option
   val pkg_c : t -> pkg option
   val lib: t -> lib option
-  val pp: t -> lib option
+  val lib_pp: t -> lib option
   val bin: t -> bin option
   val dir: t -> dir option
   val test: t -> test option
@@ -213,110 +213,101 @@ end = struct
   type component = t
 
   let id = function
-  | `Unit u  -> Unit.id u
-  | `Other o  -> Other.id o
-  | `C c    -> C.id c
-  | `JS js  -> JS.id js
-  | `Pkg p  -> Pkg.id p
-  | `Lib l
-  | `Pp l   -> Lib.id l
-  | `Bin b  -> Bin.id b
+  | `Unit u -> Unit.id u
+  | `Other o -> Other.id o
+  | `C c -> C.id c
+  | `JS js -> JS.id js
+  | `Pkg p -> Pkg.id p
+  | `Lib l -> Lib.id l
+  | `Bin b -> Bin.id b
   | `Dir d -> Dir.id d
   | `Test t -> Test.id t
 
   let name = function
-  | `Unit u  -> Unit.name u
-  | `Other o  -> Other.name o
-  | `C c    -> C.name c
-  | `JS js  -> JS.name js
+  | `Unit u -> Unit.name u
+  | `Other o -> Other.name o
+  | `C c -> C.name c
+  | `JS js -> JS.name js
   | `Pkg p -> Pkg.name p
-  | `Lib l
-  | `Pp l   -> Lib.name l
+  | `Lib l -> Lib.name l
   | `Bin b  -> Bin.name b
   | `Dir d -> Dir.name d
   | `Test t -> Test.name t
 
   let available = function
-  | `Unit u  -> Unit.available u
-  | `Other o  -> Other.available o
-  | `C c    -> C.available c
-  | `JS js  -> JS.available js
+  | `Unit u -> Unit.available u
+  | `Other o -> Other.available o
+  | `C c -> C.available c
+  | `JS js -> JS.available js
   | `Pkg p -> Pkg.available p
-  | `Lib l
-  | `Pp l   -> Lib.available l
-  | `Bin b  -> Bin.available b
+  | `Lib l -> Lib.available l
+  | `Bin b -> Bin.available b
   | `Dir d -> Dir.available d
   | `Test t -> Test.available t
 
   let prereqs = function
-  | `Unit u  -> Unit.prereqs u
+  | `Unit u -> Unit.prereqs u
   | `Other o -> Other.prereqs o
-  | `C c    -> C.prereqs c
-  | `JS js  -> JS.prereqs js
+  | `C c -> C.prereqs c
+  | `JS js -> JS.prereqs js
   | `Pkg p -> Pkg.prereqs p
-  | `Lib l
-  | `Pp l   -> Lib.prereqs l
-  | `Bin b  -> Bin.prereqs b
+  | `Lib l -> Lib.prereqs l
+  | `Bin b -> Bin.prereqs b
   | `Dir d -> Dir.prereqs d
   | `Test t -> Test.prereqs t
 
   let flags = function
-  | `Unit u  -> Unit.flags u
-  | `Other o  -> Other.flags o
-  | `C c    -> C.flags c
-  | `JS js  -> JS.flags js
+  | `Unit u -> Unit.flags u
+  | `Other o -> Other.flags o
+  | `C c -> C.flags c
+  | `JS js -> JS.flags js
   | `Pkg p -> Pkg.flags p
-  | `Lib l
-  | `Pp l   -> Lib.flags l
-  | `Bin b  -> Bin.flags b
+  | `Lib l -> Lib.flags l
+  | `Bin b -> Bin.flags b
   | `Dir d -> Dir.flags d
   | `Test t -> Test.flags t
 
   let generated_files = function
-  | `Unit u  -> Unit.generated_files u
+  | `Unit u -> Unit.generated_files u
   | `Other o -> Other.generated_files o
-  | `C c    -> C.generated_files c
-  | `JS js  -> JS.generated_files js
+  | `C c -> C.generated_files c
+  | `JS js -> JS.generated_files js
   | `Pkg p -> Pkg.generated_files p
-  | `Lib l
-  | `Pp l   -> Lib.generated_files l
-  | `Bin b  -> Bin.generated_files b
+  | `Lib l -> Lib.generated_files l
+  | `Bin b -> Bin.generated_files b
   | `Dir d -> Dir.generated_files d
   | `Test t -> Test.generated_files t
 
   let file = function
-  | `Unit u  -> Unit.file u
+  | `Unit u -> Unit.file u
   | `Other o -> Other.file o
-  | `C c    -> C.file c
-  | `JS js  -> JS.file js
+  | `C c -> C.file c
+  | `JS js -> JS.file js
   | `Pkg p -> Pkg.file p
-  | `Lib l
-  | `Pp l   -> Lib.file l
-  | `Bin b  -> Bin.file b
+  | `Lib l -> Lib.file l
+  | `Bin b -> Bin.file b
   | `Dir d -> Dir.file d
   | `Test t -> Test.file t
 
   let build_dir = function
-  | `Unit u  -> Unit.build_dir u
+  | `Unit u -> Unit.build_dir u
   | `Other o -> Other.build_dir o
-  | `C c    -> C.build_dir c
-  | `JS js  -> JS.build_dir js
+  | `C c -> C.build_dir c
+  | `JS js -> JS.build_dir js
   | `Pkg p -> Pkg.build_dir p
-  | `Lib l
-  | `Pp l   -> Lib.build_dir l
+  | `Lib l -> Lib.build_dir l
   | `Bin b  -> Bin.build_dir b
   | `Dir d -> Dir.build_dir d
   | `Test t -> Test.build_dir t
 
   let deps = function
-  | `Unit u  -> Unit.deps u
+  | `Unit u -> Unit.deps u
   | `Other o -> Other.deps o
-  | `C c    -> C.deps c
-  | `JS js  -> JS.deps js
+  | `C c -> C.deps c
+  | `JS js -> JS.deps js
   | `Pkg p -> Pkg.deps p
-  | `Lib l
-  | `Pp l   -> Lib.deps l
-  | `Bin b  -> Bin.deps b
+  | `Lib l -> Lib.deps l
+  | `Bin b -> Bin.deps b
   | `Dir d -> Dir.deps d
   | `Test t -> Test.deps t
 
@@ -327,8 +318,8 @@ end = struct
   let pkg = function `Pkg x when Pkg.kind x = `OCaml -> Some x | _ -> None
   let pkg_pp = function `Pkg x when Pkg.kind x = `OCaml_pp -> Some x | _ -> None
   let pkg_c = function `Pkg x when Pkg.kind x = `C -> Some x | _ -> None
-  let lib = function `Lib x -> Some x | _ -> None
-  let pp = function `Pp x -> Some x | _ -> None
+  let lib = function `Lib x when Lib.kind x = `OCaml -> Some x | _ -> None
+  let lib_pp = function `Lib x when Lib.kind x = `OCaml_pp -> Some x | _ -> None
   let bin = function `Bin x -> Some x | _ -> None
   let dir = function `Dir x -> Some x | _ -> None
   let test = function `Test x -> Some x | _ -> None
@@ -341,7 +332,7 @@ end = struct
       ) [] l
   |> List.rev
 
-  let closure (ts:t list): t list =
+  let closure (ts : t list) : t list =
     let deps_tbl = Hashtbl.create 24 in
     let rec aux acc = function
       | []            -> List.rev acc
@@ -355,7 +346,7 @@ end = struct
           let d' = List.filter
               (function
                 | `Pkg pkg when Pkg.kind pkg = `OCaml_pp -> false
-                | `Pp _ -> false
+                | `Lib lib when Lib.kind lib = `OCaml_pp -> false
                 | _     -> true)
               (deps h) in
           aux acc (d' @ d)
@@ -420,7 +411,7 @@ end = struct
   let link_native = link_flags `Native
 
   let pp_flags mode (deps:t list) resolver =
-    let libs = filter pp deps in
+    let libs = filter lib_pp deps in
     let pkgs = filter pkg_pp deps in
     match libs, pkgs with
     | [], [] -> []
@@ -606,7 +597,7 @@ end = struct
         | `Native -> Lib.cmxa l resolver
         | `Byte   -> Lib.cma  l resolver
       ) libs in
-    let pps = Component.(filter pp) deps in
+    let pps = Component.(filter lib_pp) deps in
     let pps = List.map (fun l -> Lib.cma l resolver) pps in
     comps @ libs @ pps
 
@@ -807,26 +798,25 @@ end = struct
   let ctypes_stub = create "ctypes.stubs" `OCaml
 end
 
-and Lib: sig
+and Lib : sig
   include Component_base with type t = lib
-  val create :
-    ?available:As_features.t ->
-    ?flags:As_flags.t ->
-    ?deps:Component.t list ->
-    ?pack:bool ->
-    ?c:C.t list ->
-    [`Unit of Unit.t ] list -> string -> t
-  val filename: t -> string
-  val units: t -> Unit.t list
-  val c_objects: t -> C.t list
-  val available: t -> As_features.t
-  val cma: t -> As_resolver.t -> string
-  val cmxa: t -> As_resolver.t -> string
-  val a: t -> As_resolver.t -> string
-  val cmxs: t -> As_resolver.t -> string
+  type kind = [ `OCaml | `OCaml_pp ]
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?deps:Component.t list -> ?pack:bool ->
+    ?c:C.t list -> string -> kind -> [`Unit of Unit.t ] list -> t
+  val kind : t -> kind
+  val filename : t -> string
+  val units : t -> Unit.t list
+  val c_objects : t -> C.t list
+  val available : t -> As_features.t
+  val cma : t -> As_resolver.t -> string
+  val cmxa : t -> As_resolver.t -> string
+  val a : t -> As_resolver.t -> string
+  val cmxs : t -> As_resolver.t -> string
   (* not exported *)
-  val set_filename: t -> string -> unit
+  val set_filename : t -> string -> unit
 end = struct
+  type kind = [ `OCaml | `OCaml_pp ]
   type t = lib
 
   let id t = "lib-" ^ t.l_name
@@ -839,6 +829,7 @@ end = struct
     |> Component.Set.elements
 
   let name t = t.l_name
+  let kind t = t.l_kind
   let build_dir t resolver = As_resolver.build_dir resolver (id t)
   let units t = t.l_us
   let c_objects t = t.l_cs
@@ -847,12 +838,13 @@ end = struct
   let available t = t.l_available
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = []) ?(pack = false) ?(c = []) us name
+      ?(deps = []) ?(pack = false) ?(c = []) name kind us
     =
     let us = Unit.sort us in
     let us' = if pack then [Unit.pack us name] else us in
     let t =
-      { l_name = name; l_available = available; l_us = us'; l_cs = c;
+      { l_name = name; l_available = available; l_kind = kind;
+        l_us = us'; l_cs = c;
         l_flags = flags; l_filename = name; }
     in
     (* FIXME: mutation *)
@@ -860,6 +852,7 @@ end = struct
     List.iter (fun u -> Unit.set_lib_container u t) (us' @ us);
     List.iter (fun c -> C.set_lib_container c t) c;
     t
+
 
   let file t r ext = build_dir t r / t.l_name ^ ext
   let cma t r = file t r ".cma"
@@ -987,7 +980,7 @@ end = struct
     let comps = units t in
     let deps = deps t in
     let libs = Component.(filter lib) deps in
-    let pps = Component.(filter pp) deps in
+    let pps = Component.(filter lib_pp) deps in
     let bytpps = List.map (fun l -> Lib.cma l resolver) pps in
     match mode with
     | `Byte   ->
@@ -1160,7 +1153,7 @@ let features t =
     let libs = Component.(filter lib t.components) in
     unionmap (fun x -> As_features.atoms (Lib.available x)) libs in
   let pps  =
-    let pps = Component.(filter pp t.components) in
+    let pps = Component.(filter lib_pp t.components) in
     unionmap (fun x -> As_features.atoms (Lib.available x)) pps in
   let bins =
     let bins = Component.(filter bin t.components) in

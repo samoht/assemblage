@@ -41,7 +41,6 @@ type component =
   | `JS of js
   | `Pkg of pkg
   | `Lib of lib
-  | `Pp of lib
   | `Bin of bin
   | `Dir of dir
   | `Test of test ]
@@ -138,7 +137,7 @@ module Component : sig
   val pkg_pp : t -> pkg option
   val pkg_c : t -> pkg option
   val lib : t -> lib option
-  val pp : t -> lib option
+  val lib_pp : t -> lib option
   val bin : t -> bin option
   val dir : t -> dir option
   val test : t -> test option
@@ -326,10 +325,14 @@ module Lib : sig
 
   include Component_base with type t = lib
 
+  type kind = [ `OCaml | `OCaml_pp ]
+
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?pack:bool -> ?c:c list ->
-    [`Unit of Unit.t ] list -> string -> t
+    ?deps:component list -> ?pack:bool -> ?c:c list -> string ->
+    kind -> [`Unit of Unit.t ] list -> t
   (** Create a library. *)
+
+  val kind : t -> kind
 
   val filename : t -> string
   (** The library filename. Usually, it is the same as [name], but

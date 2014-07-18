@@ -63,9 +63,14 @@ let pkg_pp ?available ?flags ?opt name =
 let pkg_c ?available ?flags ?opt name =
   `Pkg (As_project.Pkg.create ?available ?flags ?opt name `C)
 
-let lib ?available ?flags ?deps ?pack ?(c = []) name cus =
+let lib ?available ?flags ?deps ?pack ?(c = []) name us =
   let c = List.map (function `C c -> c) c in
-  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack ~c cus name)
+  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack ~c name `OCaml us)
+
+let lib_pp ?available ?flags ?deps ?pack ?(c = []) name us =
+  let c = List.map (function `C c -> c) c in
+  let kind = `OCaml_pp in
+  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack ~c name kind us)
 
 let bin ?available ?flags ?deps ?byte_only ?link_all ?install name cus =
   `Bin (As_project.Bin.create ?available ?flags ?deps ?byte_only ?link_all
@@ -109,7 +114,8 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
   let bin_dir r = As_project.Bin.build_dir
       (As_project.Bin.create [] name_generator) r in
   let lib_dir r =
-    Sys.getcwd () / As_project.Lib.build_dir (As_project.Lib.create [] name) r
+    let lib = As_project.Lib.create name `OCaml [] in
+    Sys.getcwd () / As_project.Lib.build_dir lib r
   in
   (* 2. Generate and compile the generator. *)
   let generator =
@@ -257,5 +263,5 @@ let describe t env =
     (As_shell.color `underline (As_project.name t)) (As_project.version t);
   let components = As_project.components t in
   print_libs As_project.Component.(filter lib components);
-  print_libs As_project.Component.(filter pp  components);
+  print_libs As_project.Component.(filter lib_pp components);
   print_bins As_project.Component.(filter bin components)

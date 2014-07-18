@@ -287,7 +287,6 @@ type component =
   | `C of c
   | `JS of js
   | `Lib of lib
-  | `Pp of lib
   | `Pkg of pkg
   | `Bin of bin
   | `Dir of dir
@@ -296,7 +295,6 @@ type component =
     {ul
     {- [`Unit u] u is a project compilation unit.}
     {- [`Lib l] is a project library.}
-    {- [`Pp p] is a project pre-processor}
     {- [`Bin b] is a project binary.}
     {- [`Test b] is a project test.}
     {- [`Pkg p] is an external named package.}
@@ -325,9 +323,14 @@ val c : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
 val lib : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
   ?pack:bool -> ?c:[`C of c] list -> string -> [`Unit of comp_unit] list ->
   [> `Lib of lib]
-(** [lib name units] is the library [name] composed by the compilation
+(** [lib name units] is the project library [name] composed by the compilation
     units [cus]. If [lib] is set, use [ocamldep] to approximate the
     compilation units and their dependecies in the given directory. *)
+
+val lib_pp : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
+  ?pack:bool -> ?c:[`C of c] list -> string -> [`Unit of comp_unit] list ->
+  [> `Lib of lib]
+(** [lib_pp] is like {!lib} but it defines a project pre-processor. *)
 
 val bin : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
     ?byte_only:bool -> ?link_all:bool -> ?install:bool ->
