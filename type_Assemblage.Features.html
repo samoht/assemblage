@@ -9,9 +9,11 @@
 </head>
 <body>
 <code class="code"><span class="keyword">sig</span><br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;set<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;create&nbsp;:&nbsp;doc:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;default:bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;create&nbsp;:&nbsp;?default:bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;doc:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;true_&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;false_&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;not_&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;(&nbsp;&amp;&amp;&amp;&nbsp;)&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
@@ -19,11 +21,11 @@
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;native&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;native_dynlink&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;js&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;annot&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;debug&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;warn_error&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;test&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;doc&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;js&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;public_doc&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;full_doc&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 <span class="keyword">end</span></code></body></html>

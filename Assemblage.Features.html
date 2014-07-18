@@ -9,7 +9,9 @@
 <link title="Index of types" rel=Appendix href="index_types.html">
 <link title="Index of values" rel=Appendix href="index_values.html">
 <link title="Index of modules" rel=Appendix href="index_modules.html">
-<link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>Assemblage.Features</title>
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><link title="Features" rel="Section" href="#1_Features">
+<link title="Built-in features" rel="Section" href="#1_Builtinfeatures">
+<title>Assemblage.Features</title>
 </head>
 <body>
 <div class="navbar">&nbsp;<a class="up" href="Assemblage.html" title="Assemblage">Up</a>
@@ -17,71 +19,100 @@
 </div>
 <h1>Module <a href="type_Assemblage.Features.html">Assemblage.Features</a></h1>
 
-<pre><span class="keyword">module</span> Features: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Features.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><hr width="100%">
-<br>
-Features.<br>
+<pre><span class="keyword">module</span> Features: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Features.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Features.
+<p>
 
-<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
-<div class="info ">
-The type for user-defined or system-dependent features.<br>
+      Features declare booleans to be determined by the
+      <a href="Assemblage.html#buildenv">build environment</a>. They allow to condition the
+      application of certain <a href="Assemblage.Flags.html">flags</a> and restrict the build of
+      project components or of certain of their artifacts.
+<p>
+
+      Examples of features are: native compilation availability,
+      optional package availability, debug build support, etc.<br>
 </div>
-
+<hr width="100%">
+<br>
+<h1 id="1_Features">Features</h1><br>
 
 <pre><span id="TYPEset"><span class="keyword">type</span> <code class="type"></code>set</span> </pre>
 <div class="info ">
-Set of features.<br>
+Set of features. FIXME: remove this.<br>
 </div>
 
 
-<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">doc:string -> default:bool -> string -> <a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
-Create a feature.<br>
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info ">
+The type for features. Given a build environment a value of this type
+      denotes a boolean value.<br>
+</div>
+
+
+<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">?default:bool -> string -> doc:string -> <a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">create default name doc</code> is a feature named <code class="code">name</code>.  <code class="code">default</code>
+      (defaults to <code class="code"><span class="keyword">true</span></code>) indicates the boolean value the feature
+      takes if the build environment doesn't determine it.  <code class="code">doc</code> is
+      used for documenting the feature in various contexts, keep it
+      short and to the point.<br>
+</div>
+
+<pre><span id="VALtrue_"><span class="keyword">val</span> true_</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">true_</code> is always true.<br>
+</div>
+
+<pre><span id="VALfalse_"><span class="keyword">val</span> false_</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">false_</code> is always false.<br>
 </div>
 
 <pre><span id="VALnot_"><span class="keyword">val</span> not_</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a> -> <a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
-Negate a feature formulae.<br>
+<code class="code">not_ f</code> is true iff <code class="code">f</code> is false.<br>
 </div>
 
 <pre><span id="VAL(&&&)"><span class="keyword">val</span> (&amp;&amp;&amp;)</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a> -> <a href="Assemblage.Features.html#TYPEt">t</a> -> <a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
-Logical AND of feature formulaes.<br>
+<code class="code">f &amp;&amp;&amp; f'</code> is true iff both <code class="code">f</code> and <code class="code">f'</code> are true.<br>
 </div>
 
 <pre><span id="VAL(|||)"><span class="keyword">val</span> (|||)</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a> -> <a href="Assemblage.Features.html#TYPEt">t</a> -> <a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
-Logical OR of feature formulaes.<br>
+<code class="code">f ||| f'</code> is true iff either <code class="code">f</code> or <code class="code">f'</code> is true.<br>
 </div>
+<br>
+<h1 id="1_Builtinfeatures">Built-in features</h1><br>
 
 <pre><span id="VALnative"><span class="keyword">val</span> native</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
-Is native-code enabled?<br>
+<code class="code">native</code> is true iff native code compilation is available.<br>
 </div>
 
 <pre><span id="VALnative_dynlink"><span class="keyword">val</span> native_dynlink</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
-Is dynlink for native code enabled?<br>
-</div>
-
-<pre><span id="VALannot"><span class="keyword">val</span> annot</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
-Generate annot files?<br>
-</div>
-
-<pre><span id="VALdebug"><span class="keyword">val</span> debug</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
-Generate debug symbols?<br>
-</div>
-
-<pre><span id="VALwarn_error"><span class="keyword">val</span> warn_error</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
-Consider warning as error?<br>
-</div>
-
-<pre><span id="VALtest"><span class="keyword">val</span> test</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
-Compile and run tests?<br>
-</div>
-
-<pre><span id="VALdoc"><span class="keyword">val</span> doc</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
-Build the documentation?<br>
+<code class="code">native_dynlink</code> is true iff native code dynamic linking is available.<br>
 </div>
 
 <pre><span id="VALjs"><span class="keyword">val</span> js</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
-Build the javascript objects?<br>
+<code class="code">js</code> is true iff JavaScript compilation is available.<br>
+</div>
+
+<pre><span id="VALannot"><span class="keyword">val</span> annot</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">annot</code> is true iff binary annotations files must be built.<br>
+</div>
+
+<pre><span id="VALdebug"><span class="keyword">val</span> debug</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">debug</code> is true iff builds must support debugging.<br>
+</div>
+
+<pre><span id="VALwarn_error"><span class="keyword">val</span> warn_error</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">warn_error</code> is true iff builds must consider warnings as errors.<br>
+</div>
+
+<pre><span id="VALtest"><span class="keyword">val</span> test</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">test</code> is true iff tests must be built.<br>
+</div>
+
+<pre><span id="VALpublic_doc"><span class="keyword">val</span> public_doc</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">public_doc</code> is true iff the public documentation must be built.<br>
 </div>
 
 <pre><span id="VALfull_doc"><span class="keyword">val</span> full_doc</span> : <code class="type"><a href="Assemblage.Features.html#TYPEt">t</a></code></pre><div class="info ">
-Build the full documentation (ignore <code class="code">doc_public</code>)?<br>
+<code class="code">full_doc</code> is true iff the full documentation must be built.
+      FIXME.<br>
 </div>
 </body></html>

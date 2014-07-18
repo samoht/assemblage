@@ -11,10 +11,12 @@
 <code class="code"><span class="keyword">sig</span><br>
 &nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">Features</span>&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;set<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;create&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;doc:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;default:bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?default:bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;doc:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;true_&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;false_&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;not_&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;(&nbsp;&amp;&amp;&amp;&nbsp;)&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
@@ -24,26 +26,24 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;native&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;native_dynlink&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;js&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;annot&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;debug&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;warn_error&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;test&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;doc&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;js&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;public_doc&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;full_doc&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
 &nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">Flags</span>&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;phase&nbsp;=&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Compile</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Link</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Other</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Pp</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Run</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Test</span>&nbsp;]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;mode&nbsp;=&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Byte</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">C</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Js</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Native</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Shared</span>&nbsp;]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;args&nbsp;=&nbsp;string&nbsp;list<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;create&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?comp_byte:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?comp_native:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?pp_byte:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?pp_native:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?link_byte:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?link_native:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?link_shared:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?c:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;v&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.phase&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.mode&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.args&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;(&nbsp;@@@&nbsp;)&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;empty&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t<br>
@@ -56,25 +56,6 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ccopt&nbsp;:&nbsp;string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;stub&nbsp;:&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;cu<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;lib<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;bin<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;test<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;js<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;c<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;gen<br>
-&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;component&nbsp;=<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Bin</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.bin<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">C</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.c<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">CU</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.cu<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Gen</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.gen<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">JS</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.js<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Lib</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.lib<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Pkg</span>&nbsp;<span class="keyword">of</span>&nbsp;string<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Pkg_pp</span>&nbsp;<span class="keyword">of</span>&nbsp;string<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Pp</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.lib<br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Test</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.test&nbsp;]<br>
 &nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">Resolver</span>&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
@@ -92,47 +73,99 @@
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keywordsign">'</span>a,&nbsp;unit,&nbsp;string,&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Action</span>.custom)&nbsp;<span class="constructor">Pervasives</span>.format4&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a<br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t&nbsp;=&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Resolver</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Action</span>.custom<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cu&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;?dir:string&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">CU</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.cu&nbsp;]<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocamldep&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;dir:string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;comp_unit<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;other<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;c<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;js<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;pkg<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;lib<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;bin<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;dir<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;test<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;component&nbsp;=<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Bin</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.bin<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">C</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.c<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Dir</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.dir<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">JS</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.js<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Lib</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.lib<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Other</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.other<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Pkg</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.pkg<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Test</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.test<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Unit</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.comp_unit&nbsp;]<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;unit&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;(string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">CU</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.cu&nbsp;]&nbsp;list<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;generated&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?deps:<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?dir:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Unit</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.comp_unit&nbsp;]<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;other&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?deps:<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?action:<span class="constructor">Assemblage</span>.<span class="constructor">Action</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">C</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">ML</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">MLI</span>&nbsp;]&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Gen</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.gen&nbsp;]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">C</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Ml</span>&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Mli</span>&nbsp;]&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Other</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.other&nbsp;]<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;c&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?deps:<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?dir:string&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?link_flags:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">C</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.c&nbsp;]<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cstubs&nbsp;:<br>
-&nbsp;&nbsp;&nbsp;&nbsp;?dir:string&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;?headers:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;?cflags:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;?clibs:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Lib</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.lib&nbsp;]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">C</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.c&nbsp;]<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;lib&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?deps:<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?pack:bool&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;?deps:(string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list)&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?c:[&nbsp;<span class="keywordsign">`</span><span class="constructor">C</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.c&nbsp;]&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">CU</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.cu&nbsp;]&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Lib</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.lib&nbsp;]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Unit</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.comp_unit&nbsp;]&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Lib</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.lib&nbsp;]<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;lib_pp&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?deps:<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?pack:bool&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?c:[&nbsp;<span class="keywordsign">`</span><span class="constructor">C</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.c&nbsp;]&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Unit</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.comp_unit&nbsp;]&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Lib</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.lib&nbsp;]<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;bin&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?deps:<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?byte_only:bool&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?link_all:bool&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?install:bool&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;?deps:(string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list)&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">CU</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.cu&nbsp;]&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Bin</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.bin&nbsp;]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Unit</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.comp_unit&nbsp;]&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Bin</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.bin&nbsp;]<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;dir&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">As_features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">As_flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?deps:<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?install:bool&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Bin</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Doc</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Etc</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Lib</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Man</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Misc</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Other</span>&nbsp;<span class="keyword">of</span>&nbsp;string<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Sbin</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Share</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Share_root</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Stublibs</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Toplevel</span>&nbsp;]&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Dir</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.dir&nbsp;]<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;js&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Bin</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.bin&nbsp;]&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">JS</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.js&nbsp;]<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pkg&nbsp;:&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Pkg</span>&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;]<br>
-&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pkg_pp&nbsp;:&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Pkg_pp</span>&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;]<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pkg&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?opt:bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Pkg</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.pkg&nbsp;]<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pkg_pp&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?opt:bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Pkg</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.pkg&nbsp;]<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pkg_c&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?opt:bool&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Pkg</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.pkg&nbsp;]<br>
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;test_command<br>
 &nbsp;&nbsp;<span class="keyword">type</span>&nbsp;test_args&nbsp;=&nbsp;(<span class="constructor">Assemblage</span>.component&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string)&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;list<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;test_bin&nbsp;:<br>
@@ -141,17 +174,34 @@
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;test_shell&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;(<span class="keywordsign">'</span>a,&nbsp;unit,&nbsp;string,&nbsp;<span class="constructor">Assemblage</span>.test_command)&nbsp;<span class="constructor">Pervasives</span>.format4&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;test&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?deps:<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?dir:string&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Assemblage</span>.test_command&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Test</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.test&nbsp;]<br>
+&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.test_command&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Test</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.test&nbsp;]<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocamldep&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?keep:(string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?deps:(string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list)&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?unit:(string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Unit</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.comp_unit&nbsp;])&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;dir:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Unit</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.comp_unit&nbsp;]&nbsp;list<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cstubs&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?dir:string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?headers:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?cflags:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?clibs:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Lib</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.lib&nbsp;]<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;create&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?doc_css:string&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?doc_intro:string&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?doc_dir:string&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?doc_public:string&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;?version:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?version:string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.t<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;add&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.t&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
 &nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">Build_env</span>&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;t<br>

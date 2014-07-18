@@ -10,7 +10,9 @@
 <link title="Index of types" rel=Appendix href="index_types.html">
 <link title="Index of values" rel=Appendix href="index_values.html">
 <link title="Index of modules" rel=Appendix href="index_modules.html">
-<link title="Assemblage" rel="Chapter" href="Assemblage.html"><title>Assemblage.Flags</title>
+<link title="Assemblage" rel="Chapter" href="Assemblage.html"><link title="Flags" rel="Section" href="#flags">
+<link title="Built-in flags" rel="Section" href="#1_Builtinflags">
+<title>Assemblage.Flags</title>
 </head>
 <body>
 <div class="navbar"><a class="pre" href="Assemblage.Features.html" title="Assemblage.Features">Previous</a>
@@ -19,47 +21,84 @@
 </div>
 <h1>Module <a href="type_Assemblage.Flags.html">Assemblage.Flags</a></h1>
 
-<pre><span class="keyword">module</span> Flags: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Flags.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><hr width="100%">
+<pre><span class="keyword">module</span> Flags: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Flags.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Flags
+<p>
+
+    Flags values denote sets of partial command line arguments given
+    to tools in a given context. A context is defined by a <a href="Assemblage.Flags.html#TYPEphase">phase</a>
+    and a <a href="Assemblage.Flags.html#TYPEmode">mode</a>.
+<p>
+
+    FIXME describe valid context and to what they correspond.<br>
+</div>
+<hr width="100%">
 <br>
-Flags.<br>
+<h1 id="flags">Flags</h1><br>
+
+<pre><span id="TYPEphase"><span class="keyword">type</span> <code class="type"></code>phase</span> = <code class="type">[ `Compile | `Link | `Other | `Pp | `Run | `Test ]</code> </pre>
+<div class="info ">
+The type for phases.<br>
+</div>
+
+
+<pre><span id="TYPEmode"><span class="keyword">type</span> <code class="type"></code>mode</span> = <code class="type">[ `Byte | `C | `Js | `Native | `Shared ]</code> </pre>
+<div class="info ">
+The type for modes.<br>
+</div>
+
+
+<pre><span id="TYPEargs"><span class="keyword">type</span> <code class="type"></code>args</span> = <code class="type">string list</code> </pre>
+<div class="info ">
+The type for partial command line arguments.<br>
+</div>
+
 
 <pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
 <div class="info ">
-The type for command-line arguments.<br>
+The type for multi-context, partial, command line arguments.<br>
 </div>
 
 
-<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">?comp_byte:string list -><br>       ?comp_native:string list -><br>       ?pp_byte:string list -><br>       ?pp_native:string list -><br>       ?link_byte:string list -><br>       ?link_native:string list -><br>       ?link_shared:string list -> ?c:string list -> unit -> <a href="Assemblage.Flags.html#TYPEt">t</a></code></pre><div class="info ">
-Create a full command-line argument using the the given single
-      command-line arguments.<br>
+<pre><span id="VALv"><span class="keyword">val</span> v</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Assemblage.Features.t</a> -><br>       <a href="Assemblage.Flags.html#TYPEphase">phase</a> -><br>       <a href="Assemblage.Flags.html#TYPEmode">mode</a> -> <a href="Assemblage.Flags.html#TYPEargs">args</a> -> <a href="Assemblage.Flags.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">v available phase mode args</code> is the partial command line
+      <code class="code">args</code> in the context defined by <code class="code">phase</code> and <code class="code">modes</code>. This partial
+      command line is only available whenever the feature <code class="code">available</code>
+      is true (defaults to <a href="Assemblage.Features.html#VALtrue_"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.true_</code></a>).<br>
 </div>
 
 <pre><span id="VAL(@@@)"><span class="keyword">val</span> (@@@)</span> : <code class="type"><a href="Assemblage.Flags.html#TYPEt">t</a> -> <a href="Assemblage.Flags.html#TYPEt">t</a> -> <a href="Assemblage.Flags.html#TYPEt">t</a></code></pre><div class="info ">
-Append command-line flags.<br>
+<code class="code">f @@@ f'</code> concatenates context wise <code class="code">f'</code> to <code class="code">f</code>. <code class="code">f'</code> and
+      <code class="code">f'</code> remain available according to their own <code class="code">available</code> argument.<br>
 </div>
+<br>
+<h1 id="1_Builtinflags">Built-in flags</h1><br>
 
 <pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type"><a href="Assemblage.Flags.html#TYPEt">t</a></code></pre><div class="info ">
-Empty flags.<br>
+<code class="code">empty</code> is the command line <code class="code">[]</code> for every context.<br>
 </div>
 
 <pre><span id="VALdebug"><span class="keyword">val</span> debug</span> : <code class="type"><a href="Assemblage.Flags.html#TYPEt">t</a></code></pre><div class="info ">
-The <code class="code">-g</code> flags.<br>
+<code class="code">debug</code> is the debug flag as needed per context, only
+      available when <a href="Assemblage.Features.html#VALdebug"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.debug</code></a> is true.<br>
 </div>
 
 <pre><span id="VALannot"><span class="keyword">val</span> annot</span> : <code class="type"><a href="Assemblage.Flags.html#TYPEt">t</a></code></pre><div class="info ">
-The <code class="code">-bin-annot</code> flags.<br>
+<code class="code">annot</code> is the <code class="code">-bin-annot</code> flag in appropriate contexts, only
+      available when <a href="Assemblage.Features.html#VALannot"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.annot</code></a> is true.<br>
 </div>
 
 <pre><span id="VALwarn_error"><span class="keyword">val</span> warn_error</span> : <code class="type"><a href="Assemblage.Flags.html#TYPEt">t</a></code></pre><div class="info ">
-The <code class="code">-warn-error</code> flags.<br>
+<code class="code">warn_error</code> is the <code class="code">-warn-error</code> in appropriate contexts, only
+      available when <a href="Assemblage.Features.html#VALwarn_error"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.warn_error</code></a> is true.<br>
 </div>
 
 <pre><span id="VALlinkall"><span class="keyword">val</span> linkall</span> : <code class="type"><a href="Assemblage.Flags.html#TYPEt">t</a></code></pre><div class="info ">
-The <code class="code">-linkall</code> flags.<br>
+<code class="code">linkall</code> is the <code class="code">-linkall</code> flag in appropriate contexts.<br>
 </div>
 
 <pre><span id="VALthread"><span class="keyword">val</span> thread</span> : <code class="type"><a href="Assemblage.Flags.html#TYPEt">t</a></code></pre><div class="info ">
-The <code class="code">-thread</code> flags.<br>
+<code class="code">thread</code> is the <code class="code">-thread</code> flag in appropriate contexts.<br>
 </div>
 
 <pre><span id="VALcclib"><span class="keyword">val</span> cclib</span> : <code class="type">string list -> <a href="Assemblage.Flags.html#TYPEt">t</a></code></pre><div class="info ">

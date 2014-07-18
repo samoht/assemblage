@@ -16,28 +16,35 @@
 <tr><td align="left"><br></td></tr>
 <tr><td><a href="Assemblage.Features.html#VAL(&&&)">(&amp;&amp;&amp;)</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-Logical AND of feature formulaes.
+<code class="code">f &amp;&amp;&amp; f'</code> is true iff both <code class="code">f</code> and <code class="code">f'</code> are true.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Flags.html#VAL(@@@)">(@@@)</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
-Append command-line flags.
+<code class="code">f @@@ f'</code> concatenates context wise <code class="code">f'</code> to <code class="code">f</code>.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Features.html#VAL(|||)">(|||)</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-Logical OR of feature formulaes.
+<code class="code">f ||| f'</code> is true iff either <code class="code">f</code> or <code class="code">f'</code> is true.
 </div>
 </td></tr>
 <tr><td align="left"><br>A</td></tr>
+<tr><td><a href="Assemblage.html#VALadd">add</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<td><div class="info">
+<code class="code">add t</code> registers the project <code class="code">t</code> for use by the assemblage
+    command line tools.
+</div>
+</td></tr>
 <tr><td><a href="Assemblage.Flags.html#VALannot">annot</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
-The <code class="code">-bin-annot</code> flags.
+<code class="code">annot</code> is the <code class="code">-bin-annot</code> flag in appropriate contexts, only
+      available when <a href="Assemblage.Features.html#VALannot"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.annot</code></a> is true.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Features.html#VALannot">annot</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-Generate annot files?
+<code class="code">annot</code> is true iff binary annotations files must be built.
 </div>
 </td></tr>
 <tr><td align="left"><br>B</td></tr>
@@ -85,15 +92,9 @@ Configure the project by generating the build, META and .install
       of global package names.
 </div>
 </td></tr>
-<tr><td><a href="Assemblage.Flags.html#VALcreate">create</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
-<td><div class="info">
-Create a full command-line argument using the the given single
-      command-line arguments.
-</div>
-</td></tr>
 <tr><td><a href="Assemblage.Features.html#VALcreate">create</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-Create a feature.
+<code class="code">create default name doc</code> is a feature named <code class="code">name</code>.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.html#VALcreate">create</a> [<a href="Assemblage.html">Assemblage</a>]</td>
@@ -109,12 +110,6 @@ Create a feature.
     compilation unit <code class="code">name</code>.
 </div>
 </td></tr>
-<tr><td><a href="Assemblage.html#VALcu">cu</a> [<a href="Assemblage.html">Assemblage</a>]</td>
-<td><div class="info">
-<code class="code">cu name ~dir deps</code> is the compilation unit located in the
-    directory <code class="code">dir</code> with dependencies <code class="code">deps</code> and the cname <code class="code">name</code>.
-</div>
-</td></tr>
 <tr><td><a href="Assemblage.Action.html#VALcustom">custom</a> [<a href="Assemblage.Action.html">Assemblage.Action</a>]</td>
 <td><div class="info">
 <code class="code">bash ~dir fmt</code> is a generator which produces some results by
@@ -125,12 +120,13 @@ Create a feature.
 <tr><td align="left"><br>D</td></tr>
 <tr><td><a href="Assemblage.Flags.html#VALdebug">debug</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
-The <code class="code">-g</code> flags.
+<code class="code">debug</code> is the debug flag as needed per context, only
+      available when <a href="Assemblage.Features.html#VALdebug"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.debug</code></a> is true.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Features.html#VALdebug">debug</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-Generate debug symbols?
+<code class="code">debug</code> is true iff builds must support debugging.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Build_env.html#VALdefault">default</a> [<a href="Assemblage.Build_env.html">Assemblage.Build_env</a>]</td>
@@ -143,33 +139,33 @@ Default project configuration.
 Describe the project to stdout.
 </div>
 </td></tr>
-<tr><td><a href="Assemblage.Features.html#VALdoc">doc</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<tr><td><a href="Assemblage.html#VALdir">dir</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
-Build the documentation?
+<code class="code">dir name ~available ~flags ~deps contents</code> is a directory named
+    <code class="code">name</code> that contains the build artefacts of the component <code class="code">contents</code>.
 </div>
 </td></tr>
 <tr><td align="left"><br>E</td></tr>
 <tr><td><a href="Assemblage.Flags.html#VALempty">empty</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
-Empty flags.
+<code class="code">empty</code> is the command line <code class="code">[]</code> for every context.
 </div>
 </td></tr>
 <tr><td align="left"><br>F</td></tr>
-<tr><td><a href="Assemblage.Features.html#VALfull_doc">full_doc</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<tr><td><a href="Assemblage.Features.html#VALfalse_">false_</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-Build the full documentation (ignore <code class="code">doc_public</code>)?
+<code class="code">false_</code> is always false.
 </div>
 </td></tr>
-<tr><td align="left"><br>G</td></tr>
-<tr><td><a href="Assemblage.html#VALgenerated">generated</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<tr><td><a href="Assemblage.Features.html#VALfull_doc">full_doc</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-Generated OCaml source file(s).
+<code class="code">full_doc</code> is true iff the full documentation must be built.
 </div>
 </td></tr>
 <tr><td align="left"><br>J</td></tr>
 <tr><td><a href="Assemblage.Features.html#VALjs">js</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-Build the javascript objects?
+<code class="code">js</code> is true iff JavaScript compilation is available.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.html#VALjs">js</a> [<a href="Assemblage.html">Assemblage</a>]</td>
@@ -181,60 +177,76 @@ Build the javascript objects?
 <tr><td align="left"><br>L</td></tr>
 <tr><td><a href="Assemblage.html#VALlib">lib</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
-<code class="code">lib name units</code> is the library <code class="code">name</code> composed by the compilation
+<code class="code">lib name units</code> is the project library <code class="code">name</code> composed by the compilation
     units <code class="code">cus</code>.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.html#VALlib_pp">lib_pp</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<td><div class="info">
+<code class="code">lib_pp</code> is like <a href="Assemblage.html#VALlib"><code class="code"><span class="constructor">Assemblage</span>.lib</code></a> but it defines a project pre-processor.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Flags.html#VALlinkall">linkall</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
-The <code class="code">-linkall</code> flags.
+<code class="code">linkall</code> is the <code class="code">-linkall</code> flag in appropriate contexts.
 </div>
 </td></tr>
 <tr><td align="left"><br>N</td></tr>
 <tr><td><a href="Assemblage.Features.html#VALnative">native</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-Is native-code enabled?
+<code class="code">native</code> is true iff native code compilation is available.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Features.html#VALnative_dynlink">native_dynlink</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-Is dynlink for native code enabled?
+<code class="code">native_dynlink</code> is true iff native code dynamic linking is available.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Features.html#VALnot_">not_</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-Negate a feature formulae.
+<code class="code">not_ f</code> is true iff <code class="code">f</code> is false.
 </div>
 </td></tr>
 <tr><td align="left"><br>O</td></tr>
 <tr><td><a href="Assemblage.html#VALocamldep">ocamldep</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
-<code class="code">ocamldep ~dir deps</code> is the list of compilation units in the given
-    directory, obtained by running <code class="code">ocamldep</code> with the given flags and
-    dependencies.
+<code class="code">ocamldep ~dir ~keep ~deps ~unit ()</code> is the list of compilation
+    units derived as follows.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.html#VALother">other</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<td><div class="info">
+Generated OCaml source file(s).
 </div>
 </td></tr>
 <tr><td align="left"><br>P</td></tr>
 <tr><td><a href="Assemblage.Build_env.html#VALparse">parse</a> [<a href="Assemblage.Build_env.html">Assemblage.Build_env</a>]</td>
 <td><div class="info">
 <code class="code">parse name features</code> parse the arguments given on the
-      command-line as a configuration value, for the project <code class="code">name</code> with
+      command line as a configuration value, for the project <code class="code">name</code> with
       the possible features <code class="code">features</code>.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.html#VALpkg">pkg</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
-An external package.
+<code class="code">pkg available opt name</code> is an external OCaml package named <code class="code">name</code>.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.html#VALpkg_c">pkg_c</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<td><div class="info">
+<code class="code">pkg_c available opt name</code> is like <a href="Assemblage.html#VALpkg"><code class="code"><span class="constructor">Assemblage</span>.pkg</code></a> except it denotes an
+    external C package.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.html#VALpkg_pp">pkg_pp</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
-An external pre-processor.
+<code class="code">pkg_pp available opt name</code> is like <a href="Assemblage.html#VALpkg"><code class="code"><span class="constructor">Assemblage</span>.pkg</code></a> except it denotes
+    an external OCaml pre-processor package.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Resolver.html#VALpkgs">pkgs</a> [<a href="Assemblage.Resolver.html">Assemblage.Resolver</a>]</td>
 <td><div class="info">
-Resolve global package names into command-line flags.
+Resolve global package names into command line flags.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.html#VALprocess">process</a> [<a href="Assemblage.html">Assemblage</a>]</td>
@@ -243,6 +255,11 @@ Resolve global package names into command-line flags.
     top-level environment (the default is <code class="code">assemble.ml</code>), for the
     project called <code class="code">name</code>, and apply <code class="code">fn</code> to the projects registered
     as side-effects.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.Features.html#VALpublic_doc">public_doc</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+<code class="code">public_doc</code> is true iff the public documentation must be built.
 </div>
 </td></tr>
 <tr><td align="left"><br>S</td></tr>
@@ -256,7 +273,7 @@ Resolve global package names into command-line flags.
 <tr><td align="left"><br>T</td></tr>
 <tr><td><a href="Assemblage.Features.html#VALtest">test</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-Compile and run tests?
+<code class="code">test</code> is true iff tests must be built.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.html#VALtest">test</a> [<a href="Assemblage.html">Assemblage</a>]</td>
@@ -276,18 +293,38 @@ A test which runs an arbitrary shell command.
 </td></tr>
 <tr><td><a href="Assemblage.Flags.html#VALthread">thread</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
-The <code class="code">-thread</code> flags.
+<code class="code">thread</code> is the <code class="code">-thread</code> flag in appropriate contexts.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.Features.html#VALtrue_">true_</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+<code class="code">true_</code> is always true.
+</div>
+</td></tr>
+<tr><td align="left"><br>U</td></tr>
+<tr><td><a href="Assemblage.html#VALunit">unit</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<td><div class="info">
+<code class="code">unit name ~dir ~available ~flags ~deps</code> is a compilation unit
+    named <code class="code">name</code> (the filename without extension) present in directory <code class="code">dir</code>.
+</div>
+</td></tr>
+<tr><td align="left"><br>V</td></tr>
+<tr><td><a href="Assemblage.Flags.html#VALv">v</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
+<td><div class="info">
+<code class="code">v available phase mode args</code> is the partial command line
+      <code class="code">args</code> in the context defined by <code class="code">phase</code> and <code class="code">modes</code>.
 </div>
 </td></tr>
 <tr><td align="left"><br>W</td></tr>
 <tr><td><a href="Assemblage.Flags.html#VALwarn_error">warn_error</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
-The <code class="code">-warn-error</code> flags.
+<code class="code">warn_error</code> is the <code class="code">-warn-error</code> in appropriate contexts, only
+      available when <a href="Assemblage.Features.html#VALwarn_error"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.warn_error</code></a> is true.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Features.html#VALwarn_error">warn_error</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-Consider warning as error?
+<code class="code">warn_error</code> is true iff builds must consider warnings as errors.
 </div>
 </td></tr>
 </table>
