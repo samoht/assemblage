@@ -41,61 +41,46 @@ type bin = As_project.Bin.t
 type dir = As_project.Dir.t
 type test = As_project.Test.t
 
-let nil _ = []
-
-let unit ?available ?flags ?dir name deps =
-  `Unit (As_project.Unit.create ?available ?flags ?dir ~deps name)
+let unit ?available ?flags ?deps ?dir name =
+  `Unit (As_project.Unit.create ?available ?flags ?deps ?dir name)
 
 let file ?available ?flags ?deps ?dir name =
   `File (As_project.File.create ?available ?flags ?deps ?dir name)
 
-let generated ?available ?flags ?action name deps f =
-  `Gen (As_project.Gen.create ?available ?flags ~deps ?action f name)
+let generated ?available ?flags ?deps ?action name f =
+  `Gen (As_project.Gen.create ?available ?flags ?deps ?action f name)
 
-let c ?available ?flags ?dir ?(link_flags = []) name deps libs =
+let c ?available ?flags ?deps ?dir ?(link_flags = []) name libs =
   let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
-  `C (As_project.C.create ?available ?flags ?dir ~link_flags ~deps name)
+  `C (As_project.C.create ?available ?flags ?deps ?dir ~link_flags name)
 
 let js b r =
   let `Bin b = b in
   `JS (As_project.JS.create b r)
 
 let pkg ?available ?flags ?opt name =
-  `Pkg (As_project.Pkg.create ?available ?flags ?opt name ~is_pp:false)
+  `Pkg (As_project.Pkg.create ?available ?flags ?opt name `OCaml)
 
 let pkg_pp ?available ?flags ?opt name =
-  `Pkg_pp (As_project.Pkg.create ?available ?flags ?opt name ~is_pp:true)
+  `Pkg (As_project.Pkg.create ?available ?flags ?opt name `OCaml_pp)
 
-let sorted_cus cus =
-  let g = As_project.Component.Graph.create () in
-  List.iter (fun (`Unit cu) ->
-      As_project.Component.Graph.add_vertex g (`Unit cu);
-      List.iter (function
-          | `Unit dep ->
-            if List.mem (`Unit dep) cus then
-              As_project.Component.Graph.add_edge g (`Unit dep) (`Unit cu)
-          | _ -> ()
-        ) (As_project.Unit.deps cu)
-    ) cus;
-  let cus = As_project.Component.Graph.to_list g in
-  List.map (function `Unit cu -> cu | _ -> assert false) cus
+let pkg_c ?available ?flags ?opt name =
+  `Pkg (As_project.Pkg.create ?available ?flags ?opt name `C)
 
-let lib ?available ?flags ?pack ?(deps = nil) ?(c = []) name cus =
-  let cus = sorted_cus cus in
+let lib ?available ?flags ?deps ?pack ?(c = []) name cus =
   let c = List.map (function `C c -> c) c in
-  `Lib (As_project.Lib.create ?available ?flags ?pack ~deps ~c cus name)
+  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack ~c cus name)
 
-let bin ?available ?flags ?byte_only ?link_all ?install ?(deps = nil) name cus =
-  let cus = sorted_cus cus in
-  `Bin (As_project.Bin.create ?available ?flags ?byte_only ?link_all ?install
-          ~deps cus name)
+let bin ?available ?flags ?deps ?byte_only ?link_all ?install name cus =
+  `Bin (As_project.Bin.create ?available ?flags ?deps ?byte_only ?link_all
+          ?install cus name)
 
 let dir ?available ?flags ?deps ?install name contents =
   `Dir (As_project.Dir.create ?available ?flags ?deps ?install name contents)
 
 type test_command = As_project.Test.command
-let test ?available ?flags ?dir name deps commands =
-  `Test (As_project.Test.create ?available ?flags ?dir ~deps commands name)
+let test ?available ?flags ?deps ?dir name commands =
+  `Test (As_project.Test.create ?available ?flags ?deps ?dir name commands)
 
 type test_args = (component -> string) -> string list
 
@@ -111,20 +96,18 @@ let test_shell fmt =
 
 (* Component helpers *)
 
-let ocamldep ~dir ?flags deps =
+let ocamldep ?keep ?deps ?unit ~dir () =
   let resolver = As_ocamlfind.resolver `Direct (Sys.getcwd ()) in
-  let cus = As_OCaml.depends ?flags ~deps resolver dir in
-  List.map (fun cu -> `Unit cu) cus
+  List.map (fun u -> `Unit u) (As_OCaml.depends ?keep ?deps ?unit resolver dir)
 
-let (/) = Filename.concat
 let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
     name deps
   =
+  let (/) = Filename.concat in
   (* 1. compile the bindings. *)
   let deps = `Pkg As_project.Pkg.ctypes_stub :: deps in
   let name_bindings = name ^ "_bindings" in
-  let bindings = As_project.Unit.create ?dir ~deps:deps name_bindings in
-
+  let bindings = unit name_bindings ?dir ~deps in
   let name_generator = name ^ "_generator" in
   let name_stubs = name ^ "_stubs" in
   let bin_dir r = As_project.Bin.build_dir
@@ -145,9 +128,8 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
         "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
         headers ml_stubs c_stubs library name
     in
-    let ml = generated name_generator ~action [] [`Ml] in
-    let comp =
-      As_project.Unit.create ~deps:[ml; `Unit bindings] name_generator
+    let ml = generated name_generator ~action [`Ml] in
+    let comp = unit name_generator ~deps:[ml; bindings]
     in
     let bin =
       As_project.Bin.create ~install:false [bindings; comp] name_generator
@@ -157,17 +139,17 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
   let ml_stubs =
     let action r = As_action.custom ~dir:(bin_dir r) "./%s.byte" name_generator
     in
-    let ml = generated name_stubs ~action [generator] [`C; `Ml] in
-    unit name_stubs [ml] in
+    let ml = generated name_stubs ~action ~deps:[generator] [`C; `Ml] in
+    unit name_stubs ~deps:[ml] in
   let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
   let c_stubs =
     let c = As_project.C.create ~generated:true ~deps:[generator] ~link_flags
         name_stubs in
     `C c in
   let flags = As_flags.(cclib link_flags @@@ stub name_stubs) in
-  let ml = generated name [generator] [`Ml] in
-  let main = unit name [`Unit bindings; ml_stubs; c_stubs; ml] in
-  lib name ~flags ?available ~c:[c_stubs] [`Unit bindings; ml_stubs; main]
+  let ml = generated name ~deps:[generator] [`Ml] in
+  let main = unit name ~deps:[bindings; ml_stubs; c_stubs; ml] in
+  lib name ~flags ?available ~c:[c_stubs] [bindings; ml_stubs; main]
 
 (* Projects *)
 

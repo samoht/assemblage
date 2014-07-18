@@ -41,7 +41,6 @@ type component =
   | `File of file
   | `C of c
   | `JS of js
-  | `Pkg_pp of pkg
   | `Pkg of pkg
   | `Lib of lib
   | `Pp of lib
@@ -140,6 +139,7 @@ module Component : sig
   val js : t -> js option
   val pkg : t -> pkg option
   val pkg_pp : t -> pkg option
+  val pkg_c : t -> pkg option
   val lib : t -> lib option
   val pp : t -> lib option
   val bin : t -> bin option
@@ -192,7 +192,7 @@ module Unit : sig
   include Component_base with type t = comp_unit
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?dir:string -> ?deps:Component.t list -> string -> t
+    ?deps:component list -> ?dir:string -> string -> t
   (** Create a compilation unit. *)
 
   val copy : t -> t
@@ -252,7 +252,7 @@ module Gen : sig
   include Component_base with type t = gen
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:Component.t list -> ?action:As_action.t -> [`C | `Ml | `Mli] list ->
+    ?deps:component list -> ?action:As_action.t -> [`C | `Ml | `Mli] list ->
     string -> t
   (** Generate source files, using the given action. *)
 
@@ -273,11 +273,9 @@ module C : sig
 
   include Component_base with type t = c
 
-  val create :
-    ?available:As_features.t ->
-    ?flags:As_flags.t ->
-    ?dir:string -> ?generated:bool -> ?link_flags:string list ->
-    ?deps:Component.t list -> string -> t
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?deps:component list -> ?dir:string -> ?generated:bool ->
+    ?link_flags:string list -> string -> t
   (** Create a C object file. *)
 
   val container : t -> [`Lib of lib |`Bin of bin]  option
@@ -316,13 +314,16 @@ module JS : sig
   (** The location of the generated javascript artifacts. *)
 end
 
-(** External package (globally installed using [ocamlfind]. *)
+(** External package. *)
 module Pkg : sig
-
   include Component_base with type t = pkg
 
+  type kind = [ `OCaml | `OCaml_pp | `C ]
+
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?opt:bool -> string -> is_pp:bool -> t
+    ?opt:bool -> string -> kind -> t
+
+  val kind : t -> kind
 
   (** {1 Built-in packages} *)
 
@@ -336,8 +337,8 @@ module Lib : sig
   include Component_base with type t = lib
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?pack:bool -> ?deps:(string -> Component.t list) ->
-    ?c:c list -> Unit.t list -> string -> t
+    ?deps:component list -> ?pack:bool -> ?c:c list ->
+    [`Unit of Unit.t ] list -> string -> t
   (** Create a library. *)
 
   val filename : t -> string
@@ -372,14 +373,13 @@ module Bin : sig
   include Component_base with type t = bin
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?byte_only:bool -> ?link_all:bool -> ?install:bool ->
-    ?deps:(string -> Component.t list) ->
-    Unit.t list -> string -> t
+    ?deps:component list -> ?byte_only:bool -> ?link_all:bool ->
+    ?install:bool -> [ `Unit of Unit.t ] list -> string -> t
   (** Build a binary by linking a set of compilation units. *)
 
   val toplevel : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?custom:bool -> ?install:bool -> ?deps:(string -> Component.t list) ->
-    Unit.t list -> string -> t
+    ?deps:component list -> ?custom:bool -> ?install:bool ->
+    [`Unit of Unit.t ] list -> string -> t
   (** Create a custom toplevel by linking a set of compilation
       units. *)
 
@@ -423,8 +423,8 @@ module Test : sig
     [ `Bin of [`Bin of Bin.t] * args
     | `Shell of string ]
 
-  val create : ?available:As_features.t -> ?flags:As_flags.t -> ?dir:string ->
-    ?deps:Component.t list -> command list -> string  -> t
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?deps:component list -> ?dir:string -> string -> command list -> t
   (** Create a test. *)
 
   val dir : t -> string option

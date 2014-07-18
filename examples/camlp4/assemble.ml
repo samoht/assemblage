@@ -1,6 +1,6 @@
 open Assemblage
 
-let t = unit "t" [
+let t = unit "t" ~deps:[
     pkg_pp "sexplib.syntax";
     pkg_pp "comparelib.syntax";
     pkg    "sexplib";

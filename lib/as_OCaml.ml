@@ -19,10 +19,10 @@ open Printf
 
 let (|>) x f = f x
 
-module StringSet = Set.Make(struct
-    type t = string
-    let compare = String.compare
-  end)
+module StringSet = struct
+  include Set.Make (String)
+  let of_list ss = List.fold_left (fun acc s -> add s acc) empty ss
+end
 
 let (/) = Filename.concat
 let (//) x y =
@@ -166,66 +166,77 @@ let split str char =
 
 (* XXX: ugly hack as tools/{depend.ml,ocamldep.ml} are not in
    `compiler-libs' *)
-let depends ?flags ?(deps=fun _ -> []) resolver dir =
+let depends ?(keep = fun _ -> true) ?(deps = fun _ -> []) ?unit resolver dir =
+  let unit = match unit with
+  | Some unit -> unit
+  | None -> fun uname deps -> `Unit (As_project.Unit.create ~deps ~dir uname)
+  in
   let files =
-    Array.to_list (Sys.readdir dir) |>
-    List.filter (fun file ->
-        Filename.check_suffix file ".ml" || Filename.check_suffix file ".mli")
+    let keep f =
+      let is_mli = Filename.check_suffix f ".mli" in
+      let is_ml = Filename.check_suffix f ".ml" in
+      (is_mli || is_ml) && (* warning lazy evaluation is important here *)
+      keep (Filename.chop_extension f)
+    in
+    Array.to_list (Sys.readdir dir) |> List.filter keep
   in
   let paths = List.map (fun file -> dir / file) files in
-  let names = List.map Filename.chop_extension files in
+  let unames = StringSet.of_list (List.map Filename.chop_extension files) in
   let all_deps =
-    List.fold_left (fun acc name ->
-        deps name
-        |> As_project.Component.Set.of_list
-        |> As_project.Component.Set.union acc
-      ) As_project.Component.Set.empty names
+    let add uname acc =
+      let depset = As_project.Component.Set.of_list (deps uname) in
+      As_project.Component.Set.union depset acc
+    in
+    StringSet.fold add unames As_project.Component.Set.empty
     |> As_project.Component.Set.elements
   in
   let pp = match As_project.Component.pp_byte all_deps resolver with
+  | [] -> ""
+  | pp -> sprintf "-pp \"camlp4o %s\"" (String.concat " " pp)
+  in
+  let incl =
+    match As_project.Component.comp_byte all_deps resolver (fun _ -> dir) with
     | [] -> ""
-    | pp ->
-      let pp = String.concat " " pp in
-      sprintf "-pp \"camlp4o %s\"" pp in
-  let incl = match As_project.Component.comp_byte all_deps resolver (fun _ -> dir) with
-    | [] -> ""
-    | ls -> " " ^ String.concat " " ls in
+    | ls -> " " ^ String.concat " " ls
+  in
   let lines =
-    As_shell.exec_output
-      "ocamldep -one-line -modules %s%s %s"
+    As_shell.exec_output "ocamldep -one-line -modules %s%s %s"
       pp incl (String.concat " " paths)
   in
-  let deps_tbl = Hashtbl.create (List.length names) in
-  let add_dep line =
-    match split line ' ' with
-    | []
-    | "Bad"   :: _
-    | "File"  :: _
-    | "Error" :: _        -> ()
-    | name    :: modules  ->
+  let add_dep tbl line = match split line ' ' with
+  | []
+  | "Bad" :: _
+  | "File" :: _
+  | "Error" :: _ -> ()
+  | name :: modules  ->
       (* [name] is dir/<name>.ml[,i]: *)
-      let name = Filename.(basename (chop_extension name)) in
-      let deps = List.fold_left (fun acc m ->
-          if List.mem m names then
-            m :: acc
-          else if List.mem (String.uncapitalize m) names then
-            String.uncapitalize m :: acc
-          else
-            acc
-        ) [] modules
+      let uname = Filename.(basename (chop_extension name)) in
+      let deps =
+        let add acc m =
+          if StringSet.mem m unames then m :: acc else
+          let uncap_m = String.uncapitalize m in
+          if StringSet.mem uncap_m unames then uncap_m :: acc else
+          acc
+        in
+        List.fold_left add [] modules
       in
-      Hashtbl.add deps_tbl name deps
+      Hashtbl.add tbl uname deps
   in
-  List.iter add_dep lines;
-  let cus_tbl = Hashtbl.create (List.length names) in
-  let rec cu name =
-    try Hashtbl.find cus_tbl name
+  let rec get_u deps_tbl us_tbl name : [> `Unit of As_project.comp_unit ] =
+    try Hashtbl.find us_tbl name
     with Not_found ->
       let local_deps =
-        try List.concat (Hashtbl.find_all deps_tbl name)
-        with Not_found -> [] in
-      let deps = deps name @ List.map (fun x -> `Unit (cu x)) local_deps in
-      let cu = As_project.Unit.create ?flags ~dir ~deps name in
-      Hashtbl.add cus_tbl name cu;
-      cu in
-  List.map cu names
+        try List.concat (Hashtbl.find_all deps_tbl name) with Not_found -> []
+      in
+      let udeps = List.map (get_u deps_tbl us_tbl) local_deps in
+      let deps = deps name @ (udeps :> As_project.component list) in
+      let u = unit name deps in
+      Hashtbl.add us_tbl name u;
+      u
+  in
+  let len = StringSet.cardinal unames in
+  let deps_tbl = Hashtbl.create len in
+  let us_tbl = Hashtbl.create len in
+  List.iter (add_dep deps_tbl) lines;
+  StringSet.iter (fun n -> ignore (get_u deps_tbl us_tbl n)) unames;
+  Hashtbl.fold (fun _ (`Unit u) acc -> u :: acc) us_tbl []
