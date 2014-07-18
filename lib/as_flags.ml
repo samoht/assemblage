@@ -16,104 +16,92 @@
 
 open Printf
 
+type phase = [ `Pp | `Compile | `Link | `Other | `Run | `Test ]
+type mode = [ `Byte | `Native | `Shared | `C | `Js ]
 type args = string list
-type atom =
+type flag =
   { available : As_features.t;
-    pp_byte : args;
-    pp_native : args;
-    comp_byte : args;
-    comp_native : args;
-    comp_js : args;
-    link_byte : args;
-    link_native : args;
-    link_js : args;
-    link_shared : args;
-    c : args; }
+    phase : phase;
+    mode : mode;
+    args : args; }
 
-type t = atom list
-let (@@@) fs fs' = fs @ fs'
+type t = flag list
 
-let create ?(available = As_features.true_)
-    ?(pp_byte = []) ?(pp_native = [])
-    ?(comp_byte = []) ?(comp_native = []) ?(comp_js = [])
-    ?(link_byte = []) ?(link_native = []) ?(link_js = []) ?(link_shared = [])
-    ?(c = []) ()
-  =
-  [ { available;
-      pp_byte; pp_native;
-      comp_byte; comp_native; comp_js;
-      link_byte; link_native; link_js; link_shared;
-      c; } ]
+let v ?(available = As_features.true_) phase mode args =
+  [ { available; phase; mode; args } ]
 
+let empty = []
+let ( @@@ ) fs fs' = fs @ fs'
 
-let empty = create ()
-
-let get _ field fs =
+(* FIXME need an Features.t eveluation context as argument. *)
+let get ((* ctx *)) phase mode flags =
   let rec loop acc = function
-  | [] -> List.flatten (List.rev acc)
-  | atom :: atoms ->
-      let available = true (* FIXME As_features.eval ctx t.features *) in
-      let acc' = if available then ((field atom) :: acc) else acc in
-      loop acc' atoms
+    | [] -> List.flatten (List.rev acc)
+    | atom :: atoms ->
+        if atom.phase = phase
+        && atom.mode = mode
+        && true (* FIXME As_features.eval ctx t.features *)
+        then loop (atom.args :: acc) atoms
+        else loop acc atoms
   in
-  loop [] fs
+  loop [] flags
 
-(* FIXME these functions need an evaluation context as argument *)
-
-let ctx = ()
-let pp_byte fs = get ctx (fun a -> a.pp_byte) fs
-let pp_native fs = get ctx (fun a -> a.pp_native) fs
-let comp_byte fs = get ctx (fun a -> a.comp_byte) fs
-let comp_native fs = get ctx (fun a -> a.comp_native) fs
-let comp_js fs = get ctx (fun a -> a.comp_js) fs
-let link_byte fs = get ctx (fun a -> a.link_byte) fs
-let link_js fs = get ctx (fun a -> a.comp_js) fs
-let link_native fs = get ctx (fun a -> a.link_native) fs
-let link_shared fs = get ctx (fun a -> a.link_shared) fs
-let c fs = get ctx (fun a -> a.c) fs
-
-(* Built-in flags *)
+let get phase mode flags = get () phase mode flags
 
 let debug =
   let f = ["-g"] in
-  let js_f = [ "-pretty"; "-debuginfo"; "-sourcemap"] in
-  create
-    ~comp_byte:f ~comp_native:f ~comp_js:js_f
-    ~link_byte:f ~link_native:f ~link_shared:f
-    ~c:f ()
+  let v = v ~available:As_features.debug in
+  v `Compile `Byte f @@@
+  v `Compile `Native f @@@
+  v `Compile `Js [ "-pretty"; "-debuginfo"; "-sourcemap"] @@@
+  v `Compile `C f @@@
+  v `Link `Byte f @@@
+  v `Link `Native f @@@
+  v `Link `C f
 
 let annot =
   let f = ["-bin-annot"] in
-  create ~comp_byte:f ~comp_native:f ()
+  let v = v ~available:As_features.annot in
+  v `Compile `Byte f @@@
+  v `Compile `Native f
+
 
 let linkall =
   let f = ["-linkall"] in
-  create ~link_byte:f ~link_native:f ~link_js:f ()
+  v `Link `Byte f @@@
+  v `Link `Native f @@@
+  v `Link `Js f
 
 let warn_error =
   let f = ["-warn-error A-44-4 -w A-44-4"] in
-  create ~comp_byte:f ~comp_native:f ()
+  let v = v ~available:As_features.warn_error in
+  v `Compile `Byte f @@@
+  v `Compile `Native f
 
 let thread =
   let f = ["-thread"] in
-  create
-    ~comp_byte:f ~comp_native:f
-    ~link_byte:f ~link_native:f ~link_shared:f ()
+  v `Compile `Byte f @@@
+  v `Compile `Native f @@@
+  v `Link `Byte f @@@
+  v `Link `Native f @@@
+  v `Link `Shared f
 
 let cclib args =
   let f = List.map (sprintf "-cclib %s") args in
-  create
-    ~link_byte:f ~link_native:f ~link_shared:f
-    ~c:args ()
+  v `Link `Byte f @@@
+  v `Link `Byte f @@@
+  v `Link `Shared f @@@
+  v `Compile `C args
 
 let ccopt args =
   let f = List.map (sprintf "-ccopt %s") args in
-  create
-    ~comp_byte:f ~comp_native:f
-    ~link_byte:f ~link_native:f ~link_shared:f
-    ~c:args ()
+  v `Compile `Byte f @@@
+  v `Compile `Native f @@@
+  v `Link `Byte f @@@
+  v `Link `Native f @@@
+  v `Link `Shared f @@@
+  v `Link `C args
 
-let stub s = create
-    ~link_byte:[sprintf "-cclib -l%s -dllib -l%s" s s]
-    ~link_native:[sprintf "-cclib -l%s" s]
-    ~link_shared:[] ()
+let stub s =
+  v `Link `Byte [sprintf "-cclib -l%s -dllib -l%s" s s] @@@
+  v `Link `Native [sprintf "-cclib -l%s" s]

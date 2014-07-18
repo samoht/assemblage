@@ -383,8 +383,8 @@ end = struct
         let pkgs = List.map Pkg.name pkgs in
         let pkgs = As_resolver.pkgs resolver pkgs in
         match mode with
-        | `Byte   -> As_flags.comp_byte pkgs
-        | `Native -> As_flags.comp_native pkgs
+        | `Byte   -> As_flags.get `Compile `Byte pkgs
+        | `Native -> As_flags.get `Compile `Native pkgs
     in
     pkgs @ [String.concat " " includes]
 
@@ -412,8 +412,8 @@ end = struct
         let pkgs = List.map Pkg.name pkgs in
         let pkgs = As_resolver.pkgs resolver pkgs in
         match mode with
-        | `Byte   -> As_flags.link_byte pkgs
-        | `Native -> As_flags.link_native pkgs in
+        | `Byte   -> As_flags.get `Link `Byte pkgs
+        | `Native -> As_flags.get `Link `Native pkgs in
     pkgs @ libs @ comps
 
   let link_byte = link_flags `Byte
@@ -435,8 +435,8 @@ end = struct
         let pkgs = List.map Pkg.name pkgs in
         let pkgs = As_resolver.pkgs resolver pkgs in
         match mode with
-        | `Byte   -> As_flags.pp_byte pkgs
-        | `Native -> As_flags.pp_native pkgs in
+        | `Byte   -> As_flags.get `Pp `Byte pkgs
+        | `Native -> As_flags.get `Pp `Native pkgs in
       pkgs @ libs
 
   let pp_byte = pp_flags `Byte
@@ -613,12 +613,14 @@ end = struct
   (* XXX: memoize the function *)
   let flags t resolver =
     let deps = deps t |> Component.closure in
-    let comp_byte = Component.comp_byte deps resolver (build_dir t) in
-    let comp_native = Component.comp_native deps resolver (build_dir t) in
-    let pp_byte = Component.pp_byte deps resolver in
-    let pp_native = Component.pp_native deps resolver in
-    let t' = As_flags.create ~comp_byte ~comp_native ~pp_byte ~pp_native () in
-    As_flags.(t' @@@ t.u_flags)
+    let flags =
+      let open As_flags in
+      v `Compile `Byte  (Component.comp_byte deps resolver (build_dir t)) @@@
+      v `Compile `Native (Component.comp_native deps resolver (build_dir t)) @@@
+      v `Pp `Byte (Component.pp_byte deps resolver) @@@
+      v `Pp `Native (Component.pp_native deps resolver)
+    in
+    As_flags.(flags @@@ t.u_flags)
 
   let sort us =
     let g = Component.Graph.create () in
@@ -755,7 +757,7 @@ end = struct
 
   let file t r e = Bin.file (bin t) r e
   let js t r = Bin.file (bin t) r ".js"
-  let flags t _r = As_flags.create ~link_byte:t.j_args ()
+  let flags t _r = As_flags.v `Link `Byte t.j_args
   let build_dir t r = Bin.build_dir (bin t) r
   let prereqs t r _ = [Bin.byte (bin t) r]
   let generated_files t r = [As_features.js, [js t r]]
@@ -880,10 +882,12 @@ end = struct
 
   let flags t resolver =
     let comps = units t in
-    let link_byte = Component.link_byte [] resolver comps in
-    let link_native = Component.link_native [] resolver comps in
-    let t' = As_flags.create ~link_byte ~link_native () in
-    As_flags.(t' @@@ t.l_flags)
+    let flags =
+      let open As_flags in
+      v `Link `Byte (Component.link_byte [] resolver comps) @@@
+      v `Link `Native (Component.link_native [] resolver comps)
+    in
+    As_flags.(flags @@@ t.l_flags)
 
   let rec prereqs t resolver mode =
     let c_deps = match mode with
@@ -968,7 +972,7 @@ end = struct
     let link_byte = [
       (if custom then "-custom " else "") ^ "-I +compiler-libs topstart.cmo"
     ] in
-    let nflags = As_flags.create ~link_byte () in
+    let nflags = As_flags.v `Link `Byte link_byte in
     let flags = As_flags.(nflags @@@ flags) in
     let t = create ~available ~flags ~link_all:true ~deps ?install comps name in
     { t with b_toplevel = true }
@@ -1006,13 +1010,15 @@ end = struct
     let comps = units t in
     let all_deps =
       (deps t @ List.map (fun x -> `Unit x) comps) |> Component.closure in
-    let comp_byte = Component.comp_byte (deps t) resolver (build_dir t) in
-    let comp_native = Component.comp_native (deps t) resolver (build_dir t) in
-    let link_byte = Component.link_byte all_deps resolver comps in
-    let link_native = Component.link_native all_deps resolver comps in
-    let t' = As_flags.create ~link_byte ~link_native ~comp_byte ~comp_native ()
+    let flags =
+      let open As_flags in
+      v `Compile `Byte (Component.comp_byte (deps t) resolver (build_dir t)) @@@
+      v `Compile `Native
+        (Component.comp_native (deps t) resolver (build_dir t)) @@@
+      v `Link `Byte (Component.link_byte all_deps resolver comps) @@@
+      v `Link `Native (Component.link_native all_deps resolver comps)
     in
-    As_flags.(t' @@@ t.b_flags)
+    As_flags.(flags @@@ t.b_flags)
 
 end
 

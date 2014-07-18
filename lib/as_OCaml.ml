@@ -53,7 +53,7 @@ end
 #endif
 
 let init flags =
-  match As_flags.pp_byte flags with
+  match As_flags.get `Pp `Byte flags with
   | [] -> Clflags.preprocessor := None;
   | pp ->
     let pp = String.concat " " pp in
