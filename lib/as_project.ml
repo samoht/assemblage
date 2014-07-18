@@ -27,8 +27,7 @@ module StringSet = Set.Make (String)
 
 type component =
   [ `Unit of comp_unit
-  | `Gen of gen
-  | `File of file
+  | `Other of other
   | `C of c
   | `JS of js
   | `Pkg of pkg
@@ -51,21 +50,14 @@ and comp_unit =
     u_mli : bool;
     u_ml  : bool; }
 
-and file =
-  { f_name : string;
-    f_available : As_features.t;
-    f_flags : As_flags.t;
-    f_deps : component list;
-    f_dir : string option; }
-
-and gen =
-  { g_name : string;
-    g_available : As_features.t;
-    g_flags : As_flags.t;
-    g_deps : component list;
-    mutable g_comp : comp_unit option;
-    g_action : As_action.t option;
-    g_files : [`C |`Ml | `Mli] list; }
+and other =
+  { o_name : string;
+    o_available : As_features.t;
+    o_flags : As_flags.t;
+    o_deps : component list;
+    mutable o_comp : comp_unit option;
+    o_action : As_action.t option;
+    o_files : [`C |`Ml | `Mli] list; }
 
 and c =
   { c_name : string;
@@ -191,8 +183,7 @@ end
 module rec Component : sig
   include Component_base with type t = component
   val unit : t -> comp_unit option
-  val file_ : t -> file option
-  val gen: t -> gen option
+  val other : t -> other option
   val c: t -> c option
   val js: t -> js option
   val pkg: t -> pkg option
@@ -223,8 +214,7 @@ end = struct
 
   let id = function
   | `Unit u  -> Unit.id u
-  | `File f -> File.id f
-  | `Gen g  -> Gen.id g
+  | `Other o  -> Other.id o
   | `C c    -> C.id c
   | `JS js  -> JS.id js
   | `Pkg p  -> Pkg.id p
@@ -236,8 +226,7 @@ end = struct
 
   let name = function
   | `Unit u  -> Unit.name u
-  | `File f -> File.name f
-  | `Gen g  -> Gen.name g
+  | `Other o  -> Other.name o
   | `C c    -> C.name c
   | `JS js  -> JS.name js
   | `Pkg p -> Pkg.name p
@@ -249,8 +238,7 @@ end = struct
 
   let available = function
   | `Unit u  -> Unit.available u
-  | `File f -> File.available f
-  | `Gen g  -> Gen.available g
+  | `Other o  -> Other.available o
   | `C c    -> C.available c
   | `JS js  -> JS.available js
   | `Pkg p -> Pkg.available p
@@ -262,8 +250,7 @@ end = struct
 
   let prereqs = function
   | `Unit u  -> Unit.prereqs u
-  | `File f -> File.prereqs f
-  | `Gen g  -> Gen.prereqs g
+  | `Other o -> Other.prereqs o
   | `C c    -> C.prereqs c
   | `JS js  -> JS.prereqs js
   | `Pkg p -> Pkg.prereqs p
@@ -275,8 +262,7 @@ end = struct
 
   let flags = function
   | `Unit u  -> Unit.flags u
-  | `File f -> File.flags f
-  | `Gen g  -> Gen.flags g
+  | `Other o  -> Other.flags o
   | `C c    -> C.flags c
   | `JS js  -> JS.flags js
   | `Pkg p -> Pkg.flags p
@@ -288,8 +274,7 @@ end = struct
 
   let generated_files = function
   | `Unit u  -> Unit.generated_files u
-  | `File f -> File.generated_files f
-  | `Gen g  -> Gen.generated_files g
+  | `Other o -> Other.generated_files o
   | `C c    -> C.generated_files c
   | `JS js  -> JS.generated_files js
   | `Pkg p -> Pkg.generated_files p
@@ -301,8 +286,7 @@ end = struct
 
   let file = function
   | `Unit u  -> Unit.file u
-  | `File f -> File.file f
-  | `Gen g  -> Gen.file g
+  | `Other o -> Other.file o
   | `C c    -> C.file c
   | `JS js  -> JS.file js
   | `Pkg p -> Pkg.file p
@@ -314,8 +298,7 @@ end = struct
 
   let build_dir = function
   | `Unit u  -> Unit.build_dir u
-  | `File f -> File.build_dir f
-  | `Gen g  -> Gen.build_dir g
+  | `Other o -> Other.build_dir o
   | `C c    -> C.build_dir c
   | `JS js  -> JS.build_dir js
   | `Pkg p -> Pkg.build_dir p
@@ -327,8 +310,7 @@ end = struct
 
   let deps = function
   | `Unit u  -> Unit.deps u
-  | `File f -> File.deps f
-  | `Gen g  -> Gen.deps g
+  | `Other o -> Other.deps o
   | `C c    -> C.deps c
   | `JS js  -> JS.deps js
   | `Pkg p -> Pkg.deps p
@@ -339,8 +321,7 @@ end = struct
   | `Test t -> Test.deps t
 
   let unit = function `Unit x -> Some x | _ -> None
-  let file_ = function `File x -> Some x | _ -> None
-  let gen = function `Gen x -> Some x | _ -> None
+  let other = function `Other x -> Some x | _ -> None
   let c = function `C c -> Some c | _ -> None
   let js = function `JS x -> Some x | _ -> None
   let pkg = function `Pkg x when Pkg.kind x = `OCaml -> Some x | _ -> None
@@ -551,14 +532,14 @@ end = struct
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(deps = []) ?dir name
     =
-    let gens = Component.(filter gen) deps in
-    let mli = match gens with
+    let others = Component.(filter other) deps in
+    let mli = match others with
     | [] -> Sys.file_exists (dir // name ^ ".mli")
-    | _  -> List.exists (fun g -> List.mem `Mli g.g_files) gens
+    | _  -> List.exists (fun o -> List.mem `Mli o.o_files) others
     in
-    let ml = match gens with
+    let ml = match others with
     | [] -> Sys.file_exists (dir // name ^ ".ml")
-    | _  -> List.exists (fun g -> List.mem `Ml g.g_files) gens
+    | _  -> List.exists (fun o -> List.mem `Ml o.o_files) others
     in
     if not ml && not mli
     then
@@ -566,19 +547,19 @@ end = struct
         "unit %s: cannot find %s.ml or %s.mli in `%s', stopping.\n"
         name name name (match dir with None -> "." | Some d -> d / "")
     else
-    let u_generated = gens <> [] in
+    let u_generated = others <> [] (* FIXME: this is wrong *) in
     let t =
       { u_name = name; u_available = available; u_deps = deps; u_dir = dir;
         u_flags = flags; u_container = None; u_for_pack = None; u_pack = [];
         u_generated; u_ml = ml; u_mli = mli; }
     in
     (* FIXME: mutation *)
-    List.iter (fun g ->
-        let g = match g.g_comp with
-        | None   -> g
-        | Some _ -> { g with g_comp = None } in
-        g.g_comp <- Some t
-      ) gens;
+    List.iter (fun o ->
+        let o = match o.o_comp with
+        | None   -> o
+        | Some _ -> { o with o_comp = None } in
+        o.o_comp <- Some t
+      ) others;
     t
 
   let pack ?(available = As_features.true_) ?(flags = As_flags.empty) comps
@@ -654,34 +635,8 @@ end = struct
     List.map (function `Unit u -> u | _ -> assert false) us
 end
 
-and File : sig
-  include Component_base with type t = file
-  val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?dir:string -> string -> file
-end = struct
-  type t = file
-
-  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = []) ?dir f_name =
-    { f_name; f_available = available; f_flags = flags; f_deps = deps;
-      f_dir = dir }
-
-  let id f = "file-" ^ f.f_name
-  let name f = f.f_name
-  let available f = f.f_available
-  let flags f _ = f.f_flags
-  let deps f = f.f_deps
-  let prereqs _ _ _ = []
-  let file _ = invalid_arg "File.file: not applicable"
-  let build_dir _ = invalid_arg "File.build_dir: not applicable"
-  let generated_files f r =
-    let file = As_resolver.build_dir r f.f_name in
-    [f.f_available, [ file ]]
-end
-
-
-and Gen: sig
-  include Component_base with type t = gen
+and Other : sig
+  include Component_base with type t = other
 
   val create: ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:Component.t list -> ?action:As_action.t ->
@@ -690,36 +645,36 @@ and Gen: sig
   val files: t -> As_resolver.t -> string list
   val actions: t -> As_resolver.t -> string list
 end = struct
-  type t = gen
+  type t = other
 
-  let id t = "gen-" ^ t.g_name
-  let name t = t.g_name
-  let available g = g.g_available
-  let deps t = t.g_deps
+  let id t = "other-" ^ t.o_name
+  let name t = t.o_name
+  let available g = g.o_available
+  let deps t = t.o_deps
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = []) ?action g_files g_name
+      ?(deps = []) ?action o_files o_name
     =
-    { g_name; g_available = available; g_flags = flags; g_deps = deps;
-      g_comp = None; g_files; g_action = action; }
+    { o_name; o_available = available; o_flags = flags; o_deps = deps;
+      o_comp = None; o_files; o_action = action; }
 
-  let copy t = { t with g_comp = None }
+  let copy t = { t with o_comp = None }
 
   let build_dir t r =
-    match t.g_comp with
+    match t.o_comp with
     | None   -> As_resolver.build_dir r ""
     | Some u -> Unit.build_dir u r
 
   let prereqs t r mode =
-    let bins = Component.(filter bin t.g_deps) in
+    let bins = Component.(filter bin t.o_deps) in
     List.map (fun b -> match mode with
         | `Byte   -> Bin.byte b r
         | `Shared
         | `Native -> Bin.native b r
       ) bins
 
-  let flags t _ = t.g_flags
-  let file t r ext = build_dir t r / t.g_name ^ ext
+  let flags t _ = t.o_flags
+  let file t r ext = build_dir t r / t.o_name ^ ext
   let ml t r = file t r ".ml"
   let mli t r = file t r ".mli"
 
@@ -728,11 +683,11 @@ end = struct
         | `C    -> file t r ".c"
         | `Ml   -> ml t r
         | `Mli  -> mli t r
-      ) t.g_files
+      ) t.o_files
 
   let generated_files t r = [ As_features.true_, files t r ]
   let actions t r =
-    match t.g_action with
+    match t.o_action with
     | None   -> []
     | Some a -> As_action.actions a r
 end

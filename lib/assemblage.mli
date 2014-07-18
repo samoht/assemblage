@@ -257,11 +257,8 @@ end
 type comp_unit
 (** The type for compilation unit descriptions. *)
 
-type file
-(** The type for static files. *)
-
-type gen
-(** The type for generated OCaml source code. *)
+type other
+(** The type for arbitrarily constructed files descriptions. *)
 
 type c
 (** The type for C source file descriptions. *)
@@ -286,10 +283,9 @@ type test
 
 type component =
   [ `Unit of comp_unit
-  | `File of file
+  | `Other of other
   | `C of c
   | `JS of js
-  | `Gen of gen
   | `Lib of lib
   | `Pp of lib
   | `Pkg of pkg
@@ -313,15 +309,9 @@ val unit : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
     It is only available whenever [available] is true,
     it must be build with [flags] and depends on [deps] to be built. *)
 
-val file : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-  ?dir:string -> string -> [> `File of file ]
-(** [file name ~dir ~available ~flags deps] is a static file [name] present
-    in directory [dir]. It is only available whenever [available] is true
-    and depends on [deps] to be built. *)
-
-val generated : ?available:Features.t -> ?flags:Flags.t ->
+val other : ?available:Features.t -> ?flags:Flags.t ->
   ?deps:component list -> ?action:Action.t -> string ->
-  [`C | `Ml | `Mli] list -> [> `Gen of gen]
+  [`C | `Ml | `Mli] list -> [> `Other of other]
 (** Generated OCaml source file(s). The custom action get the name of
     the build dir as argument. *)
 

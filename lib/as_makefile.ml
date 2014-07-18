@@ -608,9 +608,9 @@ end = struct
 
 end
 
-and G: sig
-  val rules    : As_project.Gen.t -> Rule.t list
-  val variables: As_project.Gen.t -> Variable.stanza
+and O : sig
+  val rules    : As_project.Other.t -> Rule.t list
+  val variables: As_project.Other.t -> Variable.stanza
 end = struct
 
   (* XXX: improve the generated variables and rules *)
@@ -620,9 +620,9 @@ end = struct
   let rules t =
     [
       Rule.create
-        ~targets:(As_project.Gen.files t resolver)
-        ~prereqs:(As_project.Gen.prereqs t resolver `Byte)
-        (As_project.Gen.actions t resolver)
+        ~targets:(As_project.Other.files t resolver)
+        ~prereqs:(As_project.Other.prereqs t resolver `Byte)
+        (As_project.Other.actions t resolver)
     ]
 end
 
@@ -817,7 +817,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
   let bins  = As_project.Component.(filter bin components) in
   let tests = As_project.Component.(filter test components) in
   let jss   = As_project.Component.(filter js components) in
-  let gens  = As_project.Component.(filter gen components) in
+  let others  = As_project.Component.(filter other components) in
   let cs    = As_project.Component.(filter c components) in
   let cus   = As_project.Component.(
       (components
@@ -889,14 +889,14 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
     :: (List.map U.variables cus)
     @  (List.map L.variables (libs @ pps))
     @  (List.map B.variables bins)
-    @  (List.map G.variables gens)
+    @  (List.map O.variables others)
   in
   let rules =
     conmap U.rules cus
     @ conmap L.rules libs
     @ conmap L.rules pps
     @ conmap B.rules bins
-    @ conmap G.rules gens
+    @ conmap O.rules others
     @ C.rules cs resolver
     @ T.rules tests
     @ D.rules

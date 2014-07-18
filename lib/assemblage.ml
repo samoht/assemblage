@@ -31,8 +31,7 @@ module Action = As_action
 type t = As_project.t
 type component = As_project.Component.t
 type comp_unit = As_project.Unit.t
-type file = As_project.File.t
-type gen = As_project.Gen.t
+type other = As_project.Other.t
 type c = As_project.C.t
 type js = As_project.JS.t
 type pkg = As_project.Pkg.t
@@ -44,11 +43,8 @@ type test = As_project.Test.t
 let unit ?available ?flags ?deps ?dir name =
   `Unit (As_project.Unit.create ?available ?flags ?deps ?dir name)
 
-let file ?available ?flags ?deps ?dir name =
-  `File (As_project.File.create ?available ?flags ?deps ?dir name)
-
-let generated ?available ?flags ?deps ?action name f =
-  `Gen (As_project.Gen.create ?available ?flags ?deps ?action f name)
+let other ?available ?flags ?deps ?action name f =
+  `Other (As_project.Other.create ?available ?flags ?deps ?action f name)
 
 let c ?available ?flags ?deps ?dir ?(link_flags = []) name libs =
   let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
@@ -128,7 +124,7 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
         "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
         headers ml_stubs c_stubs library name
     in
-    let ml = generated name_generator ~action [`Ml] in
+    let ml = other name_generator ~action [`Ml] in
     let comp = unit name_generator ~deps:[ml; bindings]
     in
     let bin =
@@ -139,7 +135,7 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
   let ml_stubs =
     let action r = As_action.custom ~dir:(bin_dir r) "./%s.byte" name_generator
     in
-    let ml = generated name_stubs ~action ~deps:[generator] [`C; `Ml] in
+    let ml = other name_stubs ~action ~deps:[generator] [`C; `Ml] in
     unit name_stubs ~deps:[ml] in
   let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
   let c_stubs =
@@ -147,7 +143,7 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
         name_stubs in
     `C c in
   let flags = As_flags.(cclib link_flags @@@ stub name_stubs) in
-  let ml = generated name ~deps:[generator] [`Ml] in
+  let ml = other name ~deps:[generator] [`Ml] in
   let main = unit name ~deps:[bindings; ml_stubs; c_stubs; ml] in
   lib name ~flags ?available ~c:[c_stubs] [bindings; ml_stubs; main]
 
