@@ -124,14 +124,16 @@ module META = struct
   type t = string
 
   let of_project t =
-    let libs = As_project.Component.(filter lib) (As_project.components t) in
+    let libs =
+      As_project.Component.(filter lib_ocaml) (As_project.components t)
+    in
     let version = As_project.version t in
     let buf = Buffer.create 1024 in
     let one lib =
       let requires =
         As_project.Lib.deps lib
         |> As_project.Component.closure
-        |> As_project.Component.(filter pkg)
+        |> As_project.Component.(filter pkg_ocaml)
         |> List.map As_project.Pkg.name
         |> String.concat " " in
       let name = As_project.Lib.name lib in

@@ -128,7 +128,7 @@ let modules ~build_dir cu =
   let () =
     As_project.Unit.deps cu
     |> As_project.Component.closure
-    |> As_project.Component.(filter pkg_pp)
+    |> As_project.Component.(filter pkg_ocaml_pp)
     |> List.map As_project.Pkg.name
     |> As_resolver.pkgs resolver
     |> init in

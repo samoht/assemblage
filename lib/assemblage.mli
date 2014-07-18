@@ -257,11 +257,8 @@ end
 type comp_unit
 (** The type for compilation unit descriptions. *)
 
-type file
-(** The type for static files. *)
-
-type gen
-(** The type for generated OCaml source code. *)
+type other
+(** The type for arbitrarily constructed files descriptions. *)
 
 type c
 (** The type for C source file descriptions. *)
@@ -286,12 +283,10 @@ type test
 
 type component =
   [ `Unit of comp_unit
-  | `File of file
+  | `Other of other
   | `C of c
   | `JS of js
-  | `Gen of gen
   | `Lib of lib
-  | `Pp of lib
   | `Pkg of pkg
   | `Bin of bin
   | `Dir of dir
@@ -300,7 +295,6 @@ type component =
     {ul
     {- [`Unit u] u is a project compilation unit.}
     {- [`Lib l] is a project library.}
-    {- [`Pp p] is a project pre-processor}
     {- [`Bin b] is a project binary.}
     {- [`Test b] is a project test.}
     {- [`Pkg p] is an external named package.}
@@ -313,15 +307,9 @@ val unit : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
     It is only available whenever [available] is true,
     it must be build with [flags] and depends on [deps] to be built. *)
 
-val file : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-  ?dir:string -> string -> [> `File of file ]
-(** [file name ~dir ~available ~flags deps] is a static file [name] present
-    in directory [dir]. It is only available whenever [available] is true
-    and depends on [deps] to be built. *)
-
-val generated : ?available:Features.t -> ?flags:Flags.t ->
+val other : ?available:Features.t -> ?flags:Flags.t ->
   ?deps:component list -> ?action:Action.t -> string ->
-  [`C | `Ml | `Mli] list -> [> `Gen of gen]
+  [`C | `Ml | `Mli] list -> [> `Other of other]
 (** Generated OCaml source file(s). The custom action get the name of
     the build dir as argument. *)
 
@@ -335,9 +323,14 @@ val c : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
 val lib : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
   ?pack:bool -> ?c:[`C of c] list -> string -> [`Unit of comp_unit] list ->
   [> `Lib of lib]
-(** [lib name units] is the library [name] composed by the compilation
+(** [lib name units] is the project library [name] composed by the compilation
     units [cus]. If [lib] is set, use [ocamldep] to approximate the
     compilation units and their dependecies in the given directory. *)
+
+val lib_pp : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
+  ?pack:bool -> ?c:[`C of c] list -> string -> [`Unit of comp_unit] list ->
+  [> `Lib of lib]
+(** [lib_pp] is like {!lib} but it defines a project pre-processor. *)
 
 val bin : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
     ?byte_only:bool -> ?link_all:bool -> ?install:bool ->

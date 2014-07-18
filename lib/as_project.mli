@@ -25,8 +25,7 @@
     models the relation between components. *)
 
 type comp_unit
-type gen
-type file
+type other
 type c
 type js
 type pkg
@@ -37,13 +36,11 @@ type test
 
 type component =
   [ `Unit of comp_unit
-  | `Gen of gen
-  | `File of file
+  | `Other of other
   | `C of c
   | `JS of js
   | `Pkg of pkg
   | `Lib of lib
-  | `Pp of lib
   | `Bin of bin
   | `Dir of dir
   | `Test of test ]
@@ -133,15 +130,16 @@ module Component : sig
   include Component_base with type t = component
 
   val unit : t -> comp_unit option
-  val file_ : t -> file option
-  val gen : t -> gen option
+  val other : t -> other option
   val c : t -> c option
   val js : t -> js option
   val pkg : t -> pkg option
-  val pkg_pp : t -> pkg option
+  val pkg_ocaml : t -> pkg option
+  val pkg_ocaml_pp : t -> pkg option
   val pkg_c : t -> pkg option
   val lib : t -> lib option
-  val pp : t -> lib option
+  val lib_ocaml : t -> lib option
+  val lib_ocaml_pp : t -> lib option
   val bin : t -> bin option
   val dir : t -> dir option
   val test : t -> test option
@@ -239,22 +237,15 @@ module Unit : sig
   (** The location of the object file for the compilation unit. *)
 end
 
-(** Static file *)
-module File : sig
-  include Component_base with type t = file
-  val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?dir:string -> string -> file
-end
+(** Arbitrary files generator. *)
+module Other : sig
 
-(** Source file generator. *)
-module Gen : sig
-
-  include Component_base with type t = gen
+  include Component_base with type t = other
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> ?action:As_action.t -> [`C | `Ml | `Mli] list ->
     string -> t
-  (** Generate source files, using the given action. *)
+  (** Generate arbitrary files, using the given action. *)
 
   val copy : t -> t
   (** Copy the generator if it needs to run in an other directory. *)
@@ -336,10 +327,14 @@ module Lib : sig
 
   include Component_base with type t = lib
 
+  type kind = [ `OCaml | `OCaml_pp ]
+
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?pack:bool -> ?c:c list ->
-    [`Unit of Unit.t ] list -> string -> t
+    ?deps:component list -> ?pack:bool -> ?c:c list -> string ->
+    kind -> [`Unit of Unit.t ] list -> t
   (** Create a library. *)
+
+  val kind : t -> kind
 
   val filename : t -> string
   (** The library filename. Usually, it is the same as [name], but

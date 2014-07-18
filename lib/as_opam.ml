@@ -32,7 +32,7 @@ module Install = struct
   let of_project ?(meta=true) ~build_dir t =
     let name = As_project.name t in
     let components = As_project.components t in
-    let libs = As_project.Component.(filter lib components) in
+    let libs = As_project.Component.(filter lib_ocaml components) in
     let bins =
       List.filter As_project.Bin.install As_project.Component.(filter bin components) in
     let buf = Buffer.create 1024 in

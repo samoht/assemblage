@@ -31,8 +31,7 @@ module Action = As_action
 type t = As_project.t
 type component = As_project.Component.t
 type comp_unit = As_project.Unit.t
-type file = As_project.File.t
-type gen = As_project.Gen.t
+type other = As_project.Other.t
 type c = As_project.C.t
 type js = As_project.JS.t
 type pkg = As_project.Pkg.t
@@ -44,11 +43,8 @@ type test = As_project.Test.t
 let unit ?available ?flags ?deps ?dir name =
   `Unit (As_project.Unit.create ?available ?flags ?deps ?dir name)
 
-let file ?available ?flags ?deps ?dir name =
-  `File (As_project.File.create ?available ?flags ?deps ?dir name)
-
-let generated ?available ?flags ?deps ?action name f =
-  `Gen (As_project.Gen.create ?available ?flags ?deps ?action f name)
+let other ?available ?flags ?deps ?action name f =
+  `Other (As_project.Other.create ?available ?flags ?deps ?action f name)
 
 let c ?available ?flags ?deps ?dir ?(link_flags = []) name libs =
   let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
@@ -67,9 +63,14 @@ let pkg_pp ?available ?flags ?opt name =
 let pkg_c ?available ?flags ?opt name =
   `Pkg (As_project.Pkg.create ?available ?flags ?opt name `C)
 
-let lib ?available ?flags ?deps ?pack ?(c = []) name cus =
+let lib ?available ?flags ?deps ?pack ?(c = []) name us =
   let c = List.map (function `C c -> c) c in
-  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack ~c cus name)
+  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack ~c name `OCaml us)
+
+let lib_pp ?available ?flags ?deps ?pack ?(c = []) name us =
+  let c = List.map (function `C c -> c) c in
+  let kind = `OCaml_pp in
+  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack ~c name kind us)
 
 let bin ?available ?flags ?deps ?byte_only ?link_all ?install name cus =
   `Bin (As_project.Bin.create ?available ?flags ?deps ?byte_only ?link_all
@@ -113,7 +114,8 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
   let bin_dir r = As_project.Bin.build_dir
       (As_project.Bin.create [] name_generator) r in
   let lib_dir r =
-    Sys.getcwd () / As_project.Lib.build_dir (As_project.Lib.create [] name) r
+    let lib = As_project.Lib.create name `OCaml [] in
+    Sys.getcwd () / As_project.Lib.build_dir lib r
   in
   (* 2. Generate and compile the generator. *)
   let generator =
@@ -128,7 +130,7 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
         "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
         headers ml_stubs c_stubs library name
     in
-    let ml = generated name_generator ~action [`Ml] in
+    let ml = other name_generator ~action [`Ml] in
     let comp = unit name_generator ~deps:[ml; bindings]
     in
     let bin =
@@ -139,7 +141,7 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
   let ml_stubs =
     let action r = As_action.custom ~dir:(bin_dir r) "./%s.byte" name_generator
     in
-    let ml = generated name_stubs ~action ~deps:[generator] [`C; `Ml] in
+    let ml = other name_stubs ~action ~deps:[generator] [`C; `Ml] in
     unit name_stubs ~deps:[ml] in
   let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
   let c_stubs =
@@ -147,7 +149,7 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
         name_stubs in
     `C c in
   let flags = As_flags.(cclib link_flags @@@ stub name_stubs) in
-  let ml = generated name ~deps:[generator] [`Ml] in
+  let ml = other name ~deps:[generator] [`Ml] in
   let main = unit name ~deps:[bindings; ml_stubs; c_stubs; ml] in
   lib name ~flags ?available ~c:[c_stubs] [bindings; ml_stubs; main]
 
@@ -218,7 +220,7 @@ let configure `Make t env =
 let describe t env =
   let print_deps x =
     let bold_name pkg = As_shell.color `bold (As_project.Pkg.name pkg) in
-    let pkgs = As_project.Component.(filter pkg x @ filter pkg_pp x) in
+    let pkgs = As_project.Component.(filter pkg x) in
     match String.concat " " (List.map bold_name pkgs) with
     | "" -> ""
     | pkgs -> sprintf "  ├─── [%s]\n" pkgs
@@ -260,6 +262,6 @@ let describe t env =
     (As_shell.color `yellow "==>")
     (As_shell.color `underline (As_project.name t)) (As_project.version t);
   let components = As_project.components t in
-  print_libs As_project.Component.(filter lib components);
-  print_libs As_project.Component.(filter pp  components);
+  print_libs As_project.Component.(filter lib_ocaml components);
+  print_libs As_project.Component.(filter lib_ocaml_pp components);
   print_bins As_project.Component.(filter bin components)
