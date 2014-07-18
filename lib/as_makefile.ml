@@ -343,11 +343,17 @@ end = struct
     let flags = fn (As_project.Unit.flags t resolver) @ global in
     Variable.(var =?= `Strings flags)
 
-  let pp_byte = pp pp_byte L.pp_byte B.pp_byte As_flags.pp_byte
-  let pp_native = pp pp_native L.pp_native B.pp_native As_flags.pp_native
-  let comp_byte = flag comp_byte L.comp_byte B.comp_byte As_flags.comp_byte
+  let pp_byte =
+    pp pp_byte L.pp_byte B.pp_byte As_flags.(get `Pp `Byte)
+
+  let pp_native =
+    pp pp_native L.pp_native B.pp_native As_flags.(get `Pp `Native)
+
+  let comp_byte =
+    flag comp_byte L.comp_byte B.comp_byte As_flags.(get `Compile `Byte)
+
   let comp_native =
-    flag comp_native L.comp_native B.comp_native As_flags.comp_native
+    flag comp_native L.comp_native B.comp_native As_flags.(get `Compile `Native)
 
   let prereqs t = function
     | `Byte   -> As_project.Unit.id t ^ "." ^ deps_byte
@@ -462,13 +468,13 @@ end = struct
     else
       Variable.(var =?= `Strings flags)
 
-  let comp_byte   = flag comp_byte   true  As_flags.comp_byte
-  let comp_native = flag comp_native true  As_flags.comp_native
-  let pp_byte     = flag pp_byte     false As_flags.pp_byte
-  let pp_native   = flag pp_native   false As_flags.pp_native
-  let link_byte   = flag link_byte   true  As_flags.link_byte
-  let link_native = flag link_native true  As_flags.link_native
-  let link_shared = flag link_shared true As_flags.link_shared
+  let pp_byte = flag pp_byte false As_flags.(get `Pp `Byte)
+  let pp_native = flag pp_native false As_flags.(get `Pp `Native)
+  let comp_byte = flag comp_byte true  As_flags.(get `Compile `Byte)
+  let comp_native = flag comp_native true  As_flags.(get `Compile `Native)
+  let link_byte = flag link_byte true  As_flags.(get `Link `Byte)
+  let link_native = flag link_native true  As_flags.(get `Link `Native)
+  let link_shared = flag link_shared true As_flags.(get `Link `Shared)
 
   let prereqs t = function
     | `Byte   -> As_project.Lib.id t ^ "." ^ deps_byte
@@ -551,12 +557,12 @@ end = struct
     else
       Variable.(var =?= `Strings flags)
 
-  let comp_byte   = flag comp_byte   true  As_flags.comp_byte
-  let comp_native = flag comp_native true  As_flags.comp_native
-  let link_byte   = flag link_byte   true  As_flags.link_byte
-  let link_native = flag link_native true  As_flags.link_native
-  let pp_byte     = flag pp_byte     false As_flags.pp_byte
-  let pp_native   = flag pp_native   false As_flags.pp_native
+  let pp_byte = flag pp_byte false As_flags.(get `Pp `Byte)
+  let pp_native = flag pp_native false As_flags.(get `Pp `Native)
+  let comp_byte = flag comp_byte true As_flags.(get `Compile `Byte)
+  let comp_native = flag comp_native true As_flags.(get `Compile `Native)
+  let link_byte = flag link_byte true As_flags.(get `Link `Byte)
+  let link_native = flag link_native true As_flags.(get `Link `Native)
 
   let prereqs t = function
     | `Byte   -> As_project.Bin.id t ^ "." ^ deps_byte
@@ -696,7 +702,8 @@ module D = struct
           deps
           |> As_project.Component.(filter pkg_ocaml)
           |> List.map As_project.Pkg.name
-          |> (fun pkgs -> As_flags.comp_byte (As_resolver.pkgs resolver pkgs))
+          |> (fun pkgs ->
+              As_flags.(get `Compile `Byte) (As_resolver.pkgs resolver pkgs))
           |> String.concat " " in
         let css = match css with
           | None   -> ""
@@ -726,7 +733,8 @@ module J = struct
           ~targets:[As_project.JS.id j]
           ~prereqs:(As_project.JS.prereqs j resolver `Byte) [
           sprintf "$(JS_OF_OCAML) %s %s"
-            (String.concat " " (As_flags.link_byte (As_project.JS.flags j resolver)))
+            (String.concat " "
+               (As_flags.(get `Link `Byte) (As_project.JS.flags j resolver)))
             Rule.prereq
         ]) jss
 
@@ -777,35 +785,35 @@ let global_variables flags =
     | [] -> []
     | l  -> [Variable.(n =:= `Strings l)] in
   let vars =
-    mk As_flags.comp_byte   comp_byte
-    @ mk As_flags.comp_native comp_native
-    @ mk As_flags.link_byte   link_byte
-    @ mk As_flags.link_native link_native
-    @ mk As_flags.link_shared link_shared
+    mk As_flags.(get `Compile `Byte) comp_byte
+    @ mk As_flags.(get `Compile `Native) comp_native
+    @ mk As_flags.(get `Link `Byte) link_byte
+    @ mk As_flags.(get `Link `Native) link_native
+    @ mk As_flags.(get `Link `Shared) link_shared
     @ [
       Variable.(comp_byte =+= `Case [
-          [debug, "1"], `Strings As_flags.(comp_byte debug)
+          [debug, "1"], `Strings As_flags.(get `Compile `Byte debug)
         ]);
       Variable.(comp_byte =+= `Case [
-          [annot, "1"], `Strings As_flags.(comp_byte annot)
+          [annot, "1"], `Strings As_flags.(get `Compile `Byte annot)
         ]);
       Variable.(comp_byte =+= `Case [
-          [warn_error, "1"], `Strings As_flags.(comp_byte warn_error)
+          [warn_error, "1"], `Strings As_flags.(get `Compile `Byte warn_error)
         ]);
       Variable.(link_byte =+= `Case [
-          [debug, "1"], `Strings As_flags.(link_byte debug)
+          [debug, "1"], `Strings As_flags.(get `Link `Byte debug)
         ]);
       Variable.(comp_native =+= `Case [
-          [debug, "1"], `Strings As_flags.(comp_native debug)
+          [debug, "1"], `Strings As_flags.(get `Compile `Native debug)
         ]);
       Variable.(comp_native =+= `Case [
-          [annot, "1"], `Strings As_flags.(comp_native annot)
+          [annot, "1"], `Strings As_flags.(get `Compile `Native annot)
         ]);
       Variable.(comp_native =+= `Case [
-          [warn_error, "1"], `Strings As_flags.(comp_native warn_error)
+          [warn_error, "1"], `Strings As_flags.(get `Compile `Native warn_error)
         ]);
       Variable.(link_native =+= `Case [
-          [debug, "1"], `Strings As_flags.(link_native debug)
+          [debug, "1"], `Strings As_flags.(get `Link `Native debug)
         ]);
     ] in
   Variable.stanza ~align:true ~simplify:true vars

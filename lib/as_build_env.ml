@@ -75,14 +75,15 @@ let create
     ?(auto_load=true)
     ?(build_dir="_build")
     () =
-  let flags = As_flags.create
-      ~comp_byte:  (comp @ bytcomp)
-      ~comp_native:(comp @ natcomp)
-      ~link_byte:  (link @ bytlink)
-      ~link_native:(link @ natlink)
-      ~pp_byte:    pp
-      ~pp_native:  pp
-      () in
+  let flags =
+    let open As_flags in
+    v `Compile `Byte (comp @ bytcomp) @@@
+    v `Compile `Native (comp @ natcomp) @@@
+    v `Link `Byte (link @ bytlink) @@@
+    v `Link `Native (link @ natlink) @@@
+    v `Pp `Byte pp @@@
+    v `Pp `Native pp
+  in
   { features; flags; build_dir; auto_load; includes }
 
 let build_dir t = t.build_dir

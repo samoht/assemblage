@@ -105,16 +105,14 @@ let link_native ~mode names =
     names]
 
 let pkgs ~mode names =
-  let pp_byte     = pp_byte     ~mode names in
-  let pp_native   = pp_native   ~mode names in
-  let comp_byte   = comp_byte   ~mode names in
-  let comp_native = comp_native ~mode names in
-  let link_byte   = link_byte   ~mode names in
-  let link_native = link_native ~mode names in
-  As_flags.create
-    ~pp_byte ~pp_native
-    ~comp_byte ~comp_native
-    ~link_byte ~link_native ()
+  let open As_flags in
+  v `Pp `Byte (pp_byte ~mode names) @@@
+  v `Pp `Native (pp_native ~mode names) @@@
+  v `Compile `Byte (comp_byte ~mode names) @@@
+  v `Compile `Native (comp_native ~mode names) @@@
+  v `Link `Byte (link_byte ~mode names) @@@
+  v `Link `Native (link_native ~mode names)
+
 
 let resolver mode build_dir =
   As_resolver.create ~build_dir ~pkgs:(pkgs ~mode)

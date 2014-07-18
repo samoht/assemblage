@@ -115,57 +115,40 @@ end
 (** Flags
 
     Flags values denote sets of partial command line arguments given
-    to tools in a given context. Currently the following contexts are
-    defined:
+    to tools in a given context. A context is defined by a {{!phase}phase}
+    and a {{!mode}mode}.
 
-    {ul
-    {- [pp_byte], pre-processing step for byte code compilation.}
-    {- [pp_native], pre-processing step for native code compilation.}
-    {- [comp_byte], byte code compilation.}
-    {- [comp_native], native code compilation.}
-    {- [comp_js], JavaScript compilation.}
-    {- [comp_c], C compilation.}
-    {- [link_byte], byte code linking.}
-    {- [link_native], native code linking.}
-    {- [link_js], JavaScript linking.}
-    {- FIXME, Q: do we do it that way or should we adopt a variant
-       based approac ? This approach doesn't scale but do we need
-       to scale (ocamljava, toploops ?) ? C context should be confronted
-       to the real world, are we missing something here ?}} *)
+    FIXME describe valid context and to what they correspond. *)
 module Flags : sig
 
   (** {1:flags Flags} *)
 
-  type t
-  (** The type for contextualized, partial, command line arguments. *)
+  type phase = [ `Pp | `Compile | `Link | `Other | `Run | `Test ]
+  (** The type for phases. *)
 
-  val create :
-    ?available:Features.t ->
-    ?pp_byte:string list ->
-    ?pp_native:string list ->
-    ?comp_byte:string list ->
-    ?comp_native:string list ->
-    ?comp_js: string list ->
-    ?link_byte:string list ->
-    ?link_native:string list ->
-    ?link_js:string list ->
-    ?link_shared:string list ->
-    ?c:string list ->
-    unit -> t
-  (** [create available comp_byte...] is a flags value with the given
-      partial command lines for the corresponding context (they
-      default to []) . Flags are only available in a given context
-      whenever the feature [available] is true (defaults to
-      {!Features.true_}). *)
+  type mode = [ `Byte | `Native | `Shared | `C | `Js ]
+  (** The type for modes. *)
+
+  type args = string list
+  (** The type for partial command line arguments. *)
+
+  type t
+  (** The type for multi-context, partial, command line arguments. *)
+
+  val v : ?available:Features.t -> phase -> mode -> args -> t
+  (** [v available phase mode args] is the partial command line
+      [args] in the context defined by [phase] and [modes]. This partial
+      command line is only available whenever the feature [available]
+      is true (defaults to {!Features.true_}). *)
 
   val (@@@) : t -> t -> t
-  (** [f @@@ f'] concatenates (context wise) [f'] to [f]. [f'] and
+  (** [f @@@ f'] concatenates context wise [f'] to [f]. [f'] and
       [f'] remain available according to their own [available] argument. *)
 
   (** {1 Built-in flags} *)
 
   val empty : t
-  (** [empty] is [create ()].  *)
+  (** [empty] is the command line [[]] for every context.  *)
 
   val debug : t
   (** [debug] is the debug flag as needed per context, only
