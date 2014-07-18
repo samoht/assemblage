@@ -220,7 +220,7 @@ let configure `Make t env =
 let describe t env =
   let print_deps x =
     let bold_name pkg = As_shell.color `bold (As_project.Pkg.name pkg) in
-    let pkgs = As_project.Component.(filter pkg x @ filter pkg_pp x) in
+    let pkgs = As_project.Component.(filter pkg x) in
     match String.concat " " (List.map bold_name pkgs) with
     | "" -> ""
     | pkgs -> sprintf "  ├─── [%s]\n" pkgs
@@ -262,6 +262,6 @@ let describe t env =
     (As_shell.color `yellow "==>")
     (As_shell.color `underline (As_project.name t)) (As_project.version t);
   let components = As_project.components t in
-  print_libs As_project.Component.(filter lib components);
-  print_libs As_project.Component.(filter lib_pp components);
+  print_libs As_project.Component.(filter lib_ocaml components);
+  print_libs As_project.Component.(filter lib_ocaml_pp components);
   print_bins As_project.Component.(filter bin components)

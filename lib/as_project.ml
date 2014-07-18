@@ -184,27 +184,29 @@ module rec Component : sig
   include Component_base with type t = component
   val unit : t -> comp_unit option
   val other : t -> other option
-  val c: t -> c option
-  val js: t -> js option
-  val pkg: t -> pkg option
-  val pkg_pp: t -> pkg option
+  val c : t -> c option
+  val js : t -> js option
+  val pkg : t -> pkg option
+  val pkg_ocaml : t -> pkg option
+  val pkg_ocaml_pp : t -> pkg option
   val pkg_c : t -> pkg option
-  val lib: t -> lib option
-  val lib_pp: t -> lib option
-  val bin: t -> bin option
-  val dir: t -> dir option
-  val test: t -> test option
-  val filter: (t -> 'a option) -> t list -> 'a list
-  val closure: t list -> t list
-  val comp_byte: t list -> As_resolver.t -> (As_resolver.t -> string) ->
+  val lib : t -> lib option
+  val lib_ocaml : t -> lib option
+  val lib_ocaml_pp : t -> lib option
+  val bin : t -> bin option
+  val dir : t -> dir option
+  val test : t -> test option
+  val filter : (t -> 'a option) -> t list -> 'a list
+  val closure : t list -> t list
+  val comp_byte : t list -> As_resolver.t -> (As_resolver.t -> string) ->
     string list
-  val comp_native: t list -> As_resolver.t -> (As_resolver.t -> string) ->
+  val comp_native : t list -> As_resolver.t -> (As_resolver.t -> string) ->
     string list
-  val pp_byte: t list -> As_resolver.t -> string list
-  val pp_native: t list -> As_resolver.t -> string list
-  val link_byte: t list -> As_resolver.t -> comp_unit list ->
+  val pp_byte : t list -> As_resolver.t -> string list
+  val pp_native : t list -> As_resolver.t -> string list
+  val link_byte : t list -> As_resolver.t -> comp_unit list ->
     string list
-  val link_native: t list -> As_resolver.t -> comp_unit list ->
+  val link_native : t list -> As_resolver.t -> comp_unit list ->
     string list
  module Graph: Graph with type V.t = component
  module Set: Set with type elt = component
@@ -315,11 +317,18 @@ end = struct
   let other = function `Other x -> Some x | _ -> None
   let c = function `C c -> Some c | _ -> None
   let js = function `JS x -> Some x | _ -> None
-  let pkg = function `Pkg x when Pkg.kind x = `OCaml -> Some x | _ -> None
-  let pkg_pp = function `Pkg x when Pkg.kind x = `OCaml_pp -> Some x | _ -> None
-  let pkg_c = function `Pkg x when Pkg.kind x = `C -> Some x | _ -> None
-  let lib = function `Lib x when Lib.kind x = `OCaml -> Some x | _ -> None
-  let lib_pp = function `Lib x when Lib.kind x = `OCaml_pp -> Some x | _ -> None
+
+  let pkg = function `Pkg x -> Some x | _ -> None
+  let pkg_kind k = function `Pkg x when Pkg.kind x = k -> Some x | _ -> None
+  let pkg_ocaml = pkg_kind `OCaml
+  let pkg_ocaml_pp = pkg_kind `OCaml_pp
+  let pkg_c = pkg_kind `C
+
+  let lib = function `Lib x -> Some x | _ -> None
+  let lib_kind k = function `Lib x when Lib.kind x = k -> Some x | _ -> None
+  let lib_ocaml = lib_kind `OCaml
+  let lib_ocaml_pp = lib_kind `OCaml_pp
+
   let bin = function `Bin x -> Some x | _ -> None
   let dir = function `Dir x -> Some x | _ -> None
   let test = function `Test x -> Some x | _ -> None
@@ -357,7 +366,7 @@ end = struct
   let comp_flags mode (deps:t list) resolver build_dir =
     let incl = build_dir resolver in
     let us = filter unit deps |> List.map (fun u -> Unit.build_dir u resolver)in
-    let libs = filter lib deps |> List.map (fun l -> Lib.build_dir l resolver)in
+    let libs = filter lib_ocaml deps |> List.map (fun l -> Lib.build_dir l resolver)in
     let includes =
       (* We need to keep the -I flags in the right order *)
       let iflags inc acc = sprintf "-I %s" inc :: acc in
@@ -368,7 +377,7 @@ end = struct
         List.fold_left add (StringSet.empty, []) (incl :: us @ libs) in
       List.rev incs
     in
-    let pkgs = match filter pkg deps with
+    let pkgs = match filter pkg_ocaml deps with
     | [] -> []
     | pkgs ->
         let pkgs = List.map Pkg.name pkgs in
@@ -389,14 +398,14 @@ end = struct
           | `Native -> Unit.cmx u resolver in
         sprintf "%s/%s" (Filename.dirname file) (Filename.basename file)
       ) comps in
-    let libs = filter lib deps in
+    let libs = filter lib_ocaml deps in
     let libs = List.map (fun l ->
         let file = match mode with
           | `Byte   -> Lib.cma l resolver
           | `Native -> Lib.cmxa l resolver in
         sprintf "%s/%s" (Filename.dirname file) (Filename.basename file)
       ) libs in
-    let pkgs = filter pkg deps in
+    let pkgs = filter pkg_ocaml deps in
     let pkgs = match pkgs with
       | [] -> []
       | _  ->
@@ -411,8 +420,8 @@ end = struct
   let link_native = link_flags `Native
 
   let pp_flags mode (deps:t list) resolver =
-    let libs = filter lib_pp deps in
-    let pkgs = filter pkg_pp deps in
+    let libs = filter lib_ocaml_pp deps in
+    let pkgs = filter pkg_ocaml_pp deps in
     match libs, pkgs with
     | [], [] -> []
     | _ , _  ->
@@ -590,14 +599,14 @@ end = struct
           let cobjs = List.map (fun c -> C.dll_so c resolver) cs in
           cmx u resolver :: cobjs
       ) comps in
-    let libs = Component.(filter lib) deps in
+    let libs = Component.(filter lib_ocaml) deps in
     let libs = List.map (fun l ->
         match mode with
         | `Shared
         | `Native -> Lib.cmxa l resolver
         | `Byte   -> Lib.cma  l resolver
       ) libs in
-    let pps = Component.(filter lib_pp) deps in
+    let pps = Component.(filter lib_ocaml_pp) deps in
     let pps = List.map (fun l -> Lib.cma l resolver) pps in
     comps @ libs @ pps
 
@@ -979,8 +988,8 @@ end = struct
   let prereqs t resolver mode =
     let comps = units t in
     let deps = deps t in
-    let libs = Component.(filter lib) deps in
-    let pps = Component.(filter lib_pp) deps in
+    let libs = Component.(filter lib_ocaml) deps in
+    let pps = Component.(filter lib_ocaml_pp) deps in
     let bytpps = List.map (fun l -> Lib.cma l resolver) pps in
     match mode with
     | `Byte   ->
@@ -1128,7 +1137,7 @@ let create ?(available = As_features.true_) ?(flags = As_flags.empty)
         | None   -> "version-not-set"
   in
   let components = Component.closure components in
-  let libs = Component.(filter lib components) in
+  let libs = Component.(filter lib_ocaml components) in
   List.iter (fun l ->
       if Lib.name l <> name then
         Lib.set_filename l (name ^ "." ^ Lib.name l)
@@ -1150,10 +1159,10 @@ let unionmap fn t =
 
 let features t =
   let libs =
-    let libs = Component.(filter lib t.components) in
+    let libs = Component.(filter lib_ocaml t.components) in
     unionmap (fun x -> As_features.atoms (Lib.available x)) libs in
   let pps  =
-    let pps = Component.(filter lib_pp t.components) in
+    let pps = Component.(filter lib_ocaml_pp t.components) in
     unionmap (fun x -> As_features.atoms (Lib.available x)) pps in
   let bins =
     let bins = Component.(filter bin t.components) in

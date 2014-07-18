@@ -686,7 +686,7 @@ module D = struct
         let deps = As_project.Lib.deps l |> As_project.Component.closure in
         let libs =
           deps
-          |> As_project.Component.(filter lib)
+          |> As_project.Component.(filter lib_ocaml)
           |> (fun d -> l :: d)
           |> List.map (fun l -> sprintf "-I %s"
                           (As_resolver.build_dir resolver
@@ -694,7 +694,7 @@ module D = struct
           |> String.concat " " in
         let pkgs =
           deps
-          |> As_project.Component.(filter pkg)
+          |> As_project.Component.(filter pkg_ocaml)
           |> List.map As_project.Pkg.name
           |> (fun pkgs -> As_flags.comp_byte (As_resolver.pkgs resolver pkgs))
           |> String.concat " " in
@@ -812,8 +812,8 @@ let global_variables flags =
 
 let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
   let components = As_project.components t in
-  let libs  = As_project.Component.(filter lib components) in
-  let pps   = As_project.Component.(filter lib_pp components) in
+  let libs  = As_project.Component.(filter lib_ocaml components) in
+  let pps   = As_project.Component.(filter lib_ocaml_pp components) in
   let bins  = As_project.Component.(filter bin components) in
   let tests = As_project.Component.(filter test components) in
   let jss   = As_project.Component.(filter js components) in

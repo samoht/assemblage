@@ -134,10 +134,12 @@ module Component : sig
   val c : t -> c option
   val js : t -> js option
   val pkg : t -> pkg option
-  val pkg_pp : t -> pkg option
+  val pkg_ocaml : t -> pkg option
+  val pkg_ocaml_pp : t -> pkg option
   val pkg_c : t -> pkg option
   val lib : t -> lib option
-  val lib_pp : t -> lib option
+  val lib_ocaml : t -> lib option
+  val lib_ocaml_pp : t -> lib option
   val bin : t -> bin option
   val dir : t -> dir option
   val test : t -> test option
