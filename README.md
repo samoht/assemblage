@@ -46,7 +46,7 @@ passed on the command-line using an integrated `Cmdliner` interface.
 
 There are currently two tools installed by *Assemblage*: `configure.ml` and
 `describe.ml`. `configure.ml` reads a project description (usually,
-an `asssemble.ml` file located at the root of the project) and generates the
+an `assemble.ml` file located at the root of the project) and generates the
 boilerplate files to build, install and use the project. `describe.ml` simply
 displays a summary of the project:
 
