@@ -14,6 +14,8 @@ configure, manage, and use OCaml projects.
 
 The library can be used to describe OCaml projects with static dependencies.
 
+The latest public documentation is available [here](http://samoht.github.io/assemblage/Assemblage.html).
+
 A projects description consists of a list of libraries, binaries and/or toplevels.
 Each containing a list of compilation units with precise (and static) dependency
 relationships.
