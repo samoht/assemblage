@@ -106,7 +106,7 @@ Configure the project by generating the build, META and .install
 </td></tr>
 <tr><td><a href="Assemblage.html#VALcstubs">cstubs</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
-<code class="code">stubs name deps</code> is the C stub generations, using Ctypes, of the
+<code class="code">stubs name dir</code> is the C stub generations, using Ctypes, of the
     compilation unit <code class="code">name</code>.
 </div>
 </td></tr>
@@ -139,12 +139,6 @@ Default project configuration.
 Describe the project to stdout.
 </div>
 </td></tr>
-<tr><td><a href="Assemblage.html#VALdir">dir</a> [<a href="Assemblage.html">Assemblage</a>]</td>
-<td><div class="info">
-<code class="code">dir name ~available ~flags ~deps contents</code> is a directory named
-    <code class="code">name</code> that contains the build artefacts of the component <code class="code">contents</code>.
-</div>
-</td></tr>
 <tr><td align="left"><br>E</td></tr>
 <tr><td><a href="Assemblage.Flags.html#VALempty">empty</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
@@ -155,6 +149,12 @@ Describe the project to stdout.
 <tr><td><a href="Assemblage.Features.html#VALfalse_">false_</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
 <code class="code">false_</code> is always false.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.html#VALfiles">files</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<td><div class="info">
+<code class="code">dir name ~available ~flags ~deps contents</code> is a directory named
+    <code class="code">name</code> that contains the build artefacts of the component <code class="code">contents</code>.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Features.html#VALfull_doc">full_doc</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
