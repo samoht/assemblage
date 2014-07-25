@@ -30,7 +30,7 @@ type component =
   | `Pkg of pkg
   | `Lib of lib
   | `Bin of bin
-  | `Dir of dir
+  | `Files of files
   | `Test of test ]
 
 and container =
@@ -97,15 +97,15 @@ and bin =
     b_toplevel : bool;
     b_install : bool; }
 
-and dir =
-  { d_name :
+and files =
+  { f_name :
       [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
       | `Misc | `Stublibs | `Man | `Other of string ];
-    d_available : As_features.t;
-    d_flags : As_flags.t;
-    d_deps : component list;
-    d_install : bool;
-    d_contents : component list; }
+    f_available : As_features.t;
+    f_flags : As_flags.t;
+    f_deps : component list;
+    f_install : bool;
+    f_contents : component list; }
 
 and test_args = (component -> string) -> string list
 and test_command =
@@ -194,7 +194,7 @@ module rec Component : sig
   val lib_ocaml : t -> lib option
   val lib_ocaml_pp : t -> lib option
   val bin : t -> bin option
-  val dir : t -> dir option
+  val files : t -> files option
   val test : t -> test option
   val filter : (t -> 'a option) -> t list -> 'a list
   val closure : t list -> t list
@@ -224,7 +224,7 @@ end = struct
   | `Pkg p -> Pkg.id p
   | `Lib l -> Lib.id l
   | `Bin b -> Bin.id b
-  | `Dir d -> Dir.id d
+  | `Files d -> Files.id d
   | `Test t -> Test.id t
 
   let name = function
@@ -235,7 +235,7 @@ end = struct
   | `Pkg p -> Pkg.name p
   | `Lib l -> Lib.name l
   | `Bin b  -> Bin.name b
-  | `Dir d -> Dir.name d
+  | `Files d -> Files.name d
   | `Test t -> Test.name t
 
   let available = function
@@ -246,7 +246,7 @@ end = struct
   | `Pkg p -> Pkg.available p
   | `Lib l -> Lib.available l
   | `Bin b -> Bin.available b
-  | `Dir d -> Dir.available d
+  | `Files d -> Files.available d
   | `Test t -> Test.available t
 
   let prereqs = function
@@ -257,7 +257,7 @@ end = struct
   | `Pkg p -> Pkg.prereqs p
   | `Lib l -> Lib.prereqs l
   | `Bin b -> Bin.prereqs b
-  | `Dir d -> Dir.prereqs d
+  | `Files d -> Files.prereqs d
   | `Test t -> Test.prereqs t
 
   let flags = function
@@ -268,7 +268,7 @@ end = struct
   | `Pkg p -> Pkg.flags p
   | `Lib l -> Lib.flags l
   | `Bin b -> Bin.flags b
-  | `Dir d -> Dir.flags d
+  | `Files d -> Files.flags d
   | `Test t -> Test.flags t
 
   let generated_files = function
@@ -279,7 +279,7 @@ end = struct
   | `Pkg p -> Pkg.generated_files p
   | `Lib l -> Lib.generated_files l
   | `Bin b -> Bin.generated_files b
-  | `Dir d -> Dir.generated_files d
+  | `Files d -> Files.generated_files d
   | `Test t -> Test.generated_files t
 
   let file = function
@@ -290,7 +290,7 @@ end = struct
   | `Pkg p -> Pkg.file p
   | `Lib l -> Lib.file l
   | `Bin b -> Bin.file b
-  | `Dir d -> Dir.file d
+  | `Files d -> Files.file d
   | `Test t -> Test.file t
 
   let build_dir = function
@@ -301,7 +301,7 @@ end = struct
   | `Pkg p -> Pkg.build_dir p
   | `Lib l -> Lib.build_dir l
   | `Bin b  -> Bin.build_dir b
-  | `Dir d -> Dir.build_dir d
+  | `Files d -> Files.build_dir d
   | `Test t -> Test.build_dir t
 
   let deps = function
@@ -312,7 +312,7 @@ end = struct
   | `Pkg p -> Pkg.deps p
   | `Lib l -> Lib.deps l
   | `Bin b -> Bin.deps b
-  | `Dir d -> Dir.deps d
+  | `Files d -> Files.deps d
   | `Test t -> Test.deps t
 
   let unit = function `Unit x -> Some x | _ -> None
@@ -332,7 +332,7 @@ end = struct
   let lib_ocaml_pp = lib_kind `OCaml_pp
 
   let bin = function `Bin x -> Some x | _ -> None
-  let dir = function `Dir x -> Some x | _ -> None
+  let files = function `Files x -> Some x | _ -> None
   let test = function `Test x -> Some x | _ -> None
 
   let filter fn l =
@@ -1008,39 +1008,39 @@ end = struct
 
 end
 
-and Dir : sig
-  include Component_base with type t = dir
+and Files : sig
+  include Component_base with type t = files
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> ?install:bool ->
     [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
-    | `Misc | `Stublibs | `Man | `Other of string ] -> component list -> dir
+    | `Misc | `Stublibs | `Man | `Other of string ] -> component list -> files
 end = struct
-  type t = dir
+  type t = files
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = []) ?(install = true) d_name d_contents =
-    { d_name; d_available = available; d_flags = flags; d_deps = deps;
-      d_install = install; d_contents = d_contents; }
+      ?(deps = []) ?(install = true) f_name f_contents =
+    { f_name; f_available = available; f_flags = flags; f_deps = deps;
+      f_install = install; f_contents; }
 
-  let name d = match d.d_name with
+  let name d = match d.f_name with
   | `Lib -> "lib" | `Bin -> "bin" | `Sbin -> "sbin" | `Toplevel -> "toplevel"
   | `Share -> "share" | `Share_root -> "share-root" | `Etc -> "etc"
   | `Doc -> "doc" | `Misc -> "misc" | `Stublibs -> "stublibs"
   | `Man -> "man" | `Other n -> n
 
   let id d = "dir-" ^ (name d)
-  let available d = d.d_available
-  let flags d _ = d.d_flags
-  let deps d = d.d_deps
+  let available d = d.f_available
+  let flags d _ = d.f_flags
+  let deps d = d.f_deps
   let prereqs _ _ _ = [] (* FIXME mode doesn't make sense *)
-  let file _ = invalid_arg "Dir.file: not applicable"
+  let file _ = invalid_arg "Files.file: not applicable"
   let build_dir d r = As_resolver.build_dir r (id d)
   let generated_files d r =
     let add c =
-      let refine_avail (a, files) = As_features.(d.d_available &&& a), files in
+      let refine_avail (a, files) = As_features.(d.f_available &&& a), files in
       List.map refine_avail (Component.generated_files c r)
     in
-    List.flatten (List.map add d.d_contents)
+    List.flatten (List.map add d.f_contents)
 end
 
 and Test: sig

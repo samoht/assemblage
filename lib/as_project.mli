@@ -31,7 +31,7 @@ type js
 type pkg
 type lib
 type bin
-type dir
+type files
 type test
 
 type component =
@@ -42,7 +42,7 @@ type component =
   | `Pkg of pkg
   | `Lib of lib
   | `Bin of bin
-  | `Dir of dir
+  | `Files of files
   | `Test of test ]
 
 type container =
@@ -145,7 +145,7 @@ module Component : sig
   val lib_ocaml : t -> lib option
   val lib_ocaml_pp : t -> lib option
   val bin : t -> bin option
-  val dir : t -> dir option
+  val files : t -> files option
   val test : t -> test option
 
   val filter : (t -> 'a option) -> t list -> 'a list
@@ -393,13 +393,13 @@ module Bin : sig
 end
 
 (** Directory with build artifacts *)
-module Dir : sig
-  include Component_base with type t = dir
+module Files : sig
+  include Component_base with type t = files
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> ?install:bool ->
     [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
-    | `Misc | `Stublibs | `Man | `Other of string ] -> component list -> dir
+    | `Misc | `Stublibs | `Man | `Other of string ] -> component list -> files
 end
 
 module Test : sig

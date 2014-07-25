@@ -37,7 +37,7 @@ type js = As_project.JS.t
 type pkg = As_project.Pkg.t
 type lib = As_project.Lib.t
 type bin = As_project.Bin.t
-type dir = As_project.Dir.t
+type files = As_project.Files.t
 type test = As_project.Test.t
 
 let unit ?available ?flags ?deps name origin =
@@ -76,8 +76,8 @@ let bin ?available ?flags ?deps ?byte_only ?link_all ?install name cus =
   `Bin (As_project.Bin.create ?available ?flags ?deps ?byte_only ?link_all
           ?install cus name)
 
-let dir ?available ?flags ?deps ?install name contents =
-  `Dir (As_project.Dir.create ?available ?flags ?deps ?install name contents)
+let files ?available ?flags ?deps ?install name contents =
+  `Files (As_project.Files.create ?available ?flags ?deps ?install name contents)
 
 type test_command = As_project.Test.command
 let test ?available ?flags ?deps ?dir name commands =

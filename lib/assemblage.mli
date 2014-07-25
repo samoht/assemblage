@@ -258,8 +258,8 @@ type lib
 type bin
 (** The type for binary executable descriptions. *)
 
-type dir
-(** The type for directory of artifacts descriptions. *)
+type files
+(** The type for file artifacts descriptions. *)
 
 type test
 (** The type for test descriptions. *)
@@ -272,7 +272,7 @@ type component =
   | `Lib of lib
   | `Pkg of pkg
   | `Bin of bin
-  | `Dir of dir
+  | `Files of files
   | `Test of test ]
 (** The type for components.
     {ul
@@ -323,11 +323,11 @@ val bin : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
     default, the source files are located into {i bin/} (this is
     controled by the value of [dir]). *)
 
-val dir : ?available:As_features.t -> ?flags:As_flags.t ->
+val files : ?available:As_features.t -> ?flags:As_flags.t ->
   ?deps:component list -> ?install:bool ->
   [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
   | `Misc | `Stublibs | `Man | `Other of string ] -> component list ->
-  [> `Dir of dir ]
+  [> `Files of files ]
 (** [dir name ~available ~flags ~deps contents] is a directory named
     [name] that contains the build artefacts of the component [contents].
     If [install] is [true] (default), the artifacts are installed in the
