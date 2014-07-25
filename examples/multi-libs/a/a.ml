@@ -1,3 +1,3 @@
 let x = Ezjsonm.from_string "{}"
 
-let (l: int list ref) = ref [6;7]
+let (l: S.t list ref) = ref [6;7]

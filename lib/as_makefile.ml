@@ -428,10 +428,13 @@ end = struct
         else
           [] in
       let cmx = (* Generate cmxs *)
-        [Rule.create ~targets:[target ".cmx"]
-           ~prereqs:[target ".ml"; target ".cmi"; prereqs_var t `Native]
-           [sprintf "$(OCAMLOPT) -c %s%s %s"
-              flags (Variable.name (comp_native t)) Rule.prereq]]
+        if As_project.Unit.ml t then
+          [Rule.create ~targets:[target ".cmx"]
+             ~prereqs:[target ".ml"; target ".cmi"; prereqs_var t `Native]
+             [sprintf "$(OCAMLOPT) -c %s%s %s"
+                flags (Variable.name (comp_native t)) Rule.prereq]]
+        else
+        []
       in
       ln @ cmi @ cmo @ cmx
 

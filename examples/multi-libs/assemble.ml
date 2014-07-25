@@ -1,6 +1,9 @@
 open Assemblage
 
-let a = lib "lib-a" [unit "a" (`Dir "a") ~deps:[pkg "ezjsonm"]]
+let s = unit "s" (`Dir "a")
+let a = lib "lib-a" [
+    s;
+    unit "a" (`Dir "a") ~deps:[s; pkg "ezjsonm"]]
 let a1 = lib "lib-a-1" [unit "a1" (`Dir "a") ~deps:[a]]
 let b =
   let b = unit "b" (`Dir "b") ~deps:[a] in

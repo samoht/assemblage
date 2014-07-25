@@ -394,6 +394,7 @@ end = struct
   let comp_native = comp_flags `Native
 
   let link_flags mode (deps:t list) resolver comps =
+    let comps = List.filter Unit.ml comps in
     let comps = List.map (fun u ->
         let file = match mode with
           | `Byte   -> Unit.cmo u resolver
@@ -586,13 +587,14 @@ end = struct
     let deps = deps t in
     let comps = Component.(filter unit) deps in
     let comps = conmap (fun u ->
+        let cmx = if ml u then cmx u resolver else cmi u resolver in
         match mode with
-        | `Native -> [cmx u resolver]
+        | `Native -> [cmx]
         | `Byte   -> [cmi u resolver]
         | `Shared ->
           let cs = Component.(filter c) u.u_deps in
           let cobjs = List.map (fun c -> C.dll_so c resolver) cs in
-          cmx u resolver :: cobjs
+          cmx :: cobjs
       ) comps in
     let libs = Component.(filter lib_ocaml) deps in
     let libs = List.map (fun l ->
@@ -887,9 +889,10 @@ end = struct
       | `Byte
       | `Native -> List.map (fun c -> C.o c resolver) (c_objects t)
       | `Shared -> List.map (fun c -> C.dll_so c resolver) (c_objects t) in
+    let units = List.filter Unit.ml (units t) in
     let ml_deps = match mode with
-      | `Byte   -> List.map (fun u -> Unit.cmo u resolver) (units t)
-      | `Native -> List.map (fun u -> Unit.cmx u resolver) (units t)
+      | `Byte   -> List.map (fun u -> Unit.cmo u resolver) units
+      | `Native -> List.map (fun u -> Unit.cmx u resolver) units
       | `Shared -> prereqs t resolver `Native in
     c_deps @ ml_deps
 
