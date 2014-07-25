@@ -46,8 +46,7 @@ type component =
   | `Test of test ]
 
 type container =
-  [ `Unit of comp_unit
-  | `Lib of lib
+  [ `Lib of lib
   | `Bin of bin ]
 
 (** Common signature shared by all components. *)
@@ -195,7 +194,7 @@ module Unit : sig
   include Component_base with type t = comp_unit
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?dir:string -> string -> t
+    ?deps:component list -> string -> [`Dir of string | `Other of other] -> t
   (** Create a compilation unit. *)
 
   val dir : t -> string option

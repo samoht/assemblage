@@ -19,9 +19,6 @@ open Printf
 let conmap f l = List.concat (List.map f l)
 let (|>) x f = f x
 let (/) x y = Filename.concat x y
-let (//) x y = match x with
-| None   -> y
-| Some x -> Filename.concat x y
 
 module StringSet = Set.Make (String)
 
@@ -37,8 +34,7 @@ type component =
   | `Test of test ]
 
 and container =
-  [ `Unit of comp_unit
-  | `Lib of lib
+  [ `Lib of lib
   | `Bin of bin ]
 
 and comp_unit =
@@ -46,11 +42,10 @@ and comp_unit =
     u_available : As_features.t;
     u_flags : As_flags.t;
     u_deps : component list;
-    u_dir : string option;
+    u_origin : [`Dir of string | `Other of other];
     mutable u_container: container option;
     mutable u_for_pack : string option;
     mutable u_pack : comp_unit list;
-    u_generated : bool;
     u_mli : bool;
     u_ml  : bool; }
 
@@ -59,7 +54,6 @@ and other =
     o_available : As_features.t;
     o_flags : As_flags.t;
     o_deps : component list;
-    mutable o_container : container option;
     o_action : As_action.t option;
     o_files : [`C |`Ml | `Mli] list; }
 
@@ -481,7 +475,7 @@ and Unit: sig
   include Component_base with type t = comp_unit
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:Component.t list -> ?dir:string -> string -> t
+    ?deps:Component.t list -> string -> [`Dir of string | `Other of other] -> t
   val dir: t -> string option
   val container: t -> container option
   val mli: t -> bool
@@ -509,17 +503,27 @@ end = struct
 
   let ml t = t.u_ml
   let mli t = t.u_mli
-  let generated t = t.u_generated
-  let dir t = t.u_dir
+  let dir t = match t.u_origin with
+  | `Dir d   -> Some d
+  | `Other _ -> None
+
+  let generated t =
+    match t.u_origin with
+    | `Dir _   -> false
+    | `Other _ -> true
 
   let build_dir t resolver =
     match t.u_container with
     | None   -> As_resolver.build_dir resolver ""
     | Some c -> Component.build_dir (c:>component) resolver
 
+  let deps t =
+    match t.u_origin with
+    | `Dir _   ->  t.u_deps
+    | `Other o -> `Other o :: t.u_deps
+
   let name t = t.u_name
   let available t = t.u_available
-  let deps t = t.u_deps
   let container t = t.u_container
   let for_pack t = t.u_for_pack
   let unpack t = t.u_pack
@@ -534,45 +538,33 @@ end = struct
     | None   -> t.u_container <- Some (`Bin bin)
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = []) ?dir name
+      ?(deps = []) name origin
     =
-    let others = Component.(filter other) deps in
-    let mli = match others with
-    | [] -> Sys.file_exists (dir // name ^ ".mli")
-    | _  -> List.exists (fun o -> List.mem `Mli o.o_files) others
+    let mli = match origin with
+    | `Dir dir -> Sys.file_exists (dir / name ^ ".mli")
+    | `Other o -> List.mem `Mli o.o_files
     in
-    let ml = match others with
-    | [] -> Sys.file_exists (dir // name ^ ".ml")
-    | _  -> List.exists (fun o -> List.mem `Ml o.o_files) others
+    let ml = match origin with
+    | `Dir dir -> Sys.file_exists (dir / name ^ ".ml")
+    | `Other o -> List.mem `Ml o.o_files
     in
     if not ml && not mli
     then
       As_shell.fatal_error 1
         "unit %s: cannot find %s.ml or %s.mli in `%s', stopping.\n"
-        name name name (match dir with None -> "." | Some d -> d / "")
+        name name name (match origin with `Other _ -> "." | `Dir d -> d / "")
     else
-    let u_generated = others <> [] (* FIXME: this is wrong *) in
-    let t =
-      { u_name = name; u_available = available; u_deps = deps; u_dir = dir;
-        u_flags = flags; u_container = None; u_for_pack = None; u_pack = [];
-        u_generated; u_ml = ml; u_mli = mli; }
-    in
-    (* FIXME: mutation *)
-    List.iter (fun o ->
-        match o.o_container with
-        | Some c -> Component.container_error (`Other o) ~current:c (`Unit t)
-        | None   -> o.o_container <- Some (`Unit t)
-      ) others;
-    t
+    { u_name = name; u_available = available; u_deps = deps; u_origin = origin;
+      u_flags = flags; u_container = None; u_for_pack = None; u_pack = [];
+      u_ml = ml; u_mli = mli; }
 
-  let pack ?(available = As_features.true_) ?(flags = As_flags.empty) comps
-      name
-    =
+  let pack ?(available = As_features.true_) ?(flags = As_flags.empty) cus name =
     (* FIXME: mutation *)
-    List.iter (fun u -> u.u_for_pack <- Some (String.capitalize name)) comps;
-    { u_name = name; u_available = available; u_flags = flags; u_dir = None;
-      u_container = None; u_for_pack = None; u_deps = []; u_pack = comps;
-      u_ml = false; u_mli = false; u_generated = false; }
+    let origin = `Other (Other.create [`Ml] name) in
+    List.iter (fun u -> u.u_for_pack <- Some (String.capitalize name)) cus;
+    { u_name = name; u_available = available; u_flags = flags; u_origin = origin;
+      u_container = None; u_for_pack = None; u_deps = []; u_pack = cus;
+      u_ml = false; u_mli = false;  }
 
   let file t r ext = build_dir t r / t.u_name ^ ext
   let cmi t r = file t r ".cmi"
@@ -660,12 +652,10 @@ end = struct
       ?(deps = []) ?action o_files o_name
     =
     { o_name; o_available = available; o_flags = flags; o_deps = deps;
-      o_container = None; o_files; o_action = action; }
+      o_files; o_action = action; }
 
   let build_dir t r =
-    match t.o_container with
-    | None   -> As_resolver.build_dir r ""
-    | Some c -> Component.build_dir (c:>component) r
+    As_resolver.build_dir r (id t)
 
   let prereqs t r mode =
     let bins = Component.(filter bin t.o_deps) in

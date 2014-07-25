@@ -284,7 +284,7 @@ type component =
     {- FIXME}} *)
 
 val unit : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-  ?dir:string -> string -> [> `Unit of comp_unit]
+  string -> [`Dir of string | `Other of other] -> [> `Unit of comp_unit]
 (** [unit name ~dir ~available ~flags ~deps] is a compilation unit
     named [name] (the filename without extension) present in directory [dir].
     It is only available whenever [available] is true,
@@ -394,11 +394,12 @@ val ocamldep :
     is the union of deps found by ocamldep and [deps n] ([unit]
     defaults to [fun n deps' -> unit ~dir n deps']). *)
 
-val cstubs : ?available:Features.t -> ?dir:string -> ?headers:string list ->
-  ?cflags:string list -> ?clibs:string list -> string -> component list ->
-  [> `Lib of lib]
-(** [stubs name deps] is the C stub generations, using Ctypes, of the
-    compilation unit [name]. *)
+val cstubs : ?available:Features.t -> ?deps:component list ->
+  ?headers:string list -> ?cflags:string list -> ?clibs:string list ->
+  string -> [`Dir of string] -> [> `Lib of lib]
+(** [stubs name dir] is the C stub generations, using Ctypes, of the
+    compilation unit [name]. The [Name_bindings] module should be
+    located in [dir]. *)
 
 (** {1:projects Projects} *)
 

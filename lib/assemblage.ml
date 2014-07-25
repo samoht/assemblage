@@ -40,8 +40,8 @@ type bin = As_project.Bin.t
 type dir = As_project.Dir.t
 type test = As_project.Test.t
 
-let unit ?available ?flags ?deps ?dir name =
-  `Unit (As_project.Unit.create ?available ?flags ?deps ?dir name)
+let unit ?available ?flags ?deps name origin =
+  `Unit (As_project.Unit.create ?available ?flags ?deps name origin)
 
 let other ?available ?flags ?deps ?action name f =
   `Other (As_project.Other.create ?available ?flags ?deps ?action f name)
@@ -101,14 +101,14 @@ let ocamldep ?keep ?deps ?unit ~dir () =
   let resolver = As_ocamlfind.resolver `Direct (Sys.getcwd ()) in
   List.map (fun u -> `Unit u) (As_OCaml.depends ?keep ?deps ?unit resolver dir)
 
-let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
-    name deps
+let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
+    name (`Dir dir)
   =
   let (/) = Filename.concat in
   (* 1. compile the bindings. *)
   let deps = `Pkg As_project.Pkg.ctypes_stub :: deps in
   let name_bindings = name ^ "_bindings" in
-  let bindings = unit name_bindings ?dir ~deps in
+  let bindings = unit name_bindings (`Dir dir) ~deps in
   let name_generator = name ^ "_generator" in
   let name_stubs = name ^ "_stubs" in
   let bin_dir r = As_project.Bin.build_dir
@@ -131,7 +131,7 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
         headers ml_stubs c_stubs library name
     in
     let ml = other name_generator ~action [`Ml] in
-    let comp = unit name_generator ~deps:[ml; bindings]
+    let comp = unit name_generator ml ~deps:[bindings]
     in
     let bin =
       As_project.Bin.create ~install:false [bindings; comp] name_generator
@@ -142,7 +142,7 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
     let action r = As_action.custom ~dir:(bin_dir r) "./%s.byte" name_generator
     in
     let ml = other name_stubs ~action ~deps:[generator] [`C; `Ml] in
-    unit name_stubs ~deps:[ml] in
+    unit name_stubs ml in
   let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
   let c_stubs =
     let c = As_project.C.create ~generated:true ~deps:[generator] ~link_flags
@@ -150,7 +150,7 @@ let cstubs ?available ?dir ?(headers = []) ?(cflags = []) ?(clibs = [])
     `C c in
   let flags = As_flags.(cclib link_flags @@@ stub name_stubs) in
   let ml = other name ~deps:[generator] [`Ml] in
-  let main = unit name ~deps:[bindings; ml_stubs; c_stubs; ml] in
+  let main = unit name ml ~deps:[bindings; ml_stubs; c_stubs] in
   lib name ~flags ?available ~c:[c_stubs] [bindings; ml_stubs; main]
 
 (* Projects *)

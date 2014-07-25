@@ -169,7 +169,7 @@ let split str char =
 let depends ?(keep = fun _ -> true) ?(deps = fun _ -> []) ?unit resolver dir =
   let unit = match unit with
   | Some unit -> unit
-  | None -> fun uname deps -> `Unit (As_project.Unit.create ~deps ~dir uname)
+  | None -> fun uname deps -> `Unit (As_project.Unit.create ~deps uname (`Dir dir))
   in
   let files =
     let keep f =
