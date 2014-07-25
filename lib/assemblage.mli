@@ -17,7 +17,7 @@
 (** The Assemblage Library.
 
     [Assemblage] provides a simple embedded domain specific language
-    to describe [OCaml] {{!project}projects}. It also provides simple
+    to describe [OCaml] {{!projects}projects}. It also provides simple
     {{!tools}tools} to configure, manage, install and use OCaml
     projects.
 
