@@ -45,6 +45,11 @@ type component =
   | `Dir of dir
   | `Test of test ]
 
+type container =
+  [ `Unit of comp_unit
+  | `Lib of lib
+  | `Bin of bin ]
+
 (** Common signature shared by all components. *)
 module type Component_base = sig
 
@@ -193,13 +198,10 @@ module Unit : sig
     ?deps:component list -> ?dir:string -> string -> t
   (** Create a compilation unit. *)
 
-  val copy : t -> t
-  (** Copy the compilation unit. *)
-
   val dir : t -> string option
   (** The source directory of the compilation unit. *)
 
-  val container : t -> [`Lib of lib |`Bin of bin]  option
+  val container : t -> container option
   (** The library the compilation unit belongs to. *)
 
   val mli : t -> bool
@@ -247,9 +249,6 @@ module Other : sig
     string -> t
   (** Generate arbitrary files, using the given action. *)
 
-  val copy : t -> t
-  (** Copy the generator if it needs to run in an other directory. *)
-
   val files : t -> As_resolver.t -> string list
   (** The list of generated files. *)
 
@@ -269,7 +268,7 @@ module C : sig
     ?link_flags:string list -> string -> t
   (** Create a C object file. *)
 
-  val container : t -> [`Lib of lib |`Bin of bin]  option
+  val container : t -> container option
   (** [container t] is the component which contains the given C
       objects. *)
 

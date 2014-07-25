@@ -320,10 +320,13 @@ end = struct
 
   let pp suffix varlib varbin fn t =
     let var = As_project.Unit.id t ^ "." ^ suffix in
-    let lib = match As_project.Unit.container t with
-      | None          -> None
-      | Some (`Lib l) -> Some (varlib l)
-      | Some (`Bin b) -> Some (varbin b) in
+    let lib =
+      let rec aux u = match As_project.Unit.container u with
+      | None           -> None
+      | Some (`Lib l)  -> Some (varlib l)
+      | Some (`Bin b)  -> Some (varbin b)
+      | Some (`Unit u) -> aux u in
+      aux t in
     match lib, fn (As_project.Unit.flags t resolver) with
     | None  , [] -> None
     | Some l, [] -> if Variable.is_empty l then None else Some l
@@ -336,10 +339,13 @@ end = struct
 
   let flag suffix varlib varbin fn t =
     let var    = As_project.Unit.id t ^ "." ^ suffix in
-    let global = match As_project.Unit.container t with
-      | None          -> []
-      | Some (`Lib l) -> [Variable.name (varlib l)]
-      | Some (`Bin b) -> [Variable.name (varbin b)] in
+    let global =
+      let rec aux u = match As_project.Unit.container u with
+      | None           -> []
+      | Some (`Lib l)  -> [Variable.name (varlib l)]
+      | Some (`Bin b)  -> [Variable.name (varbin b)]
+      | Some (`Unit u) -> aux u in
+      aux t in
     let flags = fn (As_project.Unit.flags t resolver) @ global in
     Variable.(var =?= `Strings flags)
 

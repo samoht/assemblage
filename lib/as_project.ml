@@ -36,13 +36,18 @@ type component =
   | `Dir of dir
   | `Test of test ]
 
+and container =
+  [ `Unit of comp_unit
+  | `Lib of lib
+  | `Bin of bin ]
+
 and comp_unit =
   { u_name : string;
     u_available : As_features.t;
-    mutable u_flags : As_flags.t;
-    mutable u_deps : component list;
+    u_flags : As_flags.t;
+    u_deps : component list;
     u_dir : string option;
-    mutable u_container: [`Lib of lib | `Bin of bin] option;
+    mutable u_container: container option;
     mutable u_for_pack : string option;
     mutable u_pack : comp_unit list;
     u_generated : bool;
@@ -54,7 +59,7 @@ and other =
     o_available : As_features.t;
     o_flags : As_flags.t;
     o_deps : component list;
-    mutable o_comp : comp_unit option;
+    mutable o_container : container option;
     o_action : As_action.t option;
     o_files : [`C |`Ml | `Mli] list; }
 
@@ -66,7 +71,7 @@ and c =
     c_dir : string option;
     c_link_flags : string list;
     c_generated : bool;
-    mutable c_container: [`Lib of lib | `Bin of bin] option; }
+    mutable c_container: container option; }
 
 and js =
   { j_bin : bin;
@@ -82,7 +87,8 @@ and pkg =
 and lib =
   { l_name : string;
     l_available : As_features.t;
-    mutable l_flags : As_flags.t;
+    l_flags : As_flags.t;
+    l_deps : component list;
     l_kind : [ `OCaml | `OCaml_pp ];
     l_us : comp_unit list;
     l_cs  : c list;
@@ -93,7 +99,7 @@ and bin =
     b_available : As_features.t;
     b_flags : As_flags.t;
     b_deps : component list;
-    b_comps : comp_unit list;
+    b_cus : comp_unit list;
     b_toplevel : bool;
     b_install : bool; }
 
@@ -210,6 +216,8 @@ module rec Component : sig
     string list
  module Graph: Graph with type V.t = component
  module Set: Set with type elt = component
+ (* not exported *)
+ val container_error: t -> current:container -> container -> 'a
 end = struct
   type t = component
   type component = t
@@ -459,6 +467,14 @@ end = struct
       let add set elt = add elt set in
       List.fold_left add empty l
   end
+
+  let container_error t ~(current:container) (container:container) =
+    let current = (current:>t) in
+    let container = (container:>t) in
+    As_shell.fatal_error 1
+      "The component %s cannot be put inside %s as it already belongs to %s."
+      (name t) (id container) (id current)
+
 end
 
 and Unit: sig
@@ -466,9 +482,8 @@ and Unit: sig
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:Component.t list -> ?dir:string -> string -> t
-  val copy: t -> t
   val dir: t -> string option
-  val container: t -> [`Lib of Lib.t |`Bin of Bin.t]  option
+  val container: t -> container option
   val mli: t -> bool
   val ml: t -> bool
   val for_pack: t -> string option
@@ -483,41 +498,24 @@ and Unit: sig
   (* not exported *)
   val set_lib_container: t -> Lib.t -> unit
   val set_bin_container: t -> Bin.t -> unit
-  val add_deps: t -> Component.t list -> unit
   val sort : [ `Unit of t ] list -> t list
 end = struct
   type t = comp_unit
 
   let id t =
     match t.u_container with
-    | None          -> t.u_name
-    | Some (`Lib l) -> Lib.id l ^ "-" ^ t.u_name
-    | Some (`Bin b) -> Bin.id b ^ "-" ^ t.u_name
+    | None   -> t.u_name
+    | Some c -> Component.id (c:>component) ^ "-" ^ t.u_name
 
   let ml t = t.u_ml
   let mli t = t.u_mli
   let generated t = t.u_generated
-  let rec copy t =
-    { u_dir       = t.u_dir;
-      u_available = t.u_available;
-      u_deps      = t.u_deps;
-      u_name      = t.u_name;
-      u_container = t.u_container;
-      u_for_pack  = t.u_for_pack;
-      u_pack      = List.map copy t.u_pack;
-      u_flags     = t.u_flags;
-      u_ml        = t.u_ml;
-      u_mli       = t.u_mli;
-      u_generated = t.u_generated;
-    }
-
   let dir t = t.u_dir
 
   let build_dir t resolver =
     match t.u_container with
-    | None          -> As_resolver.build_dir resolver ""
-    | Some (`Lib l) -> Lib.build_dir l resolver
-    | Some (`Bin b) -> Bin.build_dir b resolver
+    | None   -> As_resolver.build_dir resolver ""
+    | Some c -> Component.build_dir (c:>component) resolver
 
   let name t = t.u_name
   let available t = t.u_available
@@ -525,9 +523,15 @@ end = struct
   let container t = t.u_container
   let for_pack t = t.u_for_pack
   let unpack t = t.u_pack
-  let set_lib_container t lib = t.u_container <- Some (`Lib lib)
-  let set_bin_container t bin = t.u_container <- Some (`Bin bin)
-  let add_deps t deps = t.u_deps <- t.u_deps @ deps
+  let set_lib_container t lib =
+    match t.u_container with
+    | Some c -> Component.container_error (`Unit t) ~current:c (`Lib lib)
+    | None   -> t.u_container <- Some (`Lib lib)
+  let set_bin_container t bin =
+    match t.u_container with
+    | Some c -> As_shell.fatal_error 1
+                  "%s is already in %s." (name t) (Component.id (c:>component))
+    | None   -> t.u_container <- Some (`Bin bin)
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(deps = []) ?dir name
@@ -555,10 +559,9 @@ end = struct
     in
     (* FIXME: mutation *)
     List.iter (fun o ->
-        let o = match o.o_comp with
-        | None   -> o
-        | Some _ -> { o with o_comp = None } in
-        o.o_comp <- Some t
+        match o.o_container with
+        | Some c -> Component.container_error (`Other o) ~current:c (`Unit t)
+        | None   -> o.o_container <- Some (`Unit t)
       ) others;
     t
 
@@ -643,7 +646,6 @@ and Other : sig
   val create: ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:Component.t list -> ?action:As_action.t ->
     [`C | `Ml | `Mli ] list -> string -> t
-  val copy: t -> t
   val files: t -> As_resolver.t -> string list
   val actions: t -> As_resolver.t -> string list
 end = struct
@@ -658,14 +660,12 @@ end = struct
       ?(deps = []) ?action o_files o_name
     =
     { o_name; o_available = available; o_flags = flags; o_deps = deps;
-      o_comp = None; o_files; o_action = action; }
-
-  let copy t = { t with o_comp = None }
+      o_container = None; o_files; o_action = action; }
 
   let build_dir t r =
-    match t.o_comp with
+    match t.o_container with
     | None   -> As_resolver.build_dir r ""
-    | Some u -> Unit.build_dir u r
+    | Some c -> Component.build_dir (c:>component) r
 
   let prereqs t r mode =
     let bins = Component.(filter bin t.o_deps) in
@@ -699,7 +699,7 @@ and C: sig
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:Component.t list -> ?dir:string -> ?generated:bool ->
     ?link_flags:string list -> string -> t
-  val container: t -> [`Lib of Lib.t |`Bin of Bin.t]  option
+  val container: t -> container option
   val set_lib_container: t -> Lib.t -> unit
   val set_bin_container: t -> Bin.t -> unit
   val link_flags: t -> string list
@@ -722,13 +722,18 @@ end = struct
 
   let build_dir t r =
     match t.c_container with
-    | Some (`Lib l) -> Lib.build_dir l r
-    | Some (`Bin b) -> Bin.build_dir b r
-    | None          -> As_resolver.build_dir r (id t)
+    | None   -> As_resolver.build_dir r (id t)
+    | Some c -> Component.build_dir (c:>component) r
 
   let container t = t.c_container
-  let set_lib_container t lib = t.c_container <- Some (`Lib lib)
-  let set_bin_container t bin = t.c_container <- Some (`Bin bin)
+  let set_lib_container t lib =
+    match t.c_container with
+    | Some c -> Component.container_error (`C t) ~current:c (`Lib lib)
+    | None   -> t.c_container <- Some (`Lib lib)
+  let set_bin_container t bin =
+    match t.c_container with
+    | Some c -> Component.container_error (`C t) ~current:c (`Bin bin)
+    | None   -> t.c_container <- Some (`Bin bin)
   let file t r ext = build_dir t r / t.c_name ^ ext
   let dll_so t r = build_dir t r / "dll" ^ t.c_name ^ ".so"
   let o t r = file t r ".o"
@@ -833,11 +838,9 @@ end = struct
   let id t = "lib-" ^ t.l_name
 
   let deps t =
-    let us = t.l_us |> conmap Unit.deps in
-    let cs  = t.l_cs  |> conmap C.deps in
-    us @ cs
-    |> Component.Set.of_list
-    |> Component.Set.elements
+    let us = List.map (fun u -> `Unit u) t.l_us in
+    let cs = List.map (fun c -> `C c) t.l_cs in
+    cs @ us @ t.l_deps
 
   let name t = t.l_name
   let kind t = t.l_kind
@@ -855,12 +858,12 @@ end = struct
     let us' = if pack then [Unit.pack us name] else us in
     let t =
       { l_name = name; l_available = available; l_kind = kind;
-        l_us = us'; l_cs = c;
+        l_us = us'; l_cs = c; l_deps = deps;
         l_flags = flags; l_filename = name; }
     in
     (* FIXME: mutation *)
-    List.iter (fun u -> Unit.add_deps u deps) us;
-    List.iter (fun u -> Unit.set_lib_container u t) (us' @ us);
+    List.iter (fun u -> Unit.set_lib_container u t)
+      (if pack then us' @ us else us);
     List.iter (fun c -> C.set_lib_container c t) c;
     t
 
@@ -929,13 +932,15 @@ end = struct
   type t = bin
 
   let id t = "bin-" ^ t.b_name
-  let units t = t.b_comps
+  let units t = t.b_cus
   let build_dir t resolver = As_resolver.build_dir resolver (id t)
   let is_toplevel t = t.b_toplevel
   let install t = t.b_install
   let name t = t.b_name
-  let deps t = t.b_deps
   let available t = t.b_available
+
+  let deps t =
+    List.map (fun u -> `Unit u) t.b_cus @ t.b_deps
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(deps = []) ?(byte_only = false) ?(link_all = false) ?(install = true)
@@ -948,18 +953,9 @@ end = struct
     let flags =
       if link_all then As_flags.(linkall @@@ flags) else flags
     in
-    (* FIXME: side effect *)
-    List.iter (fun u ->
-        Unit.add_deps u deps
-      ) us;
-    let deps =
-      List.fold_left (fun deps u ->
-          Component.Set.(union deps (of_list (Unit.deps u)))
-        ) Component.Set.empty us
-      |> Component.Set.elements in
     let t =
       { b_name = name; b_available = available; b_flags = flags; b_deps = deps;
-        b_comps = us; b_toplevel = false; b_install = install }
+        b_cus = us; b_toplevel = false; b_install = install }
     in
     List.iter (fun u -> Unit.set_bin_container u t) us;
     t

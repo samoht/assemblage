@@ -8,6 +8,6 @@ let b =
   lib "lib2" [b; c]
 
 let bin =
-  bin "a-test" [unit "foo" ~deps:[a; a1; b]] ~link_all:true
+  bin "a-test" [unit "foo" ~deps:[a; a1; b; ]] ~link_all:true
 
 let () = add (create "multi-libs" [a; b; bin])
