@@ -2,7 +2,10 @@ opam-version: "1"
 name: "tools"
 version: "0.1"
 maintainer: "thomas@gazagnaire.org"
-authors: [ "Thomas Gazagnaire" ]
+authors: [
+  "Thomas Gazagnaire <thomas@gazagnaire.org>"
+  "Daniel Bünzli <daniel.buenzli i@erratique.ch>"
+]
 license: "ISC"
 depends: [
   "cmdliner"

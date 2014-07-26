@@ -17,7 +17,7 @@
 (** The Assemblage Library.
 
     [Assemblage] provides a simple embedded domain specific language
-    to describe [OCaml] {{!project}projects}. It also provides simple
+    to describe [OCaml] {{!projects}projects}. It also provides simple
     {{!tools}tools} to configure, manage, install and use OCaml
     projects.
 
@@ -258,8 +258,8 @@ type lib
 type bin
 (** The type for binary executable descriptions. *)
 
-type dir
-(** The type for directory of artifacts descriptions. *)
+type files
+(** The type for file artifacts descriptions. *)
 
 type test
 (** The type for test descriptions. *)
@@ -272,7 +272,7 @@ type component =
   | `Lib of lib
   | `Pkg of pkg
   | `Bin of bin
-  | `Dir of dir
+  | `Files of files
   | `Test of test ]
 (** The type for components.
     {ul
@@ -284,7 +284,7 @@ type component =
     {- FIXME}} *)
 
 val unit : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-  ?dir:string -> string -> [> `Unit of comp_unit]
+  string -> [`Dir of string | `Other of other] -> [> `Unit of comp_unit]
 (** [unit name ~dir ~available ~flags ~deps] is a compilation unit
     named [name] (the filename without extension) present in directory [dir].
     It is only available whenever [available] is true,
@@ -323,11 +323,11 @@ val bin : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
     default, the source files are located into {i bin/} (this is
     controled by the value of [dir]). *)
 
-val dir : ?available:As_features.t -> ?flags:As_flags.t ->
+val files : ?available:As_features.t -> ?flags:As_flags.t ->
   ?deps:component list -> ?install:bool ->
   [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
   | `Misc | `Stublibs | `Man | `Other of string ] -> component list ->
-  [> `Dir of dir ]
+  [> `Files of files ]
 (** [dir name ~available ~flags ~deps contents] is a directory named
     [name] that contains the build artefacts of the component [contents].
     If [install] is [true] (default), the artifacts are installed in the
@@ -394,11 +394,12 @@ val ocamldep :
     is the union of deps found by ocamldep and [deps n] ([unit]
     defaults to [fun n deps' -> unit ~dir n deps']). *)
 
-val cstubs : ?available:Features.t -> ?dir:string -> ?headers:string list ->
-  ?cflags:string list -> ?clibs:string list -> string -> component list ->
-  [> `Lib of lib]
-(** [stubs name deps] is the C stub generations, using Ctypes, of the
-    compilation unit [name]. *)
+val cstubs : ?available:Features.t -> ?deps:component list ->
+  ?headers:string list -> ?cflags:string list -> ?clibs:string list ->
+  string -> [`Dir of string] -> [> `Lib of lib]
+(** [stubs name dir] is the C stub generations, using Ctypes, of the
+    compilation unit [name]. The [Name_bindings] module should be
+    located in [dir]. *)
 
 (** {1:projects Projects} *)
 

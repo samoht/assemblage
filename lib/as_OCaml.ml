@@ -164,12 +164,14 @@ let split str char =
   in
   aux [] 0
 
+let dedup l = StringSet.(elements (of_list l))
+
 (* XXX: ugly hack as tools/{depend.ml,ocamldep.ml} are not in
    `compiler-libs' *)
 let depends ?(keep = fun _ -> true) ?(deps = fun _ -> []) ?unit resolver dir =
   let unit = match unit with
   | Some unit -> unit
-  | None -> fun uname deps -> `Unit (As_project.Unit.create ~deps ~dir uname)
+  | None -> fun uname deps -> `Unit (As_project.Unit.create ~deps uname (`Dir dir))
   in
   let files =
     let keep f =
@@ -226,7 +228,7 @@ let depends ?(keep = fun _ -> true) ?(deps = fun _ -> []) ?unit resolver dir =
     try Hashtbl.find us_tbl name
     with Not_found ->
       let local_deps =
-        try List.concat (Hashtbl.find_all deps_tbl name) with Not_found -> []
+        try dedup (List.concat (Hashtbl.find_all deps_tbl name)) with Not_found -> []
       in
       let udeps = List.map (get_u deps_tbl us_tbl) local_deps in
       let deps = deps name @ (udeps :> As_project.component list) in

@@ -320,13 +320,11 @@ end = struct
 
   let pp suffix varlib varbin fn t =
     let var = As_project.Unit.id t ^ "." ^ suffix in
-    let lib =
-      let rec aux u = match As_project.Unit.container u with
-      | None           -> None
-      | Some (`Lib l)  -> Some (varlib l)
-      | Some (`Bin b)  -> Some (varbin b)
-      | Some (`Unit u) -> aux u in
-      aux t in
+    let lib = match As_project.Unit.container t with
+    | None           -> None
+    | Some (`Lib l)  -> Some (varlib l)
+    | Some (`Bin b)  -> Some (varbin b)
+    in
     match lib, fn (As_project.Unit.flags t resolver) with
     | None  , [] -> None
     | Some l, [] -> if Variable.is_empty l then None else Some l
@@ -339,13 +337,11 @@ end = struct
 
   let flag suffix varlib varbin fn t =
     let var    = As_project.Unit.id t ^ "." ^ suffix in
-    let global =
-      let rec aux u = match As_project.Unit.container u with
-      | None           -> []
-      | Some (`Lib l)  -> [Variable.name (varlib l)]
-      | Some (`Bin b)  -> [Variable.name (varbin b)]
-      | Some (`Unit u) -> aux u in
-      aux t in
+    let global = match As_project.Unit.container t with
+    | None           -> []
+    | Some (`Lib l)  -> [Variable.name (varlib l)]
+    | Some (`Bin b)  -> [Variable.name (varbin b)]
+    in
     let flags = fn (As_project.Unit.flags t resolver) @ global in
     Variable.(var =?= `Strings flags)
 
@@ -386,7 +382,7 @@ end = struct
            | Some v -> [v]))
 
   (* XXX: handle native pp *)
-  let rules t =
+  let rec rules t =
     let pp = match pp_byte t with
       | None   -> ""
       | Some v -> sprintf "-pp '$(CAMLP4O) %s' " (Variable.name v) in
@@ -432,10 +428,13 @@ end = struct
         else
           [] in
       let cmx = (* Generate cmxs *)
-        [Rule.create ~targets:[target ".cmx"]
-           ~prereqs:[target ".ml"; target ".cmi"; prereqs_var t `Native]
-           [sprintf "$(OCAMLOPT) -c %s%s %s"
-              flags (Variable.name (comp_native t)) Rule.prereq]]
+        if As_project.Unit.ml t then
+          [Rule.create ~targets:[target ".cmx"]
+             ~prereqs:[target ".ml"; target ".cmi"; prereqs_var t `Native]
+             [sprintf "$(OCAMLOPT) -c %s%s %s"
+                flags (Variable.name (comp_native t)) Rule.prereq]]
+        else
+        []
       in
       ln @ cmi @ cmo @ cmx
 
@@ -452,13 +451,13 @@ end = struct
           sprintf "$(OCAMLOPT) -pack %s%s -o %s"
             flags Rule.prereq Rule.target_member
         ] in
-      byte :: native :: conmap U.rules units
+      byte :: native :: conmap rules units
 
 end
 
 and L: sig
   val rules      : As_project.Lib.t -> Rule.t list
-  val variables  : As_project.Lib.t -> Variable.stanza
+  val variables  : As_project.Lib.t -> Variable.stanza list
   val comp_byte  : As_project.Lib.t -> Variable.t
   val comp_native: As_project.Lib.t -> Variable.t
   val pp_byte    : As_project.Lib.t -> Variable.t
@@ -513,6 +512,7 @@ end = struct
     Variable.stanza
       ~doc:[sprintf "Library %s" (As_project.Lib.name t)]
       vars
+    :: List.map U.variables (As_project.Lib.units t)
 
   let rules t =
     let byte =
@@ -541,13 +541,13 @@ end = struct
     :: byte
     :: native `Native
     :: native `Shared
-    :: []
+    :: conmap U.rules (As_project.Lib.units t)
 
 end
 
 and B: sig
   val rules      : As_project.Bin.t -> Rule.t list
-  val variables  : As_project.Bin.t -> Variable.stanza
+  val variables  : As_project.Bin.t -> Variable.stanza list
   val comp_byte  : As_project.Bin.t -> Variable.t
   val comp_native: As_project.Bin.t -> Variable.t
   val pp_byte    : As_project.Bin.t -> Variable.t
@@ -596,6 +596,7 @@ end = struct
     Variable.stanza
       ~doc:[sprintf "Binary %s" (As_project.Bin.name t)]
       vars
+    :: List.map U.variables (As_project.Bin.units t)
 
   let rules t =
     Rule.create
@@ -616,7 +617,7 @@ end = struct
       sprintf "mkdir -p %s" (As_project.Bin.build_dir t resolver);
       sprintf "$(OCAMLOPT) %s -o %s" (Variable.name (link_native t)) Rule.target;
     ]
-    :: []
+    :: conmap U.rules (As_project.Bin.units t)
 
 end
 
@@ -833,15 +834,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
   let jss   = As_project.Component.(filter js components) in
   let others  = As_project.Component.(filter other components) in
   let cs    = As_project.Component.(filter c components) in
-  let cus   = As_project.Component.(
-      (components
-       @ List.map (fun x -> `Unit x)
-         (conmap As_project.Lib.units (libs @ pps))
-       @ List.map (fun x -> `Unit x)
-         (conmap As_project.Bin.units bins))
-      |> Graph.of_list
-      |> Graph.to_list
-      |> filter unit) in
+  let cus   = As_project.Component.(filter unit components) in
   let targets =
     List.map (fun l -> `Lib l) (libs @ pps)
     @ List.map (fun b -> `Bin b) bins in
@@ -901,8 +894,8 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
             "";
            ] []
     :: (List.map U.variables cus)
-    @  (List.map L.variables (libs @ pps))
-    @  (List.map B.variables bins)
+    @  (conmap L.variables (libs @ pps))
+    @  (conmap B.variables bins)
     @  (List.map O.variables others)
   in
   let rules =

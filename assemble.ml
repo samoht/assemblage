@@ -18,15 +18,15 @@ let lib =
   lib "assemblage" (ocamldep ~dir:"lib" ~deps ())
 
 let configure =
-  let configure = unit "configure" ~dir:"bin" ~deps:[lib] in
+  let configure = unit "configure" (`Dir "bin") ~deps:[lib] in
   bin "configure.ml" ~link_all:true ~byte_only:true [configure]
 
 let describe =
-  let describe = unit "describe" ~dir:"bin" ~deps:[lib]  in
+  let describe = unit "describe" (`Dir "bin") ~deps:[lib]  in
   bin "describe.ml" ~link_all:true ~byte_only:true [describe]
 
 let ctypes_gen =
-  let ctypes_gen = unit "ctypes_gen" ~dir:"bin" ~deps:[lib] in
+  let ctypes_gen = unit "ctypes_gen" (`Dir "bin") ~deps:[lib] in
   bin "ctypes-gen" ~byte_only:true [ctypes_gen]
 
 (* Tests *)
@@ -43,11 +43,14 @@ let mk_test name =
     test_shell "make distclean";
   ]
 
-let camlp4     = mk_test "camlp4"
-let multi_libs = mk_test "multi-libs"
+let tests = [
+  mk_test "camlp4";
+  mk_test "multi-libs";
+  mk_test "containers";
+]
 
 (* The project *)
 
 let () =
-  let cs = [lib; configure; describe; ctypes_gen; camlp4; multi_libs] in
+  let cs = [lib; configure; describe; ctypes_gen ] @ tests in
   add (create "assemblage" ~doc_public:["assemblage"] cs)
