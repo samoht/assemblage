@@ -9,5 +9,7 @@ let b2 = bin "b2" [b]
 
 let l = lib "l" [a]
 
+let b3 = bin "b3" [b] ~deps:[l] ~link_all:true
+
 let () =
-  add (create "containers" [b1;b2;l])
+  add (create "containers" [b1;b2;b3])
