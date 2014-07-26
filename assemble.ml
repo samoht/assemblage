@@ -43,11 +43,14 @@ let mk_test name =
     test_shell "make distclean";
   ]
 
-let camlp4     = mk_test "camlp4"
-let multi_libs = mk_test "multi-libs"
+let tests = [
+  mk_test "camlp4";
+  mk_test "multi-libs";
+  mk_test "containers";
+]
 
 (* The project *)
 
 let () =
-  let cs = [lib; configure; describe; ctypes_gen; camlp4; multi_libs] in
+  let cs = [lib; configure; describe; ctypes_gen ] @ tests in
   add (create "assemblage" ~doc_public:["assemblage"] cs)
