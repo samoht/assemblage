@@ -23,48 +23,23 @@ type t
 (** Environment values. *)
 
 val create:
-
   ?features:(As_features.atom * bool) list ->
-  (** Project features. *)
-
-  ?comp: string list ->
-  (** Additional compilation flags passed to both [ocamlc] and
-      [ocamlopt]. *)
-
-  ?bytcomp: string list ->
-  (** Additional compilation flags passed to [ocamlc] only. *)
-
-  ?natcomp: string list ->
-  (** Additional compilation flags passed to [ocamlopt] only. *)
-
-  ?link: string list ->
-  (** Additional link flags passed to both [ocamlc] and [ocamlopt]. *)
-
-  ?bytlink: string list ->
-  (** Addtional link flags passed to [ocamlc]. *)
-
-  ?natlink: string list ->
-  (** Addtional link flags passed to [ocamlopt]. *)
-
-  ?pp: string list ->
-  (** Addition flags passed to the pre-preprocessor. *)
-
+  ?flags:As_flags.t ->
   ?includes: string list ->
-  (** List of directories to include when loading `assemble.ml'. *)
-
   ?auto_load: bool ->
-  (** Automatically include $(ocamlfind query tools). *)
-
   ?build_dir: string ->
-  (** Location of the generated files. [None] means the files stays in
-      the same directory. *)
-
   unit -> t
+(** {ul
+    {- [includes] is the list of directories to include when loading
+       `assemble.ml'.}
+    {- [auto_load] automatically include $(ocamlfind query tools).}
+    {- [build_dir] is the location of the generated files. [None]
+      means the files stays in the same directory.}} *)
 
 val default: t
 (** Default project configuration. *)
 
-val parse: ?doc:string -> ?man:string list -> string -> As_features.Set.t -> t
+val parse: ?doc:string -> ?man:string list -> string -> As_features.t -> t
 (** [parse name features] parse the arguments given on the
     command-line as a configuration value, for the project [name] with
     the possible features [features]. *)

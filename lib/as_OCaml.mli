@@ -18,11 +18,3 @@
 
 val modules : build_dir:string -> As_project.Unit.t -> string list
 (** Return the list of submodules defined in the given compilation unit. *)
-
-val depends :
-  ?keep:(string -> bool) ->
-  ?deps:(string -> As_project.component list) ->
-  ?unit:(string -> As_project.component list ->
-         [ `Unit of As_project.comp_unit ]) ->
-  As_resolver.t -> string -> As_project.comp_unit list
-(** See {!Assemblage.ocamldep}. *)

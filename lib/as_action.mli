@@ -18,10 +18,51 @@
 
 type action
 
-type kind = [ `Ml | `Mli | `Cmo | `Cmi | `Cmx | `O | `C | `Js]
-
-type t = As_resolver.t -> (kind list * action) list
-
-val empty: t
 val create: ?dir:string -> ('a, unit, string, action) format4 -> 'a
-val actions: t -> As_resolver.t -> (kind list * string list) list
+val seq: action list -> action
+val mkdir: string -> action
+val link: source:string -> target:string -> action
+
+type 'a t = 'a -> As_resolver.t -> As_flags.t -> action
+
+type file =
+  [ `Dep of [`Ml|`Mli]
+  | `Ml | `Mli | `C | `Js
+  | `Cmt | `Cmti
+  | `Cmi | `Cmo | `Cmx | `O
+  | `So | `Cma | `Cmxa | `Cmxs
+  | `A | `Byte | `Native
+  | `Dir
+  | `Source of file
+  | `Ext of string
+  | `Other of (string -> string) ]
+
+module FileSet: sig
+  include Set.S with type elt = file
+  val to_list: t -> file list
+  val of_list: file list -> t
+end
+
+type 'a node =
+  [ `Self of file
+  | `Phony of string
+  | `N of 'a * file ]
+
+type 'a rule = {
+  phase  : As_flags.phase;
+  targets: 'a node list;
+  prereqs: 'a node list;
+  action : 'a t;
+}
+
+val rule:
+  phase:As_flags.phase ->
+  targets:'a node list ->
+  prereqs:'a node list ->
+  'a t -> 'a rule
+
+val string_of_file: string -> file -> string
+
+val empty: 'a t
+
+val run: 'a t -> 'a -> As_resolver.t -> As_flags.t -> string list

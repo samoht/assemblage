@@ -81,7 +81,7 @@ module Features : sig
   (** {1 Built-in features} *)
 
   val byte: t
-  (** [byte[ is tru iff byte code compilation is available. *)
+  (** [byte] is tru iff byte code compilation is available. *)
 
   val native : t
   (** [native] is true iff native code compilation is available. *)
@@ -123,11 +123,18 @@ module Flags : sig
 
   (** {1:flags Flags} *)
 
-  type phase = [ `Pp | `Compile | `Link | `Other | `Run | `Test ]
-  (** The type for phases. *)
-
-  type mode = [ `Byte | `Native | `Shared | `C | `Js ]
-  (** The type for modes. *)
+  type phase =
+    [ `Prepare
+    | `Dep
+    | `Pp of [`Byte|`Native]
+    | `Compile of [`Intf|`Byte|`Native|`C|`Js]
+    | `Archive of [`Byte|`Native|`Shared|`C]
+    | `Link of [`Byte|`Native|`Js]
+    | `Run of [`Byte|`Native]
+    | `Test
+    | `Doc
+    | `Other of string ]
+  (** The type for compilation phases. *)
 
   type args = string list
   (** The type for partial command line arguments. *)
@@ -135,7 +142,7 @@ module Flags : sig
   type t
   (** The type for multi-context, partial, command line arguments. *)
 
-  val v : ?available:Features.t -> phase -> mode -> args -> t
+  val v : ?available:Features.t -> phase -> args -> t
   (** [v available phase mode args] is the partial command line
       [args] in the context defined by [phase] and [modes]. This partial
       command line is only available whenever the feature [available]
@@ -196,17 +203,9 @@ module Resolver: sig
   type t
   (** The type for internal and external name resolvers. *)
 
-  val create : ocamlc:string -> ocamlopt:string -> build_dir:string ->
-    pkgs:(string list -> Flags.t) -> t
-  (** [create ~ocamlc ~ocamlopt ~buildir ~pkgs] is the resolver which
-      prefixes [buildir] to resolve local library names and applies
-      [pkgs] to resolve a set of global package names. [ocamlc] and
-      [ocamlopt] are the names of the bytecode and optimizing
-      compilers. *)
-
-  val build_dir : t -> string -> string
-  (** Resolve locally generated filename by prepending the build
-      directory name. *)
+  val build_dir : t -> string
+  (** [build_dir t] is the directory where lives all the build
+      artifacts. *)
 
   val pkgs : t -> string list -> Flags.t
   (** Resolve global package names into command line flags. *)
@@ -222,16 +221,51 @@ module Action: sig
   type action
   (** Custom actions. *)
 
-  val empty: action
-  (** The empty action. *)
+  type file =
+    [ `Dep of [`Ml|`Mli]
+    | `Ml | `Mli | `C | `Js
+    | `Cmt | `Cmti
+    | `Cmi | `Cmo | `Cmx | `O
+    | `So | `Cma | `Cmxa | `Cmxs
+    | `A | `Byte | `Native
+    | `Dir
+    | `Source of file
+    | `Ext of string
+    | `Other of (string -> string) ]
+  (** The different kinds of files. *)
 
   val create : ?dir:string -> ('a, unit, string, action) format4 -> 'a
   (** [bash ~dir fmt] is a generator which produces some results by
       calling [fmt] in a bash shell, running in the directory
       [dir]. *)
 
-  type t = Resolver.t -> As_flags.phase -> As_flags.mode -> action
-  (** Type of custom actions. *)
+  type 'a t = 'a -> Resolver.t -> Flags.t -> action
+  (** Type of action generators. *)
+
+  type 'a node =
+    [ `Self of file
+    | `Phony of string
+    | `N of 'a * file ]
+  (** The type of nodes in the action graph. *)
+
+  type 'a rule = {
+    phase  : Flags.phase;
+    targets: 'a node list;
+    prereqs: 'a node list;
+    action : 'a t;
+  }
+  (** An action rule is a list of target nodes, prerequesite nodes and
+      an action. *)
+
+  val rule:
+    phase:Flags.phase ->
+    targets:'a node list ->
+    prereqs:'a node list ->
+    'a t -> 'a rule
+  (** Create a new rule. *)
+
+  val empty: 'a t
+  (** The generator of empty actions. *)
 
 end
 
@@ -264,6 +298,9 @@ type dir
 type test
 (** The type for test descriptions. *)
 
+type doc
+(** The type for documentation descriptions. *)
+
 type component =
   [ `Unit of comp_unit
   | `Other of other
@@ -271,7 +308,8 @@ type component =
   | `Pkg of pkg
   | `Bin of bin
   | `Dir of dir
-  | `Test of test ]
+  | `Test of test
+  | `Doc of doc ]
 (** The type for components.
     {ul
     {- [`Unit u] u is a project compilation unit.}
@@ -299,30 +337,34 @@ val js : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
 (** Same as {!unit} but for javascript source files. *)
 
 val other : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-  string -> Action.t -> [`C | `Js | `Ml | `Mli] list -> [> `Other of other]
+  string -> component Action.rule list -> [> `Other of other]
 (** Generated source file(s). *)
 
 val lib : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-  ?pack:bool -> string -> [`Unit of comp_unit] list -> [> `Lib of lib]
+  ?pack:bool ->
+  string -> [`Units of [`Unit of comp_unit] list | `Other of other]
+  -> [> `Lib of lib]
 (** [lib name units] is the project library [name] composed by the compilation
     units [cus]. If [lib] is set, use [ocamldep] to approximate the
     compilation units and their dependecies in the given directory. *)
 
 val lib_pp : ?available:Features.t -> ?flags:Flags.t ->
-  ?deps:component list ->
-  ?pack:bool ->string -> [`Unit of comp_unit] list -> [> `Lib of lib]
+  ?deps:component list -> ?pack:bool ->
+  string -> [`Units of [`Unit of comp_unit] list | `Other of other]
+  -> [> `Lib of lib]
 (** [lib_pp] is like {!lib} but it defines a project pre-processor. *)
 
 val bin : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
   ?byte:bool -> ?native:bool -> ?js:bool ->
   ?link_all:bool -> ?install:bool ->
-  string -> [`Unit of comp_unit] list -> [> `Bin of bin]
+  string -> [`Units of [`Unit of comp_unit] list | `Other of other]
+  -> [> `Bin of bin]
 (** [bin name units] is the binary [name] obtained by compiling
     the compilation units [units], with the dependencies [deps]. By
     default, the source files are located into {i bin/} (this is
     controled by the value of [dir]). *)
 
-val dir : ?available:As_features.t -> ?flags:As_flags.t ->
+val dir : ?available:Features.t -> ?flags:Flags.t ->
   ?deps:component list ->
   ?install:bool ->
   [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
@@ -355,7 +397,7 @@ val pkg_c : ?available:Features.t -> ?flags:Flags.t -> ?opt:bool -> string ->
 type test_command
 (** The type for test commands. *)
 
-type test_args = (component -> string) -> string list
+type test_args = Resolver.t -> string list
 (** The type for command line arguments when calling tests of executable. *)
 
 val test_bin : [`Bin of bin] -> ?args:test_args -> unit -> test_command
@@ -370,25 +412,9 @@ val test : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
 
 (** {1:componenthelpers Component helpers} *)
 
-val ocamldep :
-  ?keep:(string -> bool) ->
-  ?deps:(string -> component list) ->
-  ?unit:(string -> component list -> [ `Unit of comp_unit]) ->
-  dir:string -> unit -> [> `Unit of comp_unit] list
-(** [ocamldep ~dir ~keep ~deps ~unit ()] is the list of compilation
-    units derived as follows.
-
-    First the set of compilation unit names is derived by looking for
-    any ml and mli files in [dir]. This set is then filtered by
-    keeping only the unit names that satisfy the [keep] predicate
-    (defaults to [fun _ -> true]).
-
-    For each found compilation name [n] a first set of dependencies is
-    determined by calling [deps n] (e.g. to specify packages and
-    pre-processors). ocamldep is then invoked and the resulting
-    compilation units are constructed by [unit n deps'] where [deps']
-    is the union of deps found by ocamldep and [deps n] ([unit]
-    defaults to [fun n deps' -> unit ~dir n deps']). *)
+val build_dir: component -> Resolver.t -> string
+(** [build_dir t r] is the directory where the component [t] is
+    built. *)
 
 val cstubs : ?available:Features.t -> ?deps:component list ->
   ?headers:string list -> ?cflags:string list -> ?clibs:string list ->
@@ -406,8 +432,6 @@ type t
 val create :
   ?available:Features.t ->
   ?flags:Flags.t ->
-  ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
-  ?doc_public:string list ->
   ?version:string ->
   string -> component list -> t
 (** [create name deps] registers the project named [name], defining
@@ -457,3 +481,6 @@ val configure : [`Make] -> tool
 
 val describe : tool
 (** Describe the project to stdout. *)
+
+val (/): string -> string -> string
+(** Same as [Filename.concat]. *)

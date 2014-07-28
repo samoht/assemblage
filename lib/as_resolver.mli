@@ -26,10 +26,28 @@
 type t
 (** The type for internal and external name resolvers. *)
 
-val create: ocamlc:string -> ocamlopt:string -> build_dir:string ->
-  pkgs:(string list -> As_flags.t) -> t
+val create:
+  ?ocamlc:string ->
+  ?ocamlopt:string ->
+  ?ocamldep:string ->
+  ?ocamlmklib:string ->
+  ?ocamldoc:string ->
+  ?camlp4o:string ->
+  ?js_of_ocaml:string ->
+  ?build_dir:string ->
+  ?lib_dir:string ->
+  ?root_dir:string ->
+  ?pkgs:(string list -> As_flags.t) ->
+  unit -> t
 
 val ocamlc: t -> string
 val ocamlopt: t -> string
-val build_dir: t -> string -> string
+val ocamldep: t -> string
+val ocamlmklib: t -> string
+val ocamldoc: t -> string
+val camlp4o: t -> string
+val js_of_ocaml: t -> string
+val build_dir: t -> string
+val lib_dir: t -> string
+val root_dir: t -> string
 val pkgs: t -> string list -> As_flags.t

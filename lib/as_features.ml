@@ -74,9 +74,22 @@ let create ?default name ~doc = Atom (create_atom ?default ~doc name)
 let true_ = True
 let false_ = False
 let atom t = Atom t
-let not_ f = Not f
-let (&&&) x y = And (x, y)
-let (|||) x y = Or (x, y)
+
+let not_ = function
+| True  -> False
+| False -> True
+| Not t -> t
+| t     -> Not t
+
+let (&&&) x y = match x, y with
+| True, x  | x, True  -> x
+| False, _ | _, False -> False
+| _ -> And (x, y)
+
+let (|||) x y = match x, y with
+| True, _  | _, True  -> True
+| False, x | x, False -> x
+| _ -> Or (x, y)
 
 let atoms t =
   let set = ref Set.empty in

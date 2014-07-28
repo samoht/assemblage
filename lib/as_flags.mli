@@ -16,16 +16,34 @@
 
 (** Command line arguments *)
 
-type phase = [ `Pp | `Compile | `Link | `Run | `Test | `Other ]
-type mode = [ `Byte | `Native | `Shared | `C | `Js ]
+type phase =
+  [ `Prepare
+  | `Dep
+  | `Pp of [`Byte|`Native]
+  | `Compile of [`Intf|`Byte|`Native|`C|`Js]
+  | `Archive of [`Byte|`Native|`Shared|`C]
+  | `Link of [`Byte|`Native|`Js]
+  | `Run of [`Byte|`Native]
+  | `Test
+  | `Doc
+  | `Other of string ]
+
 type args = string list
 type t
 
-val v : ?available:As_features.t -> phase -> mode -> args -> t
+val string_of_phase: phase -> string
+
+module PhaseSet: sig
+  include Set.S with type elt = phase
+  val to_list: t -> phase list
+  val of_list: phase list -> t
+end
+
+val v : ?available:As_features.t -> phase -> args -> t
 val ( @@@ ) : t -> t -> t
 
 (* FIXME: this needs an Features evaluation context. *)
-val get : phase -> mode -> t -> args
+val get : phase -> t -> args
 
 (* Built-in flags *)
 
@@ -38,3 +56,5 @@ val thread : t
 val cclib : string list -> t
 val ccopt : string list -> t
 val stub : string -> t
+val doc_css : string -> t
+val doc_intro : string -> t

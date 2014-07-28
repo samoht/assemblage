@@ -26,29 +26,25 @@ module Install = struct
   }
 
   let opt f =
-    if f = As_features.true_ then ""
+    if f = As_features.true_ || f = As_features.byte then ""
     else "?"
 
   let of_project ?(meta=true) ~build_dir t =
+    let r = As_resolver.create ~build_dir () in
     let name = As_project.name t in
     let components = As_project.components t in
     let libs = As_project.Component.(filter lib_ocaml components) in
     let bins =
       List.filter As_project.Bin.install As_project.Component.(filter bin components) in
     let buf = Buffer.create 1024 in
-    let resolver =
-      As_resolver.create
-        ~ocamlc:"ocamlc"
-        ~ocamlopt:"ocamlopt"
-        ~build_dir
-        ~pkgs:(fun _ -> As_flags.empty) in
     if libs <> [] then (
       bprintf buf "lib: [\n";
       if meta then bprintf buf "  \"META\"\n";
       List.iter (fun l ->
-          let gens = As_project.Lib.generated_files l resolver in
+          let gens = As_project.Lib.generated_files l in
           List.iter (fun (flags, files) ->
               List.iter (fun file ->
+                  let file = As_project.Component.file (`Lib l) r file in
                   bprintf buf "  \"%s%s\"\n" (opt flags) file
                 ) files;
             ) gens;
@@ -57,9 +53,10 @@ module Install = struct
     if bins <> [] then (
       bprintf buf "bin: [\n";
       List.iter (fun b ->
-          let gens = As_project.Bin.generated_files b resolver in
+          let gens = As_project.Bin.generated_files b in
           List.iter (fun (flags, files) ->
               List.iter (fun file ->
+                  let file = As_project.Component.file (`Bin b) r file in
                   bprintf buf "  \"%s%s\" {\"%s\"}\n"
                     (opt flags) file (As_project.Bin.name b)
                 ) files;
@@ -67,39 +64,7 @@ module Install = struct
         ) bins;
       bprintf buf "]\n";
     );
-    if libs <> [] then (
-      let mk fmt =
-        ksprintf (fun file ->
-            bprintf buf "  \"?%s/%s\"\n" (As_project.doc_dir t) file
-          ) fmt in
-      bprintf buf "doc: [\n";
-      mk "index.html";
-      mk "index_attributes.html";
-      mk "index_class_types.html";
-      mk "index_classes.html";
-      mk "index_exceptions.html";
-      mk "index_methods.html";
-      mk "index_module_types.html";
-      mk "index_modules.html";
-      mk "index_types.html";
-      mk "index_values.html";
-      mk "style.css";
-      List.iter (fun l ->
-          let units = As_project.Lib.units l in
-          List.iter (fun u ->
-              let name = String.capitalize (As_project.Unit.name u) in
-              mk "%s.html" name;
-              mk "type_%s.html" name;
-              let modules =
-                if As_project.Unit.generated u then []
-                else As_OCaml.modules ~build_dir u in
-              List.iter (fun m ->
-                  mk "%s.%s.html" name m
-                ) modules
-            ) units;
-        ) libs;
-      bprintf buf "]\n";
-    );
+    (* FIXME: output doc and other dirs *)
     let contents = Buffer.contents buf in
     { name; contents }
 
