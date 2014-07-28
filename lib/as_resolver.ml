@@ -17,12 +17,18 @@
 let (/) = Filename.concat
 
 type t = {
+  ocamlc   : string;
+  ocamlopt : string;
   build_dir: string;
   pkgs     : string list -> As_flags.t;
 }
 
-let create ~build_dir ~pkgs =
-  { build_dir; pkgs }
+let create ~ocamlc ~ocamlopt ~build_dir ~pkgs =
+  { ocamlc; ocamlopt; build_dir; pkgs }
+
+let ocamlc t = t.ocamlc
+
+let ocamlopt t = t.ocamlopt
 
 let build_dir t dir = t.build_dir / dir
 

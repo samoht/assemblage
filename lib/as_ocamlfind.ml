@@ -114,8 +114,8 @@ let pkgs ~mode names =
   v `Link `Native (link_native ~mode names)
 
 
-let resolver mode build_dir =
-  As_resolver.create ~build_dir ~pkgs:(pkgs ~mode)
+let resolver mode ~ocamlc ~ocamlopt ~build_dir =
+  As_resolver.create ~ocamlc ~ocamlopt ~build_dir ~pkgs:(pkgs ~mode)
 
 module META = struct
 

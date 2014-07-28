@@ -16,7 +16,7 @@
 
 open Printf
 
-type phase = [ `Pp | `Compile | `Link | `Other | `Run | `Test ]
+type phase = [ `Pp | `Compile | `Link | `Run | `Test | `Other ]
 type mode = [ `Byte | `Native | `Shared | `C | `Js ]
 type args = string list
 type flag =
@@ -24,6 +24,21 @@ type flag =
     phase : phase;
     mode : mode;
     args : args; }
+
+let string_of_phase = function
+| `Pp -> "pp"
+| `Compile -> "compile"
+| `Link -> "link"
+| `Run -> "run"
+| `Test -> "test"
+| `Other -> "other"
+
+let string_of_mode = function
+| `Byte -> "byte"
+| `Native -> "native"
+| `Shared -> "shared"
+| `C -> "c"
+| `Js -> "js"
 
 type t = flag list
 

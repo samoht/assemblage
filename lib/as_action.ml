@@ -16,29 +16,39 @@
 
 open Printf
 
-type custom = {
+type action = {
   dir: string option;
   cmd: string;
 }
 
-type t = (As_resolver.t -> custom)
+type kind = [ `Ml | `Mli | `Cmo | `Cmi | `Cmx | `O | `C | `Js | `Other of string]
 
-let custom ?dir fmt =
+let string_of_kind = function
+| `Ml -> "ml"
+| `Mli -> "mli"
+| `Cmo -> "cmo"
+| `Cmi -> "cmi"
+| `Cmx -> "cmx"
+| `O -> "o"
+| `C -> "c"
+| `Js -> "js"
+| `Other s -> s
+
+type t = As_resolver.t -> (kind list * action) list
+
+let empty _ = []
+
+let create ?dir fmt =
   ksprintf (fun cmd ->
       { dir; cmd }
     ) fmt
 
-let run t r =
-  let s = t r in
-  match s.dir with
-  | None   -> As_shell.exec "%s" s.cmd
-  | Some d -> As_shell.in_dir d (fun () -> As_shell.exec "%s" s.cmd)
-
-let actions t r =
-  let s = t r in
-  match s.dir with
-  | None   -> [s.cmd]
-  | Some d -> [
-      sprintf "mkdir -p %s" d;
-      sprintf "cd %s && %s" d s.cmd
-    ]
+let actions (t:t) r =
+  List.map (fun (kinds, action) ->
+      match action.dir with
+      | None   -> kinds, [action.cmd]
+      | Some d -> kinds, [
+          sprintf "mkdir -p %s" d;
+          sprintf "cd %s && %s" d action.cmd
+        ]
+    ) (t r)

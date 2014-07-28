@@ -36,7 +36,8 @@ val query:
     directly. Otherwise, return the ocamlfind to run to get the
     expected result. *)
 
-val resolver: mode -> string -> As_resolver.t
+val resolver: mode -> ocamlc:string -> ocamlopt:string -> build_dir:string ->
+  As_resolver.t
 (** Resolve command-line arguments for ocamlfind packages. *)
 
 module META: sig

@@ -17,7 +17,7 @@
 open Printf
 open Cmdliner
 
-(* Atomic features *) 
+(* Atomic features *)
 
 type atom = {
   name: string;
@@ -50,7 +50,7 @@ let parse t =
     (t, v) in
   Term.(pure create $ enable $ disable)
 
-(* Atomic feature sets *) 
+(* Atomic feature sets *)
 
 module Set = Set.Make
     (struct
@@ -98,7 +98,7 @@ let rec eval tbl = function
   | And (x, y) -> (eval tbl x) && (eval tbl y)
   | Or (x, y)  -> (eval tbl x) || (eval tbl y)
 
-(* CNF *) 
+(* CNF *)
 
 type cnf = [ `Conflict | `And of [ `P of atom | `N of atom ] list ]
 
@@ -142,8 +142,11 @@ let rec cnf: t -> cnf = function
 
 (* Built-in features *)
 
+let byte_atom = create_atom
+    "byte" ~default:true ~doc:"byte code compilation available"
+
 let native_atom = create_atom
-    "native" ~default:true ~doc:"native code compilation available" 
+    "native" ~default:true ~doc:"native code compilation available"
 
 let native_dynlink_atom = create_atom
     "native-dynlink" ~default:true ~doc:"native code dynamic linking available"
@@ -160,23 +163,24 @@ let debug_atom = create_atom
 
 let warn_error_atom = create_atom
     "warn-error" ~default:false  ~doc:"build with warnings as errors"
-    
+
 let test_atom = create_atom
     "test" ~default:false  ~doc:"build tests"
 
 let public_doc_atom = create_atom
     "doc" ~default:false ~doc:"build public documentation"
-    
+
 let full_doc_atom = create_atom
     "full-doc" ~default:false ~doc:"build full documentation"
 
 let builtin = List.fold_left (fun set t -> Set.add t set) Set.empty [
-    native_atom; native_dynlink_atom; js_atom;
+    byte_atom; native_atom; native_dynlink_atom; js_atom;
     debug_atom; annot_atom; warn_error_atom;
-    test_atom; public_doc_atom; 
+    test_atom; public_doc_atom;
     full_doc_atom;
   ]
 
+let byte = atom byte_atom
 let native = atom native_atom
 let native_dynlink = atom native_dynlink_atom
 let js = atom js_atom

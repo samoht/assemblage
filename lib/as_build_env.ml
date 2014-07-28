@@ -165,6 +165,7 @@ let includes t = t.includes
 let auto_load t = t.auto_load
 
 let parse ?doc ?man name features =
+  let features = As_features.atoms features in
   let doc = match doc with
     | None   -> "helpers to manage and configure OCaml projects."
     | Some d -> d in

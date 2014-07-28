@@ -19,15 +19,15 @@ let lib =
 
 let configure =
   let configure = unit "configure" (`Dir "bin") ~deps:[lib] in
-  bin "configure.ml" ~link_all:true ~byte_only:true [configure]
+  bin "configure.ml" ~link_all:true ~native:false [configure]
 
 let describe =
   let describe = unit "describe" (`Dir "bin") ~deps:[lib]  in
-  bin "describe.ml" ~link_all:true ~byte_only:true [describe]
+  bin "describe.ml" ~link_all:true ~native:false [describe]
 
 let ctypes_gen =
   let ctypes_gen = unit "ctypes_gen" (`Dir "bin") ~deps:[lib] in
-  bin "ctypes-gen" ~byte_only:true [ctypes_gen]
+  bin "ctypes-gen" ~native:false [ctypes_gen]
 
 (* Tests *)
 

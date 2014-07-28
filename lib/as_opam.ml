@@ -38,6 +38,8 @@ module Install = struct
     let buf = Buffer.create 1024 in
     let resolver =
       As_resolver.create
+        ~ocamlc:"ocamlc"
+        ~ocamlopt:"ocamlopt"
         ~build_dir
         ~pkgs:(fun _ -> As_flags.empty) in
     if libs <> [] then (

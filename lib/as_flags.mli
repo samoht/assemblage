@@ -16,10 +16,13 @@
 
 (** Command line arguments *)
 
-type phase = [ `Pp | `Compile | `Link | `Other | `Run | `Test ]
+type phase = [ `Pp | `Compile | `Link | `Run | `Test | `Other ]
 type mode = [ `Byte | `Native | `Shared | `C | `Js ]
 type args = string list
 type t
+
+val string_of_phase: phase -> string
+val string_of_mode: mode -> string
 
 val v : ?available:As_features.t -> phase -> mode -> args -> t
 val ( @@@ ) : t -> t -> t

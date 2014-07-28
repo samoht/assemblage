@@ -32,27 +32,29 @@ type t = As_project.t
 type component = As_project.Component.t
 type comp_unit = As_project.Unit.t
 type other = As_project.Other.t
-type c = As_project.C.t
-type js = As_project.JS.t
 type pkg = As_project.Pkg.t
 type lib = As_project.Lib.t
 type bin = As_project.Bin.t
-type files = As_project.Files.t
+type dir = As_project.Dir.t
 type test = As_project.Test.t
 
 let unit ?available ?flags ?deps name origin =
-  `Unit (As_project.Unit.create ?available ?flags ?deps name origin)
+  `Unit (As_project.Unit.create ?available ?flags ?deps name `OCaml origin)
 
-let other ?available ?flags ?deps ?action name f =
-  `Other (As_project.Other.create ?available ?flags ?deps ?action f name)
+let c ?available ?(flags=As_flags.empty) ?deps ?(cclib = []) ?(ccopt = []) name origin =
+  let flags =
+    let (@@@) = As_flags.(@@@) in
+    flags @@@ As_flags.ccopt ccopt @@@ As_flags.cclib cclib in
+  `Unit (As_project.Unit.create ?available ~flags ?deps name `C origin)
 
-let c ?available ?flags ?deps ?dir ?(link_flags = []) name libs =
-  let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
-  `C (As_project.C.create ?available ?flags ?deps ?dir ~link_flags name)
+let js ?available ?(flags=As_flags.empty) ?deps ?(jsflags = []) name origin =
+  let flags =
+    let (@@@) = As_flags.(@@@) in
+    flags @@@ As_flags.v `Link `Js jsflags in
+  `Unit (As_project.Unit.create ?available ~flags ?deps name `Js origin)
 
-let js b r =
-  let `Bin b = b in
-  `JS (As_project.JS.create b r)
+let other ?available ?flags ?deps name action kinds =
+  `Other (As_project.Other.create ?available ?flags ?deps name action kinds)
 
 let pkg ?available ?flags ?opt name =
   `Pkg (As_project.Pkg.create ?available ?flags ?opt name `OCaml)
@@ -63,23 +65,21 @@ let pkg_pp ?available ?flags ?opt name =
 let pkg_c ?available ?flags ?opt name =
   `Pkg (As_project.Pkg.create ?available ?flags ?opt name `C)
 
-let lib ?available ?flags ?deps ?pack ?(c = []) name us =
-  let c = List.map (function `C c -> c) c in
-  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack ~c name `OCaml us)
+let lib ?available ?flags ?deps ?pack name units =
+  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack name `OCaml units)
 
-let lib_pp ?available ?flags ?deps ?pack ?(c = []) name us =
-  let c = List.map (function `C c -> c) c in
-  let kind = `OCaml_pp in
-  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack ~c name kind us)
+let lib_pp ?available ?flags ?deps ?pack name units =
+  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack name `OCaml_pp units)
 
-let bin ?available ?flags ?deps ?byte_only ?link_all ?install name cus =
-  `Bin (As_project.Bin.create ?available ?flags ?deps ?byte_only ?link_all
-          ?install cus name)
+let bin ?available ?flags ?deps ?byte ?native ?js ?link_all ?install name units =
+  `Bin (As_project.Bin.create ?available ?flags ?deps ?byte ?native ?js ?link_all
+          ?install name units)
 
-let files ?available ?flags ?deps ?install name contents =
-  `Files (As_project.Files.create ?available ?flags ?deps ?install name contents)
+let dir ?available ?flags ?deps ?install name contents =
+  `Dir (As_project.Dir.create ?available ?flags ?deps ?install name contents)
 
 type test_command = As_project.Test.command
+
 let test ?available ?flags ?deps ?dir name commands =
   `Test (As_project.Test.create ?available ?flags ?deps ?dir name commands)
 
@@ -98,7 +98,8 @@ let test_shell fmt =
 (* Component helpers *)
 
 let ocamldep ?keep ?deps ?unit ~dir () =
-  let resolver = As_ocamlfind.resolver `Direct (Sys.getcwd ()) in
+  let resolver =
+    As_ocamlfind.resolver `Direct ~ocamlc:"ocamlc" ~ocamlopt:"ocamlopt" ~build_dir:(Sys.getcwd ()) in
   List.map (fun u -> `Unit u) (As_OCaml.depends ?keep ?deps ?unit resolver dir)
 
 let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
@@ -112,46 +113,46 @@ let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
   let name_generator = name ^ "_generator" in
   let name_stubs = name ^ "_stubs" in
   let bin_dir r = As_project.Bin.build_dir
-      (As_project.Bin.create [] name_generator) r in
+      (As_project.Bin.create name_generator []) r in
   let lib_dir r =
     let lib = As_project.Lib.create name `OCaml [] in
     Sys.getcwd () / As_project.Lib.build_dir lib r
   in
   (* 2. Generate and compile the generator. *)
   let generator =
-    let action r =
+    let action r = [
+      [`Ml],
       let ml_stubs = lib_dir r / name_stubs ^ ".ml" in
       let c_stubs  = lib_dir r / name_stubs ^ ".c" in
       let library  = lib_dir r / name ^ ".ml" in
       let headers = match headers with
-        | [] -> ""
-        | hs -> sprintf "--headers %s " (String.concat "," hs) in
-      As_action.custom ~dir:(bin_dir r)
+      | [] -> ""
+      | hs -> sprintf "--headers %s " (String.concat "," hs) in
+      As_action.create ~dir:(bin_dir r)
         "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
         headers ml_stubs c_stubs library name
-    in
-    let ml = other name_generator ~action [`Ml] in
-    let comp = unit name_generator ml ~deps:[bindings]
-    in
-    let bin =
-      As_project.Bin.create ~install:false [bindings; comp] name_generator
-    in
-    `Bin bin in
+    ] in
+    let ml = other name_generator action [`Ml] in
+    let comp = unit name_generator ml ~deps:[bindings] in
+    `Bin (As_project.Bin.create name_generator
+            ~install:false ~native:false [bindings; comp])
+  in
   (* 3. Generate and compile the stubs. *)
-  let ml_stubs =
-    let action r = As_action.custom ~dir:(bin_dir r) "./%s.byte" name_generator
-    in
-    let ml = other name_stubs ~action ~deps:[generator] [`C; `Ml] in
-    unit name_stubs ml in
-  let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
-  let c_stubs =
-    let c = As_project.C.create ~generated:true ~deps:[generator] ~link_flags
-        name_stubs in
-    `C c in
-  let flags = As_flags.(cclib link_flags @@@ stub name_stubs) in
-  let ml = other name ~deps:[generator] [`Ml] in
-  let main = unit name ml ~deps:[bindings; ml_stubs; c_stubs] in
-  lib name ~flags ?available ~c:[c_stubs] [bindings; ml_stubs; main]
+  let generated =
+    let action r = [
+      [`Ml; `C], As_action.create ~dir:(bin_dir r) "./%s.byte" name_generator
+    ] in
+    other name_stubs action [`C; `Ml] ~deps:[generator] in
+  let ml_stubs = unit name_stubs generated in
+  let c_stubs = c name_stubs generated in
+  let flags =
+    let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
+    As_flags.(cclib link_flags @@@ stub name_stubs) in
+  let main =
+    (* FIXME: which action ? *)
+    let ml = other name As_action.empty [`Ml] ~deps:[generator] in
+    unit name ml ~deps:[bindings; ml_stubs; c_stubs] in
+  lib name ~flags ?available [bindings; ml_stubs; c_stubs; main]
 
 (* Projects *)
 
@@ -196,7 +197,7 @@ let process ?(file = "assemble.ml") name fn =
   List.iter Topdirs.dir_directory includes;
   if not (Sys.file_exists file) then
     As_shell.fatal_error 1 "missing %s." file
-  else match Toploop.use_silently Format.std_formatter file with
+  else match Toploop.use_silently Format.err_formatter file with
     | false -> As_shell.fatal_error 1 "while loading `%s'." file
     | true  ->
       match projects () with
@@ -205,6 +206,10 @@ let process ?(file = "assemble.ml") name fn =
         let features = List.fold_left (fun acc t ->
             As_features.Set.union (As_project.features t) acc
           ) As_features.Set.empty ts in
+        let features =
+          As_features.Set.fold (fun f acc ->
+              As_features.(acc ||| atom f)
+            ) features As_features.true_ in
         let env = As_build_env.parse name features in
         List.iter (fun t -> fn t env) ts
 
@@ -237,8 +242,8 @@ let describe t env =
         if f u then (As_shell.color `cyan (As_project.Unit.name u ^ ext)) else
         ""
       in
-      let ml = mk As_project.Unit.ml ".ml" in
-      let mli = mk As_project.Unit.mli ".mli" in
+      let ml = mk As_project.Unit.(has `Ml) ".ml" in
+      let mli = mk As_project.Unit.(has `Mli) ".mli" in
       let modules =
         if As_project.Unit.generated u then ["--generated--"]
         else
