@@ -124,7 +124,8 @@ let modules_of_mli ast =
   List.fold_left (sig_item (fun x -> x)) StringSet.empty ast
 
 let modules ~build_dir cu =
-  let resolver = As_ocamlfind.resolver `Direct build_dir in
+  let resolver = As_ocamlfind.resolver `Direct
+      ~ocamlc:"ocamlc" ~ocamlopt:"ocamlopt" ~build_dir in
   let () =
     As_project.Unit.deps cu
     |> As_project.Component.closure
@@ -142,8 +143,8 @@ let modules ~build_dir cu =
       let ast = Pparse.parse_interface Format.err_formatter file in
       modules_of_mli ast in
   let set =
-    if As_project.Unit.mli cu then aux `MLI
-    else if As_project.Unit.ml cu then aux `ML
+    if As_project.Unit.has `Mli cu then aux `MLI
+    else if As_project.Unit.has `Ml cu then aux `ML
     else StringSet.empty in
   StringSet.elements set
 
@@ -171,7 +172,8 @@ let dedup l = StringSet.(elements (of_list l))
 let depends ?(keep = fun _ -> true) ?(deps = fun _ -> []) ?unit resolver dir =
   let unit = match unit with
   | Some unit -> unit
-  | None -> fun uname deps -> `Unit (As_project.Unit.create ~deps uname (`Dir dir))
+  | None -> fun uname deps ->
+    `Unit (As_project.Unit.create ~deps uname `OCaml (`Dir dir))
   in
   let files =
     let keep f =

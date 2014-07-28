@@ -39,7 +39,7 @@ val with_default: atom -> bool -> atom
 val parse: atom -> (atom * bool) Cmdliner.Term.t
 (** A cmdliner term which parses an atomic feature. *)
 
-(** {1 Atomic feature sets} *) 
+(** {1 Atomic feature sets} *)
 
 module Set: Set.S with type elt = atom
 (** Sets of atoms. *)
@@ -94,6 +94,9 @@ val cnf: t -> cnf
 (** [normalize f] transform [f] in a conjonctive-normal form. *)
 
 (** {1 Built-in features} *)
+
+val byte: t
+val byte_atom: atom
 
 val native: t
 val native_atom: atom

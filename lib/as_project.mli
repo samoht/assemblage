@@ -26,28 +26,25 @@
 
 type comp_unit
 type other
-type c
-type js
 type pkg
 type lib
 type bin
-type files
+type dir
 type test
 
 type component =
   [ `Unit of comp_unit
   | `Other of other
-  | `C of c
-  | `JS of js
   | `Pkg of pkg
   | `Lib of lib
   | `Bin of bin
-  | `Files of files
+  | `Dir of dir
   | `Test of test ]
 
 type container =
   [ `Lib of lib
-  | `Bin of bin ]
+  | `Bin of bin
+  | `Dir of dir ]
 
 (** Common signature shared by all components. *)
 module type Component_base = sig
@@ -89,11 +86,10 @@ module type Component_base = sig
       feature which enable them, for the component [t] and the name
       resolver [r]. *)
 
-  val prereqs : t -> As_resolver.t -> [`Byte | `Native | `Shared] -> string list
-  (** [prereqs t resolver mode] is the list of prerequisites files to
-      build, in the given [mode], before building the object [t],
-      where [resolver] is used to compute the location of generated
-      files. *)
+  val targets : t -> As_resolver.t -> As_flags.mode -> string list
+  (** [targets t resolver mode] is the list of targets to generate [t]
+      in the compilation mode [mode], where [resolver] is used to
+      compute the resolve local and global names. *)
 end
 
 module type Graph = sig
@@ -134,9 +130,10 @@ module Component : sig
   include Component_base with type t = component
 
   val unit : t -> comp_unit option
+  val unit_ocaml : t -> comp_unit option
+  val unit_c : t -> comp_unit option
+  val unit_js : t -> comp_unit option
   val other : t -> other option
-  val c : t -> c option
-  val js : t -> js option
   val pkg : t -> pkg option
   val pkg_ocaml : t -> pkg option
   val pkg_ocaml_pp : t -> pkg option
@@ -145,15 +142,19 @@ module Component : sig
   val lib_ocaml : t -> lib option
   val lib_ocaml_pp : t -> lib option
   val bin : t -> bin option
-  val files : t -> files option
+  val dir : t -> dir option
   val test : t -> test option
 
   val filter : (t -> 'a option) -> t list -> 'a list
   (** Filter a list of components. *)
 
-  val closure : t list -> t list
+  val closure : ?link:bool -> t list -> t list
   (** Compute the transitive closure of the component dependency
-      graph. Try to keep the order as consistent as possible. *)
+      graph. Try to keep the order as consistent as possible. If
+      [link] is set to [true] (default is [false]) then the closure
+      only contains the minimum libraries, packages and compilation
+      units needed to kink the given list of components (ie, binaries,
+      pre-processors and static files are not considered). *)
 
   val comp_byte : t list -> As_resolver.t -> (As_resolver.t -> string) ->
     string list
@@ -194,7 +195,8 @@ module Unit : sig
   include Component_base with type t = comp_unit
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> string -> [`Dir of string | `Other of other] -> t
+    ?deps:component list -> string -> [`OCaml|`C|`Js] ->
+    [`Dir of string | `Other of other] -> t
   (** Create a compilation unit. *)
 
   val with_container: container -> t -> t
@@ -205,11 +207,9 @@ module Unit : sig
   val container : t -> container option
   (** The library the compilation unit belongs to. *)
 
-  val mli : t -> bool
-  (** Has the compilation unit an [mli] file. *)
+  val kind: t -> [`OCaml | `C | `Js]
 
-  val ml : t -> bool
-  (** Has the compilation unit an [ml] file. *)
+  val has : As_action.kind -> t -> bool
 
   val for_pack : t -> string option
   (** The (optional) pack the compilation unit is in. *)
@@ -219,25 +219,24 @@ module Unit : sig
       is not generated, or [Some files] when the source files [files]
       of the compilation unit are generated. *)
 
-  val pack : ?available:As_features.t -> ?flags:As_flags.t -> t list ->
-    string -> t
+  val pack : ?available:As_features.t -> ?flags:As_flags.t ->
+    string -> t list -> t
   (** Pack a collection of compilation units together. *)
 
   val unpack : t -> t list
   (** The (usually empty) list of packed compilation units. *)
 
+  val source: t -> string -> string
+  val ml: t -> As_resolver.t -> string
+  val mli: t -> As_resolver.t -> string
+  val c: t -> As_resolver.t -> string
+  val js: t -> As_resolver.t -> string
   val cmi : t -> As_resolver.t -> string
-  (** The location of the generated compiled module interface. *)
-
   val cmo : t -> As_resolver.t -> string
-  (** The location of the generated compiled module object. *)
-
   val cmx : t -> As_resolver.t -> string
-  (** The location of the extra information for native linking of the
-      compilation unit. *)
-
   val o : t -> As_resolver.t -> string
-  (** The location of the object file for the compilation unit. *)
+  val dll_so: t -> As_resolver.t -> string
+
 end
 
 (** Arbitrary files generator. *)
@@ -246,59 +245,18 @@ module Other : sig
   include Component_base with type t = other
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?action:As_action.t -> [`C | `Ml | `Mli] list ->
-    string -> t
+    ?deps:component list ->
+    string -> As_action.t -> As_action.kind list -> t
   (** Generate arbitrary files, using the given action. *)
+
+  val file_of_kind: t -> As_resolver.t -> As_action.kind -> string
 
   val files : t -> As_resolver.t -> string list
   (** The list of generated files. *)
 
-  val actions : t -> As_resolver.t -> string list
+  val actions : t -> As_resolver.t -> (As_action.kind list * string list) list
   (** Return the list of actions to run in order to generate the files
       advertized by [files]. *)
-end
-
-module C : sig
-
-  (** C files. *)
-
-  include Component_base with type t = c
-
-  val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?dir:string -> ?generated:bool ->
-    ?link_flags:string list -> string -> t
-  (** Create a C object file. *)
-
-  val with_container: container -> t -> t
-
-  val container : t -> container option
-  (** [container t] is the component which contains the given C
-      objects. *)
-
-  val link_flags : t -> string list
-  (** Return the C link flags. *)
-
-  val dll_so : t -> As_resolver.t -> string
-  (** The location of the generated [.so] file. *)
-
-  val symlink_c : t -> As_resolver.t -> string
-  (** The location of the symlinked C file. *)
-
-  val o : t -> As_resolver.t -> string
-  (** The location of the object file. *)
-end
-
-module JS : sig
-
-  (** Compilation to JavaScript. *)
-
-  include Component_base with type t = js
-
-  val create : ?available:As_features.t -> bin -> string list -> t
-  (** Create a {i .js} object, using [js_of_ocaml]. *)
-
-  val js : t -> As_resolver.t -> string
-  (** The location of the generated javascript artifacts. *)
 end
 
 (** External package. *)
@@ -326,8 +284,8 @@ module Lib : sig
   type kind = [ `OCaml | `OCaml_pp ]
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?pack:bool -> ?c:c list -> string ->
-    kind -> [`Unit of Unit.t ] list -> t
+    ?deps:component list -> ?pack:bool ->
+    string -> kind -> [`Unit of Unit.t ] list -> t
   (** Create a library. *)
 
   val kind : t -> kind
@@ -360,18 +318,22 @@ module Bin : sig
   include Component_base with type t = bin
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?byte_only:bool -> ?link_all:bool ->
-    ?install:bool -> [ `Unit of Unit.t ] list -> string -> t
+    ?deps:component list ->
+    ?byte:bool -> ?native:bool -> ?js:bool ->
+    ?link_all:bool -> ?install:bool ->
+    string -> [ `Unit of Unit.t ] list -> t
   (** Build a binary by linking a set of compilation units. *)
 
   val toplevel : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> ?custom:bool -> ?install:bool ->
-    [`Unit of Unit.t ] list -> string -> t
+    string -> [`Unit of Unit.t ] list -> t
   (** Create a custom toplevel by linking a set of compilation
       units. *)
 
   val units : t -> Unit.t list
   (** The list of compilation units contained in the binary. *)
+
+  val has_js : t -> bool
 
   val is_toplevel : t -> bool
   (** Is the binary a toplevel. *)
@@ -384,16 +346,21 @@ module Bin : sig
 
   val native : t -> As_resolver.t -> string
   (** The location of the generated native binary. *)
+
+  val js : t -> As_resolver.t -> string
+
 end
 
 (** Directory with build artifacts *)
-module Files : sig
-  include Component_base with type t = files
+module Dir : sig
+
+  include Component_base with type t = dir
 
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> ?install:bool ->
     [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
-    | `Misc | `Stublibs | `Man | `Other of string ] -> component list -> files
+    | `Misc | `Stublibs | `Man | `Other of string ] -> component list -> dir
+
 end
 
 module Test : sig

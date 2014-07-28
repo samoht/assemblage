@@ -16,7 +16,7 @@
 
 open Printf
 
-type phase = [ `Pp | `Compile | `Link | `Other | `Run | `Test ]
+type phase = [ `Pp | `Compile | `Link | `Run | `Test | `Other ]
 type mode = [ `Byte | `Native | `Shared | `C | `Js ]
 type args = string list
 type flag =

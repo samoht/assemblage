@@ -14,20 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Actions to generate source files. *)
+(** Actions to generate new files. *)
 
-type custom
-(** Custom generator values. *)
+type action
 
-type t = As_resolver.t -> custom
-(** Custom actions. *)
+type kind = [ `Ml | `Mli | `Cmo | `Cmi | `Cmx | `O | `C | `Js]
 
-val custom: ?dir:string -> ('a, unit, string, custom) format4 -> 'a
-(** [custom ~dir fmt] is a generator which produces some results by
-    calling [fmt] in a bash shell, running in the directory [dir]. *)
+type t = As_resolver.t -> (kind list * action) list
 
-val run: t -> As_resolver.t -> unit
-(** Process the action. *)
-
-val actions: t -> As_resolver.t -> string list
-(** Return the action to run. *)
+val empty: t
+val create: ?dir:string -> ('a, unit, string, action) format4 -> 'a
+val actions: t -> As_resolver.t -> (kind list * string list) list
