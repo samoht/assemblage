@@ -222,16 +222,19 @@ module Action: sig
   type action
   (** Custom actions. *)
 
-  val empty: action
-  (** The empty action. *)
+  type kind = [ `Ml | `Mli | `Cmo | `Cmi | `Cmx | `O | `C | `Js | `Other of string ]
+  (** The different kinds of actions. *)
 
   val create : ?dir:string -> ('a, unit, string, action) format4 -> 'a
   (** [bash ~dir fmt] is a generator which produces some results by
       calling [fmt] in a bash shell, running in the directory
       [dir]. *)
 
-  type t = Resolver.t -> As_flags.phase -> As_flags.mode -> action
-  (** Type of custom actions. *)
+  type t = Resolver.t -> (As_action.kind list * action) list
+  (** Type of action generators. *)
+
+  val empty: t
+  (** The generator of empty actions. *)
 
 end
 
@@ -299,7 +302,7 @@ val js : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
 (** Same as {!unit} but for javascript source files. *)
 
 val other : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-  string -> Action.t -> [`C | `Js | `Ml | `Mli] list -> [> `Other of other]
+  string -> Action.t -> Action.kind list -> [> `Other of other]
 (** Generated source file(s). *)
 
 val lib : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->

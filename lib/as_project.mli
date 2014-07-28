@@ -81,15 +81,18 @@ module type Component_base = sig
        extension [ext] for the component [t] and the name resolver
        [r]. *)
 
-  val generated_files : t -> As_resolver.t -> (As_features.t * string list) list
+  val generated_files : t -> As_resolver.t ->
+    (As_features.t * string list) list
   (** [generated_files t r] is the list of generated files and the
       feature which enable them, for the component [t] and the name
       resolver [r]. *)
 
-  val targets : t -> As_resolver.t -> As_flags.mode -> string list
-  (** [targets t resolver mode] is the list of targets to generate [t]
-      in the compilation mode [mode], where [resolver] is used to
-      compute the resolve local and global names. *)
+  val targets : t -> As_resolver.t -> As_flags.mode -> As_flags.phase ->
+    string list
+  (** [targets t resolver mode phase] is the list of targets to
+      generate [t] in the compilation mode [mode] and phase [phase],
+      where [resolver] is used to compute the resolve local and
+      global names. *)
 end
 
 module type Graph = sig
@@ -147,6 +150,10 @@ module Component : sig
 
   val filter : (t -> 'a option) -> t list -> 'a list
   (** Filter a list of components. *)
+
+  val prereqs: t -> As_resolver.t -> As_flags.mode -> As_flags.phase ->
+    string list
+  (** The list of prerequesites. *)
 
   val closure : ?link:bool -> t list -> t list
   (** Compute the transitive closure of the component dependency

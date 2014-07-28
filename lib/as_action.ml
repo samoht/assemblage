@@ -21,7 +21,18 @@ type action = {
   cmd: string;
 }
 
-type kind = [ `Ml | `Mli | `Cmo | `Cmi | `Cmx | `O | `C | `Js ]
+type kind = [ `Ml | `Mli | `Cmo | `Cmi | `Cmx | `O | `C | `Js | `Other of string]
+
+let string_of_kind = function
+| `Ml -> "ml"
+| `Mli -> "mli"
+| `Cmo -> "cmo"
+| `Cmi -> "cmi"
+| `Cmx -> "cmx"
+| `O -> "o"
+| `C -> "c"
+| `Js -> "js"
+| `Other s -> s
 
 type t = As_resolver.t -> (kind list * action) list
 

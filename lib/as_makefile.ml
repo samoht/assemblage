@@ -22,6 +22,12 @@ let (|>) x f = f x
 
 let conmap f l = List.concat (List.map f l)
 
+module StringSet = struct
+  include Set.Make (String)
+  let of_list ss = List.fold_left (fun acc s -> add s acc) empty ss
+end
+let dedup l = StringSet.(elements (of_list l))
+
 module Variable = struct
 
   type assign = string
@@ -101,10 +107,18 @@ module Variable = struct
   let string_of_guard g =
     List.map (fun (k,v) -> k.name ^ "=" ^ v) g
     |> String.concat " "
+    |> sprintf "{%s}"
+
+  let _string_of_guards g =
+    String.concat ", "
+      (List.map (fun (g, _) -> string_of_guard g) g)
 
   let compare_guards o1 o2 =
     let mk l =
-      List.map (fun (g, _) -> string_of_guard g) l
+      List.map (fun (g,tl) ->
+          string_of_guard g ^ ":" ^
+          String.concat "-" (List.map (fun t -> t.name) tl)
+        ) l
       |> String.concat "|" in
     String.compare (mk o1) (mk o2)
 
@@ -369,7 +383,6 @@ end = struct
   let prereqs t = function
   | `Byte   -> As_project.Unit.id t ^ "." ^ deps_byte
   | `Native -> As_project.Unit.id t ^ "." ^ deps_native
-  | `Shared -> As_project.Unit.id t ^ "." ^ deps_native
   | `C      -> As_project.Unit.id t ^ "." ^ deps_c
   | `Js     -> As_project.Unit.id t ^ "." ^ deps_js
 
@@ -377,15 +390,19 @@ end = struct
     sprintf "$(%s)" (prereqs t mode)
 
   let variables t =
-    let name = As_project.Unit.build_dir t resolver in
+    let name = match As_project.Unit.dir t with
+    | None   -> As_project.Unit.name t
+    | Some d -> d / As_project.Unit.name t in
     match As_project.Unit.kind t with
     | `OCaml ->
         Variable.stanza
-          ~doc:[sprintf "Compilation unit %s" name]
+          ~doc:[sprintf "Compilation unit: %s" name]
           (Variable.(prereqs t `Byte =?=
-                     `Strings (As_project.Unit.prereqs t resolver `Byte))
+                     `Strings (As_project.Component.prereqs
+                                 (`Unit t) resolver `Byte `Compile))
            :: Variable.(prereqs t `Native =?=
-                        `Strings (As_project.Unit.prereqs t resolver `Native))
+                        `Strings (As_project.Component.prereqs
+                                    (`Unit t) resolver `Native `Compile))
            :: comp_byte t
            :: comp_native t
            :: (match pp_byte t with
@@ -396,15 +413,17 @@ end = struct
              | Some v -> [v]))
     | `C ->
         Variable.stanza
-          ~doc:[sprintf "C file %s" name]
+          ~doc:[sprintf "C file: %s" name]
           [Variable.(prereqs t `C =?=
-                     `Strings (As_project.Unit.prereqs t resolver `C));
+                     `Strings (As_project.Component.prereqs
+                                 (`Unit t) resolver `C `Compile));
            comp_c t]
     | `Js ->
         Variable.stanza
-          ~doc:[sprintf "JS file %s" name]
+          ~doc:[sprintf "JS file: %s" name]
           [Variable.(prereqs t `Js =?=
-                     `Strings (As_project.Unit.prereqs t resolver `Js))]
+                     `Strings (As_project.Component.prereqs
+                                 (`Unit t) resolver `Js `Compile))]
 
   (* XXX: handle native pp *)
   let rec rules t =
@@ -556,12 +575,17 @@ end = struct
       :: link_native t
       :: link_shared t
       :: Variable.(
-          prereqs t `Byte =?= `Strings (As_project.Lib.prereqs t resolver `Byte))
+          prereqs t `Byte =?=
+          `Strings (As_project.Component.prereqs (`Lib t) resolver `Byte `Link))
       :: Variable.(
-          prereqs t `Native =?= `Strings (As_project.Lib.prereqs t resolver `Native))
+          prereqs t `Native =?=
+          `Strings (As_project.Component.prereqs (`Lib t) resolver `Native `Link))
+      :: Variable.(
+          prereqs t `Shared =?=
+          `Strings (As_project.Component.prereqs (`Lib t) resolver `Shared `Link))
       :: [] in
     Variable.stanza
-      ~doc:[sprintf "Library %s" (As_project.Lib.name t)]
+      ~doc:[sprintf "Library: %s" (As_project.Lib.name t)]
       vars
     :: List.map U.variables (As_project.Lib.units t)
 
@@ -574,7 +598,7 @@ end = struct
       ] in
     let native mode =
       let file, arg = match mode with
-        | `Shared -> As_project.Lib.cmxs t resolver, "-shared"
+        | `Shared -> As_project.Lib.cmxs t resolver, "-shared -linkall"
         | `Native -> As_project.Lib.cmxa t resolver, "-a" in
       let link = match mode with
         | `Shared -> link_shared t
@@ -651,12 +675,12 @@ end = struct
       :: link_byte t
       :: link_native t
       :: Variable.(prereqs t `Byte   =?=
-                   `Strings (As_project.Bin.prereqs t resolver `Byte))
+                   `Strings (As_project.Component.prereqs (`Bin t) resolver `Byte `Link))
       :: Variable.(prereqs t `Native =?=
-                   `Strings (As_project.Bin.prereqs t resolver `Native))
+                   `Strings (As_project.Component.prereqs (`Bin t) resolver `Native `Link))
       :: [] in
     Variable.stanza
-      ~doc:[sprintf "Binary %s" (As_project.Bin.name t)]
+      ~doc:[sprintf "Binary: %s" (As_project.Bin.name t)]
       vars
     :: List.map U.variables (As_project.Bin.units t)
 
@@ -679,15 +703,16 @@ end = struct
       sprintf "mkdir -p %s" (As_project.Bin.build_dir t resolver);
       sprintf "$(OCAMLOPT) %s -o %s" (Variable.name (link_native t)) Rule.target;
     ]
-    :: if As_project.Bin.has_js t then
+    :: (if As_project.Bin.has_js t then
       [Rule.create
          ~targets:[As_project.Bin.js t resolver]
-         ~prereqs:(As_project.Bin.prereqs t resolver `Js) [
+         ~prereqs:(As_project.Component.prereqs (`Bin t) resolver `Js `Link) [
          sprintf "$(JS_OF_OCAML) %s %s"
            (String.concat " "
               (As_flags.(get `Link `Js) (As_project.Bin.flags t resolver)))
            Rule.prereq]
-      ] else []
+      ] else [])
+    @ conmap U.rules (As_project.Bin.units t)
 
 end
 
@@ -696,17 +721,18 @@ and O : sig
   val variables: As_project.Other.t -> Variable.stanza
 end = struct
 
-  (* XXX: improve the generated variables and rules *)
-  let variables _ =
-    Variable.stanza []
+  let variables _ = Variable.stanza []
 
   let rules t =
     List.map (fun (kinds, actions) ->
-        Rule.create
-          ~targets:(List.map (As_project.Other.file_of_kind t resolver) kinds)
-          ~prereqs:(As_project.Other.prereqs t resolver `Other)
-          actions
-      ) (As_project.Other.actions t)
+        let targets =
+          List.map (As_project.Other.file_of_kind t resolver) kinds
+          |> dedup in
+        let prereqs =
+          (* FIXME: which mode and phase ? *)
+          As_project.Component.prereqs (`Other t) resolver `Byte `Other in
+        Rule.create ~targets ~prereqs actions
+      ) (As_project.Other.actions t resolver)
 
 end
 
@@ -720,7 +746,7 @@ module T = struct
     :: List.map (fun t ->
         Rule.create
           ~targets:[As_project.Test.id t]
-          ~prereqs:(As_project.Test.prereqs t resolver `Byte) (
+          ~prereqs:(As_project.Component.prereqs (`Test t) resolver `Byte `Test) (
           let dir = match As_project.Test.dir t with
             | None   -> ""
             | Some d -> sprintf "cd %s &&" d in

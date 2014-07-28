@@ -25,6 +25,21 @@ type flag =
     mode : mode;
     args : args; }
 
+let string_of_phase = function
+| `Pp -> "pp"
+| `Compile -> "compile"
+| `Link -> "link"
+| `Run -> "run"
+| `Test -> "test"
+| `Other -> "other"
+
+let string_of_mode = function
+| `Byte -> "byte"
+| `Native -> "native"
+| `Shared -> "shared"
+| `C -> "c"
+| `Js -> "js"
+
 type t = flag list
 
 let v ?(available = As_features.true_) phase mode args =

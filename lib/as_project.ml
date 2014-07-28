@@ -20,7 +20,10 @@ let conmap f l = List.concat (List.map f l)
 let (|>) x f = f x
 let (/) x y = Filename.concat x y
 
-module StringSet = Set.Make (String)
+module StringSet = struct
+  include Set.Make (String)
+  let of_list ss = List.fold_left (fun acc s -> add s acc) empty ss
+end
 
 type component =
   [ `Unit of comp_unit
@@ -126,7 +129,7 @@ module type Component_base = sig
   val build_dir: t -> As_resolver.t -> string
   val file: t -> As_resolver.t -> string -> string
   val generated_files: t -> As_resolver.t -> (As_features.t * string list) list
-  val targets: t -> As_resolver.t -> As_flags.mode -> string list
+  val targets: t -> As_resolver.t -> As_flags.mode -> As_flags.phase -> string list
 end
 
 module type Graph = sig
@@ -183,6 +186,7 @@ module rec Component : sig
   val dir : t -> dir option
   val test : t -> test option
   val filter : (t -> 'a option) -> t list -> 'a list
+  val prereqs: t -> As_resolver.t -> As_flags.mode -> As_flags.phase -> string list
   val closure : ?link:bool -> t list -> t list
   val comp_byte : t list -> As_resolver.t -> (As_resolver.t -> string) ->
     string list
@@ -309,6 +313,13 @@ end = struct
         | Some x -> x :: acc
       ) [] l
   |> List.rev
+
+  let prereqs t r mode phase =
+    List.fold_left (fun acc d ->
+        let d = StringSet.of_list (targets d r mode phase) in
+        StringSet.union d acc
+      ) StringSet.empty (deps t)
+    |> StringSet.elements
 
   let closure ?(link=false) (ts : t list) : t list =
     let deps_tbl = Hashtbl.create 24 in
@@ -481,7 +492,6 @@ end = struct
   | `Dir d   -> Some d
   | `Other _ -> None
 
-
   let build_dir t r = match t.u_container with
   | None   -> As_resolver.build_dir r (id t)
   | Some c -> Component.build_dir (c:>component) r
@@ -576,6 +586,7 @@ end = struct
       | `Js -> match origin with
       | `Dir dir -> Sys.file_exists (dir / name ^ ".js")
       | `Other o -> List.mem `Js o.o_kinds)
+    | `Other _ -> false
     in
     if kind = `OCaml && not (has `Ml || has `Mli || has `Cmo || has `Cmi || has `Cmx)
     then
@@ -636,34 +647,24 @@ end = struct
     | `C -> [ As_features.true_, [dll_so t r; dll_so t r] ]
     | `Js -> []
 
-  let targets t resolver (mode:As_flags.mode) =
-    let deps = deps t in
-    let comps = Component.(filter unit_ocaml) deps in
-    let comps = conmap (fun u ->
-        match mode, kind t with
-        | `C      , `C     -> [o u resolver]
-        | `Js     , `Js    -> [js u resolver]
-        | `Native , `OCaml -> [if has `Cmo u then cmx u resolver else cmi u resolver]
-        | `Byte   , `OCaml -> [cmi u resolver]
-        | `Shared , `OCaml ->
-            let cs = Component.(filter unit_c) u.u_deps in
-            let cobjs = List.map (fun c -> dll_so c resolver) cs in
-            (if has `Cmo u then cmx u resolver else cmi u resolver) :: cobjs
-        | _ -> []
-      ) comps in
-    let libs = Component.(filter lib_ocaml) deps in
-    let libs = conmap (fun l ->
-        match mode, kind t with
-        | `C      , `C     -> []
-        | `Js     , `Js    -> []
-        | `Shared , `OCaml
-        | `Native , `OCaml -> [Lib.cmxa l resolver]
-        | `Byte   , `OCaml -> [Lib.cma  l resolver]
-        | _  -> []
-      ) libs in
-    let pps = Component.(filter lib_ocaml_pp) deps in
-    let pps = List.map (fun l -> Lib.cma l resolver) pps in
-    comps @ libs @ pps
+  let _string_of_kind = function
+  | `C -> "c"
+  | `OCaml -> "ocaml"
+  | `Js -> "js"
+
+  let targets t resolver (mode:As_flags.mode) (phase:As_flags.phase) =
+    let cmo_or_cmi () = [if has `Cmo t then cmo t resolver else cmi t resolver] in
+    let cmx_or_cmi () = [if has `Cmx t then cmx t resolver else cmi t resolver] in
+    match mode, phase, kind t with
+    | `C      , `Link   , `C     -> [o t resolver]
+    | `Js     , `Link   , `Js    -> [js t resolver]
+    | `Native , `Link   , `OCaml -> cmx_or_cmi ()
+    | `Native , `Compile, `OCaml -> [cmi t resolver]
+    | `Byte   , `Link   , `OCaml -> cmo_or_cmi ()
+    | `Byte   , `Compile, `OCaml -> [cmi t resolver]
+    | `Shared , `Link   , `C     -> [dll_so t resolver]
+    | `Shared , `Link   , `OCaml -> cmx_or_cmi ()
+    | _ -> []
 
   (* XXX: memoize the function *)
   let flags t resolver =
@@ -672,6 +673,7 @@ end = struct
       let open As_flags in
       v `Compile `Byte  (Component.comp_byte deps resolver (build_dir t)) @@@
       v `Compile `Native (Component.comp_native deps resolver (build_dir t)) @@@
+      v `Compile `Shared (Component.comp_native deps resolver (build_dir t)) @@@
       v `Pp `Byte (Component.pp_byte deps resolver) @@@
       v `Pp `Native (Component.pp_native deps resolver)
     in
@@ -734,15 +736,19 @@ end = struct
   | `Cmi -> cmi t r
   | `Cmx -> cmx t r
   | `Js  -> js t r
+  | `Other s -> file t r s
 
-  let rec targets t r (mode:As_flags.mode) =
+  let rec targets t r (mode:As_flags.mode) (phase:As_flags.phase) =
     let mk k = if List.mem k t.o_kinds then [file_of_kind t r k] else [] in
-    match mode with
-    | `Byte   -> mk `Ml @ mk `Mli @ mk `Cmi @ mk `Cmo
-    | `Shared
-    | `Native -> mk `Ml @ mk `Mli @ mk `Cmi @ mk `Cmx
-    | `Js     -> mk `Js @ targets t r `Byte
-    | `C      -> mk `C @ targets t r `Byte @ mk `Cmx
+    match mode, phase with
+    | `Byte  , `Compile -> mk `Ml @ mk `Mli @ mk `Cmi
+    | `Byte  , `Link    -> mk `Cmo @ targets t r mode `Compile
+    | `Native, `Compile -> mk `Ml @ mk `Mli @ mk `Cmi
+    | `Native, `Link    -> mk `Cmx @ targets t r mode `Compile
+    | `Shared, `Compile -> targets t r `Native `Compile
+    | `Js    , `Link    -> mk `Js
+    | `C     , `Link    -> mk `C
+    | _ -> []
 
   let files t r =
     List.map (file_of_kind t r) t.o_kinds
@@ -783,7 +789,7 @@ end = struct
   let id t = "pkg-" ^ t.p_name
   let name t = t.p_name
   let available t = t.p_available
-  let targets _t _r _mode = []
+  let targets _t _r _mode _phase = []
   let flags t r = As_flags.(As_resolver.pkgs r [t.p_name] @@@ t.p_flags)
   let build_dir _t _r = failwith "Pkg.build_dir"
   let deps _t = []
@@ -851,16 +857,16 @@ end = struct
   let cmxs t r = file t r ".cmxs"
   let a t r = file t r ".a"
 
-  let targets t r (mode:As_flags.mode) = match mode with
+  let targets t r (mode:As_flags.mode) _phase = match mode with
   | `Byte    -> [cma t r]
   | `Native  -> [cmxa t r; a t r]
   | `Shared  -> [cmxs t r]
   | (`C|`Js) -> []
 
   let generated_files t r = [
-    As_features.(byte           &&& t.l_available), targets t r `Byte;
-    As_features.(native         &&& t.l_available), targets t r `Native;
-    As_features.(native_dynlink &&& t.l_available), targets t r `Shared;
+    As_features.(byte           &&& t.l_available), targets t r `Byte   `Link;
+    As_features.(native         &&& t.l_available), targets t r `Native `Link;
+    As_features.(native_dynlink &&& t.l_available), targets t r `Shared `Link;
   ] @ conmap (fun u -> Unit.generated_files u r) t.l_units
 
   let flags t resolver =
@@ -868,7 +874,8 @@ end = struct
     let flags =
       let open As_flags in
       v `Link `Byte (Component.link_byte [] resolver units) @@@
-      v `Link `Native (Component.link_native [] resolver units)
+      v `Link `Native (Component.link_native [] resolver units) @@@
+      v `Link `Shared (Component.link_native [] resolver units)
     in
     As_flags.(flags @@@ t.l_flags)
 
@@ -923,11 +930,11 @@ end = struct
       name comps
     =
     let available =
-      let (|||) = As_features.(|||) in
+      let (&&&) = As_features.(&&&) in
       available
-      ||| (if native then As_features.native else As_features.false_)
-      ||| (if byte then As_features.byte else As_features.false_)
-      ||| (if js then As_features.js else As_features.false_)
+      &&& (if not native then As_features.(not_ native) else As_features.true_)
+      &&& (if not byte then As_features.(not_ byte) else As_features.true_)
+      &&& (if not js then As_features.(not_ js) else As_features.true_)
     in
     let flags =
       if link_all then As_flags.(linkall @@@ flags) else flags
@@ -958,7 +965,7 @@ end = struct
   let native t r = file t r ".native"
   let js t r = file t r ".js"
 
-  let targets t r (mode:As_flags.mode) = match mode with
+  let targets t r (mode:As_flags.mode) _phase = match mode with
   | `Byte   -> [byte t r]
   | `Shared -> []
   | `Native -> [native t r]
@@ -966,11 +973,10 @@ end = struct
   | `C      -> []
 
   let generated_files t r = [
-    As_features.(byte   &&& t.b_available), targets t r `Byte;
-    As_features.(native &&& t.b_available), targets t r `Native;
-    As_features.(js     &&& t.b_available), targets t r `Js;
+    As_features.(byte   &&& t.b_available), targets t r `Byte   `Link;
+    As_features.(native &&& t.b_available), targets t r `Native `Link;
+    As_features.(js     &&& t.b_available), targets t r `Js     `Link;
   ]
-
 
   let flags t r =
     let cus = units t in
@@ -1010,7 +1016,7 @@ end = struct
   let available d = d.d_available
   let flags d _ = d.d_flags
   let deps d = d.d_deps
-  let targets t r mode =  conmap (fun c -> Component.targets c r mode) t.d_contents
+  let targets t r mode phase =  conmap (fun c -> Component.targets c r mode phase) t.d_contents
   let file _ = invalid_arg "Dir.file: not applicable"
   let build_dir d r = As_resolver.build_dir r (id d)
   let generated_files d r =
@@ -1037,7 +1043,7 @@ end = struct
   let id t = "test-" ^ t.t_name
   let name t = t.t_name
   let available t = t.t_available
-  let targets _t _r _mode = []
+  let targets _t _r _mode _phase = []
   let flags t _ = t.t_flags
   let generated_files _t _r = []
 

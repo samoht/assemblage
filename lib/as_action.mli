@@ -18,7 +18,9 @@
 
 type action
 
-type kind = [ `Ml | `Mli | `Cmo | `Cmi | `Cmx | `O | `C | `Js]
+type kind = [ `Ml | `Mli | `Cmo | `Cmi | `Cmx | `O | `C | `Js | `Other of string]
+
+val string_of_kind: kind -> string
 
 type t = As_resolver.t -> (kind list * action) list
 

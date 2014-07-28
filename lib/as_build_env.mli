@@ -64,7 +64,7 @@ val create:
 val default: t
 (** Default project configuration. *)
 
-val parse: ?doc:string -> ?man:string list -> string -> As_features.Set.t -> t
+val parse: ?doc:string -> ?man:string list -> string -> As_features.t -> t
 (** [parse name features] parse the arguments given on the
     command-line as a configuration value, for the project [name] with
     the possible features [features]. *)
