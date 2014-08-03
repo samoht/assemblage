@@ -60,12 +60,15 @@ Resolve locally generated filename by prepending the build
       directory name.
 </div>
 </td></tr>
+<tr><td><a href="Assemblage.Features.html#VALbyte">byte</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+<code class="code">byte</code> is tru iff byte code compilation is available.
+</div>
+</td></tr>
 <tr><td align="left"><br>C</td></tr>
 <tr><td><a href="Assemblage.html#VALc">c</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
-<code class="code">c name deps libs</code> is the C file <code class="code">name.c</code>, which need the C
-    libraries <code class="code">libs</code> to be compiled -- and it has the dependencies
-    <code class="code">deps</code>.
+Same as <a href="Assemblage.html#VALunit"><code class="code"><span class="constructor">Assemblage</span>.unit</code></a> but for C source files.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Flags.html#VALcclib">cclib</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
@@ -85,11 +88,18 @@ Configure the project by generating the build, META and .install
     make is supported).
 </div>
 </td></tr>
+<tr><td><a href="Assemblage.Action.html#VALcreate">create</a> [<a href="Assemblage.Action.html">Assemblage.Action</a>]</td>
+<td><div class="info">
+<code class="code">bash ~dir fmt</code> is a generator which produces some results by
+      calling <code class="code">fmt</code> in a bash shell, running in the directory
+      <code class="code">dir</code>.
+</div>
+</td></tr>
 <tr><td><a href="Assemblage.Resolver.html#VALcreate">create</a> [<a href="Assemblage.Resolver.html">Assemblage.Resolver</a>]</td>
 <td><div class="info">
-<code class="code">create ~buildir ~pkgs</code> is the resolver which prefixes <code class="code">buildir</code>
-      to resolve local library names and applies <code class="code">pkgs</code> to resolve a set
-      of global package names.
+<code class="code">create ~ocamlc ~ocamlopt ~buildir ~pkgs</code> is the resolver which
+      prefixes <code class="code">buildir</code> to resolve local library names and applies
+      <code class="code">pkgs</code> to resolve a set of global package names.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Features.html#VALcreate">create</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
@@ -108,13 +118,6 @@ Configure the project by generating the build, META and .install
 <td><div class="info">
 <code class="code">stubs name dir</code> is the C stub generations, using Ctypes, of the
     compilation unit <code class="code">name</code>.
-</div>
-</td></tr>
-<tr><td><a href="Assemblage.Action.html#VALcustom">custom</a> [<a href="Assemblage.Action.html">Assemblage.Action</a>]</td>
-<td><div class="info">
-<code class="code">bash ~dir fmt</code> is a generator which produces some results by
-      calling <code class="code">fmt</code> in a bash shell, running in the directory
-      <code class="code">dir</code>.
 </div>
 </td></tr>
 <tr><td align="left"><br>D</td></tr>
@@ -139,7 +142,18 @@ Default project configuration.
 Describe the project to stdout.
 </div>
 </td></tr>
+<tr><td><a href="Assemblage.html#VALdir">dir</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<td><div class="info">
+<code class="code">dir name ~available ~flags ~deps contents</code> is a directory named
+    <code class="code">name</code> that contains the build artefacts of the component <code class="code">contents</code>.
+</div>
+</td></tr>
 <tr><td align="left"><br>E</td></tr>
+<tr><td><a href="Assemblage.Action.html#VALempty">empty</a> [<a href="Assemblage.Action.html">Assemblage.Action</a>]</td>
+<td><div class="info">
+The generator of empty actions.
+</div>
+</td></tr>
 <tr><td><a href="Assemblage.Flags.html#VALempty">empty</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
 <code class="code">empty</code> is the command line <code class="code">[]</code> for every context.
@@ -149,12 +163,6 @@ Describe the project to stdout.
 <tr><td><a href="Assemblage.Features.html#VALfalse_">false_</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
 <code class="code">false_</code> is always false.
-</div>
-</td></tr>
-<tr><td><a href="Assemblage.html#VALfiles">files</a> [<a href="Assemblage.html">Assemblage</a>]</td>
-<td><div class="info">
-<code class="code">dir name ~available ~flags ~deps contents</code> is a directory named
-    <code class="code">name</code> that contains the build artefacts of the component <code class="code">contents</code>.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Features.html#VALfull_doc">full_doc</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
@@ -170,8 +178,7 @@ Describe the project to stdout.
 </td></tr>
 <tr><td><a href="Assemblage.html#VALjs">js</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
-<code class="code">js bin args</code> is the decription of a javascript artefact generated
-    by <code class="code">js_of_ocaml</code>.
+Same as <a href="Assemblage.html#VALunit"><code class="code"><span class="constructor">Assemblage</span>.unit</code></a> but for javascript source files.
 </div>
 </td></tr>
 <tr><td align="left"><br>L</td></tr>
@@ -216,7 +223,7 @@ Describe the project to stdout.
 </td></tr>
 <tr><td><a href="Assemblage.html#VALother">other</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
-Generated OCaml source file(s).
+Generated source file(s).
 </div>
 </td></tr>
 <tr><td align="left"><br>P</td></tr>
@@ -304,8 +311,9 @@ A test which runs an arbitrary shell command.
 <tr><td align="left"><br>U</td></tr>
 <tr><td><a href="Assemblage.html#VALunit">unit</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
-<code class="code">unit name ~dir ~available ~flags ~deps</code> is a compilation unit
-    named <code class="code">name</code> (the filename without extension) present in directory <code class="code">dir</code>.
+<code class="code">unit name dir ~available ~flags ~deps</code> is a compilation unit
+    named <code class="code">name</code> (the filename without extension) present in directory
+    <code class="code">dir</code>.
 </div>
 </td></tr>
 <tr><td align="left"><br>V</td></tr>

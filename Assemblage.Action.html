@@ -23,21 +23,31 @@
 <br>
 Actions to generate source files.<br>
 
-<pre><span id="TYPEcustom"><span class="keyword">type</span> <code class="type"></code>custom</span> </pre>
+<pre><span id="TYPEaction"><span class="keyword">type</span> <code class="type"></code>action</span> </pre>
 <div class="info ">
 Custom actions.<br>
 </div>
 
 
-<pre><span id="VALcustom"><span class="keyword">val</span> custom</span> : <code class="type">?dir:string -><br>       ('a, unit, string, <a href="Assemblage.Action.html#TYPEcustom">custom</a>) Pervasives.format4 -> 'a</code></pre><div class="info ">
+<pre><span id="TYPEkind"><span class="keyword">type</span> <code class="type"></code>kind</span> = <code class="type">[ `C | `Cmi | `Cmo | `Cmx | `Js | `Ml | `Mli | `O | `Other of string ]</code> </pre>
+<div class="info ">
+The different kinds of actions.<br>
+</div>
+
+
+<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">?dir:string -><br>       ('a, unit, string, <a href="Assemblage.Action.html#TYPEaction">action</a>) Pervasives.format4 -> 'a</code></pre><div class="info ">
 <code class="code">bash ~dir fmt</code> is a generator which produces some results by
       calling <code class="code">fmt</code> in a bash shell, running in the directory
       <code class="code">dir</code>.<br>
 </div>
 
-<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> = <code class="type"><a href="Assemblage.Resolver.html#TYPEt">Assemblage.Resolver.t</a> -> <a href="Assemblage.Action.html#TYPEcustom">custom</a></code> </pre>
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> = <code class="type"><a href="Assemblage.Resolver.html#TYPEt">Assemblage.Resolver.t</a> -><br>       (As_action.kind list * <a href="Assemblage.Action.html#TYPEaction">action</a>) list</code> </pre>
 <div class="info ">
-Type of custom actions.<br>
+Type of action generators.<br>
 </div>
 
+
+<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type"><a href="Assemblage.Action.html#TYPEt">t</a></code></pre><div class="info ">
+The generator of empty actions.<br>
+</div>
 </body></html>
