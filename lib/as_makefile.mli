@@ -163,7 +163,7 @@ type t
 (** Makefile documents. *)
 
 val create:
-  ?header:string list ->
+  ?headers:string list ->
   ?includes: string list ->
   ?opt_includes: (string list * string list) list ->
   ?phony:string list ->

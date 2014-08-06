@@ -413,6 +413,9 @@ val build_dir: component -> Resolver.t -> string
 (** [build_dir t r] is the directory where the component [t] is
     built. *)
 
+val root_dir: Resolver.t -> string
+(** [root_dir r] is the root directory of the project. *)
+
 val cstubs : ?available:Features.t -> ?deps:component list ->
   ?headers:string list -> ?cflags:string list -> ?clibs:string list ->
   string -> [`Dir of string] -> [> `Lib of lib]

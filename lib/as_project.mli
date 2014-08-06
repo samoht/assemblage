@@ -81,6 +81,8 @@ end
 (** Rules. *)
 module Rule: sig
   val files: component -> As_resolver.t -> component As_action.node list -> string list
+  val phony_prepare: component -> string
+  val phony_run: component -> string
 end
 
 (** Signature for sets of components. *)

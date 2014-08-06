@@ -41,7 +41,8 @@ and container =
     c_available: As_features.t;
     c_flags: As_flags.t;
     c_deps: component list;
-    c_container: container option; }
+    c_container: container option;
+    c_contents: component list; }
 
 and comp_unit =
   { u_name : string;
@@ -210,6 +211,8 @@ module rec Container: sig
   val available: all:bool -> t -> As_features.t
   val flags: all:bool -> t -> As_flags.t
   val deps: all:bool -> t -> component list
+  val phony_prepare: t -> string
+  val contents: t -> component list
 end = struct
   type t = container
   let name t = t.c_name
@@ -245,6 +248,12 @@ end = struct
       List.fold_left (@) []
         (List.map (fun t -> t.c_deps) (containers t))
       |> Component.dedup
+
+  let phony_prepare t =
+    id ~all:true t ^ "-prepare"
+
+  let contents t =
+    Component.map (Component.with_container t) t.c_contents
 
 end
 
@@ -553,6 +562,8 @@ and Rule: sig
   val link: As_action.file -> component As_action.rule
   val mkdir: component As_action.rule
   val files: component -> As_resolver.t -> component As_action.node list -> string list
+  val phony_prepare: component -> string
+  val phony_run: component -> string
 end = struct
 
   let link (x:As_action.file) =
@@ -575,12 +586,15 @@ end = struct
 
   let files t r ns =
     List.fold_left (fun acc -> function
-      | `Phony _ -> acc
+      | `Phony x -> x :: acc
       | `Self (`Source f) -> Component.source t f :: acc
       | `Self f  -> Component.file t r f :: acc
       | `N (c,f) -> Component.file c r f :: acc
       ) [] ns
     |> List.rev
+
+  let phony_prepare t = Component.id t ^ "-prepare"
+  let phony_run t = Component.id t ^ "-run"
 
 end
 
@@ -795,6 +809,7 @@ end = struct
         ~targets:[`Self y]
         ~prereqs:[`Self x]
         (fun t r f ->
+           (* FIXME: how to dump the parsetree without using camlp4? *)
            As_action.create "%s %s %s > %s"
              (As_resolver.camlp4o r)
              (String.concat " " (As_flags.get (`Pp mode) f))
@@ -802,11 +817,35 @@ end = struct
              (Component.file t r y))
     in
     let ocamldep x =
+      let ocaml_files = match container t with
+      | None   -> []
+      | Some c ->
+          let deps =
+            Component.closure ~link:true (Container.deps ~all:true c)
+            |> conmap (function
+              | `Lib _ as c -> Component.contents c
+              | c -> [c]
+              )
+            |> Component.(filter unit)
+          in
+          let contents = Component.(filter unit) (Container.contents c) in
+          let units = deps @ contents in
+          let mls =
+            List.filter (Unit.has `Ml) units
+            |> List.map (fun u -> `N (`Unit u, `Ml))
+          in
+          let mlis =
+            List.filter (Unit.has `Mli) units
+            |> List.map (fun u -> `N (`Unit u, `Mli))
+          in
+          mls @ mlis
+      in
       let y = ext x `Byte in
+      let link_sources = `Self y :: ocaml_files in
       As_action.rule
         ~phase:`Dep
         ~targets:[`Self (`Dep x)]
-        ~prereqs:[`Self y]
+        ~prereqs:link_sources
         (fun t r f ->
            let k = match x with `Ml -> "-impl" | `Mli -> "-intf" in
            As_action.create "%s %s %s %s > %s"
@@ -823,21 +862,12 @@ end = struct
         As_action.rule
           ~phase:(`Compile `Byte)
           ~targets:[`Self `Cmi]
-          ~prereqs:[`Self (`Dep `Mli)]
+          ~prereqs:[`Self (ext `Mli `Byte); `Self (`Dep `Mli)]
           (fun t r f ->
              As_action.create "%s -c %s -intf %s"
                (As_resolver.ocamlc r)
                (String.concat " " (As_flags.get (`Compile `Byte) f))
-               (Component.file t r (ext `Mli `Byte)));
-        As_action.rule
-          ~phase:(`Compile `Native)
-          ~targets:[`Self `Cmx]
-          ~prereqs:[`Self (`Dep `Ml); `Self (`Dep `Mli)]
-          (fun t r f ->
-             As_action.create "%s -c %s -impl %s"
-               (As_resolver.ocamlopt r)
-               (String.concat " " (As_flags.get (`Compile `Native) f))
-               (Component.file t r (ext `Ml `Native)))])
+               (Component.file t r (ext `Mli `Byte)))])
     @ (if not (has `Ml t) then [] else [
         Rule.link `Ml;
         precompile `Ml `Byte;
@@ -845,14 +875,23 @@ end = struct
         ocamldep `Ml;
         As_action.rule
           ~phase:(`Compile `Byte)
-          ~targets:(if has `Mli t then [`Self `Cmo]
-                    else [`Self `Cmi; `Self `Cmo])
-          ~prereqs:(`Self (`Dep `Ml) :: if has `Mli t then [`Self (`Dep `Mli)] else [])
+          ~targets:(if has `Mli t then [`Self `Cmo] else [`Self `Cmi; `Self `Cmo])
+          ~prereqs:(`Self (`Dep `Ml) :: `Self (ext `Ml `Byte) ::
+                    if has `Mli t then [`Self `Cmi] else [])
           (fun t r f ->
              As_action.create "%s -c %s -impl %s"
                (As_resolver.ocamlc r)
                (String.concat " " (As_flags.get (`Compile `Byte) f))
-               (Component.file t r (ext `Ml `Byte)))])
+               (Component.file t r (ext `Ml `Byte)));
+        As_action.rule
+          ~phase:(`Compile `Native)
+          ~targets:[`Self `Cmx]
+          ~prereqs:[`Self (`Dep `Ml); `Self (ext `Mli `Byte); `Self (ext `Ml `Native)]
+          (fun t r f ->
+             As_action.create "%s -c %s -impl %s"
+               (As_resolver.ocamlopt r)
+               (String.concat " " (As_flags.get (`Compile `Native) f))
+               (Component.file t r (ext `Ml `Native)))])
 
   let rules t =
     (match container t with
@@ -1055,7 +1094,8 @@ end = struct
     =
     let c =
       { c_name = name; c_id = "lib-" ^ name; c_flags = flags;
-        c_available = available; c_deps = deps; c_container = None; }
+        c_available = available; c_deps = deps; c_container = None;
+        c_contents = []; }
     in
     let origin, available = match origin with
     | `Other o  ->
@@ -1077,9 +1117,9 @@ end = struct
         `Other o, available
     | `Units us ->
         let us = List.map (function `Unit u -> u) us in
-        let us = Unit.map (Unit.with_container c)
-            (if pack then [Unit.pack name us] else us)
-        in
+        let us = if pack then [Unit.pack name us] else us in
+        let c = { c with c_contents = List.map (fun u -> `Unit u) us } in
+        let us = Unit.map (Unit.with_container c) us in
         `Units us, available
     in
     { l_name = name; l_available = available; l_kind = kind;
@@ -1101,6 +1141,7 @@ end = struct
     let comp = Unit.comp_flags (deps t) ~build_dir r in
     let open As_flags in
     t.l_flags @@@ comp @@@
+    v `Dep incl @@@
     v (`Compile `Byte) incl @@@
     v (`Compile `Native) incl @@@
     v (`Archive `Byte) cmo_deps @@@
@@ -1120,11 +1161,11 @@ end = struct
   | `Units us ->
       let cmo_deps =
         List.filter (Unit.has `Cmo) us
-        |> List.map (fun u -> `N (`Lib t, `Cmo))
+        |> List.map (fun u -> `N (`Unit u, `Cmo))
       in
       let cmx_deps =
         List.filter (Unit.has `Cmx) us
-        |> List.map (fun u -> `N (`Lib t, `Cmx))
+        |> List.map (fun u -> `N (`Unit u, `Cmx))
       in
       let byte =
         As_action.rule
@@ -1220,11 +1261,13 @@ end = struct
     in
     let c =
       { c_name = name; c_id = "bin-" ^ name; c_flags = flags;
-        c_deps = deps; c_available = available; c_container = None; }
+        c_deps = deps; c_available = available; c_container = None;
+        c_contents = []; }
     in
     let origin, available = match origin with
     | `Units us ->
         let us = List.map (function `Unit u -> u) us in
+        let c = { c with c_contents = List.map (fun u -> `Unit u) us } in
         `Units (Unit.map (Unit.with_container c) us), available
     | `Other o  ->
         let files = Other.self_targets o in
@@ -1290,12 +1333,17 @@ end = struct
       pkgs @ libs @ units
 
   let flags t r =
+    let deps = Component.closure ~link:true (deps t) in
+    let build_dir = Component.build_dir (`Bin t) r in
+    let incl = [sprintf "-I %s" build_dir] in
+    let comp = Unit.comp_flags deps ~build_dir r in
     let flags =
       let open As_flags in
+      v `Dep incl @@@
       v (`Link `Byte) (link_flags `Byte t r) @@@
       v (`Link `Native) (link_flags `Native t r)
     in
-    As_flags.(flags @@@ t.b_flags)
+    As_flags.(flags @@@ comp @@@ t.b_flags)
 
   let rules t =
     let deps = Component.deps (`Bin t) @ Component.contents (`Bin t) in
@@ -1382,7 +1430,8 @@ end = struct
     let name = string_of_dirname dirname in
     let c =
       { c_name = name; c_id = "dir-" ^ name; c_flags = flags;
-        c_deps = deps; c_available = available; c_container = None }
+        c_deps = deps; c_available = available; c_container = None;
+        c_contents = contents; }
     in
     let contents = Component.map (Component.with_container c) contents in
     { d_name = dirname; d_available = available; d_flags = flags; d_deps = deps;
@@ -1444,9 +1493,10 @@ end = struct
       | `Bin _ as c -> `N (c, `Byte) :: acc
       | _ -> acc
       ) [] (deps t) in
-    [ As_action.rule
+    [ Rule.mkdir;
+      As_action.rule
         ~phase:`Test
-        ~targets:[`Phony (Component.id (`Test t))]
+        ~targets:[`Phony (Rule.phony_run (`Test t))]
         ~prereqs:(`Self `Dir :: deps)
         (fun _t r f ->
            let dir = dir t in
@@ -1456,9 +1506,8 @@ end = struct
                  let c = (`Bin b:>component) in
                  let args = String.concat " " (args r) in
                  let bin =
-                   As_resolver.root_dir r /
-                   Component.build_dir c r /
-                   Component.file c r `Byte in
+                   As_resolver.root_dir r / Component.file c r `Byte
+                 in
                  As_action.create ?dir "%s %s" bin args
              ) (commands t)
            |> As_action.seq

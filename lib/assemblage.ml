@@ -108,6 +108,7 @@ let test_shell fmt =
 (* Component helpers *)
 
 let build_dir = As_project.Component.build_dir
+let root_dir = As_resolver.root_dir
 
 let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
     name (`Dir dir)
@@ -246,7 +247,7 @@ let describe t env =
     (As_shell.color `Underline (As_project.name t)) (As_project.version t);
   let components =
     As_project.components t
-    |> List.filter (function `Unit _ | `Lib _ | `Bin _ -> true | _ -> false)
+    |> List.filter (function `Lib _ | `Bin _ -> true | _ -> false)
   in
   print components
 

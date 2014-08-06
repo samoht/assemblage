@@ -49,7 +49,7 @@ let ctypes_gen =
 let mk_test name =
   let dir = "examples/" ^ name in
   let args r = [
-    "--disable-auto-load"; "-I"; build_dir lib r;
+    "--disable-auto-load"; "-I"; root_dir r / build_dir lib r;
   ] in
   test name ~dir [
     test_bin describe ~args ();
