@@ -911,7 +911,7 @@ end = struct
     in
     match includes with
     | [] -> pkgs
-    | _  -> [String.concat " " includes]
+    | _  -> pkgs @ [String.concat " " includes]
 
   let comp_flags deps ~build_dir r =
     let byte = comp_flags `Byte deps build_dir r in

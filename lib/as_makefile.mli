@@ -164,6 +164,8 @@ type t
 
 val create:
   ?header:string list ->
+  ?includes: string list ->
+  ?opt_includes: (string list * string list) list ->
   ?phony:string list ->
   string -> Variable.stanza list -> Rule.t list -> t
 (** Create a Makefile. *)

@@ -262,13 +262,21 @@ end
 type t = {
   makefile: string;
   header: string list;
+  includes: string list;
+  opt_includes: (string list * string list) list;
   phony: string list;
   variables: Variable.stanza list;
   rules: Rule.t list;
 }
 
-let create ?(header=[]) ?(phony=[]) makefile variables rules =
-  { makefile; phony; header; variables; rules }
+let create
+    ?(header=[])
+    ?(includes=[])
+    ?(opt_includes=[])
+    ?(phony=[])
+    makefile variables rules =
+  let opt_includes = ([], ["Makefile.assemble"]) :: opt_includes in
+  { makefile; phony; header; variables; rules; includes; opt_includes }
 
 let write t =
   printf "\027[36m+ write %s\027[m\n" t.makefile;
@@ -290,7 +298,20 @@ let write t =
     ) t.variables;
   bprintf buf "\n";
   List.iter (Rule.generate buf) t.rules;
-  bprintf buf "-include Makefile.assemble\n\n";
+  if t.opt_includes <> [] then (
+    let with_guards, no_guards =
+      List.partition (function (g,_) -> g<>[]) t.opt_includes
+    in
+    let incl files = bprintf buf "-include %s\n" (String.concat " " files) in
+    incl (conmap snd no_guards);
+    List.iter (fun (guards, files) ->
+        bprintf buf "ifneq ($(filter-out %s,$(MAKECMDGOALS)),)\n" (String.concat " " guards);
+        incl files;
+        bprintf buf "endif\n"
+      ) with_guards
+  );
+  if t.includes <> [] then
+    bprintf buf "include %s\n" (String.concat " " t.includes);
   let oc = open_out t.makefile in
   output_string oc (Buffer.contents buf);
   close_out oc
@@ -362,21 +383,19 @@ let mk_rule t rule =
   let prereqs = As_project.Rule.files t resolver prereqs in
   let order_only_prereqs = As_project.Rule.files t resolver order_only_prereqs in
   let action = As_action.run rule.As_action.action t resolver (meta_flags t) in
-  let echo result =
-    let color = match result with `Ok -> `Green | `Error -> `Red in
-    sprintf "echo '%-45s %-20s %s'"
-      (As_shell.color color (As_project.Component.id t))
+  let long = String.concat " " action in
+  let short =
+    sprintf "%-45s %-20s %s"
+      (As_shell.color `Yellow (As_project.Component.id t))
       (As_shell.color `Bold ((As_flags.string_of_phase rule.As_action.phase)))
       (String.concat " " (List.map Filename.basename targets))
   in
   let action = match action with
-  | []   -> []
-  | h::t ->
-      ("$(QUIET)(" ^ h ^ " \\")
-      :: List.map (fun x -> "&&" ^ x ^ "\\") t
-      @ [ sprintf " && %s) \\" (echo `Ok);
-          "|| (" ^ echo `Error ^ " && exit 2)" ]
-
+  | [] -> []
+  | _  ->
+      sprintf "@if test -n \"$$VERBOSE\"; then echo '%s'; else echo '%s'; fi"
+        long short
+      :: (List.map (fun x -> "@" ^ x) action)
   in
   Rule.create ~targets ~prereqs ~order_only_prereqs action
 
@@ -641,7 +660,6 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
     :: Variable.stanza
       ~align:true
       Variable.([
-          ("QUIET"       =?= `String "@");
           ("BUILDIR"     =?= `String buildir);
           ("LIBDIR"      =?= `String (As_resolver.lib_dir resolver));
           Variable.shell "ROOTDIR" "pwd";
@@ -746,8 +764,20 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
        ) [] components
      |> List.rev)
   in
+  let opt_includes =
+    let units = As_project.Component.(filter unit) components in
+    [["clean"; "help"; "distclean"],
+     conmap (fun u ->
+         let mk f =
+           if not (As_project.Unit.has (f:>As_action.file) u) then []
+           else [As_project.Component.file (`Unit u) resolver (`Dep f)]
+         in
+         mk `Ml @ mk `Mli
+       ) units]
+  in
   create
     ~phony
+    ~opt_includes
     makefile
     variables
     (main :: clean :: distclean :: install :: help :: rules)
