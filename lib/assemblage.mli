@@ -104,12 +104,9 @@ module Features : sig
   val test : t
   (** [test] is true iff tests must be built. *)
 
-  val public_doc : t
-  (** [public_doc] is true iff the public documentation must be built. *)
+  val doc : t
+  (** [public_doc] is true iff the documentation must be built. *)
 
-  val full_doc : t
-  (** [full_doc] is true iff the full documentation must be built.
-      FIXME. *)
 end
 
 (** Flags

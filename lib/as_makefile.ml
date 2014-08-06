@@ -705,7 +705,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
            let v = Variable.has_feature f in
            let k_v = v.Variable.name ^ "=" ^ Variable.name v in
            sprintf "@echo ' - %s -- %s'"
-             (As_shell.color `underline k_v) (As_features.doc f)
+             (As_shell.color `underline k_v) (As_features.doc_of f)
          ) project_features
        @ [ "@echo" ]
       ) in

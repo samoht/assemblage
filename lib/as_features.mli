@@ -30,8 +30,8 @@ val name: atom -> string
 val default: atom -> bool
 (** The atomic feature default value. *)
 
-val doc: atom -> string
-(** [doc f] is the feature documentation. *)
+val doc_of: atom -> string
+(** [doc_of f] is the feature documentation. *)
 
 val with_default: atom -> bool -> atom
 (** Return the feature with an other default. *)
@@ -126,13 +126,9 @@ val test: t
 val test_atom: atom
 (** Compile and run tests. *)
 
-val public_doc: t
-val public_doc_atom: atom
+val doc: t
+val doc_atom: atom
 (** Build the documentation. *)
-
-val full_doc: t
-val full_doc_atom: atom
-(** Generate the full documentation (and not just the public doc). *)
 
 val builtin: Set.t
 (** The set of built-in atomic features. *)

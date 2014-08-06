@@ -28,7 +28,7 @@ type atom = {
 let create_atom ?(default = true) name ~doc = { name; default; doc }
 let name t = t.name
 let default t = t.default
-let doc t = t.doc
+let doc_of t = t.doc
 let with_default t default = { t with default }
 
 let parse t =
@@ -180,17 +180,13 @@ let warn_error_atom = create_atom
 let test_atom = create_atom
     "test" ~default:false  ~doc:"build tests"
 
-let public_doc_atom = create_atom
+let doc_atom = create_atom
     "doc" ~default:false ~doc:"build public documentation"
-
-let full_doc_atom = create_atom
-    "full-doc" ~default:false ~doc:"build full documentation"
 
 let builtin = List.fold_left (fun set t -> Set.add t set) Set.empty [
     byte_atom; native_atom; native_dynlink_atom; js_atom;
     debug_atom; annot_atom; warn_error_atom;
-    test_atom; public_doc_atom;
-    full_doc_atom;
+    test_atom; doc_atom;
   ]
 
 let byte = atom byte_atom
@@ -201,5 +197,4 @@ let annot = atom annot_atom
 let warn_error = atom warn_error_atom
 let debug = atom debug_atom
 let test = atom test_atom
-let public_doc = atom public_doc_atom
-let full_doc = atom full_doc_atom
+let doc = atom doc_atom
