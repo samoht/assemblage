@@ -203,7 +203,7 @@ let configure `Make t env =
 
 let describe t env =
   let print_deps x =
-    let bold_name pkg = As_shell.color `bold (As_project.Pkg.name pkg) in
+    let bold_name pkg = As_shell.color `Bold (As_project.Pkg.name pkg) in
     let pkgs = As_project.Component.(filter pkg x) in
     match String.concat " " (List.map bold_name pkgs) with
     | "" -> ""
@@ -212,13 +212,13 @@ let describe t env =
   let print_modules last modules =
     let aux i n m =
       printf "  %s %s\n"
-        (if last && i = n then "└───" else "├───") (As_shell.color `blue m) in
+        (if last && i = n then "└───" else "├───") (As_shell.color `Blue m) in
     let n = List.length modules - 1 in
     List.iteri (fun i m -> aux i n m) modules in
   let print_units units =
     let aux i n u =
       let mk f ext =
-        if f u then (As_shell.color `cyan (As_project.Unit.name u ^ ext)) else
+        if f u then (As_shell.color `Cyan (As_project.Unit.name u ^ ext)) else
         ""
       in
       let ml = mk As_project.Unit.(has `Ml) ".ml" in
@@ -238,12 +238,12 @@ let describe t env =
     let aux c =
       let open As_project.Component in
       printf "└─┬─ %s\n%s"
-        (As_shell.color `magenta (id c)) (print_deps (deps c));
+        (As_shell.color `Magenta (id c)) (print_deps (deps c));
       print_units (filter unit (contents c)) in
     List.iter aux cs in
   printf "\n%s %s %s\n\n"
-    (As_shell.color `yellow "==>")
-    (As_shell.color `underline (As_project.name t)) (As_project.version t);
+    (As_shell.color `Yellow "==>")
+    (As_shell.color `Underline (As_project.name t)) (As_project.version t);
   let components =
     As_project.components t
     |> List.filter (function `Unit _ | `Lib _ | `Bin _ -> true | _ -> false)
@@ -254,10 +254,10 @@ let process ?(file = "assemble.ml") name fn =
   let includes = includes () in
   let auto_load = auto_load () in
   As_shell.show "Loading %s. %s"
-    (As_shell.color `bold file)
+    (As_shell.color `Bold file)
     (if auto_load then "" else
        sprintf "[auto-load: %s]"
-         (As_shell.color `magenta (string_of_bool auto_load)));
+         (As_shell.color `Magenta (string_of_bool auto_load)));
   Toploop.initialize_toplevel_env ();
   Toploop.set_paths ();
   let includes =

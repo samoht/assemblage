@@ -24,11 +24,29 @@ type t = {
   ocamldoc: string;
   camlp4o: string;
   js_of_ocaml: string;
+  mkdir: string;
+  ln: string;
   build_dir: string;
   lib_dir: string;
   root_dir: string;
   pkgs: string list -> As_flags.t;
 }
+
+type maker =
+  ?ocamlc:string ->
+  ?ocamlopt:string ->
+  ?ocamldep:string ->
+  ?ocamlmklib:string ->
+  ?ocamldoc:string ->
+  ?camlp4o:string ->
+  ?ln:string ->
+  ?mkdir:string ->
+  ?js_of_ocaml:string ->
+  ?build_dir:string ->
+  ?lib_dir:string ->
+  ?root_dir:string ->
+  ?pkgs:(string list -> As_flags.t) ->
+  unit -> t
 
 let create
     ?(ocamlc="ocamlc")
@@ -37,6 +55,8 @@ let create
     ?(ocamlmklib="ocamlmklib")
     ?(ocamldoc="ocamldoc")
     ?(camlp4o="camlp4o")
+    ?(ln="ln -sf")
+    ?(mkdir="mkdir -p")
     ?(js_of_ocaml="js_of_ocaml")
     ?(build_dir="_build")
     ?(lib_dir="/usr/lib/ocaml")
@@ -48,26 +68,21 @@ let create
   in
   { ocamlc; ocamlopt; ocamlmklib; camlp4o;
     js_of_ocaml; ocamldoc; ocamldep;
+    ln; mkdir;
     build_dir; lib_dir; root_dir; pkgs }
 
 let ocamlc t = t.ocamlc
-
 let ocamlopt t = t.ocamlopt
-
 let ocamldep t = t.ocamldep
-
 let ocamlmklib t = t.ocamlmklib
-
 let ocamldoc t = t.ocamldoc
-
 let camlp4o t = t.camlp4o
-
 let js_of_ocaml t = t.js_of_ocaml
 
+let ln t = t.ln
+let mkdir t = t.mkdir
+
 let build_dir t = t.build_dir
-
 let lib_dir t = t.lib_dir
-
 let root_dir t = t.root_dir
-
 let pkgs t = t.pkgs

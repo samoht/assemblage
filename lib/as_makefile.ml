@@ -299,8 +299,8 @@ let write t =
 
 let echo_prereqs name =
   sprintf "@echo '%s %s %s'"
-    (As_shell.color `underline name)
-    (As_shell.color `yellow "=>")
+    (As_shell.color `Underline name)
+    (As_shell.color `Yellow "=>")
     Rule.prereqs
 
 let resolver =
@@ -312,6 +312,8 @@ let resolver =
     ~ocamldoc:"$(OCAMLDOC)"
     ~camlp4o:"$(CAMLP4O)"
     ~js_of_ocaml:"$(JS_OF_OCAML)"
+    ~ln:"$(LN)"
+    ~mkdir:"$(MKDIR)"
     ~build_dir:"$(BUILDIR)"
     ~lib_dir:"$(LIBDIR)"
     ~root_dir:"$(ROOTDIR)"
@@ -351,9 +353,32 @@ let meta_flags t =
 
 let mk_rule t rule =
   let targets = As_project.Rule.files t resolver rule.As_action.targets in
-  let prereqs = As_project.Rule.files t resolver rule.As_action.prereqs in
+  let prereqs, order_only_prereqs =
+    List.partition (function
+      | `Self `Dir | `N (_, `Dir) -> false
+      | _ -> true
+      ) rule.As_action.prereqs
+  in
+  let prereqs = As_project.Rule.files t resolver prereqs in
+  let order_only_prereqs = As_project.Rule.files t resolver order_only_prereqs in
   let action = As_action.run rule.As_action.action t resolver (meta_flags t) in
-  Rule.create ~targets ~prereqs action
+  let echo result =
+    let color = match result with `Ok -> `Green | `Error -> `Red in
+    sprintf "echo '%-45s %-20s %s'"
+      (As_shell.color color (As_project.Component.id t))
+      (As_shell.color `Bold ((As_flags.string_of_phase rule.As_action.phase)))
+      (String.concat " " (List.map Filename.basename targets))
+  in
+  let action = match action with
+  | []   -> []
+  | h::t ->
+      ("$(QUIET)(" ^ h ^ " \\")
+      :: List.map (fun x -> "&&" ^ x ^ "\\") t
+      @ [ sprintf " && %s) \\" (echo `Ok);
+          "|| (" ^ echo `Error ^ " && exit 2)" ]
+
+  in
+  Rule.create ~targets ~prereqs ~order_only_prereqs action
 
 module type S = sig
   type t
@@ -616,6 +641,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
     :: Variable.stanza
       ~align:true
       Variable.([
+          ("QUIET"       =?= `String "@");
           ("BUILDIR"     =?= `String buildir);
           ("LIBDIR"      =?= `String (As_resolver.lib_dir resolver));
           Variable.shell "ROOTDIR" "pwd";
@@ -626,6 +652,8 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
           ("CAMLP4O"     =?= `String "camlp4o");
           ("OCAMLDOC"    =?= check "ocamldoc");
           ("JS_OF_OCAML" =?= `String "js_of_ocaml");
+          ("LN"          =?= `String "ln -sf");
+          ("MKDIR"       =?= `String "mkdir -p");
         ])
     :: Variable.stanza ~align:true feature_variables
     :: Variable.stanza ~doc:[""; "Global variables"; ""] [all]
@@ -645,8 +673,8 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
   let main =
     Rule.create ~ext:true ~targets:["all"] ~prereqs:[] [
       sprintf "@echo '%s %s ${all}'"
-        (As_shell.color `underline "all")
-        (As_shell.color `yellow "=>");
+        (As_shell.color `Underline "all")
+        (As_shell.color `Yellow "=>");
       sprintf "@$(MAKE) $(all)";
       sprintf "@if [ \"x${HAS_JS}\" = \"x1\" ]; then $(MAKE) js; fi";
       sprintf "@if [ \"x${HAS_TEST}\" = \"x1\" ]; then $(MAKE) test; fi";
@@ -671,14 +699,14 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
   let help =
     Rule.create ~targets:["help"] ~prereqs:[]
       ([sprintf "@echo 'The following targets are available (use \"make %s\"):'"
-          (As_shell.color `underline "<target>");
+          (As_shell.color `Underline "<target>");
         "@echo";
         sprintf "@echo ' - %s -- build all the active targets.'"
-          (As_shell.color `underline "all")]
+          (As_shell.color `Underline "all")]
        @ (List.fold_left (fun acc -> function
          | `Lib _ | `Bin _ as c ->
              sprintf "@echo ' - %s -- build the %s %s.'"
-               (As_shell.color `underline (As_project.Component.id c))
+               (As_shell.color `Underline (As_project.Component.id c))
                (match c with `Lib _ -> "library"
                            | `Bin _ -> "executable"
                            | _ -> "component")
@@ -687,25 +715,25 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
          ) [] components
           |> List.rev)
        @ [sprintf "@echo ' - %s -- build the documentation.'"
-            (As_shell.color `underline "doc");
+            (As_shell.color `Underline "doc");
           sprintf "@echo ' - %s -- build and run the test.'"
-            (As_shell.color `underline "test");
+            (As_shell.color `Underline "test");
           sprintf "@echo ' - %s -- build the js_of_ocaml targets.'"
-            (As_shell.color `underline "js");
+            (As_shell.color `Underline "js");
           sprintf "@echo ' - %s -- clean the build artefacts.'"
-            (As_shell.color `underline "clean");
+            (As_shell.color `Underline "clean");
           sprintf "@echo ' - %s -- clean the project to prepare the release.'"
-            (As_shell.color `underline "distclean");
+            (As_shell.color `Underline "distclean");
           "@echo";
           "@echo";
           sprintf "@echo 'Current configuration (use \"make %s\" to modify):'"
-            (As_shell.color `underline "VAR=val");
+            (As_shell.color `Underline "VAR=val");
           "@echo"; ]
        @ List.map (fun f ->
            let v = Variable.has_feature f in
            let k_v = v.Variable.name ^ "=" ^ Variable.name v in
            sprintf "@echo ' - %s -- %s'"
-             (As_shell.color `underline k_v) (As_features.doc_of f)
+             (As_shell.color `Underline k_v) (As_features.doc_of f)
          ) project_features
        @ [ "@echo" ]
       ) in

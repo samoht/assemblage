@@ -97,11 +97,13 @@ let create ?dir fmt =
 
 let seq actions = List.concat actions
 
-let mkdir dir =
-  create "mkdir -p %s" dir
+let mkdir r dir =
+  let cmd = As_resolver.mkdir r in
+  create "%s %s" cmd dir
 
-let link ~source ~target =
-  create "ln -sf %s %s" source target
+let link r ~source ~target =
+  let cmd = As_resolver.ln r in
+  create "%s %s %s" cmd source target
 
 let run (t:'a t) x r f =
   List.map (fun action -> match action.dir with

@@ -34,41 +34,41 @@ let with_color =
   ref (color_tri_state <> `Never)
 
 type text_style =
-  [ `bold
-  | `underline
-  | `black
-  | `red
-  | `green
-  | `yellow
-  | `blue
-  | `magenta
-  | `cyan
-  | `white ]
+  [ `Bold
+  | `Underline
+  | `Black
+  | `Red
+  | `Green
+  | `Yellow
+  | `Blue
+  | `Magenta
+  | `Cyan
+  | `White ]
 
 let color (c: text_style) s =
   if not !with_color then s else
     let code = match c with
-      | `bold      -> "01"
-      | `underline -> "04"
-      | `black     -> "30"
-      | `red       -> "31"
-      | `green     -> "32"
-      | `yellow    -> "33"
-      | `blue      -> "1;34"
-      | `magenta   -> "35"
-      | `cyan      -> "36"
-      | `white     -> "37"
+      | `Bold      -> "01"
+      | `Underline -> "04"
+      | `Black     -> "30"
+      | `Red       -> "31"
+      | `Green     -> "32"
+      | `Yellow    -> "33"
+      | `Blue      -> "1;34"
+      | `Magenta   -> "35"
+      | `Cyan      -> "36"
+      | `White     -> "37"
     in
     Printf.sprintf "\027[%sm%s\027[m" code s
 
 let show fmt =
   ksprintf (fun str ->
-      printf "%s %s\n%!" (color `cyan "+") str
+      printf "%s %s\n%!" (color `Cyan "+") str
     ) fmt
 
 let fatal_error i fmt =
   ksprintf (fun str ->
-     eprintf "%s: %s\n%!" (color `red "ERROR") str;
+     eprintf "%s: %s\n%!" (color `Red "ERROR") str;
      exit i
     ) fmt
 
@@ -98,7 +98,7 @@ let temp () =
 
 let exec ?(verbose=verbose) fmt =
   ksprintf (fun cmd ->
-      if verbose then printf "%s %s\n" (color `yellow "=>") cmd;
+      if verbose then printf "%s %s\n" (color `Yellow "=>") cmd;
       let i = Sys.command cmd in
       if i <> 0 then fatal_error i "`%s' exited with code %d" cmd i
     ) fmt

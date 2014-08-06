@@ -20,8 +20,8 @@ type action
 
 val create: ?dir:string -> ('a, unit, string, action) format4 -> 'a
 val seq: action list -> action
-val mkdir: string -> action
-val link: source:string -> target:string -> action
+val mkdir: As_resolver.t -> string -> action
+val link: As_resolver.t -> source:string -> target:string -> action
 
 type 'a t = 'a -> As_resolver.t -> As_flags.t -> action
 

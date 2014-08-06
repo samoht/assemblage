@@ -39,16 +39,16 @@ val in_dir: string -> (unit -> 'a) -> 'a
 (** {2 Terminal Colors} *)
 
 type text_style =
-  [ `bold
-  | `underline
-  | `black
-  | `red
-  | `green
-  | `yellow
-  | `blue
-  | `magenta
-  | `cyan
-  | `white ]
+  [ `Bold
+  | `Underline
+  | `Black
+  | `Red
+  | `Green
+  | `Yellow
+  | `Blue
+  | `Magenta
+  | `Cyan
+  | `White ]
 
 val color: text_style -> string -> string
 (** Colorize a string using the given style. *)

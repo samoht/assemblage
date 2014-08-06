@@ -564,14 +564,14 @@ end = struct
          let source = Component.source t x in
          let target = Component.file t r x in
          let cwd = As_resolver.root_dir r in
-         As_action.link ~source:(cwd / source) ~target)
+         As_action.link r ~source:(cwd / source) ~target)
 
   let mkdir =
     As_action.rule
       ~phase:`Prepare
       ~targets:[`Self `Dir]
       ~prereqs:[]
-      (fun t r f -> As_action.mkdir (Component.build_dir t r))
+      (fun t r f -> As_action.mkdir r (Component.build_dir t r))
 
   let files t r ns =
     List.fold_left (fun acc -> function
@@ -783,7 +783,7 @@ end = struct
   let ocaml_rules t =
     let ext file mode =
       `Ext
-        ((match file with `Ml -> "ml" | `Mli -> "mli")
+        ((match file with `Ml -> "cml" | `Mli -> "cmli")
          ^ "-" ^
          (match mode with `Byte -> "byte" | `Native -> "native"))
     in
@@ -1139,13 +1139,14 @@ end = struct
       in
       let native mode =
         let ext = match mode with `Shared -> `Cmxs | `Native -> `Cmxa in
+        let exts = match mode with `Shared -> [`Cmxs] | `Native -> [`Cmxa;`A] in
         let phase = match mode with
         | `Shared -> `Archive `Shared
         | `Native -> `Archive `Native
         in
         As_action.rule
           ~phase
-          ~targets:[`Self ext]
+          ~targets:(List.map (fun x -> `Self x) exts)
           ~prereqs:(`Self `Dir :: cmx_deps)
           (fun t r f ->
              As_action.create "%s %s %s -o %s"
