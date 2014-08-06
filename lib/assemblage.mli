@@ -81,7 +81,7 @@ module Features : sig
   (** {1 Built-in features} *)
 
   val byte: t
-  (** [byte] is tru iff byte code compilation is available. *)
+  (** [byte] is true iff byte code compilation is available. *)
 
   val native : t
   (** [native] is true iff native code compilation is available. *)
