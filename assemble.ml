@@ -64,8 +64,13 @@ let tests = [
   mk_test "containers";
 ]
 
+(* Docs *)
+
+let dev_doc = doc ~install:false "dev" [lib]
+let doc = doc "public" [pick "assemblage" lib]
+
 (* The project *)
 
 let () =
-  let cs = [lib; configure; describe; ctypes_gen ] @ tests in
+  let cs = [lib; configure; describe; ctypes_gen; dev_doc; doc ] @ tests in
   add (create "assemblage" cs)

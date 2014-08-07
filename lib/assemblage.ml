@@ -88,6 +88,9 @@ let bin ?available ?flags ?deps ?byte ?native ?js ?link_all ?install name units 
 let dir ?available ?flags ?deps ?install name contents =
   `Dir (As_project.Dir.create ?available ?flags ?deps ?install name contents)
 
+let doc ?available ?flags ?deps ?install name contents =
+  `Doc (As_project.Doc.create ?available ?flags ?deps ?install name contents)
+
 type test_command = As_project.Test.command
 
 let test ?available ?flags ?deps ?dir name commands =
@@ -106,6 +109,11 @@ let test_shell fmt =
   ksprintf (fun str -> `Shell str) fmt
 
 (* Component helpers *)
+
+let pick name c =
+  List.find
+    (fun c -> As_project.Component.name c = name)
+    (As_project.Component.contents c)
 
 let build_dir = As_project.Component.build_dir
 let root_dir = As_resolver.root_dir

@@ -407,7 +407,16 @@ val test : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
   ?dir:string -> string -> test_command list -> [> `Test of test]
 (** Description of a test. *)
 
+val doc : ?available:Features.t -> ?flags:Flags.t ->
+  ?deps:component list -> ?install:bool ->
+  string -> component list -> [> `Doc of doc]
+(** Description of documentation files. *)
+
 (** {1:componenthelpers Component helpers} *)
+
+val pick: string -> component -> component
+(** [unit_in c name] is the unit named [name] is the component
+    [c]. Raise [Not_found] if not unit has this name. *)
 
 val build_dir: component -> Resolver.t -> string
 (** [build_dir t r] is the directory where the component [t] is
