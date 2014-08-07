@@ -815,7 +815,8 @@ end = struct
       | None   -> []
       | Some c ->
           let deps =
-            Component.closure ~link:true (Container.deps ~all:true c)
+            deps t @ Container.deps ~all:true c
+            |> Component.closure ~link:true
             |> conmap (function
               | `Lib _ as c -> Component.contents c
               | c -> [c]
