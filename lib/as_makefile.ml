@@ -573,10 +573,7 @@ module Doc: S with type t = As_project.doc = struct
     Variable.stanza [Variable.("doc" =:= `Strings targets)]
     :: List.map variable ts
 
-  let rule t =
-    let id = As_project.Component.id (`Doc t) in
-    Rule.create ~targets:[id] ~prereqs:[sprintf "$(%s)" id] []
-    :: List.map (mk_rule (`Doc t)) (As_project.Doc.rules t)
+  let rule t = List.map (mk_rule (`Doc t)) (As_project.Doc.rules t)
 
   let rules ts =
     Rule.create ~targets:["doc"] ~prereqs:["$(doc)"] []
@@ -763,9 +760,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
     (List.fold_left (fun acc c ->
          let id = As_project.Component.id c in
          match c with
-         | `Lib _
-         | `Bin _  -> id :: As_project.Rule.phony_prepare c :: acc
-         | `Doc _  -> id :: acc
+         | `Lib _ | `Bin _  | `Doc _  -> id :: acc
          | `Test _ -> id :: As_project.Rule.phony_run c :: acc
        | _ -> acc
        ) [] components

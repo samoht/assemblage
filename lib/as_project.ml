@@ -211,7 +211,6 @@ module rec Container: sig
   val available: all:bool -> t -> As_features.t
   val flags: all:bool -> t -> As_flags.t
   val deps: all:bool -> t -> component list
-  val phony_prepare: t -> string
   val contents: t -> component list
 end = struct
   type t = container
@@ -248,9 +247,6 @@ end = struct
       List.fold_left (@) []
         (List.map (fun t -> t.c_deps) (containers t))
       |> Component.dedup
-
-  let phony_prepare t =
-    id ~all:true t ^ "-prepare"
 
   let contents t =
     Component.map (Component.with_container t) t.c_contents
@@ -562,7 +558,6 @@ and Rule: sig
   val link: As_action.file -> component As_action.rule
   val mkdir: component As_action.rule
   val files: component -> As_resolver.t -> component As_action.node list -> string list
-  val phony_prepare: component -> string
   val phony_run: component -> string
 end = struct
 
@@ -593,7 +588,6 @@ end = struct
       ) [] ns
     |> List.rev
 
-  let phony_prepare t = Component.id t ^ "-prepare"
   let phony_run t = Component.id t ^ "-run"
 
 end
