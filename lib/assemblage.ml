@@ -283,8 +283,4 @@ let process ?(file = "assemble.ml") name fn =
               As_features.(acc ||| atom f)
             ) features As_features.false_ in
         let env = As_build_env.parse name features in
-        List.iter (fun t ->
-            As_shell.show "Project: %s" (As_project.name t);
-            describe t env;
-            fn t env
-          ) ts
+        List.iter (fun t -> fn t env) ts

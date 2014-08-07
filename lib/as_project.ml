@@ -886,7 +886,7 @@ end = struct
         As_action.rule
           ~phase:(`Compile `Native)
           ~targets:[`Self `Cmx]
-          ~prereqs:[`Self (`Dep `Ml); `Self (ext `Mli `Byte); `Self (ext `Ml `Native)]
+          ~prereqs:[`Self (`Dep `Ml); `Self `Cmi; `Self (ext `Ml `Native)]
           (fun t r f ->
              As_action.create "%s -c %s -impl %s"
                (As_resolver.ocamlopt r)
