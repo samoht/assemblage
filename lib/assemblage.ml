@@ -19,6 +19,7 @@ open Printf
 (* Features and flags *)
 
 let (/) = Filename.concat
+let (|>) x f = f x
 
 module Features = As_features
 module Flags = As_flags
@@ -40,13 +41,6 @@ type bin = As_project.bin
 type dir = As_project.dir
 type test = As_project.test
 type doc = As_project.doc
-
-type file = {
-  name: string;
-  available: As_features.t;
-  flags: As_flags.t;
-  deps: component list;
-}
 
 let unit ?available ?flags ?deps name origin =
   `Unit (As_project.Unit.create ?available ?flags ?deps name `OCaml origin)
@@ -137,7 +131,7 @@ let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
           ~phase:`Prepare
           ~targets:[`Self `Ml]
           ~prereqs:[]
-          (fun t r f ->
+          (fun _t r _f ->
              let dir = As_project.Component.build_dir bindings r in
              let ml_stubs = dir / name_stubs ^ ".ml" in
              let c_stubs  = dir / name_stubs ^ ".c" in
@@ -160,7 +154,7 @@ let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
         ~phase:`Prepare
         ~targets:[`Self `Ml; `Self `C]
         ~prereqs:[`N (generator, `Byte)]
-        (fun t r f ->
+        (fun t r _f ->
            let dir = As_project.Component.build_dir t r in
            As_action.create ~dir "./%s.byte" (As_project.Component.name t))
     ] in

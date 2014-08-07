@@ -17,18 +17,7 @@
 open Parsetree
 open Printf
 
-let (|>) x f = f x
-
-module StringSet = struct
-  include Set.Make (String)
-  let of_list ss = List.fold_left (fun acc s -> add s acc) empty ss
-end
-
-let (/) = Filename.concat
-let (//) x y =
-  match x with
-  | None   -> y
-  | Some x -> x / y
+module StringSet = Set.Make (String)
 
 #if ocaml_version < (4, 2)
 module Pparse = struct

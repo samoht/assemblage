@@ -20,10 +20,7 @@ let conmap f l = List.concat (List.map f l)
 let (|>) x f = f x
 let (/) x y = Filename.concat x y
 
-module StringSet = struct
-  include Set.Make (String)
-  let of_list ss = List.fold_left (fun acc s -> add s acc) empty ss
-end
+module StringSet = Set.Make (String)
 
 type component =
   [ `Unit of comp_unit
@@ -521,10 +518,6 @@ end = struct
       let contents = contents
     end)
 
-  let sort ts =
-    let ts' = closure ts in
-    List.filter (fun t -> List.memq t ts) ts'
-
   let map fn ts =
     let tbl = Hashtbl.create (List.length ts) in
     List.iter (fun t -> Hashtbl.add tbl (id t) None) ts;
@@ -566,7 +559,7 @@ end = struct
       ~phase:`Prepare
       ~targets:[`Self x]
       ~prereqs:[`Self (`Source x); `Self `Dir]
-      (fun t r f ->
+      (fun t r _f ->
          let source = Component.source t x in
          let target = Component.file t r x in
          let cwd = As_resolver.root_dir r in
@@ -577,7 +570,7 @@ end = struct
       ~phase:`Prepare
       ~targets:[`Self `Dir]
       ~prereqs:[]
-      (fun t r f -> As_action.mkdir r (Component.build_dir t r))
+      (fun t r _f -> As_action.mkdir r (Component.build_dir t r))
 
   let files t r ns =
     List.fold_left (fun acc -> function
@@ -618,7 +611,6 @@ end = struct
   let container t = t.u_container
   let with_container c t = { t with u_container = Some c }
   let with_deps u_deps t = { t with u_deps }
-  let generated t = match t.u_origin with `Dir _ -> false | _ -> true
 
   let map fn ts =
     List.map (fun u -> `Unit u) ts
@@ -982,7 +974,7 @@ end = struct
   let with_deps o_deps t = { t with o_deps }
   let container t = t.o_container
   let with_container c o = { o with o_container = Some c }
-  let contents t = []
+  let contents _t = []
   let flags t _ = t.o_flags
   let source_dir _ = None
   let rules t = t.o_actions
@@ -1007,7 +999,7 @@ end = struct
 
   (* the files are supposed to be taken into account by the component
      it is part of. *)
-  let generated_files t = []
+  let generated_files _t = []
 
 end
 
@@ -1047,7 +1039,7 @@ end = struct
   let with_deps _ t = t
   let container _t = None
   let with_container _ t = t
-  let source_dir t = None (* FIXME: look into libdir *)
+  let source_dir _t = None (* FIXME: look into libdir *)
   let contents _t = []
   let generated_files _t = []
   let kind t = t.p_kind
@@ -1067,7 +1059,6 @@ and Lib : sig
     string -> kind ->
     [`Units of [`Unit of Unit.t] list | `Other of other] -> t
   val kind : t -> kind
-  val units : t -> comp_unit list
 end = struct
   type kind = [ `OCaml | `OCaml_pp ]
   type t = lib
@@ -1418,7 +1409,7 @@ end = struct
   let container d = d.d_container
   let with_container c d = { d with d_container = Some c }
   let source_dir _t = None
-  let rules t = [Rule.mkdir]
+  let rules _t = [Rule.mkdir]
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(deps = []) ?(install = true) dirname contents =
@@ -1447,8 +1438,6 @@ and Test: sig
   type command = test_command
   val create: ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:Component.t list -> ?dir:string -> string -> command list -> t
-  val dir: t -> string option
-  val commands: t -> command list
 end = struct
   type args = test_args
   type command = test_command
@@ -1457,7 +1446,6 @@ end = struct
   let name t = t.t_name
   let id t = "test-" ^ name t
   let available t = t.t_available
-  let targets _t _r _mode _phase = []
   let flags t _ = t.t_flags
   let generated_files _t = []
   let deps t = t.t_deps
@@ -1503,7 +1491,8 @@ end = struct
                  let bin =
                    As_resolver.root_dir r / Component.file c r `Byte
                  in
-                 As_action.create ?dir "%s %s" bin args
+                 As_action.create ?dir "%s %s %s"
+                   bin (String.concat " " (As_flags.get `Test f)) args
              ) (commands t)
            |> As_action.seq
         )]
@@ -1528,7 +1517,7 @@ end = struct
       doc_container = None; }
 
   (* FIXME: support opamdoc *)
-  let generated_files t = []
+  let generated_files _t = []
   let contents t = t.doc_contents
   let container t = t.doc_container
   let with_container c t = { t with doc_container = Some c }

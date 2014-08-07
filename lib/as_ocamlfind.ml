@@ -15,12 +15,7 @@
  *)
 
 open Printf
-
-module StringSet = struct
-  include Set.Make (String)
-  let to_list = elements
-  let of_list ss = List.fold_left (fun acc s -> add s acc) empty ss
-end
+module StringSet = Set.Make (String)
 
 let (/) = Filename.concat
 
@@ -60,7 +55,7 @@ let query_direct ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
   let cmd = query_indirect ?predicates ?format ~uniq ~recursive packages in
   run (String.concat " " cmd)
 
-let query_makefile ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
+let query_makefile ?predicates ?format ?uniq:_ ?(recursive=false) packages =
   let aux (cache, acc) package =
     let cmd =
       query_indirect ?predicates ?format ~recursive:false [package]
@@ -86,12 +81,14 @@ let pp_byte ~mode names =
     ~format:"%d/%a"
     names
 
+(*
 let pp_native ~mode names =
   query ~mode
     ~predicates:["syntax";"preprocessor";"native"]
     ~recursive:true
     ~format:"%d/%a"
     names
+*)
 
 let comp_byte ~mode names =
   query ~mode

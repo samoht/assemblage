@@ -22,12 +22,7 @@ let (|>) x f = f x
 
 let conmap f l = List.concat (List.map f l)
 
-module StringSet = struct
-  include Set.Make (String)
-  let to_list = elements
-  let of_list ss = List.fold_left (fun acc s -> add s acc) empty ss
-end
-let dedup l = StringSet.(to_list (of_list l))
+module StringSet = Set.Make (String)
 
 module Variable = struct
 
@@ -64,13 +59,6 @@ module Variable = struct
 
   let name t =
     sprintf "$(%s)" t.name
-
-  let is_empty t = match t.value with
-    | `String ""
-    | `Strings [] -> true
-    | `Strings l  -> List.for_all ((=) "") l
-    | `Case _
-    | `String _   -> false
 
   let has_feature f =
     let var = String.uppercase (As_features.name f) in
@@ -312,12 +300,6 @@ let write t =
 
 (******************************************************************************)
 
-let echo_prereqs name =
-  sprintf "@echo '%s %s %s'"
-    (As_shell.color `Underline name)
-    (As_shell.color `Yellow "=>")
-    Rule.prereqs
-
 let resolver =
   As_ocamlfind.resolver `Makefile
     ~ocamlc:"$(OCAMLC)"
@@ -339,9 +321,6 @@ let native_dynlink_f = As_features.(native_dynlink &&& native)
 let byte_f = As_features.byte
 let native_f = As_features.native
 let js_f = As_features.js
-
-let lib_dir =
-  lazy (List.hd (As_shell.exec_output "ocamlfind printconf destdir"))
 
 let mk_flags phase t =
   let suffix = As_flags.string_of_phase phase in
