@@ -23,7 +23,7 @@ module StringSet = Set.Make (String)
 module Pparse = struct
   include Pparse
   (* from `ocaml-4.02/driver/pparse.ml' *)
-  let parse_all ~tool_name parse_fun magic ppf sourcefile =
+  let parse_all ~tool_name:_ parse_fun magic ppf sourcefile =
     Location.input_name := sourcefile;
     let inputfile = Pparse.preprocess sourcefile in
     let ast =
