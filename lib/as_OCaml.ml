@@ -119,8 +119,8 @@ let modules ~build_dir unit =
     let source = As_project.Component.source (`Unit unit) (ext:>As_action.file) in
     let build = As_project.Component.source (`Unit unit) (ext:>As_action.file) in
     let parse f = match ext with
-    | `Ml -> modules_of_ml (Pparse.parse_implementation Format.err_formatter f)
-    | `Mli -> modules_of_mli (Pparse.parse_interface Format.err_formatter f)
+    | `Ml -> modules_of_ml (Pparse.parse_implementation ~tool_name:"" Format.err_formatter f)
+    | `Mli -> modules_of_mli (Pparse.parse_interface ~tool_name:"" Format.err_formatter f)
     in
     if Sys.file_exists source then parse source else
     if Sys.file_exists build then parse build else

@@ -111,7 +111,7 @@ let linkall =
   v (`Link `Js) f
 
 let warn_error =
-  let f = ["-warn-error A-44-4 -w A-44-4"] in
+  let f = ["-warn-error A-44-4-48 -w A-44-4-48"] in
   let v = v ~available:As_features.warn_error in
   v (`Compile `Byte) f @@@
   v (`Compile `Native) f
