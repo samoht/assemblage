@@ -1008,6 +1008,7 @@ and Pkg: sig
   type kind = [ `OCaml | `OCaml_pp | `C ]
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?opt:bool -> string -> kind -> t
+  val opt: t -> bool
   val kind : t -> kind
   val compiler_libs_toplevel : t
   val ctypes_stub : t
@@ -1031,6 +1032,7 @@ end = struct
     let p_available = As_features.(available &&& pkg_f) in
     { p_name = name; p_flags = flags; p_available; p_kind = kind }
 
+  let opt t = t.p_available <> As_features.true_
   let name t = t.p_name
   let id t = "pkg-" ^ name t
   let available t = t.p_available

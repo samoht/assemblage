@@ -253,6 +253,24 @@ let describe t env =
   in
   print components
 
+let check t =
+  (* check that all non-dep packages are actually installed. *)
+  let pkgs = As_project.Component.(filter pkg) (As_project.components t) in
+  let not_installed = List.fold_left (fun acc pkg ->
+      let opt = As_project.Pkg.opt pkg in
+      let name = As_project.Component.name (`Pkg pkg) in
+      if not opt && not (As_shell.try_exec "ocamlfind query %s" name) then
+        name :: acc
+      else acc
+    ) [] pkgs in
+  match not_installed with
+  | []   -> ()
+  | [h]  -> As_shell.fatal_error 1
+              "The ocamlfind package %s is not installed, stopping." h
+  | h::t -> As_shell.fatal_error 1
+              "The ocamlfind packages %s and %s are not installed, stopping."
+              (String.concat " " t) h
+
 let process ?(file = "assemble.ml") name fn =
   let includes = includes () in
   let auto_load = auto_load () in
@@ -285,4 +303,7 @@ let process ?(file = "assemble.ml") name fn =
               As_features.(acc ||| atom f)
             ) features As_features.false_ in
         let env = As_build_env.parse name features in
-        List.iter (fun t -> fn t env) ts
+        List.iter (fun t ->
+            check t;
+            fn t env
+          ) ts

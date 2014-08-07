@@ -151,6 +151,7 @@ module Pkg : sig
   type kind = [ `OCaml | `OCaml_pp | `C ]
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?opt:bool -> string -> kind -> t
+  val opt: t -> bool
   val kind : t -> kind
   val compiler_libs_toplevel : t
   val ctypes_stub : t
