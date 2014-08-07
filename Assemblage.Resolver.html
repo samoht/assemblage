@@ -29,17 +29,9 @@ The type for internal and external name resolvers.<br>
 </div>
 
 
-<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">ocamlc:string -><br>       ocamlopt:string -><br>       build_dir:string -><br>       pkgs:(string list -> <a href="Assemblage.Flags.html#TYPEt">Assemblage.Flags.t</a>) -> <a href="Assemblage.Resolver.html#TYPEt">t</a></code></pre><div class="info ">
-<code class="code">create ~ocamlc ~ocamlopt ~buildir ~pkgs</code> is the resolver which
-      prefixes <code class="code">buildir</code> to resolve local library names and applies
-      <code class="code">pkgs</code> to resolve a set of global package names. <code class="code">ocamlc</code> and
-      <code class="code">ocamlopt</code> are the names of the bytecode and optimizing
-      compilers.<br>
-</div>
-
-<pre><span id="VALbuild_dir"><span class="keyword">val</span> build_dir</span> : <code class="type"><a href="Assemblage.Resolver.html#TYPEt">t</a> -> string -> string</code></pre><div class="info ">
-Resolve locally generated filename by prepending the build
-      directory name.<br>
+<pre><span id="VALbuild_dir"><span class="keyword">val</span> build_dir</span> : <code class="type"><a href="Assemblage.Resolver.html#TYPEt">t</a> -> string</code></pre><div class="info ">
+<code class="code">build_dir t</code> is the directory where lives all the build
+      artifacts.<br>
 </div>
 
 <pre><span id="VALpkgs"><span class="keyword">val</span> pkgs</span> : <code class="type"><a href="Assemblage.Resolver.html#TYPEt">t</a> -> string list -> <a href="Assemblage.Flags.html#TYPEt">Assemblage.Flags.t</a></code></pre><div class="info ">

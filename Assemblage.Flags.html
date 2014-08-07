@@ -27,7 +27,7 @@ Flags
 
     Flags values denote sets of partial command line arguments given
     to tools in a given context. A context is defined by a <a href="Assemblage.Flags.html#TYPEphase">phase</a>
-    and a <a href="Assemblage.Flags.html#TYPEmode">mode</a>.
+    and a mode.
 <p>
 
     FIXME describe valid context and to what they correspond.<br>
@@ -36,15 +36,9 @@ Flags
 <br>
 <h1 id="flags">Flags</h1><br>
 
-<pre><span id="TYPEphase"><span class="keyword">type</span> <code class="type"></code>phase</span> = <code class="type">[ `Compile | `Link | `Other | `Pp | `Run | `Test ]</code> </pre>
+<pre><span id="TYPEphase"><span class="keyword">type</span> <code class="type"></code>phase</span> = <code class="type">[ `Archive of [ `Byte | `C | `Native | `Shared ]<br>       | `Compile of [ `Byte | `C | `Intf | `Js | `Native ]<br>       | `Dep<br>       | `Doc<br>       | `Link of [ `Byte | `Js | `Native ]<br>       | `Other of string<br>       | `Pp of [ `Byte | `Native ]<br>       | `Prepare<br>       | `Run of [ `Byte | `Native ]<br>       | `Test ]</code> </pre>
 <div class="info ">
-The type for phases.<br>
-</div>
-
-
-<pre><span id="TYPEmode"><span class="keyword">type</span> <code class="type"></code>mode</span> = <code class="type">[ `Byte | `C | `Js | `Native | `Shared ]</code> </pre>
-<div class="info ">
-The type for modes.<br>
+The type for compilation phases.<br>
 </div>
 
 
@@ -60,7 +54,7 @@ The type for multi-context, partial, command line arguments.<br>
 </div>
 
 
-<pre><span id="VALv"><span class="keyword">val</span> v</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Assemblage.Features.t</a> -><br>       <a href="Assemblage.Flags.html#TYPEphase">phase</a> -><br>       <a href="Assemblage.Flags.html#TYPEmode">mode</a> -> <a href="Assemblage.Flags.html#TYPEargs">args</a> -> <a href="Assemblage.Flags.html#TYPEt">t</a></code></pre><div class="info ">
+<pre><span id="VALv"><span class="keyword">val</span> v</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Assemblage.Features.t</a> -><br>       <a href="Assemblage.Flags.html#TYPEphase">phase</a> -> <a href="Assemblage.Flags.html#TYPEargs">args</a> -> <a href="Assemblage.Flags.html#TYPEt">t</a></code></pre><div class="info ">
 <code class="code">v available phase mode args</code> is the partial command line
       <code class="code">args</code> in the context defined by <code class="code">phase</code> and <code class="code">modes</code>. This partial
       command line is only available whenever the feature <code class="code">available</code>

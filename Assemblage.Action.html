@@ -29,9 +29,9 @@ Custom actions.<br>
 </div>
 
 
-<pre><span id="TYPEkind"><span class="keyword">type</span> <code class="type"></code>kind</span> = <code class="type">[ `C | `Cmi | `Cmo | `Cmx | `Js | `Ml | `Mli | `O | `Other of string ]</code> </pre>
+<pre><span id="TYPEfile"><span class="keyword">type</span> <code class="type"></code>file</span> = <code class="type">[ `A<br>       | `Byte<br>       | `C<br>       | `Cma<br>       | `Cmi<br>       | `Cmo<br>       | `Cmt<br>       | `Cmti<br>       | `Cmx<br>       | `Cmxa<br>       | `Cmxs<br>       | `Dep of [ `Ml | `Mli ]<br>       | `Dir<br>       | `Ext of string<br>       | `Js<br>       | `Ml<br>       | `Mli<br>       | `Native<br>       | `O<br>       | `Other of string -> string<br>       | `So<br>       | `Source of <a href="Assemblage.Action.html#TYPEfile">file</a> ]</code> </pre>
 <div class="info ">
-The different kinds of actions.<br>
+The different kinds of files.<br>
 </div>
 
 
@@ -41,13 +41,60 @@ The different kinds of actions.<br>
       <code class="code">dir</code>.<br>
 </div>
 
-<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> = <code class="type"><a href="Assemblage.Resolver.html#TYPEt">Assemblage.Resolver.t</a> -><br>       (As_action.kind list * <a href="Assemblage.Action.html#TYPEaction">action</a>) list</code> </pre>
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type">'a</code> t</span> = <code class="type">'a -> <a href="Assemblage.Resolver.html#TYPEt">Assemblage.Resolver.t</a> -> <a href="Assemblage.Flags.html#TYPEt">Assemblage.Flags.t</a> -> <a href="Assemblage.Action.html#TYPEaction">action</a></code> </pre>
 <div class="info ">
 Type of action generators.<br>
 </div>
 
 
-<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type"><a href="Assemblage.Action.html#TYPEt">t</a></code></pre><div class="info ">
+<pre><span id="TYPEnode"><span class="keyword">type</span> <code class="type">'a</code> node</span> = <code class="type">[ `N of 'a * <a href="Assemblage.Action.html#TYPEfile">file</a><br>       | `Phony of string<br>       | `Self of <a href="Assemblage.Action.html#TYPEfile">file</a> ]</code> </pre>
+<div class="info ">
+The type of nodes in the action graph.<br>
+</div>
+
+
+<pre><code><span id="TYPErule"><span class="keyword">type</span> <code class="type">'a</code> rule</span> = {</code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTrule.phase">phase</span>&nbsp;: <code class="type"><a href="Assemblage.Flags.html#TYPEphase">Assemblage.Flags.phase</a></code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTrule.targets">targets</span>&nbsp;: <code class="type">'a <a href="Assemblage.Action.html#TYPEnode">node</a> list</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTrule.prereqs">prereqs</span>&nbsp;: <code class="type">'a <a href="Assemblage.Action.html#TYPEnode">node</a> list</code>;</code></td>
+
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTrule.action">action</span>&nbsp;: <code class="type">'a <a href="Assemblage.Action.html#TYPEt">t</a></code>;</code></td>
+
+</tr></table>
+}
+
+<div class="info ">
+An action rule is a list of target nodes, prerequesite nodes and
+      an action.<br>
+</div>
+
+
+<pre><span id="VALrule"><span class="keyword">val</span> rule</span> : <code class="type">phase:<a href="Assemblage.Flags.html#TYPEphase">Assemblage.Flags.phase</a> -><br>       targets:'a <a href="Assemblage.Action.html#TYPEnode">node</a> list -><br>       prereqs:'a <a href="Assemblage.Action.html#TYPEnode">node</a> list -><br>       'a <a href="Assemblage.Action.html#TYPEt">t</a> -> 'a <a href="Assemblage.Action.html#TYPErule">rule</a></code></pre><div class="info ">
+Create a new rule.<br>
+</div>
+
+<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type">'a <a href="Assemblage.Action.html#TYPEt">t</a></code></pre><div class="info ">
 The generator of empty actions.<br>
 </div>
 </body></html>

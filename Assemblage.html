@@ -127,7 +127,13 @@ The type for test descriptions.<br>
 </div>
 
 
-<pre><span id="TYPEcomponent"><span class="keyword">type</span> <code class="type"></code>component</span> = <code class="type">[ `Bin of <a href="Assemblage.html#TYPEbin">bin</a><br>       | `Dir of <a href="Assemblage.html#TYPEdir">dir</a><br>       | `Lib of <a href="Assemblage.html#TYPElib">lib</a><br>       | `Other of <a href="Assemblage.html#TYPEother">other</a><br>       | `Pkg of <a href="Assemblage.html#TYPEpkg">pkg</a><br>       | `Test of <a href="Assemblage.html#TYPEtest">test</a><br>       | `Unit of <a href="Assemblage.html#TYPEcomp_unit">comp_unit</a> ]</code> </pre>
+<pre><span id="TYPEdoc"><span class="keyword">type</span> <code class="type"></code>doc</span> </pre>
+<div class="info ">
+The type for documentation descriptions.<br>
+</div>
+
+
+<pre><span id="TYPEcomponent"><span class="keyword">type</span> <code class="type"></code>component</span> = <code class="type">[ `Bin of <a href="Assemblage.html#TYPEbin">bin</a><br>       | `Dir of <a href="Assemblage.html#TYPEdir">dir</a><br>       | `Doc of <a href="Assemblage.html#TYPEdoc">doc</a><br>       | `Lib of <a href="Assemblage.html#TYPElib">lib</a><br>       | `Other of <a href="Assemblage.html#TYPEother">other</a><br>       | `Pkg of <a href="Assemblage.html#TYPEpkg">pkg</a><br>       | `Test of <a href="Assemblage.html#TYPEtest">test</a><br>       | `Unit of <a href="Assemblage.html#TYPEcomp_unit">comp_unit</a> ]</code> </pre>
 <div class="info ">
 The type for components.
     <ul>
@@ -157,28 +163,28 @@ Same as <a href="Assemblage.html#VALunit"><code class="code"><span class="constr
 Same as <a href="Assemblage.html#VALunit"><code class="code"><span class="constructor">Assemblage</span>.unit</code></a> but for javascript source files.<br>
 </div>
 
-<pre><span id="VALother"><span class="keyword">val</span> other</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       string -><br>       <a href="Assemblage.Action.html#TYPEt">Action.t</a> -><br>       <a href="Assemblage.Action.html#TYPEkind">Action.kind</a> list -> [> `Other of <a href="Assemblage.html#TYPEother">other</a> ]</code></pre><div class="info ">
+<pre><span id="VALother"><span class="keyword">val</span> other</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       string -><br>       <a href="Assemblage.html#TYPEcomponent">component</a> <a href="Assemblage.Action.html#TYPErule">Action.rule</a> list -><br>       [> `Other of <a href="Assemblage.html#TYPEother">other</a> ]</code></pre><div class="info ">
 Generated source file(s).<br>
 </div>
 
-<pre><span id="VALlib"><span class="keyword">val</span> lib</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       ?pack:bool -><br>       string -><br>       [ `Unit of <a href="Assemblage.html#TYPEcomp_unit">comp_unit</a> ] list -> [> `Lib of <a href="Assemblage.html#TYPElib">lib</a> ]</code></pre><div class="info ">
+<pre><span id="VALlib"><span class="keyword">val</span> lib</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       ?pack:bool -><br>       string -><br>       [ `Other of <a href="Assemblage.html#TYPEother">other</a><br>       | `Units of [ `Unit of <a href="Assemblage.html#TYPEcomp_unit">comp_unit</a> ] list ] -><br>       [> `Lib of <a href="Assemblage.html#TYPElib">lib</a> ]</code></pre><div class="info ">
 <code class="code">lib name units</code> is the project library <code class="code">name</code> composed by the compilation
     units <code class="code">cus</code>. If <code class="code">lib</code> is set, use <code class="code">ocamldep</code> to approximate the
     compilation units and their dependecies in the given directory.<br>
 </div>
 
-<pre><span id="VALlib_pp"><span class="keyword">val</span> lib_pp</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       ?pack:bool -><br>       string -><br>       [ `Unit of <a href="Assemblage.html#TYPEcomp_unit">comp_unit</a> ] list -> [> `Lib of <a href="Assemblage.html#TYPElib">lib</a> ]</code></pre><div class="info ">
+<pre><span id="VALlib_pp"><span class="keyword">val</span> lib_pp</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       ?pack:bool -><br>       string -><br>       [ `Other of <a href="Assemblage.html#TYPEother">other</a><br>       | `Units of [ `Unit of <a href="Assemblage.html#TYPEcomp_unit">comp_unit</a> ] list ] -><br>       [> `Lib of <a href="Assemblage.html#TYPElib">lib</a> ]</code></pre><div class="info ">
 <code class="code">lib_pp</code> is like <a href="Assemblage.html#VALlib"><code class="code"><span class="constructor">Assemblage</span>.lib</code></a> but it defines a project pre-processor.<br>
 </div>
 
-<pre><span id="VALbin"><span class="keyword">val</span> bin</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       ?byte:bool -><br>       ?native:bool -><br>       ?js:bool -><br>       ?link_all:bool -><br>       ?install:bool -><br>       string -><br>       [ `Unit of <a href="Assemblage.html#TYPEcomp_unit">comp_unit</a> ] list -> [> `Bin of <a href="Assemblage.html#TYPEbin">bin</a> ]</code></pre><div class="info ">
+<pre><span id="VALbin"><span class="keyword">val</span> bin</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       ?byte:bool -><br>       ?native:bool -><br>       ?js:bool -><br>       ?link_all:bool -><br>       ?install:bool -><br>       string -><br>       [ `Other of <a href="Assemblage.html#TYPEother">other</a><br>       | `Units of [ `Unit of <a href="Assemblage.html#TYPEcomp_unit">comp_unit</a> ] list ] -><br>       [> `Bin of <a href="Assemblage.html#TYPEbin">bin</a> ]</code></pre><div class="info ">
 <code class="code">bin name units</code> is the binary <code class="code">name</code> obtained by compiling
     the compilation units <code class="code">units</code>, with the dependencies <code class="code">deps</code>. By
     default, the source files are located into <i>bin/</i> (this is
     controled by the value of <code class="code">dir</code>).<br>
 </div>
 
-<pre><span id="VALdir"><span class="keyword">val</span> dir</span> : <code class="type">?available:As_features.t -><br>       ?flags:As_flags.t -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       ?install:bool -><br>       [ `Bin<br>       | `Doc<br>       | `Etc<br>       | `Lib<br>       | `Man<br>       | `Misc<br>       | `Other of string<br>       | `Sbin<br>       | `Share<br>       | `Share_root<br>       | `Stublibs<br>       | `Toplevel ] -> <a href="Assemblage.html#TYPEcomponent">component</a> list -> [> `Dir of <a href="Assemblage.html#TYPEdir">dir</a> ]</code></pre><div class="info ">
+<pre><span id="VALdir"><span class="keyword">val</span> dir</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       ?install:bool -><br>       [ `Bin<br>       | `Doc<br>       | `Etc<br>       | `Lib<br>       | `Man<br>       | `Misc<br>       | `Other of string<br>       | `Sbin<br>       | `Share<br>       | `Share_root<br>       | `Stublibs<br>       | `Toplevel ] -> <a href="Assemblage.html#TYPEcomponent">component</a> list -> [> `Dir of <a href="Assemblage.html#TYPEdir">dir</a> ]</code></pre><div class="info ">
 <code class="code">dir name ~available ~flags ~deps contents</code> is a directory named
     <code class="code">name</code> that contains the build artefacts of the component <code class="code">contents</code>.
     If <code class="code">install</code> is <code class="code"><span class="keyword">true</span></code> (default), the artifacts are installed in the
@@ -210,7 +216,7 @@ The type for test commands.<br>
 </div>
 
 
-<pre><span id="TYPEtest_args"><span class="keyword">type</span> <code class="type"></code>test_args</span> = <code class="type">(<a href="Assemblage.html#TYPEcomponent">component</a> -> string) -> string list</code> </pre>
+<pre><span id="TYPEtest_args"><span class="keyword">type</span> <code class="type"></code>test_args</span> = <code class="type"><a href="Assemblage.Resolver.html#TYPEt">Resolver.t</a> -> string list</code> </pre>
 <div class="info ">
 The type for command line arguments when calling tests of executable.<br>
 </div>
@@ -227,26 +233,25 @@ A test which runs an arbitrary shell command.<br>
 <pre><span id="VALtest"><span class="keyword">val</span> test</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       ?dir:string -><br>       string -> <a href="Assemblage.html#TYPEtest_command">test_command</a> list -> [> `Test of <a href="Assemblage.html#TYPEtest">test</a> ]</code></pre><div class="info ">
 Description of a test.<br>
 </div>
+
+<pre><span id="VALdoc"><span class="keyword">val</span> doc</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       ?install:bool -><br>       string -> <a href="Assemblage.html#TYPEcomponent">component</a> list -> [> `Doc of <a href="Assemblage.html#TYPEdoc">doc</a> ]</code></pre><div class="info ">
+Description of documentation files.<br>
+</div>
 <br>
 <h1 id="componenthelpers">Component helpers</h1><br>
 
-<pre><span id="VALocamldep"><span class="keyword">val</span> ocamldep</span> : <code class="type">?keep:(string -> bool) -><br>       ?deps:(string -> <a href="Assemblage.html#TYPEcomponent">component</a> list) -><br>       ?unit:(string -><br>              <a href="Assemblage.html#TYPEcomponent">component</a> list -> [ `Unit of <a href="Assemblage.html#TYPEcomp_unit">comp_unit</a> ]) -><br>       dir:string -> unit -> [> `Unit of <a href="Assemblage.html#TYPEcomp_unit">comp_unit</a> ] list</code></pre><div class="info ">
-<code class="code">ocamldep ~dir ~keep ~deps ~unit ()</code> is the list of compilation
-    units derived as follows.
-<p>
+<pre><span id="VALpick"><span class="keyword">val</span> pick</span> : <code class="type">string -> <a href="Assemblage.html#TYPEcomponent">component</a> -> <a href="Assemblage.html#TYPEcomponent">component</a></code></pre><div class="info ">
+<code class="code">unit_in c name</code> is the unit named <code class="code">name</code> is the component
+    <code class="code">c</code>. Raise <code class="code"><span class="constructor">Not_found</span></code> if not unit has this name.<br>
+</div>
 
-    First the set of compilation unit names is derived by looking for
-    any ml and mli files in <code class="code">dir</code>. This set is then filtered by
-    keeping only the unit names that satisfy the <code class="code">keep</code> predicate
-    (defaults to <code class="code"><span class="keyword">fun</span> _ <span class="keywordsign">-&gt;</span> <span class="keyword">true</span></code>).
-<p>
+<pre><span id="VALbuild_dir"><span class="keyword">val</span> build_dir</span> : <code class="type"><a href="Assemblage.html#TYPEcomponent">component</a> -> <a href="Assemblage.Resolver.html#TYPEt">Resolver.t</a> -> string</code></pre><div class="info ">
+<code class="code">build_dir t r</code> is the directory where the component <code class="code">t</code> is
+    built.<br>
+</div>
 
-    For each found compilation name <code class="code">n</code> a first set of dependencies is
-    determined by calling <code class="code">deps n</code> (e.g. to specify packages and
-    pre-processors). ocamldep is then invoked and the resulting
-    compilation units are constructed by <code class="code">unit n deps'</code> where <code class="code">deps'</code>
-    is the union of deps found by ocamldep and <code class="code">deps n</code> (<code class="code">unit</code>
-    defaults to <code class="code"><span class="keyword">fun</span> n deps' <span class="keywordsign">-&gt;</span> unit ~dir n deps'</code>).<br>
+<pre><span id="VALroot_dir"><span class="keyword">val</span> root_dir</span> : <code class="type"><a href="Assemblage.Resolver.html#TYPEt">Resolver.t</a> -> string</code></pre><div class="info ">
+<code class="code">root_dir r</code> is the root directory of the project.<br>
 </div>
 
 <pre><span id="VALcstubs"><span class="keyword">val</span> cstubs</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       ?headers:string list -><br>       ?cflags:string list -><br>       ?clibs:string list -><br>       string -> [ `Dir of string ] -> [> `Lib of <a href="Assemblage.html#TYPElib">lib</a> ]</code></pre><div class="info ">
@@ -264,7 +269,7 @@ The type for OCaml projects descriptions. Simply a set of
 </div>
 
 
-<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?doc_css:string -><br>       ?doc_intro:string -><br>       ?doc_dir:string -><br>       ?doc_public:string list -><br>       ?version:string -> string -> <a href="Assemblage.html#TYPEcomponent">component</a> list -> <a href="Assemblage.html#TYPEt">t</a></code></pre><div class="info ">
+<pre><span id="VALcreate"><span class="keyword">val</span> create</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?version:string -> string -> <a href="Assemblage.html#TYPEcomponent">component</a> list -> <a href="Assemblage.html#TYPEt">t</a></code></pre><div class="info ">
 <code class="code">create name deps</code> registers the project named <code class="code">name</code>, defining
     the libraries, binaries and tests defined by the transitive
     closure of objects in <code class="code">deps</code>.<br>
@@ -301,5 +306,9 @@ Configure the project by generating the build, META and .install
 
 <pre><span id="VALdescribe"><span class="keyword">val</span> describe</span> : <code class="type"><a href="Assemblage.html#TYPEtool">tool</a></code></pre><div class="info ">
 Describe the project to stdout.<br>
+</div>
+
+<pre><span id="VAL(/)"><span class="keyword">val</span> (/)</span> : <code class="type">string -> string -> string</code></pre><div class="info ">
+Same as <code class="code"><span class="constructor">Filename</span>.concat</code>.<br>
 </div>
 </body></html>

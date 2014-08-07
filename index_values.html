@@ -19,6 +19,11 @@
 <code class="code">f &amp;&amp;&amp; f'</code> is true iff both <code class="code">f</code> and <code class="code">f'</code> are true.
 </div>
 </td></tr>
+<tr><td><a href="Assemblage.html#VAL(/)">(/)</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<td><div class="info">
+Same as <code class="code"><span class="constructor">Filename</span>.concat</code>.
+</div>
+</td></tr>
 <tr><td><a href="Assemblage.Flags.html#VAL(@@@)">(@@@)</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
 <code class="code">f @@@ f'</code> concatenates context wise <code class="code">f'</code> to <code class="code">f</code>.
@@ -56,13 +61,19 @@
 </td></tr>
 <tr><td><a href="Assemblage.Resolver.html#VALbuild_dir">build_dir</a> [<a href="Assemblage.Resolver.html">Assemblage.Resolver</a>]</td>
 <td><div class="info">
-Resolve locally generated filename by prepending the build
-      directory name.
+<code class="code">build_dir t</code> is the directory where lives all the build
+      artifacts.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.html#VALbuild_dir">build_dir</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<td><div class="info">
+<code class="code">build_dir t r</code> is the directory where the component <code class="code">t</code> is
+    built.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Features.html#VALbyte">byte</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
-<code class="code">byte</code> is tru iff byte code compilation is available.
+<code class="code">byte</code> is true iff byte code compilation is available.
 </div>
 </td></tr>
 <tr><td align="left"><br>C</td></tr>
@@ -93,13 +104,6 @@ Configure the project by generating the build, META and .install
 <code class="code">bash ~dir fmt</code> is a generator which produces some results by
       calling <code class="code">fmt</code> in a bash shell, running in the directory
       <code class="code">dir</code>.
-</div>
-</td></tr>
-<tr><td><a href="Assemblage.Resolver.html#VALcreate">create</a> [<a href="Assemblage.Resolver.html">Assemblage.Resolver</a>]</td>
-<td><div class="info">
-<code class="code">create ~ocamlc ~ocamlopt ~buildir ~pkgs</code> is the resolver which
-      prefixes <code class="code">buildir</code> to resolve local library names and applies
-      <code class="code">pkgs</code> to resolve a set of global package names.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Features.html#VALcreate">create</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
@@ -148,6 +152,16 @@ Describe the project to stdout.
     <code class="code">name</code> that contains the build artefacts of the component <code class="code">contents</code>.
 </div>
 </td></tr>
+<tr><td><a href="Assemblage.Features.html#VALdoc">doc</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<td><div class="info">
+<code class="code">public_doc</code> is true iff the documentation must be built.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.html#VALdoc">doc</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<td><div class="info">
+Description of documentation files.
+</div>
+</td></tr>
 <tr><td align="left"><br>E</td></tr>
 <tr><td><a href="Assemblage.Action.html#VALempty">empty</a> [<a href="Assemblage.Action.html">Assemblage.Action</a>]</td>
 <td><div class="info">
@@ -163,11 +177,6 @@ The generator of empty actions.
 <tr><td><a href="Assemblage.Features.html#VALfalse_">false_</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
 <code class="code">false_</code> is always false.
-</div>
-</td></tr>
-<tr><td><a href="Assemblage.Features.html#VALfull_doc">full_doc</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
-<td><div class="info">
-<code class="code">full_doc</code> is true iff the full documentation must be built.
 </div>
 </td></tr>
 <tr><td align="left"><br>J</td></tr>
@@ -215,12 +224,6 @@ Same as <a href="Assemblage.html#VALunit"><code class="code"><span class="constr
 </div>
 </td></tr>
 <tr><td align="left"><br>O</td></tr>
-<tr><td><a href="Assemblage.html#VALocamldep">ocamldep</a> [<a href="Assemblage.html">Assemblage</a>]</td>
-<td><div class="info">
-<code class="code">ocamldep ~dir ~keep ~deps ~unit ()</code> is the list of compilation
-    units derived as follows.
-</div>
-</td></tr>
 <tr><td><a href="Assemblage.html#VALother">other</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
 Generated source file(s).
@@ -232,6 +235,12 @@ Generated source file(s).
 <code class="code">parse name features</code> parse the arguments given on the
       command line as a configuration value, for the project <code class="code">name</code> with
       the possible features <code class="code">features</code>.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.html#VALpick">pick</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<td><div class="info">
+<code class="code">unit_in c name</code> is the unit named <code class="code">name</code> is the component
+    <code class="code">c</code>.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.html#VALpkg">pkg</a> [<a href="Assemblage.html">Assemblage</a>]</td>
@@ -264,9 +273,15 @@ Resolve global package names into command line flags.
     as side-effects.
 </div>
 </td></tr>
-<tr><td><a href="Assemblage.Features.html#VALpublic_doc">public_doc</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
+<tr><td align="left"><br>R</td></tr>
+<tr><td><a href="Assemblage.html#VALroot_dir">root_dir</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
-<code class="code">public_doc</code> is true iff the public documentation must be built.
+<code class="code">root_dir r</code> is the root directory of the project.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.Action.html#VALrule">rule</a> [<a href="Assemblage.Action.html">Assemblage.Action</a>]</td>
+<td><div class="info">
+Create a new rule.
 </div>
 </td></tr>
 <tr><td align="left"><br>S</td></tr>
