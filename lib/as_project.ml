@@ -1537,17 +1537,28 @@ end = struct
     |> List.rev
 
   let flags t r =
-    let units =
-      List.fold_left (fun acc u ->
-          let build_dir = Component.build_dir (`Unit u) r in
+    let deps = Component.closure ~link:true [`Doc t] in
+    let pkgs =
+      deps
+      |> Component.(filter pkg)
+      |> List.map Pkg.name
+      |> As_resolver.pkgs r
+    in
+    let incls =
+      deps
+      |> List.fold_left (fun acc -> function
+        | `Unit _ | `Lib _ as t ->
+          let build_dir = Component.build_dir t r in
           if List.mem build_dir acc then acc
           else build_dir :: acc
-        ) [] (units t)
+        | _ -> acc
+        ) []
       |> List.rev_map (fun d -> "-I " ^ d)
     in
     let open As_flags in
     t.doc_flags @@@
-    v `Doc units
+    v `Doc (get (`Compile `Byte) pkgs) @@@
+    v `Doc incls
 
   (* FIXME: support opamdoc *)
   let rules t =

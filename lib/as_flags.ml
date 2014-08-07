@@ -53,7 +53,7 @@ let string_of_phase: phase -> string = function
 | `Link m -> "link-" ^ string_of_mode m
 | `Run m -> "run-" ^ string_of_mode m
 | `Test -> "test"
-| `Doc -> "doc"
+| `Doc -> "odoc"
 | `Other s -> s
 
 module PhaseSet = struct

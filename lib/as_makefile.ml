@@ -199,7 +199,7 @@ module Variable = struct
     variables: t list;
   }
 
-  let stanza ?(align=false) ?(simplify=true) ?(doc=[]) variables =
+  let stanza ?(align=false) ?(simplify=false) ?(doc=[]) variables =
     { doc; align; simplify; variables }
 
 end
@@ -436,7 +436,8 @@ module Lib: S with type t = As_project.lib = struct
        let native_dynlink = [ native_dynlink_f, `Strings [cmxs] ] in
        let id = As_project.Lib.id t in
        let phases = As_project.Component.phases c
-       in Variable.(id =:= case (As_project.Lib.available t) byte)
+       in Variable.(id =:= `Strings [])
+       :: Variable.(id =+= case (As_project.Lib.available t) byte)
        :: Variable.(id =+= case (As_project.Lib.available t) native)
        :: Variable.(id =+= case (As_project.Lib.available t) native_dynlink)
        :: List.map (fun phase -> mk_flags phase c) phases)
@@ -473,7 +474,8 @@ module Bin: S with type t = As_project.bin = struct
        let js = [ js_f, `Strings [js] ] in
        let id = As_project.Bin.id t in
        let phases = As_project.Component.phases c
-       in Variable.(id =:= case (As_project.Bin.available t) byte)
+       in Variable.(id =:= `Strings [])
+       :: Variable.(id =+= case (As_project.Bin.available t) byte)
        :: Variable.(id =+= case (As_project.Bin.available t) native)
        :: Variable.(id =+= case (As_project.Bin.available t) js)
        :: List.map (fun phase -> mk_flags phase c) phases)
@@ -535,18 +537,17 @@ module Doc: S with type t = As_project.doc = struct
   type t = As_project.doc
 
   let variable t =
-    let c = `Doc t in
     Variable.stanza
       ~doc:[sprintf "Documentation: %s" (As_project.Doc.name t)]
-      (let id = As_project.Doc.id t in
-       let phony = [As_project.Component.available c, `String (id ^ ".phony")]
-       in Variable.(id =:= case (As_project.Doc.available t) phony)
-       :: mk_flags `Doc c
-       :: [])
+      [mk_flags `Doc (`Doc t)]
 
   let variables ts =
-    let targets = List.map As_project.Doc.id ts in
-    Variable.stanza [Variable.("doc" =:= `Strings targets)]
+    let add_docs = List.map (fun d ->
+        Variable.("doc" =+= case As_features.true_
+                    [As_project.Doc.available d,
+                     `String (As_project.Doc.id d)])
+      ) ts in
+    Variable.stanza (Variable.("doc" =:= `Strings []) :: add_docs)
     :: List.map variable ts
 
   let rule t = List.map (mk_rule (`Doc t)) (As_project.Doc.rules t)
@@ -631,7 +632,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
       `Case [ (native, `String (name ^ ".opt")); ([], `String name) ] in
     Variable.stanza ~doc:[""; "Main project configuration"; ""] []
     :: Variable.stanza
-      ~align:true
+      ~align:true ~simplify:true
       Variable.([
           ("BUILDIR"     =?= `String buildir);
           ("LIBDIR"      =?= `String (As_resolver.lib_dir resolver));
