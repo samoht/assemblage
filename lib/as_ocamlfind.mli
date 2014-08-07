@@ -29,15 +29,29 @@ val query:
   ?format:string ->
   ?uniq:bool ->
   ?recursive:bool ->
-  string list -> string
+  string list -> string list
 (** [ocamlfind_query ~direct ?predicates ?format packages] is the
     result of executing [ocamlfind query] with the given
     parameters. If [direct] is set, call the `ocamlfind' commands
     directly. Otherwise, return the ocamlfind to run to get the
     expected result. *)
 
-val resolver: mode -> string -> As_resolver.t
-(** Resolve command-line arguments for ocamlfind packages. *)
+val resolver: mode ->
+  ?ocamlc:string ->
+  ?ocamlopt:string ->
+  ?ocamldep:string ->
+  ?ocamlmklib:string ->
+  ?ocamldoc:string ->
+  ?camlp4o:string ->
+  ?ln:string ->
+  ?mkdir:string ->
+  ?js_of_ocaml:string ->
+  ?build_dir:string ->
+  ?lib_dir:string ->
+  ?root_dir:string ->
+  unit -> As_resolver.t
+(** Resolve command-line arguments for ocamlfind packages. Same as
+    [As_resolver.maker] but without the ~pkgs argument. *)
 
 module META: sig
 

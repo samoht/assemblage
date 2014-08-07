@@ -14,20 +14,55 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Actions to generate source files. *)
+(** Actions to generate new files. *)
 
-type custom
-(** Custom generator values. *)
+type action
 
-type t = As_resolver.t -> custom
-(** Custom actions. *)
+val create: ?dir:string -> ('a, unit, string, action) format4 -> 'a
+val seq: action list -> action
+val mkdir: As_resolver.t -> string -> action
+val link: As_resolver.t -> source:string -> target:string -> action
 
-val custom: ?dir:string -> ('a, unit, string, custom) format4 -> 'a
-(** [custom ~dir fmt] is a generator which produces some results by
-    calling [fmt] in a bash shell, running in the directory [dir]. *)
+type 'a t = 'a -> As_resolver.t -> As_flags.t -> action
 
-val run: t -> As_resolver.t -> unit
-(** Process the action. *)
+type file =
+  [ `Dep of [`Ml|`Mli]
+  | `Ml | `Mli | `C | `Js
+  | `Cmt | `Cmti
+  | `Cmi | `Cmo | `Cmx | `O
+  | `So | `Cma | `Cmxa | `Cmxs
+  | `A | `Byte | `Native
+  | `Dir
+  | `Source of file
+  | `Ext of string
+  | `Other of (string -> string) ]
 
-val actions: t -> As_resolver.t -> string list
-(** Return the action to run. *)
+module FileSet: sig
+  include Set.S with type elt = file
+  val to_list: t -> file list
+  val of_list: file list -> t
+end
+
+type 'a node =
+  [ `Self of file
+  | `Phony of string
+  | `N of 'a * file ]
+
+type 'a rule = {
+  phase  : As_flags.phase;
+  targets: 'a node list;
+  prereqs: 'a node list;
+  action : 'a t;
+}
+
+val rule:
+  phase:As_flags.phase ->
+  targets:'a node list ->
+  prereqs:'a node list ->
+  'a t -> 'a rule
+
+val string_of_file: string -> file -> string
+
+val empty: 'a t
+
+val run: 'a t -> 'a -> As_resolver.t -> As_flags.t -> string list

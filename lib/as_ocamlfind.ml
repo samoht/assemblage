@@ -15,6 +15,7 @@
  *)
 
 open Printf
+module StringSet = Set.Make (String)
 
 let (/) = Filename.concat
 
@@ -39,21 +40,34 @@ let query_indirect ?predicates ?format ?(uniq=false) ?(recursive=false) packages
   let args = String.concat "" [
       recursive; predicates; format; recursive; packages; uniq
     ] in
-  sprintf "ocamlfind query %s" args
+  [sprintf "ocamlfind query %s" args]
 
 let cache = Hashtbl.create 124
 
-let query_direct ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
-  let cmd = query_indirect ?predicates ?format ~uniq ~recursive packages in
+let run cmd =
   try Hashtbl.find cache cmd
   with Not_found ->
-    let r = String.concat " " (As_shell.exec_output "%s" cmd) in
+    let r = As_shell.exec_output "%s" cmd in
     Hashtbl.add cache cmd r;
     r
 
-let query_makefile ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
-  sprintf "$(shell %s)"
-    (query_indirect ?predicates ?format ~uniq ~recursive packages)
+let query_direct ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
+  let cmd = query_indirect ?predicates ?format ~uniq ~recursive packages in
+  run (String.concat " " cmd)
+
+let query_makefile ?predicates ?format ?uniq:_ ?(recursive=false) packages =
+  let aux (cache, acc) package =
+    let cmd =
+      query_indirect ?predicates ?format ~recursive:false [package]
+      |> String.concat " "
+    in
+    let result = String.concat " " (run cmd) in
+    if StringSet.mem result cache then (cache, acc) else
+    (StringSet.add result cache, sprintf "$(shell %s)" cmd :: acc)
+  in
+  let packages = query_direct ~format:"%p" ~recursive packages in
+  List.fold_left aux (StringSet.empty, []) packages
+  |> snd |> List.rev
 
 let query ~mode = match mode with
   | `Direct   -> query_direct
@@ -61,61 +75,65 @@ let query ~mode = match mode with
   | `Makefile -> query_makefile
 
 let pp_byte ~mode names =
-  [query ~mode
+  query ~mode
     ~predicates:["syntax";"preprocessor"]
     ~recursive:true
     ~format:"%d/%a"
-    names]
+    names
 
+(*
 let pp_native ~mode names =
-  [query ~mode
+  query ~mode
     ~predicates:["syntax";"preprocessor";"native"]
     ~recursive:true
     ~format:"%d/%a"
-    names]
+    names
+*)
 
 let comp_byte ~mode names =
-  [query ~mode
+  query ~mode
     ~predicates:["byte"]
     ~format:"-I %d"
     ~recursive:true
     ~uniq:true
-    names]
+    names
 
 let comp_native ~mode names =
-  [query ~mode
+  query ~mode
     ~predicates:["native"]
     ~format:"-I %d"
     ~recursive:true
     ~uniq:true
-    names]
+    names
 
 let link_byte ~mode names =
-  [query ~mode
+  query ~mode
     ~predicates:["byte"]
     ~format:"%d/%a"
     ~recursive:true
-    names]
+    names
 
 let link_native ~mode names =
-  [query ~mode
+  query ~mode
     ~predicates:["native"]
     ~format:"%d/%a"
     ~recursive:true
-    names]
+    names
 
 let pkgs ~mode names =
   let open As_flags in
-  v `Pp `Byte (pp_byte ~mode names) @@@
-  v `Pp `Native (pp_native ~mode names) @@@
-  v `Compile `Byte (comp_byte ~mode names) @@@
-  v `Compile `Native (comp_native ~mode names) @@@
-  v `Link `Byte (link_byte ~mode names) @@@
-  v `Link `Native (link_native ~mode names)
+  v (`Pp `Byte) (pp_byte ~mode names) @@@
+  v (`Pp `Native) (pp_byte ~mode names) @@@
+  v (`Compile `Byte) (comp_byte ~mode names) @@@
+  v (`Compile `Native) (comp_native ~mode names) @@@
+  v (`Link `Byte) (link_byte ~mode names) @@@
+  v (`Link `Native) (link_native ~mode names)
 
-
-let resolver mode build_dir =
-  As_resolver.create ~build_dir ~pkgs:(pkgs ~mode)
+let resolver mode =
+  if As_shell.try_exec "ocamlfind list" then
+    As_resolver.create ~pkgs:(pkgs ~mode)
+  else
+  As_shell.fatal_error 1 "ocamlfind is not installed on your system, stopping."
 
 module META = struct
 

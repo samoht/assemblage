@@ -18,6 +18,9 @@ open Printf
 
 (* Features and flags *)
 
+let (/) = Filename.concat
+let (|>) x f = f x
+
 module Features = As_features
 module Flags = As_flags
 
@@ -29,30 +32,33 @@ module Action = As_action
 (* Components *)
 
 type t = As_project.t
-type component = As_project.Component.t
-type comp_unit = As_project.Unit.t
-type other = As_project.Other.t
-type c = As_project.C.t
-type js = As_project.JS.t
-type pkg = As_project.Pkg.t
-type lib = As_project.Lib.t
-type bin = As_project.Bin.t
-type files = As_project.Files.t
-type test = As_project.Test.t
+type component = As_project.component
+type comp_unit = As_project.comp_unit
+type other = As_project.other
+type pkg = As_project.pkg
+type lib = As_project.lib
+type bin = As_project.bin
+type dir = As_project.dir
+type test = As_project.test
+type doc = As_project.doc
 
 let unit ?available ?flags ?deps name origin =
-  `Unit (As_project.Unit.create ?available ?flags ?deps name origin)
+  `Unit (As_project.Unit.create ?available ?flags ?deps name `OCaml origin)
 
-let other ?available ?flags ?deps ?action name f =
-  `Other (As_project.Other.create ?available ?flags ?deps ?action f name)
+let c ?available ?(flags=As_flags.empty) ?deps ?(cclib = []) ?(ccopt = []) name origin =
+  let flags =
+    let (@@@) = As_flags.(@@@) in
+    flags @@@ As_flags.ccopt ccopt @@@ As_flags.cclib cclib in
+  `Unit (As_project.Unit.create ?available ~flags ?deps name `C origin)
 
-let c ?available ?flags ?deps ?dir ?(link_flags = []) name libs =
-  let link_flags = List.map (sprintf "-l%s") libs @ link_flags in
-  `C (As_project.C.create ?available ?flags ?deps ?dir ~link_flags name)
+let js ?available ?(flags=As_flags.empty) ?deps ?(jsflags = []) name origin =
+  let flags =
+    let (@@@) = As_flags.(@@@) in
+    flags @@@ As_flags.v (`Link `Js) jsflags in
+  `Unit (As_project.Unit.create ?available ~flags ?deps name `Js origin)
 
-let js b r =
-  let `Bin b = b in
-  `JS (As_project.JS.create b r)
+let other ?available ?flags ?deps name action =
+  `Other (As_project.Other.create ?available ?flags ?deps name action)
 
 let pkg ?available ?flags ?opt name =
   `Pkg (As_project.Pkg.create ?available ?flags ?opt name `OCaml)
@@ -63,95 +69,105 @@ let pkg_pp ?available ?flags ?opt name =
 let pkg_c ?available ?flags ?opt name =
   `Pkg (As_project.Pkg.create ?available ?flags ?opt name `C)
 
-let lib ?available ?flags ?deps ?pack ?(c = []) name us =
-  let c = List.map (function `C c -> c) c in
-  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack ~c name `OCaml us)
+let lib ?available ?flags ?deps ?pack name origin =
+  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack name `OCaml origin)
 
-let lib_pp ?available ?flags ?deps ?pack ?(c = []) name us =
-  let c = List.map (function `C c -> c) c in
-  let kind = `OCaml_pp in
-  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack ~c name kind us)
+let lib_pp ?available ?flags ?deps ?pack name origin =
+  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack name `OCaml_pp origin)
 
-let bin ?available ?flags ?deps ?byte_only ?link_all ?install name cus =
-  `Bin (As_project.Bin.create ?available ?flags ?deps ?byte_only ?link_all
-          ?install cus name)
+let bin ?available ?flags ?deps ?byte ?native ?js ?link_all ?install name units =
+  `Bin (As_project.Bin.create ?available ?flags ?deps ?byte ?native ?js ?link_all
+          ?install name units)
 
-let files ?available ?flags ?deps ?install name contents =
-  `Files (As_project.Files.create ?available ?flags ?deps ?install name contents)
+let dir ?available ?flags ?deps ?install name contents =
+  `Dir (As_project.Dir.create ?available ?flags ?deps ?install name contents)
+
+let doc ?available ?flags ?deps ?install name contents =
+  `Doc (As_project.Doc.create ?available ?flags ?deps ?install name contents)
 
 type test_command = As_project.Test.command
+
 let test ?available ?flags ?deps ?dir name commands =
   `Test (As_project.Test.create ?available ?flags ?deps ?dir name commands)
 
-type test_args = (component -> string) -> string list
+type test_args = As_project.Test.args
 
-let test_bin (`Bin bin) ?args (): As_project.Test.command =
+let test_bin bin ?args (): As_project.Test.command =
   let args = match args with
   | None   -> (fun _ -> [])
   | Some a -> a
   in
-  `Bin (`Bin bin, args)
+  `Bin (bin, args)
 
 let test_shell fmt =
   ksprintf (fun str -> `Shell str) fmt
 
 (* Component helpers *)
 
-let ocamldep ?keep ?deps ?unit ~dir () =
-  let resolver = As_ocamlfind.resolver `Direct (Sys.getcwd ()) in
-  List.map (fun u -> `Unit u) (As_OCaml.depends ?keep ?deps ?unit resolver dir)
+let pick name c =
+  List.find
+    (fun c -> As_project.Component.name c = name)
+    (As_project.Component.contents c)
+
+let build_dir = As_project.Component.build_dir
+let root_dir = As_resolver.root_dir
 
 let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
     name (`Dir dir)
   =
-  let (/) = Filename.concat in
+  let name_bindings = name ^ "_bindings" in
+  let name_stubs = name ^ "_stubs" in
+
   (* 1. compile the bindings. *)
   let deps = `Pkg As_project.Pkg.ctypes_stub :: deps in
-  let name_bindings = name ^ "_bindings" in
   let bindings = unit name_bindings (`Dir dir) ~deps in
-  let name_generator = name ^ "_generator" in
-  let name_stubs = name ^ "_stubs" in
-  let bin_dir r = As_project.Bin.build_dir
-      (As_project.Bin.create [] name_generator) r in
-  let lib_dir r =
-    let lib = As_project.Lib.create name `OCaml [] in
-    Sys.getcwd () / As_project.Lib.build_dir lib r
-  in
-  (* 2. Generate and compile the generator. *)
+
+  (* 2. compile the generator of <name>_stubs.{ml,c} and <name>.ml *)
   let generator =
-    let action r =
-      let ml_stubs = lib_dir r / name_stubs ^ ".ml" in
-      let c_stubs  = lib_dir r / name_stubs ^ ".c" in
-      let library  = lib_dir r / name ^ ".ml" in
-      let headers = match headers with
-        | [] -> ""
-        | hs -> sprintf "--headers %s " (String.concat "," hs) in
-      As_action.custom ~dir:(bin_dir r)
-        "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
-        headers ml_stubs c_stubs library name
-    in
-    let ml = other name_generator ~action [`Ml] in
-    let comp = unit name_generator ml ~deps:[bindings]
-    in
-    let bin =
-      As_project.Bin.create ~install:false [bindings; comp] name_generator
-    in
-    `Bin bin in
-  (* 3. Generate and compile the stubs. *)
-  let ml_stubs =
-    let action r = As_action.custom ~dir:(bin_dir r) "./%s.byte" name_generator
-    in
-    let ml = other name_stubs ~action ~deps:[generator] [`C; `Ml] in
-    unit name_stubs ml in
-  let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
-  let c_stubs =
-    let c = As_project.C.create ~generated:true ~deps:[generator] ~link_flags
-        name_stubs in
-    `C c in
-  let flags = As_flags.(cclib link_flags @@@ stub name_stubs) in
-  let ml = other name ~deps:[generator] [`Ml] in
-  let main = unit name ml ~deps:[bindings; ml_stubs; c_stubs] in
-  lib name ~flags ?available ~c:[c_stubs] [bindings; ml_stubs; main]
+    let name_generator = name ^ "_generator" in
+    let ctypes_gen =
+      other (name ^ "-generator") [
+        As_action.rule
+          ~phase:`Prepare
+          ~targets:[`Self `Ml]
+          ~prereqs:[]
+          (fun _t r _f ->
+             let dir = As_project.Component.build_dir bindings r in
+             let ml_stubs = dir / name_stubs ^ ".ml" in
+             let c_stubs  = dir / name_stubs ^ ".c" in
+             let library  = dir / name ^ ".ml" in
+             let headers = match headers with
+             | [] -> ""
+             | hs -> sprintf "--headers %s " (String.concat "," hs) in
+             As_action.create ~dir
+               "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
+               headers ml_stubs c_stubs library name)
+      ] in
+    let unit = unit name_generator ctypes_gen in
+    bin name_generator (`Units [unit])
+  in
+
+  (* 3. compile the generated stubs *)
+  let run_generator =
+    other (name ^ "-generator.run") [
+      As_action.rule
+        ~phase:`Prepare
+        ~targets:[`Self `Ml; `Self `C]
+        ~prereqs:[`N (generator, `Byte)]
+        (fun t r _f ->
+           let dir = As_project.Component.build_dir t r in
+           As_action.create ~dir "./%s.byte" (As_project.Component.name t))
+    ] in
+  let ml_stubs = unit name_stubs run_generator ~deps:[bindings] in
+  let c_stubs = c name_stubs run_generator in
+  let main = unit name run_generator ~deps:[ml_stubs; c_stubs] in
+
+  (* 4. compile the main library *)
+  let flags =
+    let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
+    As_flags.(cclib link_flags @@@ stub name_stubs) in
+  (* FIXME: which action ? *)
+  lib name ~flags ?available (`Units [bindings; ml_stubs; c_stubs; main])
 
 (* Projects *)
 
@@ -178,35 +194,6 @@ let includes () =
     | _ :: t         -> aux acc t in
   aux [] sys_argl
 
-let process ?(file = "assemble.ml") name fn =
-  let includes = includes () in
-  let auto_load = auto_load () in
-  As_shell.show "Loading %s. %s"
-    (As_shell.color `bold file)
-    (if auto_load then "" else
-       sprintf "[auto-load: %s]"
-         (As_shell.color `magenta (string_of_bool auto_load)));
-  Toploop.initialize_toplevel_env ();
-  Toploop.set_paths ();
-  let includes =
-    if auto_load then
-      includes @ As_shell.exec_output "ocamlfind query -r assemblage"
-    else
-      includes in
-  List.iter Topdirs.dir_directory includes;
-  if not (Sys.file_exists file) then
-    As_shell.fatal_error 1 "missing %s." file
-  else match Toploop.use_silently Format.std_formatter file with
-    | false -> As_shell.fatal_error 1 "while loading `%s'." file
-    | true  ->
-      match projects () with
-      | [] -> As_shell.fatal_error 2 "No projects are registered in `%s'." file
-      | ts ->
-        let features = List.fold_left (fun acc t ->
-            As_features.Set.union (As_project.features t) acc
-          ) As_features.Set.empty ts in
-        let env = As_build_env.parse name features in
-        List.iter (fun t -> fn t env) ts
 
 let configure `Make t env =
   let features = As_build_env.features env in
@@ -219,26 +206,26 @@ let configure `Make t env =
 
 let describe t env =
   let print_deps x =
-    let bold_name pkg = As_shell.color `bold (As_project.Pkg.name pkg) in
+    let bold_name pkg = As_shell.color `Bold (As_project.Pkg.name pkg) in
     let pkgs = As_project.Component.(filter pkg x) in
     match String.concat " " (List.map bold_name pkgs) with
     | "" -> ""
     | pkgs -> sprintf "  ├─── [%s]\n" pkgs
   in
-  let print_modules last ms =
+  let print_modules last modules =
     let aux i n m =
       printf "  %s %s\n"
-        (if last && i = n then "└───" else "├───") (As_shell.color `blue m) in
-    let n = List.length ms - 1 in
-    List.iteri (fun i m -> aux i n m) ms in
-  let print_units us =
+        (if last && i = n then "└───" else "├───") (As_shell.color `Blue m) in
+    let n = List.length modules - 1 in
+    List.iteri (fun i m -> aux i n m) modules in
+  let print_units units =
     let aux i n u =
       let mk f ext =
-        if f u then (As_shell.color `cyan (As_project.Unit.name u ^ ext)) else
+        if f u then (As_shell.color `Cyan (As_project.Unit.name u ^ ext)) else
         ""
       in
-      let ml = mk As_project.Unit.ml ".ml" in
-      let mli = mk As_project.Unit.mli ".mli" in
+      let ml = mk As_project.Unit.(has `Ml) ".ml" in
+      let mli = mk As_project.Unit.(has `Mli) ".mli" in
       let modules =
         if As_project.Unit.generated u then ["--generated--"]
         else
@@ -248,20 +235,75 @@ let describe t env =
         (if modules = [] && i = n then "└─" else "├─") ml mli;
       print_modules (i=n) modules
     in
-    let n = List.length us - 1 in
-    List.iteri (fun i u -> aux i n u) us in
-  let print_top id deps comps ls =
-    let aux l =
+    let n = List.length units - 1 in
+    List.iteri (fun i u -> aux i n u) units in
+  let print cs =
+    let aux c =
+      let open As_project.Component in
       printf "└─┬─ %s\n%s"
-        (As_shell.color `magenta (id l)) (print_deps (deps l));
-      print_units (comps l) in
-    List.iter aux ls in
-  let print_libs = As_project.Lib.(print_top id deps units) in
-  let print_bins = As_project.Bin.(print_top id deps units) in
+        (As_shell.color `Magenta (id c)) (print_deps (deps c));
+      print_units (filter unit (contents c)) in
+    List.iter aux cs in
   printf "\n%s %s %s\n\n"
-    (As_shell.color `yellow "==>")
-    (As_shell.color `underline (As_project.name t)) (As_project.version t);
-  let components = As_project.components t in
-  print_libs As_project.Component.(filter lib_ocaml components);
-  print_libs As_project.Component.(filter lib_ocaml_pp components);
-  print_bins As_project.Component.(filter bin components)
+    (As_shell.color `Yellow "==>")
+    (As_shell.color `Underline (As_project.name t)) (As_project.version t);
+  let components =
+    As_project.components t
+    |> List.filter (function `Lib _ | `Bin _ -> true | _ -> false)
+  in
+  print components
+
+let check t =
+  (* check that all non-dep packages are actually installed. *)
+  let pkgs = As_project.Component.(filter pkg) (As_project.components t) in
+  let not_installed = List.fold_left (fun acc pkg ->
+      let opt = As_project.Pkg.opt pkg in
+      let name = As_project.Component.name (`Pkg pkg) in
+      if not opt && not (As_shell.try_exec "ocamlfind query %s" name) then
+        name :: acc
+      else acc
+    ) [] pkgs in
+  match not_installed with
+  | []   -> ()
+  | [h]  -> As_shell.fatal_error 1
+              "The ocamlfind package %s is not installed, stopping." h
+  | h::t -> As_shell.fatal_error 1
+              "The ocamlfind packages %s and %s are not installed, stopping."
+              (String.concat " " t) h
+
+let process ?(file = "assemble.ml") name fn =
+  let includes = includes () in
+  let auto_load = auto_load () in
+  As_shell.show "Loading %s. %s"
+    (As_shell.color `Bold file)
+    (if auto_load then "" else
+       sprintf "[auto-load: %s]"
+         (As_shell.color `Magenta (string_of_bool auto_load)));
+  Toploop.initialize_toplevel_env ();
+  Toploop.set_paths ();
+  let includes =
+    if auto_load then
+      includes @ As_shell.exec_output "ocamlfind query -r assemblage"
+    else
+      includes in
+  List.iter Topdirs.dir_directory includes;
+  if not (Sys.file_exists file) then
+    As_shell.fatal_error 1 "missing %s." file
+  else match Toploop.use_silently Format.err_formatter file with
+    | false -> As_shell.fatal_error 1 "while loading `%s'." file
+    | true  ->
+      match projects () with
+      | [] -> As_shell.fatal_error 2 "No projects are registered in `%s'." file
+      | ts ->
+        let features = List.fold_left (fun acc t ->
+            As_features.Set.union (As_project.features t) acc
+          ) As_features.Set.empty ts in
+        let features =
+          As_features.Set.fold (fun f acc ->
+              As_features.(acc ||| atom f)
+            ) features As_features.false_ in
+        let env = As_build_env.parse name features in
+        List.iter (fun t ->
+            check t;
+            fn t env
+          ) ts

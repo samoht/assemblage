@@ -64,26 +64,11 @@ type t = {
 
 let create
     ?(features=[])
-    ?(comp=[])
-    ?(bytcomp=[])
-    ?(natcomp=[])
-    ?(link=[])
-    ?(bytlink=[])
-    ?(natlink=[])
-    ?(pp=[])
+    ?(flags=As_flags.empty)
     ?(includes=[])
     ?(auto_load=true)
     ?(build_dir="_build")
     () =
-  let flags =
-    let open As_flags in
-    v `Compile `Byte (comp @ bytcomp) @@@
-    v `Compile `Native (comp @ natcomp) @@@
-    v `Link `Byte (link @ bytlink) @@@
-    v `Link `Native (link @ natlink) @@@
-    v `Pp `Byte pp @@@
-    v `Pp `Native pp
-  in
   { features; flags; build_dir; auto_load; includes }
 
 let build_dir t = t.build_dir
@@ -156,8 +141,16 @@ let term features: t Cmdliner.Term.t =
     let comp = list comp in
     let pp = list pp in
     let auto_load = not disable_auto_load in
-    create ~features ~comp ~link ~pp ~includes ~auto_load ~build_dir () in
-  Term.(mk create $ features $ comp $ link $ pp $ includes $ disable_auto_load
+    let flags = As_flags.(
+        v (`Compile `Byte) comp @@@
+        v (`Compile `Native) comp @@@
+        v (`Link `Byte) link @@@
+        v (`Link `Native) link @@@
+        v (`Pp `Byte) pp @@@
+        v (`Pp `Native) pp)
+    in
+    create ~features ~flags ~includes ~auto_load ~build_dir () in
+  Term.(mk create $ features $ comp $ link $ pp  $ includes $ disable_auto_load
         $ build_dir)
 
 let includes t = t.includes
@@ -165,6 +158,7 @@ let includes t = t.includes
 let auto_load t = t.auto_load
 
 let parse ?doc ?man name features =
+  let features = As_features.atoms features in
   let doc = match doc with
     | None   -> "helpers to manage and configure OCaml projects."
     | Some d -> d in

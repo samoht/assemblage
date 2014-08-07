@@ -52,9 +52,6 @@ module Features : sig
 
   (** {1 Features} *)
 
-  type set
-  (** Set of features. FIXME: remove this. *)
-
   type t
   (** The type for features. Given a build environment a value of this type
       denotes a boolean value. *)
@@ -83,6 +80,9 @@ module Features : sig
 
   (** {1 Built-in features} *)
 
+  val byte: t
+  (** [byte] is true iff byte code compilation is available. *)
+
   val native : t
   (** [native] is true iff native code compilation is available. *)
 
@@ -104,12 +104,9 @@ module Features : sig
   val test : t
   (** [test] is true iff tests must be built. *)
 
-  val public_doc : t
-  (** [public_doc] is true iff the public documentation must be built. *)
+  val doc : t
+  (** [public_doc] is true iff the documentation must be built. *)
 
-  val full_doc : t
-  (** [full_doc] is true iff the full documentation must be built.
-      FIXME. *)
 end
 
 (** Flags
@@ -123,11 +120,18 @@ module Flags : sig
 
   (** {1:flags Flags} *)
 
-  type phase = [ `Pp | `Compile | `Link | `Other | `Run | `Test ]
-  (** The type for phases. *)
-
-  type mode = [ `Byte | `Native | `Shared | `C | `Js ]
-  (** The type for modes. *)
+  type phase =
+    [ `Prepare
+    | `Dep
+    | `Pp of [`Byte|`Native]
+    | `Compile of [`Intf|`Byte|`Native|`C|`Js]
+    | `Archive of [`Byte|`Native|`Shared|`C]
+    | `Link of [`Byte|`Native|`Js]
+    | `Run of [`Byte|`Native]
+    | `Test
+    | `Doc
+    | `Other of string ]
+  (** The type for compilation phases. *)
 
   type args = string list
   (** The type for partial command line arguments. *)
@@ -135,7 +139,7 @@ module Flags : sig
   type t
   (** The type for multi-context, partial, command line arguments. *)
 
-  val v : ?available:Features.t -> phase -> mode -> args -> t
+  val v : ?available:Features.t -> phase -> args -> t
   (** [v available phase mode args] is the partial command line
       [args] in the context defined by [phase] and [modes]. This partial
       command line is only available whenever the feature [available]
@@ -196,14 +200,9 @@ module Resolver: sig
   type t
   (** The type for internal and external name resolvers. *)
 
-  val create : build_dir:string -> pkgs:(string list -> Flags.t) -> t
-  (** [create ~buildir ~pkgs] is the resolver which prefixes [buildir]
-      to resolve local library names and applies [pkgs] to resolve a set
-      of global package names. *)
-
-  val build_dir : t -> string -> string
-  (** Resolve locally generated filename by prepending the build
-      directory name. *)
+  val build_dir : t -> string
+  (** [build_dir t] is the directory where lives all the build
+      artifacts. *)
 
   val pkgs : t -> string list -> Flags.t
   (** Resolve global package names into command line flags. *)
@@ -216,16 +215,54 @@ module Action: sig
 
   (** Actions to generate source files. *)
 
-  type custom
+  type action
   (** Custom actions. *)
 
-  val custom : ?dir:string -> ('a, unit, string, custom) format4 -> 'a
+  type file =
+    [ `Dep of [`Ml|`Mli]
+    | `Ml | `Mli | `C | `Js
+    | `Cmt | `Cmti
+    | `Cmi | `Cmo | `Cmx | `O
+    | `So | `Cma | `Cmxa | `Cmxs
+    | `A | `Byte | `Native
+    | `Dir
+    | `Source of file
+    | `Ext of string
+    | `Other of (string -> string) ]
+  (** The different kinds of files. *)
+
+  val create : ?dir:string -> ('a, unit, string, action) format4 -> 'a
   (** [bash ~dir fmt] is a generator which produces some results by
       calling [fmt] in a bash shell, running in the directory
       [dir]. *)
 
-  type t = Resolver.t -> custom
-  (** Type of custom actions. *)
+  type 'a t = 'a -> Resolver.t -> Flags.t -> action
+  (** Type of action generators. *)
+
+  type 'a node =
+    [ `Self of file
+    | `Phony of string
+    | `N of 'a * file ]
+  (** The type of nodes in the action graph. *)
+
+  type 'a rule = {
+    phase  : Flags.phase;
+    targets: 'a node list;
+    prereqs: 'a node list;
+    action : 'a t;
+  }
+  (** An action rule is a list of target nodes, prerequesite nodes and
+      an action. *)
+
+  val rule:
+    phase:Flags.phase ->
+    targets:'a node list ->
+    prereqs:'a node list ->
+    'a t -> 'a rule
+  (** Create a new rule. *)
+
+  val empty: 'a t
+  (** The generator of empty actions. *)
 
 end
 
@@ -243,12 +280,6 @@ type comp_unit
 type other
 (** The type for arbitrarily constructed files descriptions. *)
 
-type c
-(** The type for C source file descriptions. *)
-
-type js
-(** The type for [js_of_ocaml] artifact descriptions. *)
-
 type pkg
 (** The type for package descriptions. *)
 
@@ -258,22 +289,24 @@ type lib
 type bin
 (** The type for binary executable descriptions. *)
 
-type files
-(** The type for file artifacts descriptions. *)
+type dir
+(** The type for directory of file artifacts descriptions. *)
 
 type test
 (** The type for test descriptions. *)
 
+type doc
+(** The type for documentation descriptions. *)
+
 type component =
   [ `Unit of comp_unit
   | `Other of other
-  | `C of c
-  | `JS of js
   | `Lib of lib
   | `Pkg of pkg
   | `Bin of bin
-  | `Files of files
-  | `Test of test ]
+  | `Dir of dir
+  | `Test of test
+  | `Doc of doc ]
 (** The type for components.
     {ul
     {- [`Unit u] u is a project compilation unit.}
@@ -285,59 +318,61 @@ type component =
 
 val unit : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
   string -> [`Dir of string | `Other of other] -> [> `Unit of comp_unit]
-(** [unit name ~dir ~available ~flags ~deps] is a compilation unit
-    named [name] (the filename without extension) present in directory [dir].
-    It is only available whenever [available] is true,
-    it must be build with [flags] and depends on [deps] to be built. *)
-
-val other : ?available:Features.t -> ?flags:Flags.t ->
-  ?deps:component list -> ?action:Action.t -> string ->
-  [`C | `Ml | `Mli] list -> [> `Other of other]
-(** Generated OCaml source file(s). The custom action get the name of
-    the build dir as argument. *)
+(** [unit name dir ~available ~flags ~deps] is a compilation unit
+    named [name] (the filename without extension) present in directory
+    [dir].  It is only available whenever [available] is true, it must
+    be build with [flags] and depends on [deps] to be built. *)
 
 val c : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-    ?dir:string -> ?link_flags:string list -> string -> string list ->
-  [> `C of c]
-(** [c name deps libs] is the C file [name.c], which need the C
-    libraries [libs] to be compiled -- and it has the dependencies
-    [deps]. *)
+  ?cclib: string list -> ?ccopt: string list ->
+  string -> [`Dir of string | `Other of other] -> [> `Unit of comp_unit]
+(** Same as {!unit} but for C source files. *)
+
+val js : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
+  ?jsflags: string list ->
+  string -> [`Dir of string | `Other of other] -> [> `Unit of comp_unit]
+(** Same as {!unit} but for javascript source files. *)
+
+val other : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
+  string -> component Action.rule list -> [> `Other of other]
+(** Generated source file(s). *)
 
 val lib : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-  ?pack:bool -> ?c:[`C of c] list -> string -> [`Unit of comp_unit] list ->
-  [> `Lib of lib]
+  ?pack:bool ->
+  string -> [`Units of [`Unit of comp_unit] list | `Other of other]
+  -> [> `Lib of lib]
 (** [lib name units] is the project library [name] composed by the compilation
     units [cus]. If [lib] is set, use [ocamldep] to approximate the
     compilation units and their dependecies in the given directory. *)
 
-val lib_pp : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-  ?pack:bool -> ?c:[`C of c] list -> string -> [`Unit of comp_unit] list ->
-  [> `Lib of lib]
+val lib_pp : ?available:Features.t -> ?flags:Flags.t ->
+  ?deps:component list -> ?pack:bool ->
+  string -> [`Units of [`Unit of comp_unit] list | `Other of other]
+  -> [> `Lib of lib]
 (** [lib_pp] is like {!lib} but it defines a project pre-processor. *)
 
 val bin : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-    ?byte_only:bool -> ?link_all:bool -> ?install:bool ->
-  string -> [`Unit of comp_unit] list -> [> `Bin of bin]
+  ?byte:bool -> ?native:bool -> ?js:bool ->
+  ?link_all:bool -> ?install:bool ->
+  string -> [`Units of [`Unit of comp_unit] list | `Other of other]
+  -> [> `Bin of bin]
 (** [bin name units] is the binary [name] obtained by compiling
     the compilation units [units], with the dependencies [deps]. By
     default, the source files are located into {i bin/} (this is
     controled by the value of [dir]). *)
 
-val files : ?available:As_features.t -> ?flags:As_flags.t ->
-  ?deps:component list -> ?install:bool ->
+val dir : ?available:Features.t -> ?flags:Flags.t ->
+  ?deps:component list ->
+  ?install:bool ->
   [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
   | `Misc | `Stublibs | `Man | `Other of string ] -> component list ->
-  [> `Files of files ]
+  [> `Dir of dir ]
 (** [dir name ~available ~flags ~deps contents] is a directory named
     [name] that contains the build artefacts of the component [contents].
     If [install] is [true] (default), the artifacts are installed in the
     corresponding directory under the install prefix. It is only available
     whenever [available] is true, it must be build with [flags] and
     depends on [deps] and [contents] to be built. *)
-
-val js : [`Bin of bin] -> string list -> [> `JS of js]
-(** [js bin args] is the decription of a javascript artefact generated
-    by [js_of_ocaml]. *)
 
 val pkg : ?available:Features.t -> ?flags:Flags.t -> ?opt:bool -> string ->
   [> `Pkg of pkg]
@@ -359,7 +394,7 @@ val pkg_c : ?available:Features.t -> ?flags:Flags.t -> ?opt:bool -> string ->
 type test_command
 (** The type for test commands. *)
 
-type test_args = (component -> string) -> string list
+type test_args = Resolver.t -> string list
 (** The type for command line arguments when calling tests of executable. *)
 
 val test_bin : [`Bin of bin] -> ?args:test_args -> unit -> test_command
@@ -372,27 +407,23 @@ val test : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
   ?dir:string -> string -> test_command list -> [> `Test of test]
 (** Description of a test. *)
 
+val doc : ?available:Features.t -> ?flags:Flags.t ->
+  ?deps:component list -> ?install:bool ->
+  string -> component list -> [> `Doc of doc]
+(** Description of documentation files. *)
+
 (** {1:componenthelpers Component helpers} *)
 
-val ocamldep :
-  ?keep:(string -> bool) ->
-  ?deps:(string -> component list) ->
-  ?unit:(string -> component list -> [ `Unit of comp_unit]) ->
-  dir:string -> unit -> [> `Unit of comp_unit] list
-(** [ocamldep ~dir ~keep ~deps ~unit ()] is the list of compilation
-    units derived as follows.
+val pick: string -> component -> component
+(** [unit_in c name] is the unit named [name] is the component
+    [c]. Raise [Not_found] if not unit has this name. *)
 
-    First the set of compilation unit names is derived by looking for
-    any ml and mli files in [dir]. This set is then filtered by
-    keeping only the unit names that satisfy the [keep] predicate
-    (defaults to [fun _ -> true]).
+val build_dir: component -> Resolver.t -> string
+(** [build_dir t r] is the directory where the component [t] is
+    built. *)
 
-    For each found compilation name [n] a first set of dependencies is
-    determined by calling [deps n] (e.g. to specify packages and
-    pre-processors). ocamldep is then invoked and the resulting
-    compilation units are constructed by [unit n deps'] where [deps']
-    is the union of deps found by ocamldep and [deps n] ([unit]
-    defaults to [fun n deps' -> unit ~dir n deps']). *)
+val root_dir: Resolver.t -> string
+(** [root_dir r] is the root directory of the project. *)
 
 val cstubs : ?available:Features.t -> ?deps:component list ->
   ?headers:string list -> ?cflags:string list -> ?clibs:string list ->
@@ -410,8 +441,6 @@ type t
 val create :
   ?available:Features.t ->
   ?flags:Flags.t ->
-  ?doc_css:string -> ?doc_intro:string -> ?doc_dir:string ->
-  ?doc_public:string list ->
   ?version:string ->
   string -> component list -> t
 (** [create name deps] registers the project named [name], defining
@@ -436,7 +465,7 @@ module Build_env: sig
   val default : t
   (** Default project configuration. *)
 
-  val parse : ?doc:string -> ?man:string list -> string -> Features.set -> t
+  val parse : ?doc:string -> ?man:string list -> string -> Features.t -> t
   (** [parse name features] parse the arguments given on the
       command line as a configuration value, for the project [name] with
       the possible features [features]. *)
@@ -461,3 +490,6 @@ val configure : [`Make] -> tool
 
 val describe : tool
 (** Describe the project to stdout. *)
+
+val (/): string -> string -> string
+(** Same as [Filename.concat]. *)

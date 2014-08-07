@@ -26,14 +26,36 @@
 type t
 (** The type for internal and external name resolvers. *)
 
-val create: build_dir:string -> pkgs:(string list -> As_flags.t) -> t
-(** [create ~buildir ~pkgs] is the resolver which prefixes [buildir]
-    to resolve local library names and applies [pkgs] to resolve a set
-    of global package names. *)
+type maker =
+  ?ocamlc:string ->
+  ?ocamlopt:string ->
+  ?ocamldep:string ->
+  ?ocamlmklib:string ->
+  ?ocamldoc:string ->
+  ?camlp4o:string ->
+  ?ln:string ->
+  ?mkdir:string ->
+  ?js_of_ocaml:string ->
+  ?build_dir:string ->
+  ?lib_dir:string ->
+  ?root_dir:string ->
+  ?pkgs:(string list -> As_flags.t) ->
+  unit -> t
 
-val build_dir: t -> string -> string
-(** Resolve locally generated filename by prepending the build
-    directory name. *)
+val create: maker
 
+val ocamlc: t -> string
+val ocamlopt: t -> string
+val ocamldep: t -> string
+val ocamlmklib: t -> string
+val ocamldoc: t -> string
+val camlp4o: t -> string
+val js_of_ocaml: t -> string
+
+val mkdir: t -> string
+val ln: t -> string
+
+val build_dir: t -> string
+val lib_dir: t -> string
+val root_dir: t -> string
 val pkgs: t -> string list -> As_flags.t
-(** Resolve global package names into command-line flags. *)

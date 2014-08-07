@@ -10,31 +10,46 @@ let optcomp  = pkg_pp "optcomp"
 (* Library *)
 
 let lib =
-  let deps = [cmdliner; graph] in
-  let deps = function
-  | "as_OCaml"   -> optcomp :: compiler :: deps
-  | "assemblage" -> compiler :: deps
-  | _            -> deps in
-  lib "assemblage" (ocamldep ~dir:"lib" ~deps ())
+  let unit ?deps name = unit ?deps name (`Dir "lib") in
+  lib "assemblage"
+    ~deps:[cmdliner; graph]
+    (`Units [
+        unit "as_features";
+        unit "as_flags";
+        unit "as_resolver";
+        unit "as_shell";
+        unit "as_git";
+        unit "as_build_env";
+        unit "as_action";
+        unit "as_project";
+        unit "as_opam";
+        unit "as_ocamlfind";
+        unit "as_makefile";
+        unit "as_OCaml" ~deps:[optcomp; compiler];
+        unit "assemblage" ~deps:[compiler];
+      ])
 
 let configure =
-  let configure = unit "configure" (`Dir "bin") ~deps:[lib] in
-  bin "configure.ml" ~link_all:true ~byte_only:true [configure]
+  bin "configure.ml" ~deps:[lib] ~link_all:true ~native:false (`Units [
+      unit "configure" (`Dir "bin")
+    ])
 
 let describe =
-  let describe = unit "describe" (`Dir "bin") ~deps:[lib]  in
-  bin "describe.ml" ~link_all:true ~byte_only:true [describe]
+  bin "describe.ml" ~deps:[lib] ~link_all:true ~native:false (`Units [
+      unit "describe" (`Dir "bin")
+    ])
 
 let ctypes_gen =
-  let ctypes_gen = unit "ctypes_gen" (`Dir "bin") ~deps:[lib] in
-  bin "ctypes-gen" ~byte_only:true [ctypes_gen]
+  bin "ctypes-gen" ~deps:[lib] ~native:false (`Units [
+      unit "ctypes_gen" (`Dir "bin")
+    ])
 
 (* Tests *)
 
 let mk_test name =
   let dir = "examples/" ^ name in
-  let args build_dir = [
-    "--disable-auto-load"; "-I"; build_dir lib;
+  let args r = [
+    "--disable-auto-load"; "-I"; root_dir r / build_dir lib r;
   ] in
   test name ~dir [
     test_bin describe ~args ();
@@ -49,8 +64,13 @@ let tests = [
   mk_test "containers";
 ]
 
+(* Docs *)
+
+let dev_doc = doc ~install:false "dev" [lib]
+let doc = doc "public" [pick "assemblage" lib]
+
 (* The project *)
 
 let () =
-  let cs = [lib; configure; describe; ctypes_gen ] @ tests in
-  add (create "assemblage" ~doc_public:["assemblage"] cs)
+  let cs = [lib; configure; describe; ctypes_gen; dev_doc; doc ] @ tests in
+  add (create "assemblage" cs)

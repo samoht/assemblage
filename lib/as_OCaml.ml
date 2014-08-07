@@ -17,43 +17,32 @@
 open Parsetree
 open Printf
 
-let (|>) x f = f x
-
-module StringSet = struct
-  include Set.Make (String)
-  let of_list ss = List.fold_left (fun acc s -> add s acc) empty ss
-end
-
-let (/) = Filename.concat
-let (//) x y =
-  match x with
-  | None   -> y
-  | Some x -> x / y
+module StringSet = Set.Make (String)
 
 #if ocaml_version < (4, 2)
 module Pparse = struct
   include Pparse
   (* from `ocaml-4.02/driver/pparse.ml' *)
-  let parse_all parse_fun magic ppf sourcefile =
+  let parse_all ~tool_name:_ parse_fun magic ppf sourcefile =
     Location.input_name := sourcefile;
     let inputfile = Pparse.preprocess sourcefile in
     let ast =
-      try Pparse.file ppf inputfile parse_fun magic
+      try Pparse.file ppf (*~tool_name*) inputfile parse_fun magic
       with exn ->
         Pparse.remove_preprocessed inputfile;
         raise exn
     in
     Pparse.remove_preprocessed inputfile;
     ast
-  let parse_implementation ppf sourcefile =
-    parse_all Parse.implementation Config.ast_impl_magic_number ppf sourcefile
-  let parse_interface ppf sourcefile =
-    parse_all Parse.interface Config.ast_intf_magic_number ppf sourcefile
+  let parse_implementation ppf ~tool_name sourcefile =
+    parse_all Parse.implementation ~tool_name Config.ast_impl_magic_number ppf sourcefile
+  let parse_interface ppf ~tool_name sourcefile =
+    parse_all Parse.interface ~tool_name Config.ast_intf_magic_number ppf sourcefile
 end
 #endif
 
 let init flags =
-  match As_flags.get `Pp `Byte flags with
+  match As_flags.get (`Pp `Byte) flags with
   | [] -> Clflags.preprocessor := None;
   | pp ->
     let pp = String.concat " " pp in
@@ -123,122 +112,22 @@ let modules_of_mli ast =
   in
   List.fold_left (sig_item (fun x -> x)) StringSet.empty ast
 
-let modules ~build_dir cu =
-  let resolver = As_ocamlfind.resolver `Direct build_dir in
-  let () =
-    As_project.Unit.deps cu
-    |> As_project.Component.closure
-    |> As_project.Component.(filter pkg_ocaml_pp)
-    |> List.map As_project.Pkg.name
-    |> As_resolver.pkgs resolver
-    |> init in
-  let aux = function
-    | `ML ->
-      let file = As_project.Unit.(dir cu // name cu ^ ".ml") in
-      let ast = Pparse.parse_implementation Format.err_formatter file in
-      modules_of_ml ast
-    | `MLI ->
-      let file = As_project.Unit.(dir cu // name cu ^ ".mli") in
-      let ast = Pparse.parse_interface Format.err_formatter file in
-      modules_of_mli ast in
+let modules ~build_dir unit =
+  let r = As_ocamlfind.resolver `Direct  ~build_dir () in
+  let () = init (As_project.Unit.flags unit r) in
+  let aux ext =
+    let source = As_project.Component.source (`Unit unit) (ext:>As_action.file) in
+    let build = As_project.Component.source (`Unit unit) (ext:>As_action.file) in
+    let parse f = match ext with
+    | `Ml -> modules_of_ml (Pparse.parse_implementation ~tool_name:"" Format.err_formatter f)
+    | `Mli -> modules_of_mli (Pparse.parse_interface ~tool_name:"" Format.err_formatter f)
+    in
+    if Sys.file_exists source then parse source else
+    if Sys.file_exists build then parse build else
+    StringSet.empty
+  in
   let set =
-    if As_project.Unit.mli cu then aux `MLI
-    else if As_project.Unit.ml cu then aux `ML
+    if As_project.Unit.has `Mli unit then aux `Mli
+    else if As_project.Unit.has `Ml unit then aux `Ml
     else StringSet.empty in
   StringSet.elements set
-
-let split str char =
-  let len = String.length str in
-  let return l =
-    List.rev (List.filter ((<>)"") l) in
-  let rec aux acc off =
-    if off >= len then return acc
-    else
-      let word, off =
-        try
-          let i = String.index_from str off  char in
-          String.sub str off (i - off), i
-        with Not_found ->
-          String.sub str off (len - off), len in
-      aux (word :: acc) (off+1)
-  in
-  aux [] 0
-
-let dedup l = StringSet.(elements (of_list l))
-
-(* XXX: ugly hack as tools/{depend.ml,ocamldep.ml} are not in
-   `compiler-libs' *)
-let depends ?(keep = fun _ -> true) ?(deps = fun _ -> []) ?unit resolver dir =
-  let unit = match unit with
-  | Some unit -> unit
-  | None -> fun uname deps -> `Unit (As_project.Unit.create ~deps uname (`Dir dir))
-  in
-  let files =
-    let keep f =
-      let is_mli = Filename.check_suffix f ".mli" in
-      let is_ml = Filename.check_suffix f ".ml" in
-      (is_mli || is_ml) && (* warning lazy evaluation is important here *)
-      keep (Filename.chop_extension f)
-    in
-    Array.to_list (Sys.readdir dir) |> List.filter keep
-  in
-  let paths = List.map (fun file -> dir / file) files in
-  let unames = StringSet.of_list (List.map Filename.chop_extension files) in
-  let all_deps =
-    let add uname acc =
-      let depset = As_project.Component.Set.of_list (deps uname) in
-      As_project.Component.Set.union depset acc
-    in
-    StringSet.fold add unames As_project.Component.Set.empty
-    |> As_project.Component.Set.elements
-  in
-  let pp = match As_project.Component.pp_byte all_deps resolver with
-  | [] -> ""
-  | pp -> sprintf "-pp \"camlp4o %s\"" (String.concat " " pp)
-  in
-  let incl =
-    match As_project.Component.comp_byte all_deps resolver (fun _ -> dir) with
-    | [] -> ""
-    | ls -> " " ^ String.concat " " ls
-  in
-  let lines =
-    As_shell.exec_output "ocamldep -one-line -modules %s%s %s"
-      pp incl (String.concat " " paths)
-  in
-  let add_dep tbl line = match split line ' ' with
-  | []
-  | "Bad" :: _
-  | "File" :: _
-  | "Error" :: _ -> ()
-  | name :: modules  ->
-      (* [name] is dir/<name>.ml[,i]: *)
-      let uname = Filename.(basename (chop_extension name)) in
-      let deps =
-        let add acc m =
-          if StringSet.mem m unames then m :: acc else
-          let uncap_m = String.uncapitalize m in
-          if StringSet.mem uncap_m unames then uncap_m :: acc else
-          acc
-        in
-        List.fold_left add [] modules
-      in
-      Hashtbl.add tbl uname deps
-  in
-  let rec get_u deps_tbl us_tbl name : [> `Unit of As_project.comp_unit ] =
-    try Hashtbl.find us_tbl name
-    with Not_found ->
-      let local_deps =
-        try dedup (List.concat (Hashtbl.find_all deps_tbl name)) with Not_found -> []
-      in
-      let udeps = List.map (get_u deps_tbl us_tbl) local_deps in
-      let deps = deps name @ (udeps :> As_project.component list) in
-      let u = unit name deps in
-      Hashtbl.add us_tbl name u;
-      u
-  in
-  let len = StringSet.cardinal unames in
-  let deps_tbl = Hashtbl.create len in
-  let us_tbl = Hashtbl.create len in
-  List.iter (add_dep deps_tbl) lines;
-  StringSet.iter (fun n -> ignore (get_u deps_tbl us_tbl n)) unames;
-  Hashtbl.fold (fun _ (`Unit u) acc -> u :: acc) us_tbl []

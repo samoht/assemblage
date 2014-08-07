@@ -17,7 +17,7 @@
 open Printf
 open Cmdliner
 
-(* Atomic features *) 
+(* Atomic features *)
 
 type atom = {
   name: string;
@@ -28,7 +28,7 @@ type atom = {
 let create_atom ?(default = true) name ~doc = { name; default; doc }
 let name t = t.name
 let default t = t.default
-let doc t = t.doc
+let doc_of t = t.doc
 let with_default t default = { t with default }
 
 let parse t =
@@ -50,7 +50,7 @@ let parse t =
     (t, v) in
   Term.(pure create $ enable $ disable)
 
-(* Atomic feature sets *) 
+(* Atomic feature sets *)
 
 module Set = Set.Make
     (struct
@@ -74,9 +74,22 @@ let create ?default name ~doc = Atom (create_atom ?default ~doc name)
 let true_ = True
 let false_ = False
 let atom t = Atom t
-let not_ f = Not f
-let (&&&) x y = And (x, y)
-let (|||) x y = Or (x, y)
+
+let not_ = function
+| True  -> False
+| False -> True
+| Not t -> t
+| t     -> Not t
+
+let (&&&) x y = match x, y with
+| True, x  | x, True  -> x
+| False, _ | _, False -> False
+| _ -> And (x, y)
+
+let (|||) x y = match x, y with
+| True, _  | _, True  -> True
+| False, x | x, False -> x
+| _ -> Or (x, y)
 
 let atoms t =
   let set = ref Set.empty in
@@ -98,7 +111,7 @@ let rec eval tbl = function
   | And (x, y) -> (eval tbl x) && (eval tbl y)
   | Or (x, y)  -> (eval tbl x) || (eval tbl y)
 
-(* CNF *) 
+(* CNF *)
 
 type cnf = [ `Conflict | `And of [ `P of atom | `N of atom ] list ]
 
@@ -142,8 +155,11 @@ let rec cnf: t -> cnf = function
 
 (* Built-in features *)
 
+let byte_atom = create_atom
+    "byte" ~default:true ~doc:"byte code compilation available"
+
 let native_atom = create_atom
-    "native" ~default:true ~doc:"native code compilation available" 
+    "native" ~default:true ~doc:"native code compilation available"
 
 let native_dynlink_atom = create_atom
     "native-dynlink" ~default:true ~doc:"native code dynamic linking available"
@@ -160,23 +176,20 @@ let debug_atom = create_atom
 
 let warn_error_atom = create_atom
     "warn-error" ~default:false  ~doc:"build with warnings as errors"
-    
+
 let test_atom = create_atom
     "test" ~default:false  ~doc:"build tests"
 
-let public_doc_atom = create_atom
+let doc_atom = create_atom
     "doc" ~default:false ~doc:"build public documentation"
-    
-let full_doc_atom = create_atom
-    "full-doc" ~default:false ~doc:"build full documentation"
 
 let builtin = List.fold_left (fun set t -> Set.add t set) Set.empty [
-    native_atom; native_dynlink_atom; js_atom;
+    byte_atom; native_atom; native_dynlink_atom; js_atom;
     debug_atom; annot_atom; warn_error_atom;
-    test_atom; public_doc_atom; 
-    full_doc_atom;
+    test_atom; doc_atom;
   ]
 
+let byte = atom byte_atom
 let native = atom native_atom
 let native_dynlink = atom native_dynlink_atom
 let js = atom js_atom
@@ -184,5 +197,4 @@ let annot = atom annot_atom
 let warn_error = atom warn_error_atom
 let debug = atom debug_atom
 let test = atom test_atom
-let public_doc = atom public_doc_atom
-let full_doc = atom full_doc_atom
+let doc = atom doc_atom

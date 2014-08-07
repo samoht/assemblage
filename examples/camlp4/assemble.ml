@@ -8,5 +8,5 @@ let t = unit "t" (`Dir ".") ~deps:[
     pkg    "xmlm";
   ]
 
-let lib = lib "mylib" [t]
+let lib = lib "mylib" (`Units [t])
 let () = add (create "camlp4o" [lib])
