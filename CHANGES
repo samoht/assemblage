@@ -1,0 +1,18 @@
+0.2.0: [Aug 2014]
+- #54 No more mutation in the underlying component graph
+- #52 Unify the compilation units, with different kinds: they can be OCaml, C or Js
+- #50 Generalise the `Other' components to be similar to a Makefile rule
+- (almost) all the components can now take an `Other' as argument to express the fact that they can be generated
+- #38 We still have a static collection of components, but their inter-dependencies is computed dynamically
+  (as you don't want to run ./configure every time you change a dependency between modules)
+- #24 Be always explicit when creating a library and a binary to let the user specify the order in which component units should be linked
+- For each compilation unit, apply the pre-processors only once at the beginning of the build process
+- Move most of the compilation rules in As_project instead of As_makefile and make it generic enough to be used by other tools
+- Be more explicit in the type describing the different compilation phases and the different files
+
+0.1.0: [July 2014]
+- Initial release to get early feedback.
+- Support for simple to medium projects
+- Not working: the C stub generation does not work completely
+- Not working: no release hooks
+- Not working: the .js files are not installed
