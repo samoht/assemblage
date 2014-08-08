@@ -15,6 +15,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Assemblage
+val add_project : As_project.t -> unit
 
-let () = Cmd.run ()
+val configure : [`Make] -> As_project.t -> As_build_env.t -> unit
+(** Configure the project by generating the build, META and .install
+    files, using the given build system backend (currently, only GNU
+    make is supported). *)
+
+
+val process : ?file:string -> string ->
+  (As_project.t -> As_build_env.t -> unit) -> unit
+
+val configure : [`Make] -> As_project.t -> As_build_env.t -> unit
+val describe : As_project.t -> As_build_env.t -> unit
+val check : As_project.t -> unit
+val run : ?file:string -> unit -> unit

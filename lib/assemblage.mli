@@ -481,21 +481,19 @@ val assemblage : project -> unit
     tool with the assemble file [file] (defaults to [assemble.ml]. *)
 
 module Cmd : sig
-  type t = project -> Build_env.t -> unit
-  (** The signature of commands. *)
-
-  val process : ?file:string -> string -> t -> unit
+  val process : ?file:string -> string -> (project -> Build_env.t -> unit) ->
+    unit
   (** [process ~file name fn] reads and processes the OCaml [file] in a
       top-level environment (the default is [assemble.ml]), for the
       project called [name], and apply [fn] to the projects registered
       as side-effects. *)
 
-  val configure : [`Make] -> t
+  val configure : [`Make] -> project -> Build_env.t -> unit
   (** Configure the project by generating the build, META and .install
       files, using the given build system backend (currently, only GNU
       make is supported). *)
 
-  val describe : t
+  val describe : project -> Build_env.t -> unit
   (** Describe the project to stdout. *)
 
   val run : ?file:string -> unit -> unit
