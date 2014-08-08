@@ -143,6 +143,13 @@
 &nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Dir</span>&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Other</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.other&nbsp;]&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Unit</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.comp_unit&nbsp;]<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pack&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?deps:<span class="constructor">Assemblage</span>.component&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Unit</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.comp_unit&nbsp;]&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;[&gt;&nbsp;<span class="keywordsign">`</span><span class="constructor">Unit</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="constructor">Assemblage</span>.comp_unit&nbsp;]<br>
 &nbsp;&nbsp;<span class="keyword">val</span>&nbsp;c&nbsp;:<br>
 &nbsp;&nbsp;&nbsp;&nbsp;?available:<span class="constructor">Assemblage</span>.<span class="constructor">Features</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>
 &nbsp;&nbsp;&nbsp;&nbsp;?flags:<span class="constructor">Assemblage</span>.<span class="constructor">Flags</span>.t&nbsp;<span class="keywordsign">-&gt;</span><br>

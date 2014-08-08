@@ -155,6 +155,10 @@ The type for components.
     be build with <code class="code">flags</code> and depends on <code class="code">deps</code> to be built.<br>
 </div>
 
+<pre><span id="VALpack"><span class="keyword">val</span> pack</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       string -><br>       [ `Unit of <a href="Assemblage.html#TYPEcomp_unit">comp_unit</a> ] list -> [> `Unit of <a href="Assemblage.html#TYPEcomp_unit">comp_unit</a> ]</code></pre><div class="info ">
+Pack compilation units together.<br>
+</div>
+
 <pre><span id="VALc"><span class="keyword">val</span> c</span> : <code class="type">?available:<a href="Assemblage.Features.html#TYPEt">Features.t</a> -><br>       ?flags:<a href="Assemblage.Flags.html#TYPEt">Flags.t</a> -><br>       ?deps:<a href="Assemblage.html#TYPEcomponent">component</a> list -><br>       ?cclib:string list -><br>       ?ccopt:string list -><br>       string -><br>       [ `Dir of string | `Other of <a href="Assemblage.html#TYPEother">other</a> ] -><br>       [> `Unit of <a href="Assemblage.html#TYPEcomp_unit">comp_unit</a> ]</code></pre><div class="info ">
 Same as <a href="Assemblage.html#VALunit"><code class="code"><span class="constructor">Assemblage</span>.unit</code></a> but for C source files.<br>
 </div>
