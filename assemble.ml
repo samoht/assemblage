@@ -62,6 +62,7 @@ let tests = [
   mk_test "camlp4";
   mk_test "multi-libs";
   mk_test "containers";
+  mk_test "pack";
 ]
 
 (* Docs *)

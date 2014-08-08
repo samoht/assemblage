@@ -139,7 +139,7 @@ module Unit : sig
     ?deps:component list -> string -> kind ->
     [`Dir of string | `Other of other] -> t
   val pack : ?available:As_features.t -> ?flags:As_flags.t ->
-    string -> t list -> t
+    ?deps:component list -> string -> t list -> t
   val generated: t -> bool
   val kind: t -> [`OCaml | `C | `Js]
   val has : As_action.file -> t -> bool

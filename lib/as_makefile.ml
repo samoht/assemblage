@@ -510,7 +510,8 @@ module Dir: S with type t = As_project.dir = struct
       ~doc:[sprintf "Directory: %s" (As_project.Dir.name t)]
       (List.map (fun phase -> mk_flags phase c) phases)
   let variables = List.map variable
-  let rules _ = []
+  let rule t = List.map (mk_rule (`Dir t)) (As_project.Dir.rules t)
+  let rules ts = conmap rule ts
 end
 
 module Test: S with type t = As_project.test = struct
@@ -575,6 +576,7 @@ let rules ts =
   Bin.rules (filter bin ts) @
   Test.rules (filter test ts) @
   Doc.rules (filter doc ts) @
+  Dir.rules (filter dir ts) @
   Unit.rules (filter unit ts) @
   Other.rules (filter other ts) @
   Pkg.rules (filter pkg ts)

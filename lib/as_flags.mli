@@ -58,3 +58,4 @@ val ccopt : string list -> t
 val stub : string -> t
 val doc_css : string -> t
 val doc_intro : string -> t
+val for_pack : string -> t

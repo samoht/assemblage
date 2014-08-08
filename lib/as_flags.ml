@@ -149,3 +149,8 @@ let doc_css s =
 
 let doc_intro s =
   v `Doc [sprintf "-intro %s" s]
+
+let for_pack name =
+  let f = [sprintf "-for-pack %s" (String.capitalize name)] in
+  v (`Compile `Byte) f @@@
+  v (`Compile `Native) f

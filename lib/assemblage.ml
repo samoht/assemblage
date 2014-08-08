@@ -45,6 +45,10 @@ type doc = As_project.doc
 let unit ?available ?flags ?deps name origin =
   `Unit (As_project.Unit.create ?available ?flags ?deps name `OCaml origin)
 
+let pack ?available ?flags ?deps name units =
+  let units = List.map (function `Unit u -> u) units in
+  `Unit (As_project.Unit.pack ?available ?flags ?deps name units)
+
 let c ?available ?(flags=As_flags.empty) ?deps ?(cclib = []) ?(ccopt = []) name origin =
   let flags =
     let (@@@) = As_flags.(@@@) in
