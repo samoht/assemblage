@@ -21,4 +21,4 @@ ocamlc -linkall \
     bin/configure.ml -o configure.boot
 
 ./configure.boot --disable-auto-load -I _build/lib \
-    --enable-warn-error --enable-test
+    --enable-warn-error --disable-test
