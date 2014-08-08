@@ -2,38 +2,43 @@
 
 set -ex
 
-ocamlbuild -pkgs cmdliner,ocamlgraph,compiler-libs \
-    -pp camlp4o,`ocamlfind query optcomp ocamlgraph -r -predicates \
-      syntax,preprocessor -format "%d/%a"` \
-    lib/as_shell.cmo lib/as_git.cmo \
-    lib/as_features.cmo lib/as_flags.cmo lib/as_resolver.cmo \
-    lib/as_action.cmo \
-    lib/as_build_env.cmo lib/as_project.cmo lib/as_ocamlfind.cmo \
-    lib/as_OCaml.cmo lib/as_cmd.cmo \
-    lib/as_opam.cmo lib/as_makefile.cmo lib/assemblage.cmo
+OCAMLFIND=${OCAMLFIND:="ocamlfind"}
 
-ocamlc -linkall \
-    `ocamlfind query -r unix cmdliner compiler-libs.toplevel ocamlgraph \
-      -predicates byte -format "-I %d %a"`  \
-    -I _build/lib as_shell.cmo as_git.cmo \
-    as_features.cmo as_flags.cmo as_resolver.cmo \
-    as_action.cmo as_project.cmo as_ocamlfind.cmo as_OCaml.cmo \
-    as_opam.cmo as_makefile.cmo as_build_env.cmo as_cmd.cmo \
-    assemblage.cmo \
-    bin/configure.ml -o configure.boot
+BDIR="_build/bootstrap"
+LIBDIR="lib"
+PKGS="-package cmdliner,ocamlgraph,compiler-libs.toplevel"
+OPTCOMP="-syntax camlp4o -package camlp4,optcomp"
 
-ocamlc -linkall \
-    `ocamlfind query -r unix cmdliner compiler-libs.toplevel ocamlgraph \
-      -predicates byte -format "-I %d %a"`  \
-    -I _build/lib as_shell.cmo as_git.cmo \
-    as_features.cmo as_flags.cmo as_resolver.cmo \
-    as_action.cmo as_project.cmo as_ocamlfind.cmo as_OCaml.cmo \
-    as_opam.cmo as_makefile.cmo as_build_env.cmo as_cmd.cmo assemblage.cmo \
-    bin/tool.ml -o assemblage.boot
+UNITS="as_shell as_git as_features as_flags as_resolver as_action
+       as_build_env as_project as_ocamlfind as_OCaml as_opam
+       as_makefile as_cmd assemblage"
 
+CMOS=""
 
-./assemblage.boot --disable-auto-load -I _build/lib \
-  --enable-warn-error --disable-test
+# Make sure $BDIR is clean
+rm -rf $BDIR
+mkdir -p $BDIR
 
-#./configure.boot --disable-auto-load -I _build/lib \
-#    --enable-warn-error --disable-test
+# Build the assemblage's library compilation units in $BDIR
+for u in $UNITS; do
+    case $u in
+    "as_OCaml") OPTS="$OPTS $OPTCOMP" ;;
+    *)          OPTS="" ;;
+    esac
+
+    CMI="$BDIR/$u.cmi"
+    CMO="$BDIR/$u.cmo"
+    CMOS="$CMOS $CMO"
+
+    $OCAMLFIND ocamlc -c -I $BDIR $PKGS $OPTS -o $CMI $LIBDIR/$u.mli
+    $OCAMLFIND ocamlc -c -I $BDIR $PKGS $OPTS -o $CMO $LIBDIR/$u.ml
+done
+
+# Build the assemblage command line tool
+$OCAMLFIND ocamlc -c -I $BDIR $PKGS -o $BDIR/tool.cmo bin/tool.ml
+$OCAMLFIND ocamlc $PKGS -linkpkg -I $BDIR $CMOS $BDIR/tool.cmo \
+    -o $BDIR/assemblage.boot
+
+# Run it on assemblage's assemblage.ml
+$BDIR/assemblage.boot --disable-auto-load -I $BDIR \
+    --enable-warn-error --disable-test
