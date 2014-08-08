@@ -20,5 +20,18 @@ ocamlc -linkall \
     as_opam.cmo as_makefile.cmo as_build_env.cmo assemblage.cmo \
     bin/configure.ml -o configure.boot
 
-./configure.boot --disable-auto-load -I _build/lib \
-    --enable-warn-error --disable-test
+ocamlc -linkall \
+    `ocamlfind query -r unix cmdliner compiler-libs.toplevel ocamlgraph \
+      -predicates byte -format "-I %d %a"`  \
+    -I _build/lib as_shell.cmo as_git.cmo \
+    as_features.cmo as_flags.cmo as_resolver.cmo \
+    as_action.cmo as_project.cmo as_ocamlfind.cmo as_OCaml.cmo \
+    as_opam.cmo as_makefile.cmo as_build_env.cmo assemblage.cmo \
+    bin/tool.ml -o assemblage.boot
+
+
+./assemblage.boot --disable-auto-load -I _build/lib \
+  --enable-warn-error --disable-test
+
+#./configure.boot --disable-auto-load -I _build/lib \
+#    --enable-warn-error --disable-test

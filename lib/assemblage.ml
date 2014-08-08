@@ -186,20 +186,9 @@ module Build_env = As_build_env
 
 let sys_argl = Array.to_list Sys.argv
 
-let auto_load () =
-  List.for_all ((<>) "--disable-auto-load") sys_argl
-
-let includes () =
-  let rec aux acc = function
-    | []             -> List.rev acc
-    | "-I" :: h :: t -> aux (h::acc) t
-    | _ :: t         -> aux acc t in
-  aux [] sys_argl
-
-let assemblage ?(file = "assemble.ml") p = failwith "TODO"
-
 module Cmd = struct
   type t = project -> As_build_env.t -> unit
+
   let configure `Make t env =
     let features = As_build_env.features env in
     let flags = As_build_env.flags env in
@@ -276,8 +265,44 @@ module Cmd = struct
                 "The ocamlfind packages %s and %s are not installed, stopping."
                 (String.concat " " t) h
 
+  let auto_load () =
+    List.for_all ((<>) "--disable-auto-load") sys_argl
+
+  let includes auto_load =
+    let rec cmdline_includes acc = function
+    | []             -> List.rev acc
+    | "-I" :: h :: t -> cmdline_includes (h::acc) t
+    | _ :: t         -> cmdline_includes acc t
+    in
+    let auto_load_includes =
+      if not auto_load then [] else
+      As_shell.exec_output "ocamlfind query -r assemblage"
+    in
+    (cmdline_includes [] sys_argl) @ auto_load_includes
+
+  let run ?(file = "assemble.ml") () =
+    let show_run_start file auto_load =
+      let file = As_shell.color `Bold file in
+      let auto_load =
+        if auto_load then "" else
+        sprintf "[auto-load: %s]"
+          (As_shell.color `Magenta (string_of_bool auto_load))
+      in
+      As_shell.show "Loading %s. %s" file auto_load
+    in
+    let auto_load = auto_load () in
+    show_run_start file auto_load;
+    Toploop.initialize_toplevel_env ();
+    Toploop.set_paths ();
+    List.iter Topdirs.dir_directory (includes auto_load);
+    if not (Sys.file_exists file)
+    then As_shell.fatal_error 1 "missing %s." file
+    else
+    match Toploop.use_silently Format.err_formatter file with
+    | false -> As_shell.fatal_error 1 "while loading %s." file
+    | true -> ((* TODO error if we see nothing ran *))
+
   let process ?(file = "assemble.ml") name fn =
-    let includes = includes () in
     let auto_load = auto_load () in
     As_shell.show "Loading %s. %s"
       (As_shell.color `Bold file)
@@ -286,11 +311,7 @@ module Cmd = struct
          (As_shell.color `Magenta (string_of_bool auto_load)));
     Toploop.initialize_toplevel_env ();
     Toploop.set_paths ();
-    let includes =
-      if auto_load then
-        includes @ As_shell.exec_output "ocamlfind query -r assemblage"
-      else
-      includes in
+    let includes = includes auto_load in
     List.iter Topdirs.dir_directory includes;
     if not (Sys.file_exists file) then
       As_shell.fatal_error 1 "missing %s." file
@@ -313,3 +334,12 @@ module Cmd = struct
                 fn t env
               ) ts
 end
+
+let assemblage p =
+  let features = As_project.features p in
+  let features =
+    let add f acc = As_features.(acc ||| atom f) in
+    As_features.Set.fold add features As_features.false_
+  in
+  let env = As_build_env.parse "configure.ml" features in
+  Cmd.check p; Cmd.configure `Make p env

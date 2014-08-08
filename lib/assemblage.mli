@@ -476,7 +476,7 @@ end
 
 val add : project -> unit
 
-val assemblage : ?file:string -> project -> unit
+val assemblage : project -> unit
 (** [assemblage project] runs the default assemblage command line
     tool with the assemble file [file] (defaults to [assemble.ml]. *)
 
@@ -497,6 +497,8 @@ module Cmd : sig
 
   val describe : t
   (** Describe the project to stdout. *)
+
+  val run : ?file:string -> unit -> unit
 end
 
 val (/): string -> string -> string

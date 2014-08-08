@@ -44,6 +44,10 @@ let ctypes_gen =
       unit "ctypes_gen" (`Dir "bin")
     ])
 
+let assemblage_tool =
+  let us = `Units [ unit "tool" (`Dir "bin") ] in
+  bin "assemblage" ~deps:[lib] ~link_all:true ~native:false us
+
 (* Tests *)
 
 let mk_test name =
@@ -72,6 +76,10 @@ let doc = doc "public" [pick "assemblage" lib]
 
 (* The project *)
 
-let () =
-  let cs = [lib; configure; describe; ctypes_gen; dev_doc; doc ] @ tests in
-  add (create "assemblage" cs)
+let p =
+  let cs = [lib; configure; describe; ctypes_gen; assemblage_tool;
+            dev_doc; doc ] @ tests
+  in
+  create "assemblage" cs
+
+let () = add p; assemblage p
