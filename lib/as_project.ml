@@ -338,6 +338,7 @@ end = struct
       ) (Set.empty, []) l
     |> snd |> List.rev
 
+
   let source_dir = function
   | `Unit u -> Unit.source_dir u
   | `Other o -> Other.source_dir o
@@ -482,14 +483,20 @@ end = struct
           | _ -> aux acc t
         else (
           Hashtbl.add deps_tbl (id h) 0;
-          let deps = deps h @ contents h in
+          let contents = match h with
+          | `Lib l when link ->
+              let contents = Set.of_list (Lib.contents l) in
+              conmap deps (Lib.contents l)
+              |> List.filter (fun x -> not (Set.mem x contents))
+          | _ -> contents h in
+          let deps = deps h @ contents in
           let d' = if not link then deps else
             List.filter
               (function
               | `Unit _ -> true
               | `Pkg pkg when Pkg.kind pkg = `OCaml -> true
               | `Lib lib when Lib.kind lib = `OCaml -> true
-              | _     -> false)
+              | _ -> false)
               deps in
           aux acc (d' @ d)
         )
@@ -592,7 +599,7 @@ and Unit: sig
     ?deps:component list -> string -> kind ->
     [`Dir of string | `Other of other] -> t
   val pack : ?available:As_features.t -> ?flags:As_flags.t ->
-    string -> t list -> t
+    ?deps:component list -> string -> t list -> t
   val generated: t -> bool
   val kind: t -> [`OCaml | `C | `Js]
   val has: As_action.file -> t -> bool
@@ -685,9 +692,10 @@ end = struct
     { u_name = name; u_available = available; u_deps = deps; u_origin = origin;
       u_flags = flags; u_kind = `OCaml; u_has = has; u_container = None; }
 
-  let pack ?(available = As_features.true_) ?(flags = As_flags.empty) name units =
+  let pack ?(available = As_features.true_) ?(flags = As_flags.empty)
+      ?(deps=[]) name units =
     let pack =
-      Dir.create
+      Dir.create ~flags:(As_flags.for_pack name)
         (`Other ("pack-" ^ name))
         (List.map (fun u -> `Unit u) units)
     in
@@ -707,33 +715,31 @@ end = struct
       in
       [ As_action.rule
           ~phase:(`Compile `Byte)
-          ~targets:[(`Self `Cmo)]
-          ~prereqs:cmos
+          ~targets:[`Self `Cmo; `Self `Cmi]
+          ~prereqs:(`Self `Dir :: cmos)
           (fun t r f ->
-             let dir = Component.build_dir t r in
              let cmos = Rule.files t r cmos in
-             As_action.create ~dir "%s -pack %s %s -o %s"
+             As_action.create "%s -pack %s %s -o %s"
                (As_resolver.ocamlc r)
                (String.concat " " (As_flags.get (`Compile `Byte) f))
                (String.concat " " cmos)
-               name)
+               (Component.file t r `Cmo))
       ; As_action.rule
           ~phase:(`Compile `Native)
           ~targets:[(`Self `Cmx)]
           ~prereqs:cmxs
           (fun t r f ->
-             let dir = Component.build_dir t r in
              let cmxs = Rule.files t r cmxs in
-             As_action.create ~dir "%s -pack %s %s -o %s"
+             As_action.create "%s -pack %s %s -o %s"
                (As_resolver.ocamlopt r)
                (String.concat " " (As_flags.get (`Compile `Native) f))
                (String.concat " " cmxs)
-               name) ]
+               (Component.file t r `Cmx)) ]
     in
     let origin = `Other (Other.create ~deps:[`Dir pack] name actions) in
     { u_name = name; u_available = available; u_flags = flags;
       u_origin = origin;
-      u_deps = []; u_kind = `OCaml; u_has = has; u_container = None; }
+      u_deps = deps; u_kind = `OCaml; u_has = has; u_container = None; }
 
   let generated_files t =
     match t.u_kind with
@@ -881,8 +887,11 @@ end = struct
                (Component.file t r (ext `Ml `Native)))])
 
   let rules t =
-    (match container t with
-     | None   -> [Rule.mkdir]
+    (match t.u_origin with
+     | `Other o -> o.o_actions
+     | `Dir _ -> [])
+    @ (match container t with
+      | None   -> [Rule.mkdir]
      | Some _ -> [])
     @ match kind t with
     | `C     -> c_rules t
@@ -1145,7 +1154,7 @@ end = struct
     | `Other _  -> []
 
   let rules t = match t.l_origin with
-  | `Other _  -> []
+  | `Other o  -> o.o_actions
   | `Units us ->
       let cmo_deps =
         List.filter (Unit.has `Cmo) us
@@ -1293,32 +1302,29 @@ end = struct
 
   let link_flags mode t r = match t.b_origin with
   | `Other _  -> []
-  | `Units us ->
+  | `Units _ ->
       let deps = Component.closure ~link:true (deps t @ contents t) in
-      let units = List.filter (Unit.has `Cmo) us in
-      let units = List.map (fun u ->
-          let file = match mode with
-          | `Byte   -> Component.file (`Unit u) r `Cmo
-          | `Native -> Component.file (`Unit u) r `Cmx in
-          sprintf "%s/%s" (Filename.dirname file) (Filename.basename file)
-        ) units in
-      let libs = Component.(filter lib_ocaml) deps in
-      let libs = List.map (fun l ->
-          let file = match mode with
-          | `Byte   -> Component.file (`Lib l) r `Cma
-          | `Native -> Component.file (`Lib l) r `Cmxa in
-          sprintf "%s/%s" (Filename.dirname file) (Filename.basename file)
-        ) libs in
-      let pkgs = Component.(filter pkg_ocaml) deps in
-      let pkgs = match pkgs with
-      | [] -> []
-      | _  ->
+      let local = conmap (function
+        | `Unit u ->
+            if not (Unit.has `Cmo u) then [] else [
+              match mode with
+              | `Byte   -> Component.file (`Unit u) r `Cmo
+              | `Native -> Component.file (`Unit u) r `Cmx ]
+        | `Lib l ->
+            [ match mode with
+              | `Byte   -> Component.file (`Lib l) r `Cma
+              | `Native -> Component.file (`Lib l) r `Cmxa ]
+        | _ -> []
+        ) deps in
+      let global = match Component.(filter pkg_ocaml) deps with
+      | []   -> []
+      | pkgs ->
           let pkgs = List.map Pkg.name pkgs in
           let pkgs = As_resolver.pkgs r pkgs in
           match mode with
           | `Byte   -> As_flags.get (`Link `Byte) pkgs
           | `Native -> As_flags.get (`Link `Native) pkgs in
-      pkgs @ libs @ units
+      global @ local
 
   let flags t r =
     let deps = Component.closure ~link:true (deps t) in
@@ -1387,6 +1393,9 @@ end = struct
              (Component.file t r `Js))
     in
     [ Rule.mkdir; byte; native; js ]
+    @ match t.b_origin with
+    | `Other o -> o.o_actions
+    | `Units _ -> []
 
 end
 
@@ -1423,7 +1432,7 @@ end = struct
     in
     let contents = Component.map (Component.with_container c) contents in
     { d_name = dirname; d_available = available; d_flags = flags; d_deps = deps;
-      d_install = install; d_contents = contents; d_container = Some c; }
+      d_install = install; d_contents = contents; d_container = None; }
 
   let generated_files d =
     let add c =

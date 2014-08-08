@@ -323,6 +323,10 @@ val unit : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
     [dir].  It is only available whenever [available] is true, it must
     be build with [flags] and depends on [deps] to be built. *)
 
+val pack: ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
+  string -> [`Unit of comp_unit] list -> [> `Unit of comp_unit]
+(** Pack compilation units together. *)
+
 val c : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
   ?cclib: string list -> ?ccopt: string list ->
   string -> [`Dir of string | `Other of other] -> [> `Unit of comp_unit]
