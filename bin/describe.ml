@@ -17,4 +17,4 @@
 open Assemblage
 
 let () =
-  process "describe.ml" describe
+  Cmd.process "describe.ml" Cmd.describe

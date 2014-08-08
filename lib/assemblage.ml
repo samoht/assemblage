@@ -31,7 +31,7 @@ module Action = As_action
 
 (* Components *)
 
-type t = As_project.t
+type project = As_project.t
 type component = As_project.component
 type comp_unit = As_project.comp_unit
 type other = As_project.other
@@ -184,8 +184,6 @@ let create = As_project.create
 
 module Build_env = As_build_env
 
-type tool = t -> As_build_env.t -> unit
-
 let sys_argl = Array.to_list Sys.argv
 
 let auto_load () =
@@ -198,116 +196,120 @@ let includes () =
     | _ :: t         -> aux acc t in
   aux [] sys_argl
 
+let assemblage ?(file = "assemble.ml") p = failwith "TODO"
 
-let configure `Make t env =
-  let features = As_build_env.features env in
-  let flags = As_build_env.flags env in
-  let makefile = "Makefile" in
-  let build_dir = As_build_env.build_dir env in
-  As_makefile.(write (of_project t ~features ~flags ~makefile));
-  As_ocamlfind.META.(write (of_project t));
-  As_opam.Install.(write (of_project ~build_dir t))
+module Cmd = struct
+  type t = project -> As_build_env.t -> unit
+  let configure `Make t env =
+    let features = As_build_env.features env in
+    let flags = As_build_env.flags env in
+    let makefile = "Makefile" in
+    let build_dir = As_build_env.build_dir env in
+    As_makefile.(write (of_project t ~features ~flags ~makefile));
+    As_ocamlfind.META.(write (of_project t));
+    As_opam.Install.(write (of_project ~build_dir t))
 
-let describe t env =
-  let print_deps x =
-    let bold_name pkg = As_shell.color `Bold (As_project.Pkg.name pkg) in
-    let pkgs = As_project.Component.(filter pkg x) in
-    match String.concat " " (List.map bold_name pkgs) with
-    | "" -> ""
-    | pkgs -> sprintf "  ├─── [%s]\n" pkgs
-  in
-  let print_modules last modules =
-    let aux i n m =
-      printf "  %s %s\n"
-        (if last && i = n then "└───" else "├───") (As_shell.color `Blue m) in
-    let n = List.length modules - 1 in
-    List.iteri (fun i m -> aux i n m) modules in
-  let print_units units =
-    let aux i n u =
-      let mk f ext =
-        if f u then (As_shell.color `Cyan (As_project.Unit.name u ^ ext)) else
-        ""
-      in
-      let ml = mk As_project.Unit.(has `Ml) ".ml" in
-      let mli = mk As_project.Unit.(has `Mli) ".mli" in
-      let modules =
-        if As_project.Unit.generated u then ["--generated--"]
-        else
+  let describe t env =
+    let print_deps x =
+      let bold_name pkg = As_shell.color `Bold (As_project.Pkg.name pkg) in
+      let pkgs = As_project.Component.(filter pkg x) in
+      match String.concat " " (List.map bold_name pkgs) with
+      | "" -> ""
+      | pkgs -> sprintf "  ├─── [%s]\n" pkgs
+    in
+    let print_modules last modules =
+      let aux i n m =
+        printf "  %s %s\n"
+          (if last && i = n then "└───" else "├───") (As_shell.color `Blue m) in
+      let n = List.length modules - 1 in
+      List.iteri (fun i m -> aux i n m) modules in
+    let print_units units =
+      let aux i n u =
+        let mk f ext =
+          if f u then (As_shell.color `Cyan (As_project.Unit.name u ^ ext)) else
+          ""
+        in
+        let ml = mk As_project.Unit.(has `Ml) ".ml" in
+        let mli = mk As_project.Unit.(has `Mli) ".mli" in
+        let modules =
+          if As_project.Unit.generated u then ["--generated--"]
+          else
           let build_dir = As_build_env.build_dir env in
           As_OCaml.modules ~build_dir u in
-      printf "  %s %-25s%-25s\n"
-        (if modules = [] && i = n then "└─" else "├─") ml mli;
-      print_modules (i=n) modules
+        printf "  %s %-25s%-25s\n"
+          (if modules = [] && i = n then "└─" else "├─") ml mli;
+        print_modules (i=n) modules
+      in
+      let n = List.length units - 1 in
+      List.iteri (fun i u -> aux i n u) units in
+    let print cs =
+      let aux c =
+        let open As_project.Component in
+        printf "└─┬─ %s\n%s"
+          (As_shell.color `Magenta (id c)) (print_deps (deps c));
+        print_units (filter unit (contents c)) in
+      List.iter aux cs in
+    printf "\n%s %s %s\n\n"
+      (As_shell.color `Yellow "==>")
+      (As_shell.color `Underline (As_project.name t)) (As_project.version t);
+    let components =
+      As_project.components t
+      |> List.filter (function `Lib _ | `Bin _ -> true | _ -> false)
     in
-    let n = List.length units - 1 in
-    List.iteri (fun i u -> aux i n u) units in
-  let print cs =
-    let aux c =
-      let open As_project.Component in
-      printf "└─┬─ %s\n%s"
-        (As_shell.color `Magenta (id c)) (print_deps (deps c));
-      print_units (filter unit (contents c)) in
-    List.iter aux cs in
-  printf "\n%s %s %s\n\n"
-    (As_shell.color `Yellow "==>")
-    (As_shell.color `Underline (As_project.name t)) (As_project.version t);
-  let components =
-    As_project.components t
-    |> List.filter (function `Lib _ | `Bin _ -> true | _ -> false)
-  in
-  print components
+    print components
 
-let check t =
-  (* check that all non-dep packages are actually installed. *)
-  let pkgs = As_project.Component.(filter pkg) (As_project.components t) in
-  let not_installed = List.fold_left (fun acc pkg ->
-      let opt = As_project.Pkg.opt pkg in
-      let name = As_project.Component.name (`Pkg pkg) in
-      if not opt && not (As_shell.try_exec "ocamlfind query %s" name) then
-        name :: acc
-      else acc
-    ) [] pkgs in
-  match not_installed with
-  | []   -> ()
-  | [h]  -> As_shell.fatal_error 1
-              "The ocamlfind package %s is not installed, stopping." h
-  | h::t -> As_shell.fatal_error 1
-              "The ocamlfind packages %s and %s are not installed, stopping."
-              (String.concat " " t) h
+  let check t =
+    (* check that all non-dep packages are actually installed. *)
+    let pkgs = As_project.Component.(filter pkg) (As_project.components t) in
+    let not_installed = List.fold_left (fun acc pkg ->
+        let opt = As_project.Pkg.opt pkg in
+        let name = As_project.Component.name (`Pkg pkg) in
+        if not opt && not (As_shell.try_exec "ocamlfind query %s" name) then
+          name :: acc
+        else acc
+      ) [] pkgs in
+    match not_installed with
+    | []   -> ()
+    | [h]  -> As_shell.fatal_error 1
+                "The ocamlfind package %s is not installed, stopping." h
+    | h::t -> As_shell.fatal_error 1
+                "The ocamlfind packages %s and %s are not installed, stopping."
+                (String.concat " " t) h
 
-let process ?(file = "assemble.ml") name fn =
-  let includes = includes () in
-  let auto_load = auto_load () in
-  As_shell.show "Loading %s. %s"
-    (As_shell.color `Bold file)
-    (if auto_load then "" else
+  let process ?(file = "assemble.ml") name fn =
+    let includes = includes () in
+    let auto_load = auto_load () in
+    As_shell.show "Loading %s. %s"
+      (As_shell.color `Bold file)
+      (if auto_load then "" else
        sprintf "[auto-load: %s]"
          (As_shell.color `Magenta (string_of_bool auto_load)));
-  Toploop.initialize_toplevel_env ();
-  Toploop.set_paths ();
-  let includes =
-    if auto_load then
-      includes @ As_shell.exec_output "ocamlfind query -r assemblage"
-    else
+    Toploop.initialize_toplevel_env ();
+    Toploop.set_paths ();
+    let includes =
+      if auto_load then
+        includes @ As_shell.exec_output "ocamlfind query -r assemblage"
+      else
       includes in
-  List.iter Topdirs.dir_directory includes;
-  if not (Sys.file_exists file) then
-    As_shell.fatal_error 1 "missing %s." file
-  else match Toploop.use_silently Format.err_formatter file with
+    List.iter Topdirs.dir_directory includes;
+    if not (Sys.file_exists file) then
+      As_shell.fatal_error 1 "missing %s." file
+    else match Toploop.use_silently Format.err_formatter file with
     | false -> As_shell.fatal_error 1 "while loading `%s'." file
     | true  ->
-      match projects () with
-      | [] -> As_shell.fatal_error 2 "No projects are registered in `%s'." file
-      | ts ->
-        let features = List.fold_left (fun acc t ->
-            As_features.Set.union (As_project.features t) acc
-          ) As_features.Set.empty ts in
-        let features =
-          As_features.Set.fold (fun f acc ->
+        match projects () with
+        | [] -> As_shell.fatal_error 2 "No projects are registered in `%s'." file
+        | ts ->
+            let features = List.fold_left (fun acc t ->
+                As_features.Set.union (As_project.features t) acc
+              ) As_features.Set.empty ts in
+            let features =
+              As_features.Set.fold (fun f acc ->
               As_features.(acc ||| atom f)
-            ) features As_features.false_ in
-        let env = As_build_env.parse name features in
-        List.iter (fun t ->
-            check t;
-            fn t env
-          ) ts
+                ) features As_features.false_ in
+            let env = As_build_env.parse name features in
+            List.iter (fun t ->
+                check t;
+                fn t env
+              ) ts
+end

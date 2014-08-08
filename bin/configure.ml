@@ -16,5 +16,4 @@
 
 open Assemblage
 
-let () =
-  process "assemble.ml" (configure `Make)
+let () = Cmd.process "assemble.ml" (Cmd.configure `Make)

@@ -438,7 +438,7 @@ val cstubs : ?available:Features.t -> ?deps:component list ->
 
 (** {1:projects Projects} *)
 
-type t
+type project
 (** The type for OCaml projects descriptions. Simply a set of
     components. *)
 
@@ -446,14 +446,10 @@ val create :
   ?available:Features.t ->
   ?flags:Flags.t ->
   ?version:string ->
-  string -> component list -> t
+  string -> component list -> project
 (** [create name deps] registers the project named [name], defining
     the libraries, binaries and tests defined by the transitive
     closure of objects in [deps]. *)
-
-val add : t -> unit
-(** [add t] registers the project [t] for use by the assemblage
-    command line tools. *)
 
 (** {1:buildenv Build Environments} *)
 
@@ -476,24 +472,32 @@ module Build_env: sig
 
 end
 
-(** {1:tools Tools} *)
+(** {1:commands Commands} *)
 
-type tool = t -> Build_env.t -> unit
-(** The signature of tools. *)
+val add : project -> unit
 
-val process : ?file:string -> string -> tool -> unit
-(** [process ~file name fn] reads and processes the OCaml [file] in a
-    top-level environment (the default is [assemble.ml]), for the
-    project called [name], and apply [fn] to the projects registered
-    as side-effects. *)
+val assemblage : ?file:string -> project -> unit
+(** [assemblage project] runs the default assemblage command line
+    tool with the assemble file [file] (defaults to [assemble.ml]. *)
 
-val configure : [`Make] -> tool
-(** Configure the project by generating the build, META and .install
-    files, using the given build system backend (currently, only GNU
-    make is supported). *)
+module Cmd : sig
+  type t = project -> Build_env.t -> unit
+  (** The signature of commands. *)
 
-val describe : tool
-(** Describe the project to stdout. *)
+  val process : ?file:string -> string -> t -> unit
+  (** [process ~file name fn] reads and processes the OCaml [file] in a
+      top-level environment (the default is [assemble.ml]), for the
+      project called [name], and apply [fn] to the projects registered
+      as side-effects. *)
+
+  val configure : [`Make] -> t
+  (** Configure the project by generating the build, META and .install
+      files, using the given build system backend (currently, only GNU
+      make is supported). *)
+
+  val describe : t
+  (** Describe the project to stdout. *)
+end
 
 val (/): string -> string -> string
 (** Same as [Filename.concat]. *)
