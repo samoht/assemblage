@@ -31,16 +31,20 @@ let lib =
         unit "assemblage";
       ])
 
-let ctypes_gen =
-  bin "ctypes-gen" ~deps:[lib] ~native:false (`Units [
-      unit "ctypes_gen" (`Dir "bin")
-    ])
-
 let assemblage_tool =
   let us = `Units [ unit "tool" (`Dir "bin") ~deps:[toplevel] ] in
   bin "assemblage" ~deps:[lib] ~link_all:true ~native:false us
 
-(* Tests *)
+let ctypes_gen =
+  let us = `Units [ unit "ctypes_gen" (`Dir "bin") ] in
+  bin "ctypes-gen" ~deps:[lib] ~native:false us
+
+let assemble_assemble =
+  (* Sanity check, can we compile assemble.ml to native code ? *)
+  let us = `Units [ unit "assemble" (`Dir ".") ~deps:[lib] ] in
+  bin "assemble" ~deps:[lib] ~link_all:true us
+
+(* Tests & examples *)
 
 let mk_test name =
   let dir = "examples/" ^ name in
@@ -68,8 +72,9 @@ let doc = doc "public" [pick "assemblage" lib]
 
 (* The project *)
 
-let p =
-  let cs = [lib; ctypes_gen; assemblage_tool; dev_doc; doc ] @ tests in
-  project "assemblage" cs
+let p = project "assemblage"
+    ([ lib;
+       assemblage_tool; ctypes_gen; assemble_assemble;
+       dev_doc; doc ] @ tests)
 
 let () = assemble p
