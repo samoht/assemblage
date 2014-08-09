@@ -16,73 +16,31 @@
 
 open Cmdliner
 
-let global_option_section = "COMMON OPTIONS"
-let help_sections = [
-  `S global_option_section;
-  `P "These options are common to all commands.";
-  `S "AUTHORS";
-  `P "Thomas Gazagnaire <thomas@gazagnaire.org>";
-  `S "BUGS";
-  `P "Check bug reports at https://github.com/samoht/assemblage/issues.";
-]
-
-type global = {
-  mutable verbose: bool;
-}
-
-let global = {
-  verbose = false;
-}
-
-let global =
-  let verbose =
-    let doc =
-      Arg.info ~docs:global_option_section ~doc:"Verbose mode." ["v";"verbose"] in
-    Arg.(value & flag & doc) in
-  let help =
-    let doc =
-      Arg.info ~docs:global_option_section ~doc:"Display help." ["h";"help"] in
-    Arg.(value & flag & doc) in
-  let create verbose help man_format =
-    if help then `Help (man_format, None)
-    else (
-      global.verbose <- verbose;
-      `Ok ()
-    ) in
-  Term.(ret (pure create $ verbose $ help $ Term.man_format))
-
-let mk (fn:'a): 'a Term.t =
-  Term.(pure (fun () -> fn) $ global)
-
-type t = {
-  features: (As_features.atom * bool) list;
-  flags: As_flags.t;
-  includes: string list;
-  auto_load: bool;
-  build_dir: string;
-}
+type t =
+  { features : (As_features.atom * bool) list;
+    flags : As_flags.t;
+    includes : string list;
+    auto_load : bool;
+    build_dir : string; }
 
 let create
-    ?(features=[])
-    ?(flags=As_flags.empty)
-    ?(includes=[])
-    ?(auto_load=true)
-    ?(build_dir="_build")
+    ?(features = [])
+    ?(flags = As_flags.empty)
+    ?(includes = [])
+    ?(auto_load = true)
+    ?(build_dir = "_build")
     () =
   { features; flags; build_dir; auto_load; includes }
 
 let build_dir t = t.build_dir
 let features t = t.features
-
 let flags t = t.flags
-
-let default = {
-  features = [];
-  flags = As_flags.empty;
-  auto_load = true;
-  includes = [];
-  build_dir = "_build";
-}
+let default =
+  { features = [];
+    flags = As_flags.empty;
+    auto_load = true;
+    includes = [];
+    build_dir = "_build"; }
 
 let enable t flags =
   List.for_all (fun f ->
@@ -90,94 +48,62 @@ let enable t flags =
       with Not_found -> false
     ) flags
 
-let term_of_list list =
-  let aux acc h = Term.(pure (fun f t -> f :: t) $ h $ acc) in
-  List.fold_left aux (Term.pure []) list
+(* Build environment base command line options *)
 
-let term features: t Cmdliner.Term.t =
+let comp_opt =
+  let doc = "Additional options given to the native and bytecode compilers." in
+  Arg.(value & opt (some string) None & info ["comp"] ~doc ~docv:"OPTIONS")
+
+let link_opt =
+  let doc = "Additional options given to the native and bytecode linkers." in
+  Arg.(value & opt (some string) None & info ["link"] ~doc ~docv:"OPTIONS")
+
+let pp_opt =
+  let doc = "Additional options given to the pre-processor." in
+  Arg.(value & opt (some string) None & info ["pp"] ~doc ~docv:"OPTIONS")
+
+let build_dir_opt =
+  let doc = "Name of the directory where built artifacts are created." in
+  Arg.(value & opt string "_build" & info ["build-dir"] ~doc ~docv:"DIR")
+
+let includes_opt =
+  let doc = "List of directories to includes when loading `assemble.ml'." in
+  Arg.(value & opt_all string [] & info ["I"] ~doc ~docv:"DIR")
+
+let disable_auto_load_opt = (* FIXME doc ? *)
+  let doc = "Do not auto-load of $(b,`ocamlfind query tools`/tools.cma) when \
+             loading `assemble.ml'."
+  in
+  Arg.(value & flag & info ["disable-auto-load-tools"] ~doc)
+
+let term features : t Cmdliner.Term.t =
   let features = As_features.Set.elements features in
-  let features = term_of_list (List.map As_features.parse features) in
-  let comp =
-    let doc = Arg.info
-        ~doc:"Additional options passed to both the native and bytecode the \
-              compilers."
-        ~docv:"OPTIONS" ["comp"] in
-    Arg.(value & opt (some string) None & doc) in
-  let link =
-    let doc = Arg.info
-        ~doc:"Additional options passed to both the native and bytecode the \
-              linkers."
-        ~docv:"OPTIONS"["link"] in
-    Arg.(value & opt (some string) None & doc) in
-  let pp =
-    let doc = Arg.info
-        ~doc:"Additional options passed to the pre-processor."
-        ~docv:"OPTIONS" ["pp"] in
-    Arg.(value & opt (some string) None & doc) in
-  let build_dir =
-    let doc = Arg.info
-        ~doc:"The name of the directory where built artifacts are created."
-        ~docv:"DIR" ["build-dir"] in
-    Arg.(value & opt string "_build" & doc) in
-  let includes =
-    let doc = Arg.info
-        ~doc:"A list of directories to includes when loading `assemble.ml'."
-        ~docv:"DIRECTORY" ["I"] in
-    Arg.(value & opt_all string [] & doc) in
-  let disable_auto_load =
-    let doc = Arg.info
-        ~doc:"Do not auto-load of $(b,`ocamlfind query tools`/tools.cma) when \
-              loading `assemble.ml'."
-        ["disable-auto-load-tools"] in
-    Arg.(value & flag & doc) in
-
-  let list = function
-    | None   -> []
-    | Some l -> [l] in
-
-  let create
-      features comp link pp includes disable_auto_load build_dir =
+  let features =
+    let term_of_list list =
+      let add acc h = Term.(pure (fun f t -> f :: t) $ h $ acc) in
+      List.fold_left add (Term.pure []) list
+    in
+    term_of_list (List.map As_features.parse features)
+  in
+  let list = function None -> [] | Some l -> [l] in
+  let create features comp link pp includes disable_auto_load build_dir =
     let link = list link in
     let comp = list comp in
     let pp = list pp in
     let auto_load = not disable_auto_load in
-    let flags = As_flags.(
-        v (`Compile `Byte) comp @@@
-        v (`Compile `Native) comp @@@
-        v (`Link `Byte) link @@@
-        v (`Link `Native) link @@@
-        v (`Pp `Byte) pp @@@
-        v (`Pp `Native) pp)
+    let flags =
+      let open As_flags in
+      v (`Compile `Byte) comp @@@
+      v (`Compile `Native) comp @@@
+      v (`Link `Byte) link @@@
+      v (`Link `Native) link @@@
+      v (`Pp `Byte) pp @@@
+      v (`Pp `Native) pp
     in
-    create ~features ~flags ~includes ~auto_load ~build_dir () in
-  Term.(mk create $ features $ comp $ link $ pp  $ includes $ disable_auto_load
-        $ build_dir)
+    create ~features ~flags ~includes ~auto_load ~build_dir ()
+  in
+  Term.(pure create $ features $ comp_opt $ link_opt $ pp_opt $ includes_opt $
+        disable_auto_load_opt $ build_dir_opt)
 
 let includes t = t.includes
-
 let auto_load t = t.auto_load
-
-let parse ?doc ?man name features =
-  let features = As_features.atoms features in
-  let doc = match doc with
-    | None   -> "helpers to manage and configure OCaml projects."
-    | Some d -> d in
-  let man =
-    `S "DESCRIPTION"
-    :: match man with
-    | Some m -> List.map (fun p -> `P p) m
-    | None   ->
-      [`P "$(tname) is part of Assemblage, a collection of tools to \
-           manage and configure OCaml projects."]
-      @ help_sections
-  in
-  let info = Term.info name
-      ~version:"0.1"
-      ~sdocs:global_option_section
-      ~doc
-      ~man in
-  match Term.eval (term features, info) with
-  | `Ok conf -> conf
-  | `Version -> exit 0
-  | `Help    -> exit 0
-  | `Error _ -> exit 1

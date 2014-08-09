@@ -7,4 +7,4 @@ let date_cmd =
 
 let test = test "test" [] [ test_bin date_cmd () ]
 
-let () = add (create "date" [test])
+let () = assemble (project "date" [test])

@@ -26,19 +26,9 @@ let lib =
         unit "as_ocamlfind";
         unit "as_makefile";
         unit "as_OCaml" ~deps:[optcomp; compiler];
-        unit "as_cmd";
+        unit "as_cmd" ~deps:[compiler];
         unit "assemblage" ~deps:[compiler];
       ])
-
-let configure =
-  bin "configure.ml" ~deps:[lib] ~link_all:true ~native:false (`Units [
-      unit "configure" (`Dir "bin")
-    ])
-
-let describe =
-  bin "describe.ml" ~deps:[lib] ~link_all:true ~native:false (`Units [
-      unit "describe" (`Dir "bin")
-    ])
 
 let ctypes_gen =
   bin "ctypes-gen" ~deps:[lib] ~native:false (`Units [
@@ -53,12 +43,12 @@ let assemblage_tool =
 
 let mk_test name =
   let dir = "examples/" ^ name in
-  let args r = [
-    "--disable-auto-load"; "-I"; root_dir r / build_dir lib r;
-  ] in
+  let args cmd r =
+    [ cmd; "--disable-auto-load"; "-I"; root_dir r / build_dir lib r; ]
+  in
   test name ~dir [
-    test_bin describe ~args ();
-    test_bin configure ~args ();
+    test_bin assemblage_tool ~args:(args "describe") ();
+    test_bin assemblage_tool ~args:(args "configure") ();
     test_shell "make";
     test_shell "make distclean";
   ]
@@ -78,9 +68,7 @@ let doc = doc "public" [pick "assemblage" lib]
 (* The project *)
 
 let p =
-  let cs = [lib; configure; describe; ctypes_gen; assemblage_tool;
-            dev_doc; doc ] @ tests
-  in
-  create "assemblage" cs
+  let cs = [lib; ctypes_gen; assemblage_tool; dev_doc; doc ] @ tests in
+  project "assemblage" cs
 
-let () = add p; assemblage p
+let () = assemble p

@@ -19,7 +19,6 @@ open Printf
 (* Features and flags *)
 
 let (/) = Filename.concat
-let (|>) x f = f x
 
 module Features = As_features
 module Flags = As_flags
@@ -175,19 +174,11 @@ let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
 
 (* Projects *)
 
-let add = As_cmd.add_project
-let create = As_project.create
+let project = As_project.create
 
 (* Tools *)
 
 module Build_env = As_build_env
 module Cmd = As_cmd
 
-let assemblage p =
-  let features = As_project.features p in
-  let features =
-    let add f acc = As_features.(acc ||| atom f) in
-    As_features.Set.fold add features As_features.false_
-  in
-  let env = As_build_env.parse "configure.ml" features in
-  Cmd.check p; Cmd.configure `Make p env
+let assemble = As_cmd.assemble

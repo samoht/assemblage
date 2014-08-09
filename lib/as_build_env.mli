@@ -14,15 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Global project environment.
+(** Build environment.
 
     The build environment (which can be an human) discovers available
     features. *)
 
 type t
-(** Environment values. *)
+(** The type for build environments. *)
 
-val create:
+val create :
   ?features:(As_features.atom * bool) list ->
   ?flags:As_flags.t ->
   ?includes: string list ->
@@ -36,29 +36,28 @@ val create:
     {- [build_dir] is the location of the generated files. [None]
       means the files stays in the same directory.}} *)
 
-val default: t
+val default : t
 (** Default project configuration. *)
 
-val parse: ?doc:string -> ?man:string list -> string -> As_features.t -> t
-(** [parse name features] parse the arguments given on the
-    command-line as a configuration value, for the project [name] with
-    the possible features [features]. *)
-
-val flags: t -> As_flags.t
+val flags : t -> As_flags.t
 (** Return the global comand-line flags. *)
 
-val build_dir: t -> string
-(** Return the directory where build artififacts are generated. *)
+val build_dir : t -> string
+(** Return the directory where build artifacts are generated. *)
 
-val enable: t -> As_features.atom list -> bool
+val enable : t -> As_features.atom list -> bool
 (** Check if the given set of flags are all enabled. *)
 
-val includes: t -> string list
+val includes : t -> string list
 (** Return the list of directories to include when loading `assemble.ml'. *)
 
-val auto_load: t -> bool
+val auto_load : t -> bool
 (** Automatically include $(shell ocamlfind query tools) before
     loading `assemble.ml'. *)
 
-val features: t -> (As_features.atom * bool) list
+val features : t -> (As_features.atom * bool) list
 (** Return a list of feature with the values they are set to. *)
+
+val term : As_features.Set.t -> t Cmdliner.Term.t
+(** [term fs] is a command line for features [fs] resulting
+    in an environement value. *)

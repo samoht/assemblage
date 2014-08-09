@@ -40,5 +40,5 @@ $OCAMLFIND ocamlc $PKGS -linkpkg -I $BDIR $CMOS $BDIR/tool.cmo \
     -o $BDIR/assemblage.boot
 
 # Run it on assemblage's assemblage.ml
-$BDIR/assemblage.boot --disable-auto-load -I $BDIR \
+$BDIR/assemblage.boot configure --disable-auto-load -I $BDIR \
     --enable-warn-error --disable-test
