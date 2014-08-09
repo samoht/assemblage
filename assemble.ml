@@ -46,8 +46,9 @@ let assemble_assemble =
 
 (* Tests & examples *)
 
-let mk_test name =
-  let dir = "examples/" ^ name in
+let mk_test ?(example = false) name =
+  let base = if example then "examples/" else "test/" in
+  let dir = base ^ name in
   let args cmd r =
     [ cmd; "--disable-auto-load"; "-I"; root_dir r / build_dir lib r; ]
   in
@@ -58,11 +59,13 @@ let mk_test name =
     test_shell "make distclean";
   ]
 
+let mk_example = mk_test ~example:true
+
 let tests = [
-  mk_test "camlp4";
-  mk_test "multi-libs";
-  mk_test "containers";
-  mk_test "pack";
+  mk_example "camlp4";
+  mk_example "multi-libs";
+  mk_example "containers";
+  mk_example "pack";
 ]
 
 (* Docs *)
