@@ -16,8 +16,11 @@
  *)
 
 type env
+
+val did_run : unit -> bool
+(** [did_run ()] is [true] iff a command was run. *)
+
 val configure : env -> [`Make] -> As_project.t -> As_build_env.t -> unit
 val describe : env -> As_project.t -> As_build_env.t -> unit
 val check : As_project.t -> unit
-val run : ?file:string -> unit -> unit
 val assemble : As_project.t -> unit

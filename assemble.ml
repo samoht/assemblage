@@ -4,15 +4,16 @@ open Assemblage
 
 let cmdliner = pkg    "cmdliner"
 let graph    = pkg    "ocamlgraph"
-let compiler = pkg    "compiler-libs.toplevel"
-let optcomp  = pkg_pp "optcomp"
+let bytecomp = pkg    "compiler-libs.bytecomp"
+let toplevel = pkg    "compiler-libs.toplevel"
+let optionalcomp = pkg_pp "optcomp"
 
 (* Library *)
 
 let lib =
   let unit ?deps name = unit ?deps name (`Dir "lib") in
   lib "assemblage"
-    ~deps:[cmdliner; graph]
+    ~deps:[cmdliner; graph; bytecomp]
     (`Units [
         unit "as_features";
         unit "as_flags";
@@ -25,9 +26,9 @@ let lib =
         unit "as_opam";
         unit "as_ocamlfind";
         unit "as_makefile";
-        unit "as_OCaml" ~deps:[optcomp; compiler];
-        unit "as_cmd" ~deps:[compiler];
-        unit "assemblage" ~deps:[compiler];
+        unit "as_OCaml" ~deps:[optionalcomp; bytecomp];
+        unit "as_cmd";
+        unit "assemblage";
       ])
 
 let ctypes_gen =
@@ -36,7 +37,7 @@ let ctypes_gen =
     ])
 
 let assemblage_tool =
-  let us = `Units [ unit "tool" (`Dir "bin") ] in
+  let us = `Units [ unit "tool" (`Dir "bin") ~deps:[toplevel] ] in
   bin "assemblage" ~deps:[lib] ~link_all:true ~native:false us
 
 (* Tests *)

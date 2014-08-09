@@ -21,7 +21,9 @@ let (|>) x f = f x
 
 type env = { verbose : bool }
 
-let env_parsed = ref false       (* for checking that something happened *)
+let env_parsed = ref false
+let did_run () = !env_parsed
+
 let env verbose = env_parsed := true; { verbose }
 
 (* Project processors *)
@@ -103,45 +105,6 @@ let describe _ p build_env =
     |> List.filter (function `Lib _ | `Bin _ -> true | _ -> false)
   in
   print components
-
-let run ?(file = "assemble.ml") () =
-  let sys_argl = Array.to_list Sys.argv in
-  let auto_load = List.for_all ((<>) "--disable-auto-load") sys_argl in
-  let includes () =
-    let rec cmdline_includes acc = function
-    | [] -> List.rev acc
-    | "-I" :: h :: t -> cmdline_includes (h::acc) t
-    | _ :: t -> cmdline_includes acc t
-    in
-    let auto_load_includes =
-      if not auto_load then [] else
-      As_shell.exec_output "ocamlfind query -r assemblage"
-    in
-    (cmdline_includes [] sys_argl) @ auto_load_includes
-  in
-  let show_run_start file auto_load =
-    let file = As_shell.color `Bold file in
-    let auto_load =
-      if auto_load then "" else
-      Printf.sprintf "[auto-load: %s]"
-        (As_shell.color `Magenta (string_of_bool auto_load))
-      in
-      As_shell.show "Loading %s. %s" file auto_load
-  in
-  show_run_start file auto_load;
-  Toploop.initialize_toplevel_env ();
-  Toploop.set_paths ();
-  List.iter Topdirs.dir_directory (includes ());
-  if not (Sys.file_exists file)
-  then As_shell.fatal_error 1 "missing %s." file
-  else
-  match Toploop.use_silently Format.err_formatter file with
-  | false -> As_shell.fatal_error 1 "while loading %s." file
-  | true ->
-      if !env_parsed then () else
-      As_shell.fatal_error 1
-        "no command ran. Did you call Assemblage.assemble on your \
-         project in %s" file
 
 (* Command line interface *)
 

@@ -480,8 +480,6 @@ module Cmd : sig
 
   val describe : env -> project -> Build_env.t -> unit
   (** Describe the project to stdout. *)
-
-  val run : ?file:string -> unit -> unit
 end
 
 val (/): string -> string -> string
