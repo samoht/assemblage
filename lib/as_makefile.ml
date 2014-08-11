@@ -347,9 +347,13 @@ let meta_flags t =
 
 let mk_rule t rule =
   let targets = As_project.Rule.files t resolver rule.As_action.targets in
+  let compute_deps = match rule.As_action.targets with
+  | [ `Self (`Dep _) ] -> true
+  | _ -> false  in
   let prereqs, order_only_prereqs =
     List.partition (function
       | `Self `Dir | `N (_, `Dir) -> false
+      | `N (`Unit _, (`Ml|`Mli)) when compute_deps -> false
       | _ -> true
       ) rule.As_action.prereqs
   in
