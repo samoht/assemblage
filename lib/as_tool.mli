@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +15,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Assemblage
+(** Project tools. *)
 
-let () =
-  process "assemble.ml" (configure `Make)
+val configure : As_project.t -> As_env.t -> As_build_env.t -> [`Make ] ->
+  [> `Ok of unit ]
+
+val describe : As_project.t -> As_env.t -> As_build_env.t -> [> `Ok of unit ]

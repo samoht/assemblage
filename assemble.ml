@@ -4,15 +4,16 @@ open Assemblage
 
 let cmdliner = pkg    "cmdliner"
 let graph    = pkg    "ocamlgraph"
-let compiler = pkg    "compiler-libs.toplevel"
-let optcomp  = pkg_pp "optcomp"
+let bytecomp = pkg    "compiler-libs.bytecomp"
+let toplevel = pkg    "compiler-libs.toplevel"
+let optionalcomp = pkg_pp "optcomp"
 
 (* Library *)
 
 let lib =
   let unit ?deps name = unit ?deps name (`Dir "lib") in
   lib "assemblage"
-    ~deps:[cmdliner; graph]
+    ~deps:[cmdliner; graph; bytecomp]
     (`Units [
         unit "as_features";
         unit "as_flags";
@@ -25,44 +26,48 @@ let lib =
         unit "as_opam";
         unit "as_ocamlfind";
         unit "as_makefile";
-        unit "as_OCaml" ~deps:[optcomp; compiler];
-        unit "assemblage" ~deps:[compiler];
+        unit "as_OCaml" ~deps:[optionalcomp; bytecomp];
+        unit "as_env";
+        unit "as_tool";
+        unit "as_cmd";
+        unit "assemblage";
       ])
 
-let configure =
-  bin "configure.ml" ~deps:[lib] ~link_all:true ~native:false (`Units [
-      unit "configure" (`Dir "bin")
-    ])
-
-let describe =
-  bin "describe.ml" ~deps:[lib] ~link_all:true ~native:false (`Units [
-      unit "describe" (`Dir "bin")
-    ])
+let assemblage_tool =
+  let us = `Units [ unit "tool" (`Dir "bin") ~deps:[toplevel] ] in
+  bin "assemblage" ~deps:[lib] ~link_all:true ~native:false us
 
 let ctypes_gen =
-  bin "ctypes-gen" ~deps:[lib] ~native:false (`Units [
-      unit "ctypes_gen" (`Dir "bin")
-    ])
+  let us = `Units [ unit "ctypes_gen" (`Dir "bin") ] in
+  bin "ctypes-gen" ~deps:[lib] ~native:false us
 
-(* Tests *)
+let assemble_assemble =
+  (* Sanity check, can we compile assemble.ml to native code ? *)
+  let us = `Units [ unit "assemble" (`Dir ".") ~deps:[lib] ] in
+  bin "assemble" ~deps:[lib] ~link_all:true us
 
-let mk_test name =
-  let dir = "examples/" ^ name in
-  let args r = [
-    "--disable-auto-load"; "-I"; root_dir r / build_dir lib r;
-  ] in
+(* Tests & examples *)
+
+let mk_test ?(example = false) name =
+  let base = if example then "examples/" else "test/" in
+  let dir = base ^ name in
+  let args cmd r =
+    [ cmd; "--disable-auto-load"; "-I"; root_dir r / build_dir lib r; ]
+  in
   test name ~dir [
-    test_bin describe ~args ();
-    test_bin configure ~args ();
+    test_bin assemblage_tool ~args:(args "describe") ();
+    test_bin assemblage_tool ~args:(args "configure") ();
     test_shell "make";
     test_shell "make distclean";
   ]
 
+let mk_example = mk_test ~example:true
+
 let tests = [
-  mk_test "camlp4";
-  mk_test "multi-libs";
-  mk_test "containers";
-  mk_test "pack";
+  mk_example "camlp4";
+  mk_example "multi-libs";
+  mk_example "containers";
+  mk_example "pack";
 ]
 
 (* Docs *)
@@ -72,6 +77,9 @@ let doc = doc "public" [pick "assemblage" lib]
 
 (* The project *)
 
-let () =
-  let cs = [lib; configure; describe; ctypes_gen; dev_doc; doc ] @ tests in
-  add (create "assemblage" cs)
+let p = project "assemblage"
+    ([ lib;
+       assemblage_tool; ctypes_gen; assemble_assemble;
+       dev_doc; doc ] @ tests)
+
+let () = assemble p

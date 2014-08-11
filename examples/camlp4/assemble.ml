@@ -9,4 +9,4 @@ let t = unit "t" (`Dir ".") ~deps:[
   ]
 
 let lib = lib "mylib" (`Units [t])
-let () = add (create "camlp4o" [lib])
+let () = assemble (project "camlp4o" [lib])

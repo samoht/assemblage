@@ -11,5 +11,4 @@ let l = lib "l" (`Units [a])
 
 let b3 = bin "b3" (`Units [b]) ~deps:[l] ~link_all:true
 
-let () =
-  add (create "containers" [b1;b2;b3])
+let () = assemble (project "containers" [b1;b2;b3])

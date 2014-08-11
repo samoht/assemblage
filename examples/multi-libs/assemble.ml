@@ -14,4 +14,4 @@ let b =
 let bin =
   bin "a-test" (`Units [unit "foo" (`Dir ".") ~deps:[a; a1; b]]) ~link_all:true
 
-let () = add (create "multi-libs" [a; b; bin])
+let () = assemble (project "multi-libs" [a; b; bin])

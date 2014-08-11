@@ -438,27 +438,21 @@ val cstubs : ?available:Features.t -> ?deps:component list ->
 
 (** {1:projects Projects} *)
 
-type t
+type project
 (** The type for OCaml projects descriptions. Simply a set of
     components. *)
 
-val create :
+val project :
   ?available:Features.t ->
   ?flags:Flags.t ->
   ?version:string ->
-  string -> component list -> t
-(** [create name deps] registers the project named [name], defining
-    the libraries, binaries and tests defined by the transitive
-    closure of objects in [deps]. *)
-
-val add : t -> unit
-(** [add t] registers the project [t] for use by the assemblage
-    command line tools. *)
+  string -> component list -> project
+(** [project name comps]  TODO *)
 
 (** {1:buildenv Build Environments} *)
 
 module Build_env: sig
-  (** Global project environment.
+  (** Build environment.
 
       The build environment (which can be an human) discovers available
       features. *)
@@ -468,32 +462,13 @@ module Build_env: sig
 
   val default : t
   (** Default project configuration. *)
-
-  val parse : ?doc:string -> ?man:string list -> string -> Features.t -> t
-  (** [parse name features] parse the arguments given on the
-      command line as a configuration value, for the project [name] with
-      the possible features [features]. *)
-
 end
 
-(** {1:tools Tools} *)
+(** {1:commands Commands} *)
 
-type tool = t -> Build_env.t -> unit
-(** The signature of tools. *)
-
-val process : ?file:string -> string -> tool -> unit
-(** [process ~file name fn] reads and processes the OCaml [file] in a
-    top-level environment (the default is [assemble.ml]), for the
-    project called [name], and apply [fn] to the projects registered
-    as side-effects. *)
-
-val configure : [`Make] -> tool
-(** Configure the project by generating the build, META and .install
-    files, using the given build system backend (currently, only GNU
-    make is supported). *)
-
-val describe : tool
-(** Describe the project to stdout. *)
+val assemble : project -> unit
+(** [assemble project] runs the default assemblage command line
+    tool with the assemble file [file] (defaults to [assemble.ml]. *)
 
 val (/): string -> string -> string
 (** Same as [Filename.concat]. *)

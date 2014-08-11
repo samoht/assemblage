@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,7 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Assemblage
+(** Command line interface. *)
 
-let () =
-  process "describe.ml" describe
+
+val assemble : As_project.t -> unit
+val assemble_no_project : As_env.setup -> unit

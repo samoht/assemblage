@@ -11,5 +11,4 @@ let main = bin "main" ~deps:[a;b] (`Units [
     unit "main" (`Dir "src")
   ])
 
-let () =
-  add (create "pack" [main])
+let () = assemble (project "pack" [main])
