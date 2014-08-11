@@ -21,7 +21,7 @@ let log_project env p =
   let pre =
     if env.As_env.utf8_msgs
     then "\xF0\x9F\x8D\xB7  " (* UTF-8 <U+1F377, U+0020, U+0020> *)
-    else As_shell.color `Yellow "=>"
+    else As_shell.color `Yellow "==>"
   in
   Printf.printf "\n%s %s %s\n" pre
     (As_shell.color `Underline (As_project.name p)) (As_project.version p)
