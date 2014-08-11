@@ -45,7 +45,8 @@ val get_setup : unit -> setup option
 
 type t =
   { setup : setup option;         (* None if not run by assemblage. *)
-    verbose : bool; }
+    verbose : bool;
+    utf8_msgs : bool; }
 (** The type for command runtime environments. *)
 
 val create : setup option -> bool -> t

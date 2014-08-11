@@ -17,6 +17,15 @@
 
 let (|>) x f = f x
 
+let log_project env p =
+  let pre =
+    if env.As_env.utf8_msgs
+    then "\xF0\x9F\x8D\xB7  " (* UTF-8 <U+1F377, U+0020, U+0020> *)
+    else As_shell.color `Yellow "=>"
+  in
+  Printf.printf "\n%s %s %s\n" pre
+    (As_shell.color `Underline (As_project.name p)) (As_project.version p)
+
 let check t =
   (* check that all non-dep packages are actually installed. *)
   let pkgs = As_project.Component.(filter pkg) (As_project.components t) in
@@ -35,18 +44,19 @@ let check t =
               "The ocamlfind packages %s and %s are not installed, stopping."
               (String.concat " " t) h
 
-let configure p _ build_env `Make =
+let configure p env build_env `Make =
   let features = As_build_env.features build_env in
   let flags = As_build_env.flags build_env in
   let makefile = "Makefile" in
   let build_dir = As_build_env.build_dir build_env in
   check p;
+  log_project env p;
   As_makefile.(write (of_project p ~features ~flags ~makefile));
   As_ocamlfind.META.(write (of_project p));
   As_opam.Install.(write (of_project ~build_dir p));
   `Ok ()
 
-let describe p _ build_env =
+let describe p env build_env =
   let open Printf in
   let print_deps x =
     let bold_name pkg = As_shell.color `Bold (As_project.Pkg.name pkg) in
@@ -87,12 +97,10 @@ let describe p _ build_env =
         (As_shell.color `Magenta (id c)) (print_deps (deps c));
         print_units (filter unit (contents c)) in
     List.iter aux cs in
-  printf "\n%s %s %s\n\n"
-    (As_shell.color `Yellow "==>")
-      (As_shell.color `Underline (As_project.name p)) (As_project.version p);
   let components =
     As_project.components p
     |> List.filter (function `Lib _ | `Bin _ -> true | _ -> false)
   in
+  log_project env p;
   print components;
   `Ok ()

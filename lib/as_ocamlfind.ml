@@ -174,7 +174,7 @@ module META = struct
     let file = match dir with
       | None   -> "META"
       | Some d -> d / "META" in
-    printf "\027[36m+ write %s\027[m\n" file;
+    printf "%s write %s\n" (As_shell.color `Green "==>") file;
     let oc = open_out file in
     output_string oc t;
     close_out oc
