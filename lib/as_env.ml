@@ -82,7 +82,8 @@ let parse_setup () =
 
 type t =
   { setup : setup option;         (* None if not run by assemblage. *)
-    verbose : bool; }
+    verbose : bool;
+    utf8_msgs : bool; }
 
 let get_bool e ~default =
   try match Sys.getenv e with
@@ -92,13 +93,16 @@ let get_bool e ~default =
   Not_found -> default
 
 let var_verbose = "ASSEMBLAGE_VERBOSE"
+let var_utf8_msgs = "ASSEMBLAGE_UTF8_MSGS"
 
 let created = ref false
 let create setup verbose =
   created := true;
   let verbose = get_bool var_verbose ~default:verbose in
-  { setup; verbose; }
+  let utf8_msgs = get_bool var_utf8_msgs ~default:false in
+  { setup; verbose; utf8_msgs; }
 
 let created () = !created
 let variable_docs =
-  [ var_verbose, "See option $(b,--verbose)."; ]
+  [ var_verbose, "See option $(b,--verbose).";
+    var_utf8_msgs, "use UTF-8 characters in $(mname) messages."; ]

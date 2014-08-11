@@ -264,7 +264,7 @@ let create
   { makefile; phony; headers; variables; rules; includes; opt_includes }
 
 let write t =
-  printf "\027[36m+ write %s\027[m\n" t.makefile;
+  printf "%s write %s\n" (As_shell.color `Green "==>") t.makefile;
   let buf = Buffer.create 1024 in
   List.iter (Buffer.add_string buf) t.headers;
   Buffer.add_string buf "\n";

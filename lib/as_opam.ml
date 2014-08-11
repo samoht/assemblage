@@ -74,7 +74,7 @@ module Install = struct
       match dir with
       | None   -> f
       | Some d -> d / f in
-    printf "\027[36m+ write %s\027[m\n" file;
+    printf "%s write %s\n" (As_shell.color `Green "==>") file;
     let oc = open_out file in
     output_string oc t.contents;
     close_out oc
