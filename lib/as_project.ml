@@ -38,7 +38,8 @@ and container =
     c_available: As_features.t;
     c_flags: As_flags.t;
     c_deps: component list;
-    c_container: container option; }
+    c_container: container option;
+    c_contents: component list; }
 
 and comp_unit =
   { u_name : string;
@@ -207,6 +208,7 @@ module rec Container: sig
   val available: all:bool -> t -> As_features.t
   val flags: all:bool -> t -> As_flags.t
   val deps: all:bool -> t -> component list
+  val contents: t -> component list
 end = struct
   type t = container
   let name t = t.c_name
@@ -242,6 +244,9 @@ end = struct
       List.fold_left (@) []
         (List.map (fun t -> t.c_deps) (containers t))
       |> Component.dedup
+
+  let contents t =
+    Component.map (Component.with_container t) t.c_contents
 
 end
 
@@ -804,11 +809,36 @@ end = struct
              (Component.file t r y))
     in
     let ocamldep x =
+      let ocaml_files = match container t with
+      | None   -> []
+      | Some c ->
+          let deps =
+            deps t @ Container.deps ~all:true c
+            |> Component.closure ~link:true
+            |> conmap (function
+              | `Lib _ as c -> Component.contents c
+              | c -> [c]
+              )
+            |> Component.(filter unit)
+          in
+          let contents = Component.(filter unit) (Container.contents c) in
+          let units = deps @ contents in
+          let mls =
+            List.filter (Unit.has `Ml) units
+            |> List.map (fun u -> `N (`Unit u, `Ml))
+          in
+          let mlis =
+            List.filter (Unit.has `Mli) units
+            |> List.map (fun u -> `N (`Unit u, `Mli))
+          in
+          mls @ mlis
+      in
       let y = ext x `Byte in
+      let link_sources = `Self y :: ocaml_files in
       As_action.rule
         ~phase:`Dep
         ~targets:[`Self (`Dep x)]
-        ~prereqs:[`Self y]
+        ~prereqs:link_sources
         (fun t r f ->
            let k = match x with `Ml -> "-impl" | `Mli -> "-intf" in
            As_action.create "%s %s %s %s > %s"
@@ -825,7 +855,7 @@ end = struct
         As_action.rule
           ~phase:(`Compile `Byte)
           ~targets:[`Self `Cmi]
-          ~prereqs:[`Self (ext `Mli `Byte)]
+          ~prereqs:[`Self (ext `Mli `Byte); `Self (`Dep `Mli)]
           (fun t r f ->
              As_action.create "%s -c %s -intf %s"
                (As_resolver.ocamlc r)
@@ -839,7 +869,7 @@ end = struct
         As_action.rule
           ~phase:(`Compile `Byte)
           ~targets:(if has `Mli t then [`Self `Cmo] else [`Self `Cmi; `Self `Cmo])
-          ~prereqs:(`Self `Ml :: `Self (ext `Ml `Byte) ::
+          ~prereqs:(`Self (`Dep `Ml) :: `Self (ext `Ml `Byte) ::
                     if has `Mli t then [`Self `Cmi] else [])
           (fun t r f ->
              As_action.create "%s -c %s -impl %s"
@@ -849,7 +879,7 @@ end = struct
         As_action.rule
           ~phase:(`Compile `Native)
           ~targets:[`Self `Cmx]
-          ~prereqs:[`Self `Ml; `Self `Cmi; `Self (ext `Ml `Native)]
+          ~prereqs:[`Self (`Dep `Ml); `Self `Cmi; `Self (ext `Ml `Native)]
           (fun t r f ->
              As_action.create "%s -c %s -impl %s"
                (As_resolver.ocamlopt r)
@@ -1061,7 +1091,8 @@ end = struct
     =
     let c =
       { c_name = name; c_id = "lib-" ^ name; c_flags = flags;
-        c_available = available; c_deps = deps; c_container = None; }
+        c_available = available; c_deps = deps; c_container = None;
+        c_contents = []; }
     in
     let origin, available = match origin with
     | `Other o  ->
@@ -1084,6 +1115,7 @@ end = struct
     | `Units us ->
         let us = List.map (function `Unit u -> u) us in
         let us = if pack then [Unit.pack name us] else us in
+        let c = { c with c_contents = List.map (fun u -> `Unit u) us } in
         let us = Unit.map (Unit.with_container c) us in
         `Units us, available
     in
@@ -1226,11 +1258,13 @@ end = struct
     in
     let c =
       { c_name = name; c_id = "bin-" ^ name; c_flags = flags;
-        c_deps = deps; c_available = available; c_container = None; }
+        c_deps = deps; c_available = available; c_container = None;
+        c_contents = []; }
     in
     let origin, available = match origin with
     | `Units us ->
         let us = List.map (function `Unit u -> u) us in
+        let c = { c with c_contents = List.map (fun u -> `Unit u) us } in
         `Units (Unit.map (Unit.with_container c) us), available
     | `Other o  ->
         let files = Other.self_targets o in
@@ -1393,7 +1427,8 @@ end = struct
     let name = string_of_dirname dirname in
     let c =
       { c_name = name; c_id = "dir-" ^ name; c_flags = flags;
-        c_deps = deps; c_available = available; c_container = None; }
+        c_deps = deps; c_available = available; c_container = None;
+        c_contents = contents; }
     in
     let contents = Component.map (Component.with_container c) contents in
     { d_name = dirname; d_available = available; d_flags = flags; d_deps = deps;
