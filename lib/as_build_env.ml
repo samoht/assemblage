@@ -19,18 +19,14 @@ open Cmdliner
 type t =
   { features : (As_features.atom * bool) list;
     flags : As_flags.t;
-    includes : string list;
-    auto_load : bool;
     build_dir : string; }
 
 let create
     ?(features = [])
     ?(flags = As_flags.empty)
-    ?(includes = [])
-    ?(auto_load = true)
     ?(build_dir = "_build")
     () =
-  { features; flags; build_dir; auto_load; includes }
+  { features; flags; build_dir; }
 
 let build_dir t = t.build_dir
 let features t = t.features
@@ -38,8 +34,6 @@ let flags t = t.flags
 let default =
   { features = [];
     flags = As_flags.empty;
-    auto_load = true;
-    includes = [];
     build_dir = "_build"; }
 
 let enable t flags =
@@ -66,16 +60,6 @@ let build_dir_opt =
   let doc = "Name of the directory where built artifacts are created." in
   Arg.(value & opt string "_build" & info ["build-dir"] ~doc ~docv:"DIR")
 
-let includes_opt =
-  let doc = "List of directories to includes when loading `assemble.ml'." in
-  Arg.(value & opt_all string [] & info ["I"] ~doc ~docv:"DIR")
-
-let disable_auto_load_opt = (* FIXME doc ? *)
-  let doc = "Do not auto-load of $(b,`ocamlfind query tools`/tools.cma) when \
-             loading `assemble.ml'."
-  in
-  Arg.(value & flag & info ["disable-auto-load-tools"] ~doc)
-
 let term features : t Cmdliner.Term.t =
   let features = As_features.Set.elements features in
   let features =
@@ -86,11 +70,10 @@ let term features : t Cmdliner.Term.t =
     term_of_list (List.map As_features.parse features)
   in
   let list = function None -> [] | Some l -> [l] in
-  let create features comp link pp includes disable_auto_load build_dir =
+  let create features comp link pp build_dir =
     let link = list link in
     let comp = list comp in
     let pp = list pp in
-    let auto_load = not disable_auto_load in
     let flags =
       let open As_flags in
       v (`Compile `Byte) comp @@@
@@ -100,10 +83,6 @@ let term features : t Cmdliner.Term.t =
       v (`Pp `Byte) pp @@@
       v (`Pp `Native) pp
     in
-    create ~features ~flags ~includes ~auto_load ~build_dir ()
+    create ~features ~flags ~build_dir ()
   in
-  Term.(pure create $ features $ comp_opt $ link_opt $ pp_opt $ includes_opt $
-        disable_auto_load_opt $ build_dir_opt)
-
-let includes t = t.includes
-let auto_load t = t.auto_load
+  Term.(pure create $ features $ comp_opt $ link_opt $ pp_opt $ build_dir_opt)

@@ -25,14 +25,9 @@ type t
 val create :
   ?features:(As_features.atom * bool) list ->
   ?flags:As_flags.t ->
-  ?includes: string list ->
-  ?auto_load: bool ->
   ?build_dir: string ->
   unit -> t
 (** {ul
-    {- [includes] is the list of directories to include when loading
-       `assemble.ml'.}
-    {- [auto_load] automatically include $(ocamlfind query tools).}
     {- [build_dir] is the location of the generated files. [None]
       means the files stays in the same directory.}} *)
 
@@ -47,13 +42,6 @@ val build_dir : t -> string
 
 val enable : t -> As_features.atom list -> bool
 (** Check if the given set of flags are all enabled. *)
-
-val includes : t -> string list
-(** Return the list of directories to include when loading `assemble.ml'. *)
-
-val auto_load : t -> bool
-(** Automatically include $(shell ocamlfind query tools) before
-    loading `assemble.ml'. *)
 
 val features : t -> (As_features.atom * bool) list
 (** Return a list of feature with the values they are set to. *)

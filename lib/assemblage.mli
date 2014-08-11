@@ -470,17 +470,5 @@ val assemble : project -> unit
 (** [assemble project] runs the default assemblage command line
     tool with the assemble file [file] (defaults to [assemble.ml]. *)
 
-module Cmd : sig
-  type env
-
-  val configure : env -> [`Make] -> project -> Build_env.t -> unit
-  (** Configure the project by generating the build, META and .install
-      files, using the given build system backend (currently, only GNU
-      make is supported). *)
-
-  val describe : env -> project -> Build_env.t -> unit
-  (** Describe the project to stdout. *)
-end
-
 val (/): string -> string -> string
 (** Same as [Filename.concat]. *)

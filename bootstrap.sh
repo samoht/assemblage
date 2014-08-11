@@ -11,7 +11,7 @@ OPTCOMP="-syntax camlp4o -package camlp4,optcomp"
 
 UNITS="as_shell as_git as_features as_flags as_resolver as_action
        as_build_env as_project as_ocamlfind as_OCaml as_opam
-       as_makefile as_cmd assemblage"
+       as_makefile as_env as_tool as_cmd assemblage"
 
 CMOS=""
 

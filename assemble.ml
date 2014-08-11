@@ -27,6 +27,8 @@ let lib =
         unit "as_ocamlfind";
         unit "as_makefile";
         unit "as_OCaml" ~deps:[optionalcomp; bytecomp];
+        unit "as_env";
+        unit "as_tool";
         unit "as_cmd";
         unit "assemblage";
       ])

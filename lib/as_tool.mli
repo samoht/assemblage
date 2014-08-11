@@ -15,8 +15,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Command line interface. *)
+(** Project tools. *)
 
+val configure : As_project.t -> As_env.t -> As_build_env.t -> [`Make ] ->
+  [> `Ok of unit ]
 
-val assemble : As_project.t -> unit
-val assemble_no_project : As_env.setup -> unit
+val describe : As_project.t -> As_env.t -> As_build_env.t -> [> `Ok of unit ]

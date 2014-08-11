@@ -15,7 +15,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* The assemblage command line tool. *)
+(* The assemblage command line tool.
+
+   The users's assemble.ml handles the whole program and especially
+   its command line interface by calling Assemble.assemble.
+
+   The assemblage tool just prepares the environment so that
+   assemble.ml can be interpeted correctly. *)
 
 let show_run_start file auto_load =
   let file = As_shell.color `Bold file in
@@ -26,34 +32,32 @@ let show_run_start file auto_load =
   in
   As_shell.show "Loading %s. %s" file auto_load
 
-let run ?(file = "assemble.ml") () =
-  let sys_argl = Array.to_list Sys.argv in
-  let auto_load = List.for_all ((<>) "--disable-auto-load") sys_argl in
-  let includes () =
-    let rec cmdline_includes acc = function
-    | [] -> List.rev acc
-    | "-I" :: h :: t -> cmdline_includes (h::acc) t
-    | _ :: t -> cmdline_includes acc t
-    in
-    let auto_load_includes =
-      if not auto_load then [] else
-      As_shell.exec_output "ocamlfind query -r assemblage"
-    in
-    (cmdline_includes [] sys_argl) @ auto_load_includes
+let run () =
+  let setup_env = As_env.parse_setup () in
+  let includes =
+    if not setup_env.As_env.auto_load then setup_env.As_env.includes else
+    setup_env.As_env.includes @
+    As_shell.exec_output "ocamlfind query -r assemblage"
   in
-  show_run_start file auto_load;
+  let file = setup_env.As_env.assemble_file in
   Toploop.initialize_toplevel_env ();
   Toploop.set_paths ();
-  List.iter Topdirs.dir_directory (includes ());
+  List.iter Topdirs.dir_directory includes;
   if not (Sys.file_exists file)
-  then As_shell.fatal_error 1 "missing %s." file
+  then
+    let setup_env = { setup_env with As_env.exec_status = `No_file } in
+    As_cmd.assemble_no_project setup_env
   else
-  match Toploop.use_silently Format.err_formatter file with
-  | false -> As_shell.fatal_error 1 "while loading %s." file
-  | true ->
-      if As_cmd.did_run () then () else
-      As_shell.fatal_error 1
-        "no command ran. Did you call Assemblage.assemble on your \
-         project in %s" file
+  begin
+    show_run_start file setup_env.As_env.auto_load;
+    match Toploop.use_silently Format.err_formatter file with
+    | false ->
+        let setup_env = { setup_env with As_env.exec_status = `Error } in
+        As_cmd.assemble_no_project setup_env
+    | true ->
+        if As_env.created () then () else
+        let setup_env = { setup_env with As_env.exec_status = `No_cmd } in
+        As_cmd.assemble_no_project setup_env
+  end
 
 let () = run ()

@@ -15,100 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let (|>) x f = f x
-
-(* Command environment (as opposed to *build* environment) *)
-
-type env = { verbose : bool }
-
-let env_parsed = ref false
-let did_run () = !env_parsed
-
-let env verbose = env_parsed := true; { verbose }
-
-(* Project processors *)
-
-let check t =
-  (* check that all non-dep packages are actually installed. *)
-  let pkgs = As_project.Component.(filter pkg) (As_project.components t) in
-    let not_installed = List.fold_left (fun acc pkg ->
-      let opt = As_project.Pkg.opt pkg in
-        let name = As_project.Component.name (`Pkg pkg) in
-      if not opt && not (As_shell.try_exec "ocamlfind query %s" name) then
-          name :: acc
-      else acc
-    ) [] pkgs in
-  match not_installed with
-  | []   -> ()
-  | [h]  -> As_shell.fatal_error 1
-                "The ocamlfind package %s is not installed, stopping." h
-  | h::t -> As_shell.fatal_error 1
-              "The ocamlfind packages %s and %s are not installed, stopping."
-              (String.concat " " t) h
-
-let configure _ `Make p build_env =
-  let features = As_build_env.features build_env in
-  let flags = As_build_env.flags build_env in
-  let makefile = "Makefile" in
-  let build_dir = As_build_env.build_dir build_env in
-  check p;
-  As_makefile.(write (of_project p ~features ~flags ~makefile));
-  As_ocamlfind.META.(write (of_project p));
-  As_opam.Install.(write (of_project ~build_dir p))
-
-let describe _ p build_env =
-  let open Printf in
-  let print_deps x =
-    let bold_name pkg = As_shell.color `Bold (As_project.Pkg.name pkg) in
-    let pkgs = As_project.Component.(filter pkg x) in
-    match String.concat " " (List.map bold_name pkgs) with
-    | "" -> ""
-    | pkgs -> sprintf "  ├─── [%s]\n" pkgs
-  in
-  let print_modules last modules =
-    let aux i n m =
-      printf "  %s %s\n"
-        (if last && i = n then "└───" else "├───") (As_shell.color `Blue m) in
-    let n = List.length modules - 1 in
-    List.iteri (fun i m -> aux i n m) modules in
-  let print_units units =
-    let aux i n u =
-        let mk f ext =
-          if f u then (As_shell.color `Cyan (As_project.Unit.name u ^ ext)) else
-          ""
-        in
-        let ml = mk As_project.Unit.(has `Ml) ".ml" in
-        let mli = mk As_project.Unit.(has `Mli) ".mli" in
-        let modules =
-          if As_project.Unit.generated u then ["--generated--"]
-          else
-          let build_dir = As_build_env.build_dir build_env in
-          As_OCaml.modules ~build_dir u in
-        printf "  %s %-25s%-25s\n"
-          (if modules = [] && i = n then "└─" else "├─") ml mli;
-        print_modules (i=n) modules
-    in
-    let n = List.length units - 1 in
-    List.iteri (fun i u -> aux i n u) units in
-  let print cs =
-    let aux c =
-      let open As_project.Component in
-      printf "└─┬─ %s\n%s"
-        (As_shell.color `Magenta (id c)) (print_deps (deps c));
-        print_units (filter unit (contents c)) in
-    List.iter aux cs in
-  printf "\n%s %s %s\n\n"
-    (As_shell.color `Yellow "==>")
-      (As_shell.color `Underline (As_project.name p)) (As_project.version p);
-  let components =
-    As_project.components p
-    |> List.filter (function `Lib _ | `Bin _ -> true | _ -> false)
-  in
-  print components
-
-(* Command line interface *)
-
-open Cmdliner;;
+let str = Printf.sprintf
 
 let help _ man_format cmds topic = match topic with
 | None -> `Help (`Pager, None) (* help about the program. *)
@@ -121,26 +28,80 @@ let help _ man_format cmds topic = match topic with
     | `Ok t when List.mem t cmds -> `Help (man_format, Some t)
     | `Ok _ -> assert false
 
-let global_option_section = "COMMON OPTIONS"
-let help_sections = [
-  `S global_option_section;
-  `P "These options are common to all commands.";
-  `S "AUTHORS";
-  `P "Thomas Gazagnaire <thomas@gazagnaire.org>"; `Noblank;
-  `P "Daniel C. Buenzli <daniel.buenzl i@erratique.ch>";
-  `S "BUGS";
-  `P "Check bug reports at https://github.com/samoht/assemblage/issues.";
-]
+(* Command line interface *)
 
-let env =
+open Cmdliner;;
+
+let global_option_section = "COMMON OPTIONS"
+let help_sections =
+  [ `S global_option_section;
+    `P "These options are common to all commands.";
+    `S "ENVIRONMENT";
+    `P "$(mname) commands make use of the following environment variables:";
+  ] @
+  (List.map (fun (v, doc) -> `I (str "$(i,%s)" v, doc)) As_env.variable_docs) @
+  [ `S "AUTHORS";
+    `P "Thomas Gazagnaire <thomas@gazagnaire.org>"; `Noblank;
+    `P "Daniel C. Buenzli <daniel.buenzl i@erratique.ch>";
+    `S "BUGS";
+    `P "Check bug reports at https://github.com/samoht/assemblage/issues."; ]
+
+let setup_env_opts setup_env =
+  (* These are the same options that are parsed by As_env.parse_setup ().
+     We need them if assemblage is being run otherwise they will be
+     unrecognized options and will lead to errors. If a standalone
+     assemble.ml file is run we don't expose them as they don't make sense. *)
+  let docs = global_option_section in
+  let includes_opt =
+    let doc = "List of directories to includes when loading assemble.ml." in
+    if setup_env = None then Term.pure [] else
+    Arg.(value & opt_all string [] &
+         info ["I"; "include"] ~docv:"DIR" ~doc ~docs)
+  in
+  let disable_auto_load_opt =
+    let doc = "Do not automatically include the paths $(b,`ocamlfind query \
+               -r assemblage`) before loading assemble.ml."
+    in
+    if setup_env = None then Term.pure false else
+    Arg.(value & flag & info ["disable-auto-load"] ~doc ~docs)
+  in
+  let assemble_file_opt =
+    let doc = "Read $(docv) as the assemble.ml file." in
+    if setup_env = None then Term.pure "assemble.ml" else
+    Arg.(value & opt non_dir_file "assemble.ml" &
+         info [ "f"; "file"] ~docv:"FILE" ~doc ~docs)
+  in
+  let setup_env _ _ _ = (* just so that the term has the opts *) setup_env in
+  Term.(pure setup_env $ disable_auto_load_opt $ includes_opt $
+        assemble_file_opt)
+
+let env_opts setup_env =
   let docs = global_option_section in
   let verbose_opt =
     let doc = "Give verbose output." in
     Arg.(value & flag & info ["v"; "verbose"] ~doc ~docs)
   in
-  Term.(pure env $ verbose_opt)
+  Term.(pure As_env.create $ setup_env_opts setup_env $ verbose_opt)
 
-let help_cmd =
+let build_env_opts p =
+  let features = match p with
+  | None -> As_features.builtin
+  | Some p -> As_project.features p
+  in
+  As_build_env.term features
+
+let no_project setup = match setup with
+| None -> assert false
+| Some setup ->
+    let file = setup.As_env.assemble_file in
+    match setup.As_env.exec_status with
+    | `Ok -> assert false
+    | `Error -> `Error (false, str "while loading %s." file)
+    | `No_file -> `Error (false, str "missing %s." file)
+    | `No_cmd -> `Error (false, str "No command ran. Did you call \
+                                     Assemblage.assemble in %s ?" file)
+
+let help_cmd setup_env =
   let topic =
     let doc = "The topic to get help on. `topics' lists the topics." in
     Arg.(value & pos 0 (some string) None & info [] ~docv:"TOPIC" ~doc)
@@ -151,50 +112,64 @@ let help_cmd =
       `P "Prints help about assemblage commands and other subjects..."] @
     help_sections
   in
-  Term.(ret (pure help $ env $ Term.man_format $ Term.choice_names $ topic)),
+  Term.(ret (pure help $ env_opts setup_env $ Term.man_format $
+             Term.choice_names $ topic)),
   Term.info "help" ~doc ~sdocs:global_option_section ~man
 
-let configure_cmd p build_env =
+let configure_cmd p setup_env =
   let doc = "configure an OCaml project" in
   let man =
     [ `S "DESCRIPTION";
       `P "TODO"; ] @
     help_sections;
   in
-  Term.(pure configure $ env $ pure `Make $ pure p $ build_env),
+  let configure = match p with
+  | None -> fun _ _ _ -> no_project setup_env
+  | Some p -> As_tool.configure p
+  in
+  Term.(ret (pure configure $ env_opts setup_env $ build_env_opts p $
+             pure `Make)),
   Term.info "configure" ~doc ~sdocs:global_option_section ~man
 
-let describe_cmd p build_env =
+let describe_cmd p setup_env =
   let doc = "describe an OCaml project" in
   let man =
     [ `S "DESCRIPTION";
-      `P "TODO"; ] @
-    help_sections;
+      `P "Outputs a summary of the components defined by an assemble.ml file.";
+    ] @ help_sections;
   in
-  Term.(pure describe $ env $ pure p $ build_env),
+  let describe = match p with
+  | None -> fun _ _ -> no_project setup_env
+  | Some p -> As_tool.describe p
+  in
+  Term.(ret (pure describe $ env_opts setup_env $ build_env_opts p)),
   Term.info "describe" ~doc ~sdocs:global_option_section ~man
 
-let default_cmd =
+let default_cmd setup_env =
   let doc = "configure, manage and use OCaml projects" in
   let man =
     [ `S "DESCRIPTION";
       `P "Assemblage provides an OCaml API and a command line tool \
-          to configure, manage and use OCaml projects."; ] @
-    help_sections
+          to configure, manage and use OCaml projects.";
+      `P "Use '$(mname) help $(i,COMMAND)' for information about \
+          $(i,COMMAND).";
+    ] @ help_sections
   in
-  let err = "No command specified." in
-  Term.(ret (pure (fun _ -> `Error (true, err)) $ env)),
-  Term.info "assemblage" ~version:"%%VERSION%%" ~sdocs:global_option_section
+  let exec_name = Filename.basename Sys.argv.(0) in
+  let no_cmd_err _ = `Error (true, "No command specified.") in
+  Term.(ret (pure no_cmd_err $ env_opts setup_env)),
+  Term.info exec_name ~version:"%%VERSION%%" ~sdocs:global_option_section
     ~doc ~man
 
-let assemble p =
-  let features = As_project.features p in
-  let build_env = As_build_env.term features in
+let assemble setup_env p =
   let cmds =
-    [ help_cmd;
-      configure_cmd p build_env;
-      describe_cmd p build_env; ]
+    [ help_cmd setup_env;
+      configure_cmd p setup_env;
+      describe_cmd p setup_env; ]
   in
-  match Term.eval_choice default_cmd cmds with
+  match Term.eval_choice (default_cmd setup_env) cmds with
   | `Ok () | `Version | `Help -> exit 0
   | `Error _ -> exit 1
+
+let assemble_no_project setup_env = assemble (Some setup_env) None
+let assemble p = assemble (As_env.get_setup ()) (Some p)
