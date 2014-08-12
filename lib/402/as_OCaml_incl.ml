@@ -18,13 +18,6 @@ open Parsetree
 
 module StringSet = Set.Make (String)
 
-let init flags =
-  match As_flags.get (`Pp `Byte) flags with
-  | [] -> Clflags.preprocessor := None;
-  | pp ->
-      let pp = String.concat " " pp in
-      Clflags.preprocessor := Some (sprintf "camlp4o %s" pp)
-
 let add_module prefix set m =
   let p = prefix m in
   StringSet.add p set, fun x -> p ^ "." ^ x

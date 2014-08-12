@@ -20,7 +20,7 @@ type t = {
   ocamldep: string;
   ocamlmklib: string;
   ocamldoc: string;
-  dumpast: string;
+  dumpast: string option;
   js_of_ocaml: string;
   mkdir: string;
   ln: string;
@@ -36,7 +36,7 @@ type maker =
   ?ocamldep:string ->
   ?ocamlmklib:string ->
   ?ocamldoc:string ->
-  ?dumpast:string ->
+  ?dumpast:string option ->
   ?ln:string ->
   ?mkdir:string ->
   ?js_of_ocaml:string ->
@@ -52,7 +52,7 @@ let create
     ?(ocamldep="ocamldep")
     ?(ocamlmklib="ocamlmklib")
     ?(ocamldoc="ocamldoc")
-    ?(dumpast="ocaml-dumpast")
+    ?(dumpast=Some "ocaml-dumpast")
     ?(ln="ln -sf")
     ?(mkdir="mkdir -p")
     ?(js_of_ocaml="js_of_ocaml")

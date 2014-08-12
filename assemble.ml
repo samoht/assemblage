@@ -9,10 +9,21 @@ let toplevel = pkg "compiler-libs.toplevel"
 
 (* Library *)
 
+let ocaml_version =
+  try
+    let i = String.index Sys.ocaml_version '.' in
+    let j = String.index_from Sys.ocaml_version (i+1) '.' in
+    let major = String.sub Sys.ocaml_version 0 i in
+    let minor = String.sub Sys.ocaml_version (i+1) (j-i-1) in
+    int_of_string major, int_of_string minor
+  with _ ->
+    Printf.eprintf "Unknown OCaml version: %s\n%!" Sys.ocaml_version;
+    exit 1
+
 let lib =
   let as_OCaml_incl =
     unit "as_OCaml_incl" ~deps:[bytecomp]
-      (if ocaml_version () < (4,2) then (`Dir "lib/401")
+      (if ocaml_version < (4,2) then (`Dir "lib/401")
        else (`Dir "lib/402"))
   in
   let unit ?deps name = unit ?deps name (`Dir "lib") in
@@ -49,7 +60,7 @@ let ctypes_gen =
 let assemble_assemble =
   (* Sanity check, can we compile assemble.ml to native code ? *)
   let us = `Units [ unit "assemble" (`Dir ".") ~deps:[lib] ] in
-  bin "assemble" ~deps:[lib] ~link_all:true us
+  bin "assemble" ~deps:[lib] ~link_all:true ~install:false us
 
 (* Tests & examples *)
 

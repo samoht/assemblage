@@ -472,6 +472,3 @@ val assemble : project -> unit
 
 val (/): string -> string -> string
 (** Same as [Filename.concat]. *)
-
-val ocaml_version: unit -> int * int
-(** [ocaml_version] are the major and minor OCaml version. *)
