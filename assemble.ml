@@ -2,18 +2,22 @@ open Assemblage
 
 (* OCamlfind packages *)
 
-let cmdliner = pkg    "cmdliner"
-let graph    = pkg    "ocamlgraph"
-let bytecomp = pkg    "compiler-libs.bytecomp"
-let toplevel = pkg    "compiler-libs.toplevel"
-let optionalcomp = pkg_pp "optcomp"
+let cmdliner = pkg "cmdliner"
+let graph    = pkg "ocamlgraph"
+let bytecomp = pkg "compiler-libs.bytecomp"
+let toplevel = pkg "compiler-libs.toplevel"
 
 (* Library *)
 
 let lib =
+  let as_OCaml_incl =
+    unit "as_OCaml_incl" ~deps:[bytecomp]
+      (if ocaml_version () < (4,2) then (`Dir "lib/401")
+       else (`Dir "lib/402"))
+  in
   let unit ?deps name = unit ?deps name (`Dir "lib") in
   lib "assemblage"
-    ~deps:[cmdliner; graph; bytecomp]
+    ~deps:[cmdliner; graph]
     (`Units [
         unit "as_features";
         unit "as_flags";
@@ -26,7 +30,8 @@ let lib =
         unit "as_opam";
         unit "as_ocamlfind";
         unit "as_makefile";
-        unit "as_OCaml" ~deps:[optionalcomp; bytecomp];
+        as_OCaml_incl;
+        unit "as_OCaml" ~deps:[bytecomp];
         unit "as_env";
         unit "as_tool";
         unit "as_cmd";

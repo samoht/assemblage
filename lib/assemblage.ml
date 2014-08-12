@@ -181,3 +181,8 @@ let project = As_project.create
 module Build_env = As_build_env
 module Cmd = As_cmd
 let assemble = As_cmd.assemble
+
+let ocaml_version_l =
+  lazy (Scanf.sscanf Sys.ocaml_version "%d.%d" (fun i j -> i,j))
+
+let ocaml_version () = Lazy.force ocaml_version_l

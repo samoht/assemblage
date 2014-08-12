@@ -596,8 +596,8 @@ and Unit: sig
   include Component_ext with type t = comp_unit
   type kind = [`OCaml|`C|`Js]
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> string -> kind ->
-    [`Dir of string | `Other of other] -> t
+    ?deps:component list ->
+    string -> kind -> [`Dir of string | `Other of other] -> t
   val pack : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> string -> t list -> t
   val generated: t -> bool
