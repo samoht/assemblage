@@ -601,7 +601,7 @@ let global_variables flags =
   in
   Variable.stanza ~align:true ~simplify:true vars
 
-let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features ?(dumpast=true) t =
+let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features ~dumpast t =
   let dumpast = if dumpast then Some "$(DUMPAST)" else None in
   let resolver =
     As_ocamlfind.resolver `Makefile

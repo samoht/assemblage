@@ -130,9 +130,5 @@ val doc: t
 val doc_atom: atom
 (** Build the documentation. *)
 
-val dumpast: t
-val dumpast_atom: atom
-(** Dump the AST (optimisation phase) *)
-
 val builtin: Set.t
 (** The set of built-in atomic features. *)

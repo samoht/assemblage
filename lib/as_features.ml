@@ -169,13 +169,10 @@ let test_atom = create_atom
 let doc_atom = create_atom
     "doc" ~default:false ~doc:"Build the documentation."
 
-let dumpast_atom = create_atom
-  "dumpast" ~default:true ~doc:"dump the AST (build optimisation phase)"
-
 let builtin = List.fold_left (fun set t -> Set.add t set) Set.empty [
     byte_atom; native_atom; native_dynlink_atom; js_atom;
     debug_atom; annot_atom; warn_error_atom;
-    test_atom; doc_atom; dumpast_atom;
+    test_atom; doc_atom;
   ]
 
 let byte = atom byte_atom
@@ -187,4 +184,3 @@ let warn_error = atom warn_error_atom
 let debug = atom debug_atom
 let test = atom test_atom
 let doc = atom doc_atom
-let dumpast = atom dumpast_atom

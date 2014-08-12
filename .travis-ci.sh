@@ -1,4 +1,4 @@
-OPAM_DEPENDS="ocamlfind ocamlgraph cmdliner optcomp \
+OPAM_DEPENDS="ocamlfind ocamlgraph cmdliner \
               sexplib comparelib xmlm ezjsonm ctypes" # For the tests
 
 install_on_linux () {
