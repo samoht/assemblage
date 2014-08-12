@@ -106,4 +106,4 @@ let create setup verbose =
 let created () = !created
 let variable_docs =
   [ var_verbose, "See option $(b,--verbose).";
-    var_utf8_msgs, "use UTF-8 characters in $(mname) messages."; ]
+    var_utf8_msgs, "Use UTF-8 characters in $(mname) messages."; ]
