@@ -58,12 +58,12 @@ let setup_env_opts setup_env =
     Arg.(value & opt_all string [] &
          info ["I"; "include"] ~docv:"DIR" ~doc ~docs)
   in
-  let disable_auto_load_opt =
-    let doc = "Do not automatically include the paths $(b,`ocamlfind query \
+  let auto_load_opt =
+    let doc = "Automatically include the paths $(b,`ocamlfind query \
                -r assemblage`) before loading assemble.ml."
     in
     if setup_env = None then Term.pure false else
-    Arg.(value & flag & info ["disable-auto-load"] ~doc ~docs)
+    Arg.(value & opt bool true & info ["auto-load"] ~doc ~docs ~docv:"BOOL")
   in
   let assemble_file_opt =
     let doc = "Read $(docv) as the assemble.ml file." in
@@ -72,7 +72,7 @@ let setup_env_opts setup_env =
          info [ "f"; "file"] ~docv:"FILE" ~doc ~docs)
   in
   let setup_env _ _ _ = (* just so that the term has the opts *) setup_env in
-  Term.(pure setup_env $ disable_auto_load_opt $ includes_opt $
+  Term.(pure setup_env $ auto_load_opt $ includes_opt $
         assemble_file_opt)
 
 let env_opts setup_env =

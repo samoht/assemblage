@@ -30,25 +30,10 @@ let name t = t.name
 let default t = t.default
 let doc_of t = t.doc
 let with_default t default = { t with default }
-
 let parse t =
-  let default = if t.default then "$(b,enable)" else "$(b,disable)" in
-  let enable =
-    let d = Arg.info ~doc:(sprintf "Enable %s (default is %s)." t.doc default)
-        ["enable-" ^ t.name] in
-    Arg.(value & flag & d) in
-  let disable =
-    let d = Arg.info ~doc:(sprintf "Disable %s (default is %s)." t.doc default)
-        ["disable-" ^ t.name] in
-    Arg.(value & flag & d) in
-  let create enable disable =
-    let v = match enable, disable with
-      | true , false -> true
-      | false, true  -> false
-      | false, false -> t.default
-      | true , true  -> failwith "Invalid flag" in
-    (t, v) in
-  Term.(pure create $ enable $ disable)
+  let docv = "BOOL" in
+  let opt = Arg.(value & opt bool t.default & info [t.name] ~doc:t.doc ~docv) in
+  Term.(pure (fun value -> t, value) $ opt)
 
 (* Atomic feature sets *)
 

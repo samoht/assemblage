@@ -52,7 +52,7 @@ let mk_test ?(example = false) name =
   let base = if example then "examples/" else "test/" in
   let dir = base ^ name in
   let args cmd r =
-    [ cmd; "--disable-auto-load"; "-I"; root_dir r / build_dir lib r; ]
+    [ cmd; "--auto-load=false"; "-I"; root_dir r / build_dir lib r; ]
   in
   test name ~dir [
     test_bin assemblage_tool ~args:(args "describe") ();

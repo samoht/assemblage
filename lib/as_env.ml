@@ -69,7 +69,8 @@ let parse_setup () =
           | Some (f, args') -> parse { env with assemble_file = f } args'
           | None ->
               match args with
-              | "--disable-auto-load" :: args' ->
+              | "--auto-load=false" :: args'
+              | "--auto-load" :: "false" :: args' ->
                   parse { env with auto_load = false } args'
               | _ :: args' -> parse env args'
               | [] -> assert false
