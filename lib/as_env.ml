@@ -69,7 +69,8 @@ let parse_setup () =
           | Some (f, args') -> parse { env with assemble_file = f } args'
           | None ->
               match args with
-              | "--disable-auto-load" :: args' ->
+              | "--auto-load=false" :: args'
+              | "--auto-load" :: "false" :: args' ->
                   parse { env with auto_load = false } args'
               | _ :: args' -> parse env args'
               | [] -> assert false
@@ -105,4 +106,4 @@ let create setup verbose =
 let created () = !created
 let variable_docs =
   [ var_verbose, "See option $(b,--verbose).";
-    var_utf8_msgs, "use UTF-8 characters in $(mname) messages."; ]
+    var_utf8_msgs, "Use UTF-8 characters in $(mname) messages."; ]

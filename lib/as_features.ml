@@ -30,25 +30,10 @@ let name t = t.name
 let default t = t.default
 let doc_of t = t.doc
 let with_default t default = { t with default }
-
 let parse t =
-  let default = if t.default then "$(b,enable)" else "$(b,disable)" in
-  let enable =
-    let d = Arg.info ~doc:(sprintf "Enable %s (default is %s)." t.doc default)
-        ["enable-" ^ t.name] in
-    Arg.(value & flag & d) in
-  let disable =
-    let d = Arg.info ~doc:(sprintf "Disable %s (default is %s)." t.doc default)
-        ["disable-" ^ t.name] in
-    Arg.(value & flag & d) in
-  let create enable disable =
-    let v = match enable, disable with
-      | true , false -> true
-      | false, true  -> false
-      | false, false -> t.default
-      | true , true  -> failwith "Invalid flag" in
-    (t, v) in
-  Term.(pure create $ enable $ disable)
+  let docv = "BOOL" in
+  let opt = Arg.(value & opt bool t.default & info [t.name] ~doc:t.doc ~docv) in
+  Term.(pure (fun value -> t, value) $ opt)
 
 (* Atomic feature sets *)
 
@@ -156,32 +141,33 @@ let rec cnf: t -> cnf = function
 (* Built-in features *)
 
 let byte_atom = create_atom
-    "byte" ~default:true ~doc:"byte code compilation available"
+    "byte" ~default:true ~doc:"Byte code OCaml compilation is available."
 
 let native_atom = create_atom
-    "native" ~default:true ~doc:"native code compilation available"
+    "native" ~default:true ~doc:"Native code OCaml compilation is available."
 
 let native_dynlink_atom = create_atom
-    "native-dynlink" ~default:true ~doc:"native code dynamic linking available"
+    "native-dynlink" ~default:true
+    ~doc:"Native code OCaml dynamic linking is available."
 
 let js_atom = create_atom
     "js" ~default:false
-    ~doc:"JavaScript code compilation with js_of_ocaml available"
+    ~doc:"JavaScript code OCaml compilation with js_of_ocaml is available."
 
 let annot_atom = create_atom
-    "annot" ~default:true  ~doc:"build binary annotations files"
+    "annot" ~default:true  ~doc:"Build OCaml binary annotations files."
 
 let debug_atom = create_atom
-    "debug" ~default:true ~doc:"build with debug support"
+    "debug" ~default:true ~doc:"Build with debugging support."
 
 let warn_error_atom = create_atom
-    "warn-error" ~default:false  ~doc:"build with warnings as errors"
+    "warn-error" ~default:false  ~doc:"Build with warnings as errors."
 
 let test_atom = create_atom
-    "test" ~default:false  ~doc:"build tests"
+    "test" ~default:false  ~doc:"Build the tests."
 
 let doc_atom = create_atom
-    "doc" ~default:false ~doc:"build public documentation"
+    "doc" ~default:false ~doc:"Build the documentation."
 
 let dumpast_atom = create_atom
   "dumpast" ~default:true ~doc:"dump the AST (build optimisation phase)"

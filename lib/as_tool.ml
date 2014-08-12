@@ -44,14 +44,14 @@ let check t =
               "The ocamlfind packages %s and %s are not installed, stopping."
               (String.concat " " t) h
 
-let setup p env build_env `Make =
+let setup p env build_env dumpast `Make =
   let features = As_build_env.features build_env in
   let flags = As_build_env.flags build_env in
   let makefile = "Makefile" in
   let build_dir = As_build_env.build_dir build_env in
   check p;
   log_project env p;
-  As_makefile.(write (of_project p ~features ~flags ~makefile));
+  As_makefile.(write (of_project p ~features ~flags ~makefile ~dumpast));
   As_ocamlfind.META.(write (of_project p));
   As_opam.Install.(write (of_project ~build_dir p));
   `Ok ()

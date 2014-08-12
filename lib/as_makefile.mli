@@ -175,6 +175,7 @@ val of_project:
   ?makefile:string ->
   flags:As_flags.t ->
   features:(As_features.atom * bool) list ->
+  ?dumpast:bool ->
   As_project.t -> t
 (** Generate a Makefile from a project description. The optional build
     environment is used to set default values of variables. These
