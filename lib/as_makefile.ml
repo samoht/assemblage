@@ -647,7 +647,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
           ("OCAMLC"      =?= check "ocamlc");
           ("OCAMLDEP"    =?= check "ocamldep");
           ("OCAMLMKLIB"  =?= `String "ocamlmklib");
-          ("CAMLP4O"     =?= `String "sh pp.sh");
+          ("CAMLP4O"     =?= `String "camlp4o");
           ("OCAMLDOC"    =?= check "ocamldoc");
           ("JS_OF_OCAML" =?= `String "js_of_ocaml");
           ("LN"          =?= `String "ln -sf");
@@ -668,13 +668,8 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
     :: variables components
   in
   let rules = rules components in
-  let pp_sh =
-    Rule.create ~targets:["pp.sh"] ~prereqs:[] [
-      sprintf "echo '#!/bin/sh\\nif [ $$# -ne 1 ]; then camlp4o $$@; else cat $$@; fi' > pp.sh"
-    ]
-  in
   let main =
-    Rule.create ~ext:true ~targets:["all"] ~prereqs:["pp.sh"] [
+    Rule.create ~ext:true ~targets:["all"] ~prereqs:[] [
       sprintf "@echo '%s %s ${all}'"
         (As_shell.color `Underline "all")
         (As_shell.color `Yellow "=>");
@@ -684,11 +679,10 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
       sprintf "@if [ \"x${HAS_DOC}\" = \"x1\" ]; then $(MAKE) doc; fi";
       sprintf "@if [ \"x${HAS_FULL_DOC}\" = \"x1\" ]; then $(MAKE) full-doc; fi";
       sprintf "@echo '\027[32m== Done!\027[m'";
-    ]
-  in
+    ] in
   let clean =
     Rule.create ~ext:true ~targets:["clean"] ~prereqs:[] [
-      "rm -f *~ **/*~ pp.sh";
+      "rm -f *~ **/*~";
       sprintf "rm -rf $(BUILDIR)";
     ] in
   let distclean =
@@ -751,7 +745,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
          match c with
          | `Lib _ | `Bin _  | `Doc _  -> id :: acc
          | `Test _ -> id :: As_project.Rule.phony_run c :: acc
-         | _ -> acc
+       | _ -> acc
        ) [] components
      |> List.rev)
   in
@@ -772,4 +766,4 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
     ~opt_includes
     makefile
     variables
-    (main :: clean :: distclean :: install :: help :: pp_sh :: rules)
+    (main :: clean :: distclean :: install :: help :: rules)
