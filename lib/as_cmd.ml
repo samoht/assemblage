@@ -116,26 +116,30 @@ let help_cmd setup_env =
              Term.choice_names $ topic)),
   Term.info "help" ~doc ~sdocs:global_option_section ~man
 
-let configure_cmd p setup_env =
-  let doc = "configure an OCaml project" in
+let setup_cmd p setup_env =
+  let doc = "setup an OCaml project" in
   let man =
     [ `S "DESCRIPTION";
-      `P "TODO"; ] @
+      `P "The $(b,setup) command generates a build system to build the \
+          components defined in an assemble.ml file. A default configuration \
+          for the build system can be specified on the command line using
+          the flags described below. The configuration can be changed on
+          build system invocations without having to $(b,setup) again."; ] @
     help_sections;
   in
-  let configure = match p with
+  let setup = match p with
   | None -> fun _ _ _ -> no_project setup_env
-  | Some p -> As_tool.configure p
+  | Some p -> As_tool.setup p
   in
-  Term.(ret (pure configure $ env_opts setup_env $ build_env_opts p $
-             pure `Make)),
-  Term.info "configure" ~doc ~sdocs:global_option_section ~man
+  Term.(ret (pure setup $ env_opts setup_env $ build_env_opts p $ pure `Make)),
+  Term.info "setup" ~doc ~sdocs:global_option_section ~man
 
 let describe_cmd p setup_env =
   let doc = "describe an OCaml project" in
   let man =
     [ `S "DESCRIPTION";
-      `P "Outputs a summary of the components defined by an assemble.ml file.";
+      `P "The $(b,describe) command outputs a summary of the components \
+          defined by an assemble.ml file.";
     ] @ help_sections;
   in
   let describe = match p with
@@ -146,11 +150,11 @@ let describe_cmd p setup_env =
   Term.info "describe" ~doc ~sdocs:global_option_section ~man
 
 let default_cmd setup_env =
-  let doc = "configure, manage and use OCaml projects" in
+  let doc = "setup, manage and use OCaml projects" in
   let man =
     [ `S "DESCRIPTION";
       `P "Assemblage provides an OCaml API and a command line tool \
-          to configure, manage and use OCaml projects.";
+          to setup, manage and use OCaml projects.";
       `P "Use '$(mname) help $(i,COMMAND)' for information about \
           $(i,COMMAND).";
     ] @ help_sections
@@ -164,7 +168,7 @@ let default_cmd setup_env =
 let assemble setup_env p =
   let cmds =
     [ help_cmd setup_env;
-      configure_cmd p setup_env;
+      setup_cmd p setup_env;
       describe_cmd p setup_env; ]
   in
   match Term.eval_choice (default_cmd setup_env) cmds with
