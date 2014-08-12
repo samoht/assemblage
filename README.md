@@ -6,7 +6,7 @@
   [wikipedia](http://en.wikipedia.org/wiki/Assemblage_(art))
 
 The *Assemblage* toolbox provides an API and a set of binaries to
-configure, manage, and use OCaml projects.
+setup, manage, and use OCaml projects.
 
 ### Status
 
@@ -48,7 +48,7 @@ description itself) or passed on the command-line using an integrated
 ### Examples
 
 The interaction with the system occurs through the `assemblage` tool
-which has the `configure` and `describe` sub-commands. `configure`
+which has the `setup` and `describe` sub-commands. `setup`
 reads a project description (usually, an `assemble.ml` file located at
 the root of the project) and generates the boilerplate files to build,
 install and use the project. `describe` simply displays a summary

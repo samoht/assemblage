@@ -56,7 +56,7 @@ let mk_test ?(example = false) name =
   in
   test name ~dir [
     test_bin assemblage_tool ~args:(args "describe") ();
-    test_bin assemblage_tool ~args:(args "configure") ();
+    test_bin assemblage_tool ~args:(args "setup") ();
     test_shell "make";
     test_shell "make distclean";
   ]
