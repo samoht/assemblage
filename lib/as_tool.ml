@@ -44,7 +44,7 @@ let check t =
               "The ocamlfind packages %s and %s are not installed, stopping."
               (String.concat " " t) h
 
-let configure p env build_env `Make =
+let setup p env build_env `Make =
   let features = As_build_env.features build_env in
   let flags = As_build_env.flags build_env in
   let makefile = "Makefile" in
