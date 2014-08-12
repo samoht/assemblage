@@ -176,9 +176,12 @@ module META = struct
     let file = match dir with
       | None   -> "META"
       | Some d -> d / "META" in
-    printf "%s write %s\n" (As_shell.color `Green "==>") file;
-    let oc = open_out file in
-    output_string oc t;
-    close_out oc
+    match t with
+    | "" -> printf "%s skip  %s\n" (As_shell.color `Yellow "==>") file
+    | _  ->
+        printf "%s write %s\n" (As_shell.color `Green "==>") file;
+        let oc = open_out file in
+        output_string oc t;
+        close_out oc
 
 end
