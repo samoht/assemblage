@@ -1334,6 +1334,8 @@ end = struct
     let flags =
       let open As_flags in
       v `Dep incl @@@
+      v (`Compile `Byte) incl @@@
+      v (`Compile `Native) incl @@@
       v (`Link `Byte) (link_flags `Byte t r) @@@
       v (`Link `Native) (link_flags `Native t r)
     in
