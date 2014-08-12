@@ -60,10 +60,13 @@ module Variable = struct
   let name t =
     sprintf "$(%s)" t.name
 
+  let bool_true = "true"
+  let bool_false = "false"
   let has_feature f =
     let var = String.uppercase (As_features.name f) in
     let var = String.map (function '-' -> '_' | x -> x) var in
-    ("HAS_" ^ var) =?= `String (if As_features.default f then "1" else "0")
+    let bool_val = if As_features.default f then bool_true else bool_false in
+    ("HAS_" ^ var) =?= `String bool_val
 
   (* build the guard pattern *)
   let guard features =
@@ -71,8 +74,8 @@ module Variable = struct
     | `Conflict -> failwith "invalid handler case"
     | `And l    ->
       List.map (function
-          | `P f -> has_feature f, "1"
-          | `N f -> has_feature f, "0"
+          | `P f -> has_feature f, bool_true
+          | `N f -> has_feature f, bool_false
         ) l
 
   (* build the full handler cases *)
@@ -596,7 +599,7 @@ let global_variables flags =
     let feature = Variable.has_feature feature in
     let var = As_flags.string_of_phase phase in
     Variable.(var =+= `Case [
-        [feature, "1"], `Strings (As_flags.get phase flags)
+        [feature, bool_true], `Strings (As_flags.get phase flags)
       ]) in
   let vars =
     Variable.("all" =:= `String "lib bin")
@@ -634,7 +637,9 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
     |> List.map Variable.has_feature in
   let variables =
     let check name =
-      let native = [ (Variable.has_feature As_features.native_atom, "1") ] in
+      let native = [ (Variable.has_feature As_features.native_atom,
+                      Variable.bool_true) ]
+      in
       `Case [ (native, `String (name ^ ".opt")); ([], `String name) ] in
     Variable.stanza ~doc:[""; "Main project configuration"; ""] []
     :: Variable.stanza
