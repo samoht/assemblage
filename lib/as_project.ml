@@ -801,9 +801,9 @@ end = struct
         ~targets:[`Self y]
         ~prereqs:[`Self x]
         (fun t r f ->
-           (* FIXME: how to dump the parsetree without using camlp4? *)
-           As_action.create "%s %s %s > %s"
-             (As_resolver.camlp4o r)
+           (* FIXME: switch between the various preprocessors? *)
+           As_action.create "%s camlp4o %s %s > %s"
+             (As_resolver.dumpast r)
              (String.concat " " (As_flags.get (`Pp mode) f))
              (Component.file t r x)
              (Component.file t r y))

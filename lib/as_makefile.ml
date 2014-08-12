@@ -307,7 +307,7 @@ let resolver =
     ~ocamldep:"$(OCAMLDEP)"
     ~ocamlmklib:"$(OCAMLMKLIB)"
     ~ocamldoc:"$(OCAMLDOC)"
-    ~camlp4o:"$(CAMLP4O)"
+    ~dumpast:"$(DUMPAST)"
     ~js_of_ocaml:"$(JS_OF_OCAML)"
     ~ln:"$(LN)"
     ~mkdir:"$(MKDIR)"
@@ -647,7 +647,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features t =
           ("OCAMLC"      =?= check "ocamlc");
           ("OCAMLDEP"    =?= check "ocamldep");
           ("OCAMLMKLIB"  =?= `String "ocamlmklib");
-          ("CAMLP4O"     =?= `String "camlp4o");
+          ("DUMPAST"     =?= `String "ocaml-dumpast");
           ("OCAMLDOC"    =?= check "ocamldoc");
           ("JS_OF_OCAML" =?= `String "js_of_ocaml");
           ("LN"          =?= `String "ln -sf");

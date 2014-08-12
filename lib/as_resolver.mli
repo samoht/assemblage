@@ -32,7 +32,7 @@ type maker =
   ?ocamldep:string ->
   ?ocamlmklib:string ->
   ?ocamldoc:string ->
-  ?camlp4o:string ->
+  ?dumpast:string ->
   ?ln:string ->
   ?mkdir:string ->
   ?js_of_ocaml:string ->
@@ -49,7 +49,7 @@ val ocamlopt: t -> string
 val ocamldep: t -> string
 val ocamlmklib: t -> string
 val ocamldoc: t -> string
-val camlp4o: t -> string
+val dumpast: t -> string
 val js_of_ocaml: t -> string
 
 val mkdir: t -> string

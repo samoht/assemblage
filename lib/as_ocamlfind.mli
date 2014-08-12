@@ -42,7 +42,7 @@ val resolver: mode ->
   ?ocamldep:string ->
   ?ocamlmklib:string ->
   ?ocamldoc:string ->
-  ?camlp4o:string ->
+  ?dumpast:string ->
   ?ln:string ->
   ?mkdir:string ->
   ?js_of_ocaml:string ->

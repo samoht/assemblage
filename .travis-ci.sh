@@ -48,6 +48,7 @@ case "$TRAVIS_OS_NAME,$OCAML_VERSION" in
 esac
 
 opam install ${OPAM_DEPENDS}
+opam pin dumpast -y https://github.com/samoht/ocaml-dumpast.git
 
 eval `opam config env`
 ./bootstrap.sh
