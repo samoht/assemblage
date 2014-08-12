@@ -49,8 +49,6 @@ esac
 
 opam install ${OPAM_DEPENDS}
 
-git clone https://github.com/samoht/ocaml-dumpast.git && cd ocaml-dumpast && make install
-
 eval `opam config env`
 ./bootstrap.sh
 make
