@@ -36,22 +36,34 @@ let check t =
           name :: acc
       else acc
     ) [] pkgs in
-  match not_installed with
+  let () = match not_installed with
   | []   -> ()
   | [h]  -> As_shell.fatal_error 1
                 "The ocamlfind package %s is not installed, stopping." h
   | h::t -> As_shell.fatal_error 1
               "The ocamlfind packages %s and %s are not installed, stopping."
               (String.concat " " t) h
+  in
+  let pkg_pp =
+    As_project.Component.(filter pkg_ocaml_pp) (As_project.components t)
+  in
+  let lib_pp =
+    As_project.Component.(filter lib_ocaml_pp) (As_project.components t)
+  in
+  if (pkg_pp <> [] || lib_pp <> [])
+  && not (As_shell.try_exec "ocaml-dumpast -v") then
+    As_shell.fatal_error 1
+      "ocaml-dumpast is needed to setup a project using camlp4 syntax \
+       extensions."
 
-let setup p env build_env `Make =
+let setup p env build_env dumpast `Make =
   let features = As_build_env.features build_env in
   let flags = As_build_env.flags build_env in
   let makefile = "Makefile" in
   let build_dir = As_build_env.build_dir build_env in
   check p;
   log_project env p;
-  As_makefile.(write (of_project p ~features ~flags ~makefile));
+  As_makefile.(write (of_project p ~features ~flags ~makefile ~dumpast));
   As_ocamlfind.META.(write (of_project p));
   As_opam.Install.(write (of_project ~build_dir p));
   `Ok ()

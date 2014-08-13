@@ -1,6 +1,4 @@
 opam-version: "1"
-name: "tools"
-version: "0.1"
 maintainer: "thomas@gazagnaire.org"
 authors: [
   "Thomas Gazagnaire <thomas@gazagnaire.org>"
@@ -9,7 +7,6 @@ authors: [
 license: "ISC"
 depends: [
   "cmdliner"
-  "optcomp"
   "ocamlgraph"
 ]
 build: [

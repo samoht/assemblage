@@ -596,8 +596,8 @@ and Unit: sig
   include Component_ext with type t = comp_unit
   type kind = [`OCaml|`C|`Js]
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> string -> kind ->
-    [`Dir of string | `Other of other] -> t
+    ?deps:component list ->
+    string -> kind -> [`Dir of string | `Other of other] -> t
   val pack : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> string -> t list -> t
   val generated: t -> bool
@@ -801,12 +801,17 @@ end = struct
         ~targets:[`Self y]
         ~prereqs:[`Self x]
         (fun t r f ->
-           (* FIXME: how to dump the parsetree without using camlp4? *)
-           As_action.create "%s %s %s > %s"
-             (As_resolver.camlp4o r)
-             (String.concat " " (As_flags.get (`Pp mode) f))
-             (Component.file t r x)
-             (Component.file t r y))
+           match As_resolver.preprocessor r with
+           | None ->
+               let source = As_resolver.root_dir r / Component.file t r x in
+               let target = Component.file t r y in
+               As_action.link r ~source ~target
+           | Some preprocessor ->
+               As_action.create "%s %s %s > %s"
+                 preprocessor
+                 (String.concat " " (As_flags.get (`Pp mode) f))
+                 (Component.file t r x)
+                 (Component.file t r y))
     in
     let ocamldep x =
       let ocaml_files = match container t with
@@ -1334,6 +1339,8 @@ end = struct
     let flags =
       let open As_flags in
       v `Dep incl @@@
+      v (`Compile `Byte) incl @@@
+      v (`Compile `Native) incl @@@
       v (`Link `Byte) (link_flags `Byte t r) @@@
       v (`Link `Native) (link_flags `Native t r)
     in

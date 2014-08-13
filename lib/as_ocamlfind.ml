@@ -18,8 +18,8 @@ open Printf
 module StringSet = Set.Make (String)
 
 let (/) = Filename.concat
-
 let (|>) x f = f x
+let conmap f l = List.concat (List.map f l)
 
 type mode = [`Direct|`Indirect|`Makefile]
 
@@ -146,8 +146,10 @@ module META = struct
     let version = As_project.version t in
     let buf = Buffer.create 1024 in
     let one lib =
+      let c = `Lib lib in
       let requires =
-        As_project.Lib.deps lib
+        conmap
+          As_project.Component.deps (c :: As_project.Component.contents c)
         |> As_project.Component.closure
         |> As_project.Component.(filter pkg_ocaml)
         |> List.map As_project.Pkg.name
@@ -174,9 +176,12 @@ module META = struct
     let file = match dir with
       | None   -> "META"
       | Some d -> d / "META" in
-    printf "%s write %s\n" (As_shell.color `Green "==>") file;
-    let oc = open_out file in
-    output_string oc t;
-    close_out oc
+    match t with
+    | "" -> printf "%s skip  %s\n" (As_shell.color `Yellow "==>") file
+    | _  ->
+        printf "%s write %s\n" (As_shell.color `Green "==>") file;
+        let oc = open_out file in
+        output_string oc t;
+        close_out oc
 
 end

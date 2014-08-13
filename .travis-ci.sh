@@ -1,4 +1,4 @@
-OPAM_DEPENDS="ocamlfind ocamlgraph cmdliner optcomp \
+OPAM_DEPENDS="ocamlfind ocamlgraph cmdliner \
               sexplib comparelib xmlm ezjsonm ctypes" # For the tests
 
 install_on_linux () {
@@ -52,5 +52,9 @@ opam install ${OPAM_DEPENDS}
 eval `opam config env`
 ./bootstrap.sh
 make
+
+git clone https://github.com/samoht/ocaml-dumpast.git && cd ocaml-dumpast && make install
+
+make test
 make install
 make distclean

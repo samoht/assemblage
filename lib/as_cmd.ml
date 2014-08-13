@@ -122,16 +122,20 @@ let setup_cmd p setup_env =
     [ `S "DESCRIPTION";
       `P "The $(b,setup) command generates a build system to build the \
           components defined in an assemble.ml file. A default configuration \
-          for the build system can be specified on the command line using
-          the flags described below. The configuration can be changed on
+          for the build system can be specified on the command line using \
+          the flags described below. The configuration can be changed on \
           build system invocations without having to $(b,setup) again."; ] @
     help_sections;
   in
   let setup = match p with
-  | None -> fun _ _ _ -> no_project setup_env
+  | None -> fun _ _ _ _ -> no_project setup_env
   | Some p -> As_tool.setup p
   in
-  Term.(ret (pure setup $ env_opts setup_env $ build_env_opts p $ pure `Make)),
+  let dumpast_opt =
+    let doc = "Dump the AST during build (optimisation). FIXME" in
+    Arg.(value & opt bool true & info ["dumpast"] ~doc ~docv:"BOOL")
+  in
+  Term.(ret (pure setup $ env_opts setup_env $ build_env_opts p $ dumpast_opt $ pure `Make)),
   Term.info "setup" ~doc ~sdocs:global_option_section ~man
 
 let describe_cmd p setup_env =
