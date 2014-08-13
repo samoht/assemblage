@@ -29,7 +29,7 @@ type component =
   | `Pkg of pkg
   | `Lib of lib
   | `Bin of bin
-  | `Dir of dir
+  | `Container of container
   | `Test of test
   | `Doc of doc ]
 
@@ -39,7 +39,7 @@ and container =
     c_available: As_features.t;
     c_flags: As_flags.t;
     c_deps: component list;
-    c_container: container option;
+    c_parent: (unit -> component) option;
     c_contents: component list; }
 
 and comp_unit =
@@ -47,7 +47,7 @@ and comp_unit =
     u_available : As_features.t;
     u_flags : As_flags.t;
     u_deps : component list;
-    u_container : container option;
+    u_parent : (unit -> component) option;
     u_origin : [`Path of string list | `Other of other];
     u_kind : [ `OCaml | `C | `Js ];
     u_has : As_action.file -> bool; }
@@ -57,7 +57,7 @@ and other =
     o_available : As_features.t;
     o_flags : As_flags.t;
     o_deps : component list;
-    o_container : container option;
+    o_parent : (unit -> component) option;
     o_actions : component As_action.rule list; }
 
 and pkg =
@@ -72,7 +72,7 @@ and lib =
     l_flags : As_flags.t;
     l_deps : component list;
     l_origin : [`Units of comp_unit list | `Other of other];
-    l_container : container option;
+    l_parent : (unit -> component) option;
     l_kind : [ `OCaml | `OCaml_pp ]; }
 
 and bin =
@@ -81,7 +81,7 @@ and bin =
     b_flags : As_flags.t;
     b_deps : component list;
     b_origin : [`Units of comp_unit list | `Other of other];
-    b_container : container option;
+    b_parent : (unit -> component) option;
     b_toplevel : bool;
     b_install : bool;
     b_js: bool; }
@@ -89,15 +89,6 @@ and bin =
 and dirname =
   [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
   | `Misc | `Stublibs | `Man | `Other of string ]
-
-and dir =
-  { d_name : dirname;
-    d_available : As_features.t;
-    d_flags : As_flags.t;
-    d_deps : component list;
-    d_contents : component list;
-    d_container : container option;
-    d_install : bool; }
 
 and test_args = As_resolver.t -> string list
 
@@ -110,7 +101,7 @@ and test =
     t_available : As_features.t;
     t_flags : As_flags.t;
     t_deps : component list;
-    t_container : container option;
+    t_parent : (unit -> component) option;
     t_dir : string option;
     t_commands : test_command list; }
 
@@ -119,7 +110,7 @@ and doc =
     doc_available: As_features.t;
     doc_flags: As_flags.t;
     doc_deps: component list;
-    doc_container: container option;
+    doc_parent: (unit -> component) option;
     doc_contents: component list;
     doc_install: bool;
   }
@@ -141,11 +132,10 @@ module type Component_base = sig
   type t
   val id: t -> string
   val name: t -> string
-  val source_dir: t -> string option
   val available: t -> As_features.t
   val flags : t -> As_resolver.t -> As_flags.t
   val deps : t -> component list
-  val container : t -> container option
+  val parent : t -> component option
   val contents : t -> component list
   val rules: t -> component As_action.rule list
   val generated_files : t -> (As_features.t * As_action.file list) list
@@ -154,7 +144,7 @@ end
 (* not exported *)
 module type Component_ext = sig
   include Component_base
-  val with_container : container -> t -> t
+  val with_parent : (unit -> component) -> t -> t
   val with_deps : component list -> t -> t
 end
 
@@ -203,56 +193,52 @@ struct
 end
 
 module rec Container: sig
-  type t = container
+  include Component_ext with type t = container
+  val create : ?available:As_features.t -> ?flags:As_flags.t ->
+    ?deps:component list -> ?install:bool ->
+    string -> component list -> container
   val name: t -> string
-  val id: all:bool -> t -> string
-  val available: all:bool -> t -> As_features.t
-  val flags: all:bool -> t -> As_flags.t
-  val deps: all:bool -> t -> component list
-  val contents: t -> component list
 end = struct
   type t = container
   let name t = t.c_name
 
-  let containers t =
-    let rec aux acc = function
-    | None   -> List.rev acc
-    | Some c -> aux (c::acc) c.c_container
+  let id t = "cont-" ^ name t
+  let contents t = t.c_contents
+  let deps t = t.c_deps
+  let flags t _r = t.c_flags
+  let available t = t.c_available
+  let with_deps c_deps t = { t with c_deps }
+  let contents t = t.c_contents
+  let parent t = match t.c_parent with None -> None | Some f -> Some (f ())
+  let with_parent c t = { t with c_parent = Some c }
+  let rules _t = [Rule.mkdir]
+
+  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
+      ?(deps = []) ?(install = true) name contents =
+    let c = ref
+      { c_name = name; c_id = "dir-" ^ name; c_flags = flags;
+        c_deps = deps; c_available = available; c_parent = None;
+        c_contents = []; }
     in
-    aux [t] t.c_container
+    let contents = Component.map (Component.with_parent (fun () -> `Container !c)) contents in
+    c := { !c with c_contents = contents };
+    !c
 
-  let id ~all t = match all with
-  | false -> t.c_id
-  | true  ->
-      let ids = List.map (fun t -> t.c_id) (containers t) in
-      String.concat "-" ids
-
-  let available ~all t = match all with
-  | false -> t.c_available
-  | true  ->
-      List.fold_left As_features.(&&&) As_features.true_
-        (List.map (fun t -> t.c_available) (containers t))
-
-  let flags ~all t = match all with
-  | false -> t.c_flags
-  | true ->
-      List.fold_left As_flags.(@@@) As_flags.empty
-        (List.map (fun t -> t.c_flags) (containers t))
-
-  let deps ~all t = match all with
-  | false -> t.c_deps
-  | true  ->
-      List.fold_left (@) []
-        (List.map (fun t -> t.c_deps) (containers t))
-      |> Component.dedup
-
-  let contents t =
-    Component.map (Component.with_container t) t.c_contents
+  let generated_files t =
+    let add c =
+      let refine_avail (a, files) = As_features.(t.c_available &&& a), files in
+      List.map refine_avail (Component.generated_files c)
+    in
+    List.flatten (List.map add t.c_contents)
 
 end
 
 and Component : sig
   include Component_ext with type t = component
+  val id: ?all:bool -> t -> string
+  val available: ?all:bool -> t -> As_features.t
+  val flags: ?all:bool -> t -> As_resolver.t -> As_flags.t
+  val deps: ?all:bool -> t -> component list
   val unit : t -> comp_unit option
   val unit_ocaml : t -> comp_unit option
   val unit_c : t -> comp_unit option
@@ -266,7 +252,7 @@ and Component : sig
   val lib_ocaml : t -> lib option
   val lib_ocaml_pp : t -> lib option
   val bin : t -> bin option
-  val dir : t -> dir option
+  val container : t -> container option
   val test : t -> test option
   val doc : t -> doc option
   val filter : (t -> 'a option) -> t list -> 'a list
@@ -280,6 +266,7 @@ and Component : sig
   module Graph: Graph with type V.t = t
   (* not exported *)
   val dedup: t list -> t list
+  val base_id: t -> string
 end = struct
   type t = component
   type component = t
@@ -290,9 +277,26 @@ end = struct
   | `Pkg p -> Pkg.name p
   | `Lib l -> Lib.name l
   | `Bin b  -> Bin.name b
-  | `Dir d -> Dir.name d
+  | `Container d -> Container.name d
   | `Test t -> Test.name t
   | `Doc d -> Doc.name d
+
+  let parent = function
+  | `Unit u -> Unit.parent u
+  | `Other o -> Other.parent o
+  | `Pkg p -> Pkg.parent p
+  | `Lib l -> Lib.parent l
+  | `Bin b -> Bin.parent b
+  | `Container d -> Container.parent d
+  | `Test t -> Test.parent t
+  | `Doc d -> Doc.parent d
+
+  let parents t =
+    let rec aux acc = function
+    | None   -> List.rev acc
+    | Some t -> aux (t::acc) (parent t)
+    in
+    aux [t] (parent t)
 
   let base_id = function
   | `Unit u -> Unit.id u
@@ -300,29 +304,22 @@ end = struct
   | `Pkg p -> Pkg.id p
   | `Lib l -> Lib.id l
   | `Bin b  -> Bin.id b
-  | `Dir d -> Dir.id d
+  | `Container d -> Container.id d
   | `Test t -> Test.id t
   | `Doc d -> Doc.id d
 
-  let container = function
-  | `Unit u -> Unit.container u
-  | `Other o -> Other.container o
-  | `Pkg p -> Pkg.container p
-  | `Lib l -> Lib.container l
-  | `Bin b -> Bin.container b
-  | `Dir d -> Dir.container d
-  | `Test t -> Test.container t
-  | `Doc d -> Doc.container d
-
-  let id (t:t) = match container t with
-  | Some c -> Container.id ~all:true c ^ "-" ^ name t
-  | None   -> base_id t
+  let id ?(all=true) t = match all with
+  | false -> base_id t
+  | true  ->
+      let ids = List.map base_id (parents t) in
+      String.concat "-" ids
 
   module Set = struct
 
     include Set.Make(struct
         type t = component
-        let compare x y = String.compare (id x) (id y)
+        let compare x y =
+          String.compare (id ~all:true x) (id ~all:true y)
       end)
 
     let to_list = elements
@@ -339,41 +336,41 @@ end = struct
       ) (Set.empty, []) l
     |> snd |> List.rev
 
-
-  let source_dir = function
-  | `Unit u -> Unit.source_dir u
-  | `Other o -> Other.source_dir o
-  | `Pkg p -> Pkg.source_dir p
-  | `Lib l -> Lib.source_dir l
-  | `Bin b -> Bin.source_dir b
-  | `Dir d -> Dir.source_dir d
-  | `Test t -> Test.source_dir t
-  | `Doc d -> Doc.source_dir d
-
   let base_available = function
   | `Unit u -> Unit.available u
   | `Other o -> Other.available o
   | `Pkg p -> Pkg.available p
   | `Lib l -> Lib.available l
   | `Bin b -> Bin.available b
-  | `Dir d -> Dir.available d
+  | `Container d -> Container.available d
   | `Test t -> Test.available t
   | `Doc d -> Doc.available d
 
-  let available t = match container t with
-  | None   -> base_available t
-  | Some c ->
-      As_features.(base_available t &&& Container.available ~all:true c)
+  let available ?(all=true) t = match all with
+  | false -> base_available t
+  | true  ->
+      List.fold_left
+        As_features.(&&&)
+        As_features.true_
+        (List.map base_available (parents t))
 
-  let rules = function
-  | `Unit u -> Unit.rules u
-  | `Other o -> Other.rules o
-  | `Pkg p -> Pkg.rules p
-  | `Lib l -> Lib.rules l
-  | `Bin b -> Bin.rules b
-  | `Dir d -> Dir.rules d
-  | `Test t -> Test.rules t
-  | `Doc d -> Doc.rules d
+  let base_flags = function
+  | `Unit u -> Unit.flags u
+  | `Other o -> Other.flags o
+  | `Pkg p -> Pkg.flags p
+  | `Lib l -> Lib.flags l
+  | `Bin b -> Bin.flags b
+  | `Container d -> Container.flags d
+  | `Test t -> Test.flags t
+  | `Doc d -> Doc.flags d
+
+  let flags ?(all=true) t r = match all with
+  | false -> base_flags t r
+  | true  ->
+      List.fold_left
+        As_flags.(@@@)
+        As_flags.empty
+        (List.map (fun t -> base_flags t r) (parents t))
 
   let base_deps = function
   | `Unit u -> Unit.deps u
@@ -381,13 +378,28 @@ end = struct
   | `Pkg p -> Pkg.deps p
   | `Lib l -> Lib.deps l
   | `Bin b -> Bin.deps b
-  | `Dir d -> Dir.deps d
+  | `Container d -> Container.deps d
   | `Test t -> Test.deps t
   | `Doc d -> Doc.deps d
 
-  let deps t = match container t with
-  | None   -> base_deps t
-  | Some c -> dedup (Container.deps ~all:true c @ base_deps t)
+  let deps ?(all=true) t = match all with
+  | false -> base_deps t
+  | true  ->
+      List.fold_left
+        (@)
+        []
+        (List.map base_deps (parents t))
+      |> dedup
+
+  let rules = function
+  | `Unit u -> Unit.rules u
+  | `Other o -> Other.rules o
+  | `Pkg p -> Pkg.rules p
+  | `Lib l -> Lib.rules l
+  | `Bin b -> Bin.rules b
+  | `Container d -> Container.rules d
+  | `Test t -> Test.rules t
+  | `Doc d -> Doc.rules d
 
   let contents = function
   | `Unit u -> Unit.contents u
@@ -395,7 +407,7 @@ end = struct
   | `Pkg p -> Pkg.contents p
   | `Lib l -> Lib.contents l
   | `Bin b -> Bin.contents b
-  | `Dir d -> Dir.contents d
+  | `Container d -> Container.contents d
   | `Test t -> Test.contents t
   | `Doc d -> Doc.contents d
 
@@ -405,19 +417,19 @@ end = struct
   | `Pkg p -> `Pkg (Pkg.with_deps x p)
   | `Lib l -> `Lib (Lib.with_deps x l)
   | `Bin b -> `Bin (Bin.with_deps x b)
-  | `Dir d -> `Dir (Dir.with_deps x d)
+  | `Container d -> `Container (Container.with_deps x d)
   | `Test t -> `Test (Test.with_deps x t)
   | `Doc d -> `Doc (Doc.with_deps x d)
 
-  let with_container x = function
-  | `Unit u -> `Unit (Unit.with_container x u)
-  | `Other o -> `Other (Other.with_container x o)
-  | `Pkg p -> `Pkg (Pkg.with_container x p)
-  | `Lib l -> `Lib (Lib.with_container x l)
-  | `Bin b -> `Bin (Bin.with_container x b)
-  | `Dir d -> `Dir (Dir.with_container x d)
-  | `Test t -> `Test (Test.with_container x t)
-  | `Doc d -> `Doc (Doc.with_container x d)
+  let with_parent x = function
+  | `Unit u -> `Unit (Unit.with_parent x u)
+  | `Other o -> `Other (Other.with_parent x o)
+  | `Pkg p -> `Pkg (Pkg.with_parent x p)
+  | `Lib l -> `Lib (Lib.with_parent x l)
+  | `Bin b -> `Bin (Bin.with_parent x b)
+  | `Container d -> `Container (Container.with_parent x d)
+  | `Test t -> `Test (Test.with_parent x t)
+  | `Doc d -> `Doc (Doc.with_parent x d)
 
   let generated_files = function
   | `Unit u -> Unit.generated_files u
@@ -425,23 +437,27 @@ end = struct
   | `Pkg p -> Pkg.generated_files p
   | `Lib l -> Lib.generated_files l
   | `Bin b -> Bin.generated_files b
-  | `Dir d -> Dir.generated_files d
+  | `Container d -> Container.generated_files d
   | `Test t -> Test.generated_files t
   | `Doc d -> Doc.generated_files d
 
-  let base_flags = function
-  | `Unit u -> Unit.flags u
-  | `Other o -> Other.flags o
-  | `Pkg p -> Pkg.flags p
-  | `Lib l -> Lib.flags l
-  | `Bin b -> Bin.flags b
-  | `Dir d -> Dir.flags d
-  | `Test t -> Test.flags t
-  | `Doc d -> Doc.flags d
+  let source t x =
+    let error () =
+      failwith (sprintf "%s does not have any source directory." (id t))
+    in
+    match t with
+    | `Unit u ->
+        (match Unit.source_dir u with
+         | Some dir -> dir / As_action.string_of_file (name t) x
+         | None -> error ())
+    | _ -> error ()
 
-  let flags t r = match container t with
-  | None   -> base_flags t r
-  | Some c -> As_flags.(base_flags t r @@@ Container.flags ~all:true c)
+  let build_dir t r = match parent t with
+  | None   -> As_resolver.build_dir r / base_id t
+  | Some t -> As_resolver.build_dir r / id ~all:true t
+
+  let file t r x =
+    build_dir t r / As_action.string_of_file (name t) x
 
   let unit = function `Unit x -> Some x | _ -> None
   let unit_ocaml = function `Unit x when x.u_kind = `OCaml -> Some x | _ -> None
@@ -461,7 +477,7 @@ end = struct
   let lib_ocaml_pp = lib_kind `OCaml_pp
 
   let bin = function `Bin x -> Some x | _ -> None
-  let dir = function `Dir x -> Some x | _ -> None
+  let container = function `Container x -> Some x | _ -> None
   let test = function `Test x -> Some x | _ -> None
   let doc = function `Doc d -> Some d | _ -> None
 
@@ -521,8 +537,8 @@ end = struct
 
   module Graph = Graph(struct
       type t = component
-      let id = id
-      let deps = deps
+      let id = id ~all:true
+      let deps = deps ~all:true
       let contents = contents
     end)
 
@@ -541,17 +557,6 @@ end = struct
       with Not_found -> t
     in
     List.map aux ts
-
-  let source t x = match source_dir t with
-  | None   -> failwith (sprintf "%s does not have any source directory." (id t))
-  | Some d -> d / As_action.string_of_file (name t) x
-
-  let build_dir t r = match container t with
-  | None   -> As_resolver.build_dir r / base_id t
-  | Some c -> As_resolver.build_dir r / Container.id ~all:true c
-
-  let file t r x =
-    build_dir t r / As_action.string_of_file (name t) x
 
 end
 
@@ -604,6 +609,7 @@ and Unit: sig
   val generated: t -> bool
   val kind: t -> [`OCaml | `C | `Js]
   val has: As_action.file -> t -> bool
+  val source_dir: t -> string option
   (* not exported *)
   val map: (t -> t) -> t list -> t list
   val comp_flags: component list -> build_dir:string -> As_resolver.t -> As_flags.t
@@ -616,18 +622,17 @@ end = struct
   let has kind t = t.u_has kind
   let available t = t.u_available
   let contents _t = []
-  let container t = t.u_container
-  let with_container c t = { t with u_container = Some c }
+  let parent t = match t.u_parent with None -> None | Some f -> Some (f ())
+  let with_parent c t = { t with u_parent = Some c }
   let with_deps u_deps t = { t with u_deps }
+  let source_dir t = match t.u_origin with
+  | `Path p -> Some (path p)
+  | _ -> None
 
   let map fn ts =
     List.map (fun u -> `Unit u) ts
     |> Component.map (function `Unit u -> `Unit (fn u) | x -> x)
     |> Component.(filter unit)
-
-  let source_dir t = match t.u_origin with
-  | `Path p  -> Some (path p)
-  | `Other _ -> None
 
   let generated t = match t.u_origin with
   | `Path _  -> false
@@ -694,17 +699,17 @@ end = struct
         (match origin with `Other _ -> "." | `Path p -> path p / "/")
     else
     { u_name = name; u_available = available; u_deps = deps; u_origin = origin;
-      u_flags = flags; u_kind = `OCaml; u_has = has; u_container = None; }
+      u_flags = flags; u_kind = `OCaml; u_has = has; u_parent = None; }
 
   let pack ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(deps=[]) name units =
     let pack =
-      Dir.create ~flags:(As_flags.for_pack name)
-        (`Other ("pack-" ^ name))
+      Container.create ~flags:(As_flags.for_pack name)
+        ("pack-" ^ name)
         (List.map (fun u -> `Unit u) units)
     in
     let units =
-      Dir.contents pack
+      Container.contents pack
       |> Component.(filter unit)
     in
     let has = function `Cmo | `Cmx -> true | _ -> false in
@@ -740,10 +745,10 @@ end = struct
                (String.concat " " cmxs)
                (Component.file t r `Cmx)) ]
     in
-    let origin = `Other (Other.create ~deps:[`Dir pack] name actions) in
+    let origin = `Other (Other.create ~deps:[`Container pack] name actions) in
     { u_name = name; u_available = available; u_flags = flags;
       u_origin = origin;
-      u_deps = deps; u_kind = `OCaml; u_has = has; u_container = None; }
+      u_deps = deps; u_kind = `OCaml; u_has = has; u_parent = None; }
 
   let generated_files t =
     match t.u_kind with
@@ -818,11 +823,11 @@ end = struct
                  (Component.file t r y))
     in
     let ocamldep x =
-      let ocaml_files = match container t with
+      let ocaml_files = match parent t with
       | None   -> []
-      | Some c ->
+      | Some p ->
           let deps =
-            deps t @ Container.deps ~all:true c
+            deps t @ Component.deps ~all:true p
             |> Component.closure ~link:true
             |> conmap (function
               | `Lib _ as c -> Component.contents c
@@ -830,7 +835,7 @@ end = struct
               )
             |> Component.(filter unit)
           in
-          let contents = Component.(filter unit) (Container.contents c) in
+          let contents = Component.(filter unit) (Component.contents p) in
           let units = deps @ contents in
           let mls =
             List.filter (Unit.has `Ml) units
@@ -899,7 +904,7 @@ end = struct
     (match t.u_origin with
      | `Other o -> o.o_actions
      | `Path _  -> [])
-    @ (match container t with
+    @ (match parent t with
       | None   -> [Rule.mkdir]
       | Some _ -> [])
     @ match kind t with
@@ -927,7 +932,9 @@ end = struct
           | `Native -> As_flags.get (`Pp `Native) pkgs in
         pkgs @ libs
 
-  let comp_flags mode deps build_dir r =
+  (* build_dir is exclude because it should be included by the
+     container already. *)
+  let comp_flags_aux mode deps ~build_dir r =
     let units =
       Component.(filter unit_ocaml) deps
       |> List.map (fun u -> Component.build_dir (`Unit u) r) in
@@ -958,8 +965,8 @@ end = struct
     | _  -> pkgs @ [String.concat " " includes]
 
   let comp_flags deps ~build_dir r =
-    let byte = comp_flags `Byte deps build_dir r in
-    let native = comp_flags `Native deps build_dir r in
+    let byte = comp_flags_aux `Byte deps build_dir r in
+    let native = comp_flags_aux `Native deps build_dir r in
     let open As_flags in
     v `Dep byte @@@
     v (`Compile `Byte) byte @@@
@@ -990,18 +997,17 @@ end = struct
   let available g = g.o_available
   let deps t = t.o_deps
   let with_deps o_deps t = { t with o_deps }
-  let container t = t.o_container
-  let with_container c o = { o with o_container = Some c }
+  let parent t = match t.o_parent with None -> None | Some f -> Some (f ())
+  let with_parent c o = { o with o_parent = Some c }
   let contents _t = []
   let flags t _ = t.o_flags
-  let source_dir _ = None
   let rules t = t.o_actions
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(deps = []) o_name o_actions
     =
     { o_name; o_available = available; o_flags = flags; o_deps = deps;
-      o_actions; o_container = None; }
+      o_actions; o_parent = None; }
 
   let empty = create "empty" []
 
@@ -1057,9 +1063,8 @@ end = struct
   let flags t r = As_flags.(As_resolver.pkgs r [t.p_name] @@@ t.p_flags)
   let deps _t = []
   let with_deps _ t = t
-  let container _t = None
-  let with_container _ t = t
-  let source_dir _t = None (* FIXME: look into libdir *)
+  let parent _t = None
+  let with_parent _ t = t
   let contents _t = []
   let generated_files _t = []
   let kind t = t.p_kind
@@ -1088,22 +1093,21 @@ end = struct
   let kind t = t.l_kind
   let deps t = t.l_deps
   let with_deps l_deps t = { t with l_deps }
-  let container t = t.l_container
-  let with_container c t = { t with l_container = Some c }
+  let parent t = match t.l_parent with None -> None | Some f -> Some (f ())
+  let with_parent c t = { t with l_parent = Some c }
   let available t = t.l_available
-  let source_dir _t = None
   let units t = match t.l_origin with `Units us -> us | _ -> []
   let contents t = List.map (fun u -> `Unit u) (units t)
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(deps = []) ?(pack = false) name kind origin
     =
-    let c =
-      { c_name = name; c_id = "lib-" ^ name; c_flags = flags;
-        c_available = available; c_deps = deps; c_container = None;
-        c_contents = []; }
+    let l = ref
+        { l_name = name; l_available = available; l_kind = kind;
+          l_origin = `Units []; l_deps = deps;
+          l_flags = flags; l_parent = None; }
     in
-    let origin, available = match origin with
+    let () = match origin with
     | `Other o  ->
         let files = Other.self_targets o in
         let cma = List.mem `Cma files in
@@ -1120,17 +1124,14 @@ end = struct
                        &&& (if not cmxa then not_ native else true_)
                        &&& (if not cmxs then not_ native_dynlink else true_))
         in
-        `Other o, available
+        l := { !l with l_origin = `Other o; l_available = available };
     | `Units us ->
         let us = List.map (function `Unit u -> u) us in
         let us = if pack then [Unit.pack name us] else us in
-        let c = { c with c_contents = List.map (fun u -> `Unit u) us } in
-        let us = Unit.map (Unit.with_container c) us in
-        `Units us, available
+        let us = Unit.map (Unit.with_parent (fun () -> `Lib !l)) us in
+        l := { !l with l_origin = `Units us };
     in
-    { l_name = name; l_available = available; l_kind = kind;
-      l_origin = origin; l_deps = deps;
-      l_flags = flags; l_container = None; }
+    !l
 
   let flags t r =
     let us = units t in
@@ -1237,15 +1238,14 @@ end = struct
 
   let name t = t.b_name
   let id t = "bin-" ^ name t
-  let container t = t.b_container
-  let with_container c t = { t with b_container = Some c }
+  let parent t = match t.b_parent with None -> None | Some f -> Some (f ())
+  let with_parent c t = { t with b_parent = Some c }
   let is_toplevel t = t.b_toplevel
   let install t = t.b_install
   let available t = t.b_available
   let js t = t.b_js
   let deps t = t.b_deps
   let with_deps b_deps t = { t with b_deps }
-  let source_dir _t = None
   let units t = match t.b_origin with `Units us -> us | _ -> []
   let contents t = List.map (fun u -> `Unit u) (units t)
 
@@ -1265,30 +1265,30 @@ end = struct
     let flags =
       if link_all then As_flags.(linkall @@@ flags) else flags
     in
-    let c =
-      { c_name = name; c_id = "bin-" ^ name; c_flags = flags;
-        c_deps = deps; c_available = available; c_container = None;
-        c_contents = []; }
+    let b = ref
+        { b_name = name; b_available = available; b_flags = flags; b_deps = deps;
+          b_parent = None; b_origin = `Units []; b_toplevel = false;
+          b_install = install; b_js = js }
     in
-    let origin, available = match origin with
+    let () = match origin with
     | `Units us ->
         let us = List.map (function `Unit u -> u) us in
-        let c = { c with c_contents = List.map (fun u -> `Unit u) us } in
-        `Units (Unit.map (Unit.with_container c) us), available
+        let us = Unit.map (Unit.with_parent (fun () -> `Bin !b)) us  in
+        b := { !b with b_origin = `Units us };
     | `Other o  ->
         let files = Other.self_targets o in
-        let b = List.mem `Byte files in
-        let n = List.mem `Native files in
-        let j = List.mem `Js files in
-        `Other o,
-        As_features.(available &&&
-                     (if not n then not_ native else true_) &&&
-                     (if not b then not_ byte else true_) &&&
-                     (if not j then not_ js else true_))
+        let xb = List.mem `Byte files in
+        let xn = List.mem `Native files in
+        let xj = List.mem `Js files in
+        let available =
+          As_features.(available &&&
+                       (if not xn then not_ native else true_) &&&
+                       (if not xb then not_ byte else true_) &&&
+                       (if not xj then not_ js else true_))
+        in
+        b := { !b with b_origin = `Other o; b_available = available };
     in
-    { b_name = name; b_available = available; b_flags = flags; b_deps = deps;
-      b_container = None; b_origin = origin; b_toplevel = false;
-      b_install = install; b_js = js }
+    !b
 
   let toplevel ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(deps = []) ?(custom = false) ?install name comps
@@ -1410,50 +1410,6 @@ end = struct
 
 end
 
-and Dir : sig
-  include Component_ext with type t = dir
-  val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?install:bool ->
-    [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
-    | `Misc | `Stublibs | `Man | `Other of string ] -> component list -> dir
-  val dirname: t -> dirname
-end = struct
-  type t = dir
-
-  let dirname t = t.d_name
-  let name d = string_of_dirname d.d_name
-  let id d = "dir-" ^ name d
-  let available d = d.d_available
-  let flags d _ = d.d_flags
-  let deps d = d.d_deps
-  let with_deps d_deps t = { t with d_deps }
-  let contents d = d.d_contents
-  let container d = d.d_container
-  let with_container c d = { d with d_container = Some c }
-  let source_dir _t = None
-  let rules _t = [Rule.mkdir]
-
-  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = []) ?(install = true) dirname contents =
-    let name = string_of_dirname dirname in
-    let c =
-      { c_name = name; c_id = "dir-" ^ name; c_flags = flags;
-        c_deps = deps; c_available = available; c_container = None;
-        c_contents = contents; }
-    in
-    let contents = Component.map (Component.with_container c) contents in
-    { d_name = dirname; d_available = available; d_flags = flags; d_deps = deps;
-      d_install = install; d_contents = contents; d_container = None; }
-
-  let generated_files d =
-    let add c =
-      let refine_avail (a, files) = As_features.(d.d_available &&& a), files in
-      List.map refine_avail (Component.generated_files c)
-    in
-    List.flatten (List.map add d.d_contents)
-
-end
-
 and Test: sig
   include Component_ext with type t = test
   type args = test_args
@@ -1472,9 +1428,8 @@ end = struct
   let generated_files _t = []
   let deps t = t.t_deps
   let with_deps t_deps t = { t with t_deps }
-  let container t = t.t_container
-  let with_container c t = { t with t_container = Some c }
-  let source_dir _t = None
+  let parent t = match t.t_parent with None -> None | Some f -> Some (f ())
+  let with_parent c t = { t with t_parent = Some c }
   let contents _t = []
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
@@ -1488,7 +1443,7 @@ end = struct
     in
     { t_name = name; t_available = available; t_flags = flags;
       t_deps = bin_deps @ deps; t_dir = dir; t_commands = cmds;
-      t_container = None; }
+      t_parent = None; }
 
   let commands t = t.t_commands
   let dir t = t.t_dir
@@ -1536,17 +1491,16 @@ end = struct
     { doc_name = name; doc_contents = contents;
       doc_available = available; doc_flags = flags;
       doc_install = install; doc_deps = deps;
-      doc_container = None; }
+      doc_parent = None; }
 
   (* FIXME: support opamdoc *)
   let generated_files _t = []
   let contents t = t.doc_contents
-  let container t = t.doc_container
-  let with_container c t = { t with doc_container = Some c }
+  let parent t = match t.doc_parent with None -> None | Some f -> Some (f ())
+  let with_parent c t = { t with doc_parent = Some c }
   let deps t = t.doc_deps
   let with_deps doc_deps t = { t with doc_deps }
   let available t = t.doc_available
-  let source_dir _t = None
 
   let units t =
     List.fold_left (fun acc -> function

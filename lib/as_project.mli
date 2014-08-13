@@ -29,10 +29,9 @@ type other
 type pkg
 type lib
 type bin
-type dir
+type container
 type test
 type doc
-type container
 
 type component =
   [ `Unit of comp_unit
@@ -40,7 +39,7 @@ type component =
   | `Pkg of pkg
   | `Lib of lib
   | `Bin of bin
-  | `Dir of dir
+  | `Container of container
   | `Test of test
   | `Doc of doc ]
 
@@ -54,11 +53,10 @@ module type Component_base = sig
   type t
   val id: t -> string
   val name: t -> string
-  val source_dir: t -> string option
   val available: t -> As_features.t
   val flags : t -> As_resolver.t -> As_flags.t
   val deps : t -> component list
-  val container : t -> container option
+  val parent : t -> component option
   val contents : t -> component list
   val rules: t -> component As_action.rule list
   val generated_files : t -> (As_features.t * As_action.file list) list
@@ -94,6 +92,10 @@ end
 (** Component descriptions. *)
 module Component: sig
   include Component_base with type t = component
+  val id: ?all:bool -> t -> string
+  val available: ?all:bool -> t -> As_features.t
+  val flags: ?all:bool -> t -> As_resolver.t -> As_flags.t
+  val deps: ?all:bool -> t -> component list
   val unit : t -> comp_unit option
   val unit_ocaml : t -> comp_unit option
   val unit_c : t -> comp_unit option
@@ -107,7 +109,7 @@ module Component: sig
   val lib_ocaml : t -> lib option
   val lib_ocaml_pp : t -> lib option
   val bin : t -> bin option
-  val dir : t -> dir option
+  val container : t -> container option
   val test : t -> test option
   val doc : t -> doc option
   val filter : (t -> 'a option) -> t list -> 'a list
@@ -119,16 +121,6 @@ module Component: sig
   val phases: t -> As_flags.phase list
   module Set: Set with type elt = t
   module Graph: Graph with type V.t = t
-end
-
-(** Containers *)
-module Container: sig
-  type t = container
-  val name: t -> string
-  val id: all:bool -> t -> string
-  val available: all:bool -> t -> As_features.t
-  val flags: all:bool -> t -> As_flags.t
-  val deps: all:bool -> t -> component list
 end
 
 (** Compilation units. *)
@@ -143,6 +135,7 @@ module Unit : sig
   val generated: t -> bool
   val kind: t -> [`OCaml | `C | `Js]
   val has : As_action.file -> t -> bool
+  val source_dir : t -> string option
 end
 
 (** External package. *)
@@ -195,13 +188,12 @@ module Other : sig
   val empty: t
 end
 
-(** Directory with build artifacts *)
-module Dir : sig
-  include Component_base with type t = dir
+(** Directory of components. *)
+module Container : sig
+  include Component_base with type t = container
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> ?install:bool ->
-    dirname -> component list -> dir
-  val dirname : t -> dirname
+    string -> component list -> container
 end
 
 module Test : sig

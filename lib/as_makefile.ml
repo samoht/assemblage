@@ -313,9 +313,9 @@ let mk_flags r phase t =
   let suffix = As_flags.string_of_phase phase in
   let fn = As_flags.get phase in
   let var = As_project.Component.id t ^ "." ^ suffix in
-  let global = match As_project.Component.container t with
+  let global = match As_project.Component.parent t with
   | None   -> [sprintf "$(%s)" suffix]
-  | Some c -> [sprintf "$(%s.%s)" (As_project.Container.id ~all:false c) suffix]
+  | Some p -> [sprintf "$(%s.%s)" (As_project.Component.id ~all:false p) suffix]
   in
   let flags = global @ fn (As_project.Component.flags t r) in
   Variable.(var =?= `Strings flags)
@@ -492,16 +492,16 @@ module Bin: S with type t = As_project.bin = struct
 
 end
 
-module Dir: S with type t = As_project.dir = struct
-  type t = As_project.dir
+module Container: S with type t = As_project.container = struct
+  type t = As_project.container
   let variable r t =
-    let c = `Dir t in
+    let c = `Container t in
     let phases = As_project.Component.phases c in
     Variable.stanza
-      ~doc:[sprintf "Directory: %s" (As_project.Dir.name t)]
+      ~doc:[sprintf "Directory: %s" (As_project.Container.name t)]
       (List.map (fun phase -> mk_flags r phase c) phases)
   let variables r = List.map (variable r)
-  let rule r t = List.map (mk_rule r (`Dir t)) (As_project.Dir.rules t)
+  let rule r t = List.map (mk_rule r (`Container t)) (As_project.Container.rules t)
   let rules r ts = conmap (rule r) ts
 end
 
@@ -556,7 +556,7 @@ let variables r ts =
   Bin.variables r (filter bin ts) @
   Test.variables r (filter test ts) @
   Doc.variables r (filter doc ts) @
-  Dir.variables r (filter dir ts) @
+  Container.variables r (filter container ts) @
   Unit.variables r (filter unit ts) @
   Other.variables r (filter other ts) @
   Pkg.variables r (filter pkg ts)
@@ -567,7 +567,7 @@ let rules r ts =
   Bin.rules r (filter bin ts) @
   Test.rules r (filter test ts) @
   Doc.rules r (filter doc ts) @
-  Dir.rules r (filter dir ts) @
+  Container.rules r (filter container ts) @
   Unit.rules r (filter unit ts) @
   Other.rules r (filter other ts) @
   Pkg.rules r (filter pkg ts)
