@@ -52,6 +52,9 @@ opam install ${OPAM_DEPENDS}
 eval `opam config env`
 ./bootstrap.sh
 make
+
+git clone https://github.com/samoht/ocaml-dumpast.git && cd ocaml-dumpast && make install
+
 make test
 make install
 make distclean

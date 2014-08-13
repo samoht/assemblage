@@ -801,15 +801,14 @@ end = struct
         ~targets:[`Self y]
         ~prereqs:[`Self x]
         (fun t r f ->
-           match As_resolver.dumpast r with
+           match As_resolver.preprocessor r with
            | None ->
                let source = As_resolver.root_dir r / Component.file t r x in
                let target = Component.file t r y in
                As_action.link r ~source ~target
-           | Some dumpast ->
-               (* FIXME: switch between the various preprocessors? *)
-               As_action.create "%s camlp4o %s %s > %s"
-                 dumpast
+           | Some preprocessor ->
+               As_action.create "%s %s %s > %s"
+                 preprocessor
                  (String.concat " " (As_flags.get (`Pp mode) f))
                  (Component.file t r x)
                  (Component.file t r y))

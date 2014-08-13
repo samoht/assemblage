@@ -309,7 +309,7 @@ let byte_f = As_features.byte
 let native_f = As_features.native
 let js_f = As_features.js
 
-let mk_flags resolver phase t =
+let mk_flags r phase t =
   let suffix = As_flags.string_of_phase phase in
   let fn = As_flags.get phase in
   let var = As_project.Component.id t ^ "." ^ suffix in
@@ -317,7 +317,7 @@ let mk_flags resolver phase t =
   | None   -> [sprintf "$(%s)" suffix]
   | Some c -> [sprintf "$(%s.%s)" (As_project.Container.id ~all:false c) suffix]
   in
-  let flags = global @ fn (As_project.Component.flags t resolver) in
+  let flags = global @ fn (As_project.Component.flags t r) in
   Variable.(var =?= `Strings flags)
 
 (* Replace all flags value with a flag variable in which the value is
@@ -602,7 +602,13 @@ let global_variables flags =
   Variable.stanza ~align:true ~simplify:true vars
 
 let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features ~dumpast t =
-  let dumpast = if dumpast then Some "$(DUMPAST)" else None in
+  let preprocessor = if dumpast then (
+      if not (As_shell.try_exec "ocaml-dumpast -v") then
+        As_shell.fatal_error 1
+          "ocaml-dumpast is not installed. Use `assemblage setup --dumpast=false` \
+           to configure your project without it.";
+      Some "$(DUMPAST) camlp4o"
+    ) else None in
   let resolver =
     As_ocamlfind.resolver `Makefile
       ~ocamlc:"$(OCAMLC)"
@@ -610,7 +616,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features ~dump
       ~ocamldep:"$(OCAMLDEP)"
       ~ocamlmklib:"$(OCAMLMKLIB)"
       ~ocamldoc:"$(OCAMLDOC)"
-      ~dumpast
+      ~preprocessor
       ~js_of_ocaml:"$(JS_OF_OCAML)"
       ~ln:"$(LN)"
       ~mkdir:"$(MKDIR)"

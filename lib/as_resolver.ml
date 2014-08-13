@@ -20,7 +20,7 @@ type t = {
   ocamldep: string;
   ocamlmklib: string;
   ocamldoc: string;
-  dumpast: string option;
+  preprocessor: string option;
   js_of_ocaml: string;
   mkdir: string;
   ln: string;
@@ -36,7 +36,7 @@ type maker =
   ?ocamldep:string ->
   ?ocamlmklib:string ->
   ?ocamldoc:string ->
-  ?dumpast:string option ->
+  ?preprocessor: string option ->
   ?ln:string ->
   ?mkdir:string ->
   ?js_of_ocaml:string ->
@@ -52,7 +52,7 @@ let create
     ?(ocamldep="ocamldep")
     ?(ocamlmklib="ocamlmklib")
     ?(ocamldoc="ocamldoc")
-    ?(dumpast=Some "ocaml-dumpast")
+    ?(preprocessor=Some "ocaml-dumpast")
     ?(ln="ln -sf")
     ?(mkdir="mkdir -p")
     ?(js_of_ocaml="js_of_ocaml")
@@ -64,7 +64,7 @@ let create
   | Some d -> d
   | None   -> Sys.getcwd ()
   in
-  { ocamlc; ocamlopt; ocamlmklib; dumpast;
+  { ocamlc; ocamlopt; ocamlmklib; preprocessor;
     js_of_ocaml; ocamldoc; ocamldep;
     ln; mkdir;
     build_dir; lib_dir; root_dir; pkgs }
@@ -74,7 +74,7 @@ let ocamlopt t = t.ocamlopt
 let ocamldep t = t.ocamldep
 let ocamlmklib t = t.ocamlmklib
 let ocamldoc t = t.ocamldoc
-let dumpast t = t.dumpast
+let preprocessor t = t.preprocessor
 let js_of_ocaml t = t.js_of_ocaml
 
 let ln t = t.ln
