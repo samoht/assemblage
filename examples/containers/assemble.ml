@@ -1,7 +1,7 @@
 open Assemblage
 
-let a = unit "a" (`Dir ".")
-let b = unit "b" (`Dir ".")
+let a = unit "a" (`Path [])
+let b = unit "b" (`Path [])
 
 let b1 = bin "b1" (`Units [b; a])
 

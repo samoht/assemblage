@@ -19,6 +19,7 @@ open Printf
 let conmap f l = List.concat (List.map f l)
 let (|>) x f = f x
 let (/) x y = Filename.concat x y
+let path = String.concat Filename.dir_sep
 
 module StringSet = Set.Make (String)
 
@@ -47,7 +48,7 @@ and comp_unit =
     u_flags : As_flags.t;
     u_deps : component list;
     u_container : container option;
-    u_origin : [`Dir of string | `Other of other];
+    u_origin : [`Path of string list | `Other of other];
     u_kind : [ `OCaml | `C | `Js ];
     u_has : As_action.file -> bool; }
 
@@ -597,7 +598,7 @@ and Unit: sig
   type kind = [`OCaml|`C|`Js]
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list ->
-    string -> kind -> [`Dir of string | `Other of other] -> t
+    string -> kind -> [`Path of string list | `Other of other] -> t
   val pack : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> string -> t list -> t
   val generated: t -> bool
@@ -625,15 +626,15 @@ end = struct
     |> Component.(filter unit)
 
   let source_dir t = match t.u_origin with
-  | `Dir d   -> Some d
+  | `Path p  -> Some (path p)
   | `Other _ -> None
 
   let generated t = match t.u_origin with
-  | `Dir _   -> false
+  | `Path _  -> false
   | `Other _ -> true
 
   let deps t = match t.u_origin with
-  | `Dir _   ->  t.u_deps
+  | `Path _  ->  t.u_deps
   | `Other o -> `Other o :: t.u_deps
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
@@ -643,8 +644,8 @@ end = struct
       let check k files =
         if k <> kind then false
         else match origin with
-        | `Dir dir -> List.exists (fun f ->
-            Sys.file_exists (dir / As_action.string_of_file name f)
+        | `Path p -> List.exists (fun f ->
+            Sys.file_exists (path p /  As_action.string_of_file name f)
           ) files
         | `Other o -> List.exists (fun f ->
             List.mem f (Other.self_targets o)
@@ -652,7 +653,7 @@ end = struct
       in
       match file with
       | `Source f -> (match origin with
-        | `Dir dir -> Sys.file_exists (dir / As_action.string_of_file name f)
+        | `Path p -> Sys.file_exists (path p / As_action.string_of_file name f)
         | _ -> false)
       | `Dir -> false
       | `Mli -> check `OCaml [`Mli]
@@ -674,20 +675,23 @@ end = struct
           | `Other o -> List.mem x (Other.self_targets o)
           | _ -> false
     in
-    let is_generated = match origin with `Dir _ -> false | _ -> true in
+    let is_generated = match origin with `Path _ -> false | _ -> true in
     if not is_generated && kind = `OCaml && not (List.exists has [`Ml;`Mli])
     then
       As_shell.fatal_error 1
         "unit %s: cannot find %s.ml or %s.mli in `%s', stopping.\n"
-        name name name (match origin with `Other _ -> "." | `Dir d -> d / "")
+        name name name
+        (match origin with `Other _ -> "." | `Path p -> path p / "")
     else if not is_generated && kind = `C && not (has `C) then
       As_shell.fatal_error 1
         "unit %s: cannot find %s.c in `%s', stopping.\n"
-        name name (match origin with `Other _ -> "."  | `Dir d -> d / "")
+        name name
+        (match origin with `Other _ -> "."  | `Path p -> path p / "")
     else if not is_generated && kind = `Js && not (has `Js) then
       As_shell.fatal_error 1
         "unit %s: cannot find %s.js in `%s', stopping.\n"
-        name name (match origin with `Other _ -> "." | `Dir d -> d / "/")
+        name name
+        (match origin with `Other _ -> "." | `Path p -> path p / "/")
     else
     { u_name = name; u_available = available; u_deps = deps; u_origin = origin;
       u_flags = flags; u_kind = `OCaml; u_has = has; u_container = None; }
@@ -894,10 +898,10 @@ end = struct
   let rules t =
     (match t.u_origin with
      | `Other o -> o.o_actions
-     | `Dir _ -> [])
+     | `Path _  -> [])
     @ (match container t with
       | None   -> [Rule.mkdir]
-     | Some _ -> [])
+      | Some _ -> [])
     @ match kind t with
     | `C     -> c_rules t
     | `Js    -> js_rules t

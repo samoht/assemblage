@@ -317,7 +317,7 @@ type component =
     {- FIXME}} *)
 
 val unit : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-  string -> [`Dir of string | `Other of other] -> [> `Unit of comp_unit]
+  string -> [`Path of string list | `Other of other] -> [> `Unit of comp_unit]
 (** [unit name dir ~available ~flags ~deps] is a compilation unit
     named [name] (the filename without extension) present in directory
     [dir].  It is only available whenever [available] is true, it must
@@ -329,12 +329,12 @@ val pack: ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
 
 val c : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
   ?cclib: string list -> ?ccopt: string list ->
-  string -> [`Dir of string | `Other of other] -> [> `Unit of comp_unit]
+  string -> [`Path of string list | `Other of other] -> [> `Unit of comp_unit]
 (** Same as {!unit} but for C source files. *)
 
 val js : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
   ?jsflags: string list ->
-  string -> [`Dir of string | `Other of other] -> [> `Unit of comp_unit]
+  string -> [`Path of string list | `Other of other] -> [> `Unit of comp_unit]
 (** Same as {!unit} but for javascript source files. *)
 
 val other : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
@@ -431,7 +431,7 @@ val root_dir: Resolver.t -> string
 
 val cstubs : ?available:Features.t -> ?deps:component list ->
   ?headers:string list -> ?cflags:string list -> ?clibs:string list ->
-  string -> [`Dir of string] -> [> `Lib of lib]
+  string -> [`Path of string list] -> [> `Lib of lib]
 (** [stubs name dir] is the C stub generations, using Ctypes, of the
     compilation unit [name]. The [Name_bindings] module should be
     located in [dir]. *)
