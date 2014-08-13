@@ -137,7 +137,7 @@ module Unit : sig
   type kind = [ `OCaml | `C | `Js ]
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list ->
-    string -> kind -> [`Dir of string | `Other of other] -> t
+    string -> kind -> [`Path of string list | `Other of other] -> t
   val pack : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> string -> t list -> t
   val generated: t -> bool

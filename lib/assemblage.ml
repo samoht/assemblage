@@ -116,14 +116,14 @@ let build_dir = As_project.Component.build_dir
 let root_dir = As_resolver.root_dir
 
 let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
-    name (`Dir dir)
+    name (`Path path)
   =
   let name_bindings = name ^ "_bindings" in
   let name_stubs = name ^ "_stubs" in
 
   (* 1. compile the bindings. *)
   let deps = `Pkg As_project.Pkg.ctypes_stub :: deps in
-  let bindings = unit name_bindings (`Dir dir) ~deps in
+  let bindings = unit name_bindings (`Path path) ~deps in
 
   (* 2. compile the generator of <name>_stubs.{ml,c} and <name>.ml *)
   let generator =

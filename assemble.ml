@@ -23,10 +23,10 @@ let ocaml_version =
 let lib =
   let as_OCaml_incl =
     unit "as_OCaml_incl" ~deps:[bytecomp]
-      (if ocaml_version < (4,2) then (`Dir "lib/401")
-       else (`Dir "lib/402"))
+      (if ocaml_version < (4,2) then (`Path ["lib";"401"])
+       else (`Path ["lib";"402"]))
   in
-  let unit ?deps name = unit ?deps name (`Dir "lib") in
+  let unit ?deps name = unit ?deps name (`Path ["lib"]) in
   lib "assemblage"
     ~deps:[cmdliner; graph]
     (`Units [
@@ -50,16 +50,16 @@ let lib =
       ])
 
 let assemblage_tool =
-  let us = `Units [ unit "tool" (`Dir "bin") ~deps:[toplevel] ] in
+  let us = `Units [ unit "tool" (`Path ["bin"]) ~deps:[toplevel] ] in
   bin "assemblage" ~deps:[lib] ~link_all:true ~native:false us
 
 let ctypes_gen =
-  let us = `Units [ unit "ctypes_gen" (`Dir "bin") ] in
+  let us = `Units [ unit "ctypes_gen" (`Path ["bin"]) ] in
   bin "ctypes-gen" ~deps:[lib] ~native:false us
 
 let assemble_assemble =
   (* Sanity check, can we compile assemble.ml to native code ? *)
-  let us = `Units [ unit "assemble" (`Dir ".") ~deps:[lib] ] in
+  let us = `Units [ unit "assemble" (`Path []) ~deps:[lib] ] in
   bin "assemble" ~deps:[lib] ~link_all:true ~install:false us
 
 (* Tests & examples *)
