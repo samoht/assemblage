@@ -53,7 +53,7 @@ eval `opam config env`
 ./bootstrap.sh
 make
 
-git clone https://github.com/samoht/ocaml-dumpast.git && cd ocaml-dumpast && make install
+opam install dumpast
 
 make test
 make install
