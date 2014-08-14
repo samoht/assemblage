@@ -43,25 +43,6 @@ type component =
   | `Test of test
   | `Doc of doc ]
 
-type dirname =
-  [ `Lib | `Bin | `Sbin | `Toplevel
-  | `Share | `Share_root | `Etc | `Doc
-  | `Misc | `Stublibs | `Man | `Other of string ]
-
-(** Common signature shared by all components. *)
-module type Component_base = sig
-  type t
-  val id: t -> string
-  val name: t -> string
-  val available: t -> As_features.t
-  val flags : t -> As_resolver.t -> As_flags.t
-  val deps : t -> component list
-  val parent : t -> component option
-  val contents : t -> component list
-  val rules: t -> component As_action.rule list
-  val generated_files : t -> (As_features.t * As_action.file list) list
-end
-
 (** Signature for graphs of components. *)
 module type Graph = sig
   include Graph.Sig.I
@@ -91,11 +72,16 @@ end
 
 (** Component descriptions. *)
 module Component: sig
-  include Component_base with type t = component
+  type t = component
+  val name: t -> string
   val id: ?all:bool -> t -> string
   val available: ?all:bool -> t -> As_features.t
   val flags: ?all:bool -> t -> As_resolver.t -> As_flags.t
   val deps: ?all:bool -> t -> component list
+  val files: t -> (As_features.t * As_action.file list) list
+  val rules: t -> component As_action.rule list
+  val contents: t -> component list
+  val parent: t -> component option
   val unit : t -> comp_unit option
   val unit_ocaml : t -> comp_unit option
   val unit_c : t -> comp_unit option
@@ -125,7 +111,7 @@ end
 
 (** Compilation units. *)
 module Unit : sig
-  include Component_base with type t = comp_unit
+  type t = comp_unit
   type kind = [ `OCaml | `C | `Js ]
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list ->
@@ -140,11 +126,12 @@ end
 
 (** External package. *)
 module Pkg : sig
-  include Component_base with type t = pkg
+  type t = pkg
   type kind = [ `OCaml | `OCaml_pp | `C ]
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?opt:bool -> string -> kind -> t
-  val opt: t -> bool
+  val name : t -> string
+  val opt : t -> bool
   val kind : t -> kind
   val compiler_libs_toplevel : t
   val ctypes_stub : t
@@ -152,7 +139,7 @@ end
 
 (** Library descriptions. *)
 module Lib : sig
-  include Component_base with type t = lib
+  type t = lib
   type kind = [ `OCaml | `OCaml_pp ]
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> ?pack:bool ->
@@ -163,7 +150,7 @@ end
 
 (** Binary descriptions. *)
 module Bin : sig
-  include Component_base with type t = bin
+  type t = bin
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list ->
     ?byte:bool -> ?native:bool -> ?js:bool ->
@@ -174,6 +161,7 @@ module Bin : sig
     ?deps:component list -> ?custom:bool -> ?install:bool ->
     string ->
     [`Units of [`Unit of Unit.t] list | `Other of other] -> t
+  val units: t -> comp_unit list
   val js : t -> bool
   val is_toplevel : t -> bool
   val install : t -> bool
@@ -181,23 +169,21 @@ end
 
 (** Arbitrary files generator. *)
 module Other : sig
-  include Component_base with type t = other
+  type t = other
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> string ->
     component As_action.rule list -> t
-  val empty: t
 end
 
 (** Directory of components. *)
 module Container : sig
-  include Component_base with type t = container
+  type t = container
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?install:bool ->
-    string -> component list -> container
+    ?deps:component list -> string -> component list -> container
 end
 
 module Test : sig
-  include Component_base with type t = test
+  type t = test
   type args = As_resolver.t -> string list
   type command =
     [ `Bin of [`Bin of Bin.t] * args
@@ -207,7 +193,7 @@ module Test : sig
 end
 
 module Doc : sig
-  include Component_base with type t = doc
+  type t = doc
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> ?install:bool ->
     string -> component list -> t

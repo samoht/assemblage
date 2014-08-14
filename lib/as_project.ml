@@ -23,72 +23,66 @@ let path = String.concat Filename.dir_sep
 
 module StringSet = Set.Make (String)
 
+type kind =
+  [ `Unit | `Pkg | `Lib | `Bin
+  | `Container | `Test | `Doc
+  | `Other ]
+
+let string_of_kind = function
+| `Unit -> "unit" | `Pkg -> "pkg" | `Lib -> "lib"
+| `Bin -> "bin" | `Container -> "cont" | `Test -> "test"
+| `Doc -> "doc" | `Other -> "other"
+
 type component =
   [ `Unit of comp_unit
-  | `Other of other
   | `Pkg of pkg
   | `Lib of lib
   | `Bin of bin
   | `Container of container
   | `Test of test
-  | `Doc of doc ]
+  | `Doc of doc
+  | `Other of other ]
 
-and container =
-  { c_name: string;
-    c_id: string;
-    c_available: As_features.t;
-    c_flags: As_flags.t;
-    c_deps: component list;
-    c_parent: (unit -> component) option;
-    c_contents: component list; }
+and 'a base =
+  { base_name: string;
+    base_kind: kind;
+    base_available: As_features.t;
+    base_deps: component list;
+    base_parent: (unit -> component) option;
+    base_contents: component list;
+    base_files: (As_features.t * As_action.file list) list;
+    base_rules: 'a base -> component As_action.rule list;
+    base_flags: 'a base -> As_resolver.t -> As_flags.t;
+    base_payload: 'a; }
 
-and comp_unit =
-  { u_name : string;
-    u_available : As_features.t;
-    u_flags : As_flags.t;
-    u_deps : component list;
-    u_parent : (unit -> component) option;
-    u_origin : [`Path of string list | `Other of other];
-    u_kind : [ `OCaml | `C | `Js ];
-    u_has : As_action.file -> bool; }
+and container = unit base
 
-and other =
-  { o_name : string;
-    o_available : As_features.t;
-    o_flags : As_flags.t;
-    o_deps : component list;
-    o_parent : (unit -> component) option;
-    o_actions : component As_action.rule list; }
+and other = unit base
 
-and pkg =
-  { p_name : string;
-    p_available : As_features.t;
-    p_flags : As_flags.t;
-    p_kind : [`OCaml | `OCaml_pp | `C ]; }
+and comp_unit_ =
+  { u_kind : [ `OCaml | `C | `Js ];
+    u_origin : [`Path of string list | `Other of other]; }
 
-and lib =
-  { l_name : string;
-    l_available : As_features.t;
-    l_flags : As_flags.t;
-    l_deps : component list;
-    l_origin : [`Units of comp_unit list | `Other of other];
-    l_parent : (unit -> component) option;
-    l_kind : [ `OCaml | `OCaml_pp ]; }
+and comp_unit = comp_unit_ base
 
-and bin =
-  { b_name : string;
-    b_available : As_features.t;
-    b_flags : As_flags.t;
-    b_deps : component list;
-    b_origin : [`Units of comp_unit list | `Other of other];
-    b_parent : (unit -> component) option;
+and pkg_ =
+  { p_kind : [`OCaml | `OCaml_pp | `C ]; }
+
+and pkg = pkg_ base
+
+and lib_ =
+  { l_kind : [ `OCaml | `OCaml_pp ];
+    l_origin : [`Units of comp_unit list | `Other of other]; }
+
+and lib = lib_ base
+
+and bin_ =
+  { b_origin : [`Units of comp_unit list | `Other of other];
     b_toplevel : bool;
     b_install : bool;
     b_js: bool; }
 
-and dirname =
-  [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
-  | `Misc | `Stublibs | `Man | `Other of string ]
+and bin = bin_ base
 
 and test_args = As_resolver.t -> string list
 
@@ -96,24 +90,16 @@ and test_command =
   [ `Bin of [`Bin of bin] * test_args
   | `Shell of string ]
 
-and test =
-  { t_name : string;
-    t_available : As_features.t;
-    t_flags : As_flags.t;
-    t_deps : component list;
-    t_parent : (unit -> component) option;
-    t_dir : string option;
+and test_ =
+  { t_dir : string option;
     t_commands : test_command list; }
 
-and doc =
-  { doc_name: string;
-    doc_available: As_features.t;
-    doc_flags: As_flags.t;
-    doc_deps: component list;
-    doc_parent: (unit -> component) option;
-    doc_contents: component list;
-    doc_install: bool;
-  }
+and test = test_ base
+
+and doc_ =
+  { doc_install: bool; }
+
+and doc = doc_ base
 
 type t =
   { name : string;
@@ -121,32 +107,6 @@ type t =
     available : As_features.t;
     flags : As_flags.t;
     components : component list; }
-
-let string_of_dirname = function
-| `Lib -> "lib" | `Bin -> "bin" | `Sbin -> "sbin" | `Toplevel -> "toplevel"
-| `Share -> "share" | `Share_root -> "share-root" | `Etc -> "etc"
-| `Doc -> "doc" | `Misc -> "misc" | `Stublibs -> "stublibs"
-| `Man -> "man" | `Other n -> n
-
-module type Component_base = sig
-  type t
-  val id: t -> string
-  val name: t -> string
-  val available: t -> As_features.t
-  val flags : t -> As_resolver.t -> As_flags.t
-  val deps : t -> component list
-  val parent : t -> component option
-  val contents : t -> component list
-  val rules: t -> component As_action.rule list
-  val generated_files : t -> (As_features.t * As_action.file list) list
-end
-
-(* not exported *)
-module type Component_ext = sig
-  include Component_base
-  val with_parent : (unit -> component) -> t -> t
-  val with_deps : component list -> t -> t
-end
 
 module type Graph = sig
   include Graph.Sig.I
@@ -192,104 +152,75 @@ struct
     g
 end
 
-module rec Container: sig
-  include Component_ext with type t = container
-  val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?install:bool ->
-    string -> component list -> container
-  val name: t -> string
-end = struct
-  type t = container
-  let name t = t.c_name
+module Base = struct
+  let name t = t.base_name
+  let kind t = t.base_kind
+  let id t = string_of_kind t.base_kind ^ "-" ^ t.base_name
+  let contents t = t.base_contents
+  let with_contents base_contents t = { t with base_contents }
+  let deps t = t.base_deps
+  let available t = t.base_available
+  let with_available base_available t = { t with base_available }
+  let with_deps base_deps t = { t with base_deps }
+  let parent t = match t.base_parent with None -> None | Some f -> Some (f ())
+  let with_parent c t = { t with base_parent = Some c }
+  let files t = t.base_files
+  let rules t = t.base_rules t
+  let flags t r = t.base_flags t r
 
-  let id t = "cont-" ^ name t
-  let contents t = t.c_contents
-  let deps t = t.c_deps
-  let flags t _r = t.c_flags
-  let available t = t.c_available
-  let with_deps c_deps t = { t with c_deps }
-  let contents t = t.c_contents
-  let parent t = match t.c_parent with None -> None | Some f -> Some (f ())
-  let with_parent c t = { t with c_parent = Some c }
-  let rules _t = [Rule.mkdir]
+  let create ?(available=As_features.true_) ?(flags=fun _ _ -> As_flags.empty)
+      ?(deps=[]) ?(contents=[]) ?(files=[]) ?(rules=fun _ -> [])
+      name kind payload
+    =
+    { base_name = name; base_kind = kind; base_contents = contents;
+      base_available = available; base_deps = deps;
+      base_parent = None; base_files = files;
+      base_payload = payload; base_rules = rules; base_flags = flags; }
 
-  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = []) ?(install = true) name contents =
-    let c = ref
-      { c_name = name; c_id = "dir-" ^ name; c_flags = flags;
-        c_deps = deps; c_available = available; c_parent = None;
-        c_contents = []; }
-    in
-    let contents = Component.map (Component.with_parent (fun () -> `Container !c)) contents in
-    c := { !c with c_contents = contents };
-    !c
-
-  let generated_files t =
-    let add c =
-      let refine_avail (a, files) = As_features.(t.c_available &&& a), files in
-      List.map refine_avail (Component.generated_files c)
-    in
-    List.flatten (List.map add t.c_contents)
 
 end
 
-and Component : sig
-  include Component_ext with type t = component
-  val id: ?all:bool -> t -> string
-  val available: ?all:bool -> t -> As_features.t
-  val flags: ?all:bool -> t -> As_resolver.t -> As_flags.t
-  val deps: ?all:bool -> t -> component list
-  val unit : t -> comp_unit option
-  val unit_ocaml : t -> comp_unit option
-  val unit_c : t -> comp_unit option
-  val unit_js : t -> comp_unit option
-  val other : t -> other option
-  val pkg : t -> pkg option
-  val pkg_ocaml : t -> pkg option
-  val pkg_ocaml_pp : t -> pkg option
-  val pkg_c : t -> pkg option
-  val lib : t -> lib option
-  val lib_ocaml : t -> lib option
-  val lib_ocaml_pp : t -> lib option
-  val bin : t -> bin option
-  val container : t -> container option
-  val test : t -> test option
-  val doc : t -> doc option
-  val filter : (t -> 'a option) -> t list -> 'a list
-  val closure : ?link:bool -> t list -> t list
-  val build_dir: t -> As_resolver.t -> string
-  val file : t -> As_resolver.t -> As_action.file -> string
-  val source: t -> As_action.file -> string
-  val map: (t -> t) -> t list -> t list
-  val phases: t -> As_flags.phase list
-  module Set: Set with type elt = t
-  module Graph: Graph with type V.t = t
-  (* not exported *)
-  val dedup: t list -> t list
-  val base_id: t -> string
-end = struct
+module Component = struct
+
   type t = component
   type component = t
 
-  let name = function
-  | `Unit u -> Unit.name u
-  | `Other o -> Other.name o
-  | `Pkg p -> Pkg.name p
-  | `Lib l -> Lib.name l
-  | `Bin b  -> Bin.name b
-  | `Container d -> Container.name d
-  | `Test t -> Test.name t
-  | `Doc d -> Doc.name d
+  type 'b app = { app: 'a. 'a base -> 'b }
+  type 'b map = { map: 'a. 'a base -> 'a base }
 
-  let parent = function
-  | `Unit u -> Unit.parent u
-  | `Other o -> Other.parent o
-  | `Pkg p -> Pkg.parent p
-  | `Lib l -> Lib.parent l
-  | `Bin b -> Bin.parent b
-  | `Container d -> Container.parent d
-  | `Test t -> Test.parent t
-  | `Doc d -> Doc.parent d
+  let base f = function
+  | `Unit u -> f.app u
+  | `Other o -> f.app o
+  | `Pkg p -> f.app p
+  | `Lib l -> f.app l
+  | `Bin b  -> f.app b
+  | `Container c -> f.app c
+  | `Test t -> f.app t
+  | `Doc d -> f.app d
+
+  let with_base f = function
+  | `Unit u -> `Unit (f.map u)
+  | `Other o -> `Other (f.map o)
+  | `Pkg p -> `Pkg (f.map p)
+  | `Lib l -> `Lib (f.map l)
+  | `Bin b -> `Bin (f.map b)
+  | `Container c -> `Container (f.map c)
+  | `Test t -> `Test (f.map t)
+  | `Doc d -> `Doc (f.map d)
+
+  let name t = base { app = Base.name } t
+  let parent t = base { app = Base.parent } t
+  let base_id t = base { app = Base.id } t
+  let base_available t = base { app = Base.available } t
+  let base_deps t = base { app = Base.deps } t
+  let contents t = base { app = Base.contents } t
+  let kind t = base { app = Base.kind } t
+  let base_files t = base { app = Base.files } t
+  let base_rules t = base { app = Base.rules } t
+  let base_flags t = base { app = Base.flags } t
+
+  let with_deps x = with_base { map = fun t -> Base.with_deps x t }
+  let with_parent x = with_base { map = fun t -> Base.with_parent x t }
 
   let parents t =
     let rec aux acc = function
@@ -297,16 +228,6 @@ end = struct
     | Some t -> aux (t::acc) (parent t)
     in
     aux [t] (parent t)
-
-  let base_id = function
-  | `Unit u -> Unit.id u
-  | `Other o -> Other.id o
-  | `Pkg p -> Pkg.id p
-  | `Lib l -> Lib.id l
-  | `Bin b  -> Bin.id b
-  | `Container d -> Container.id d
-  | `Test t -> Test.id t
-  | `Doc d -> Doc.id d
 
   let id ?(all=true) t = match all with
   | false -> base_id t
@@ -336,16 +257,6 @@ end = struct
       ) (Set.empty, []) l
     |> snd |> List.rev
 
-  let base_available = function
-  | `Unit u -> Unit.available u
-  | `Other o -> Other.available o
-  | `Pkg p -> Pkg.available p
-  | `Lib l -> Lib.available l
-  | `Bin b -> Bin.available b
-  | `Container d -> Container.available d
-  | `Test t -> Test.available t
-  | `Doc d -> Doc.available d
-
   let available ?(all=true) t = match all with
   | false -> base_available t
   | true  ->
@@ -353,34 +264,6 @@ end = struct
         As_features.(&&&)
         As_features.true_
         (List.map base_available (parents t))
-
-  let base_flags = function
-  | `Unit u -> Unit.flags u
-  | `Other o -> Other.flags o
-  | `Pkg p -> Pkg.flags p
-  | `Lib l -> Lib.flags l
-  | `Bin b -> Bin.flags b
-  | `Container d -> Container.flags d
-  | `Test t -> Test.flags t
-  | `Doc d -> Doc.flags d
-
-  let flags ?(all=true) t r = match all with
-  | false -> base_flags t r
-  | true  ->
-      List.fold_left
-        As_flags.(@@@)
-        As_flags.empty
-        (List.map (fun t -> base_flags t r) (parents t))
-
-  let base_deps = function
-  | `Unit u -> Unit.deps u
-  | `Other o -> Other.deps o
-  | `Pkg p -> Pkg.deps p
-  | `Lib l -> Lib.deps l
-  | `Bin b -> Bin.deps b
-  | `Container d -> Container.deps d
-  | `Test t -> Test.deps t
-  | `Doc d -> Doc.deps d
 
   let deps ?(all=true) t = match all with
   | false -> base_deps t
@@ -391,55 +274,25 @@ end = struct
         (List.map base_deps (parents t))
       |> dedup
 
-  let rules = function
-  | `Unit u -> Unit.rules u
-  | `Other o -> Other.rules o
-  | `Pkg p -> Pkg.rules p
-  | `Lib l -> Lib.rules l
-  | `Bin b -> Bin.rules b
-  | `Container d -> Container.rules d
-  | `Test t -> Test.rules t
-  | `Doc d -> Doc.rules d
+  let flags ?(all=true) t r =
+    let open As_flags in
+    let flags t = base_flags t r in
+    match all with
+    | false -> flags t
+    | true  ->
+        List.fold_left
+          As_flags.(@@@)
+          As_flags.empty
+          (List.map flags (parents t))
 
-  let contents = function
-  | `Unit u -> Unit.contents u
-  | `Other o -> Other.contents o
-  | `Pkg p -> Pkg.contents p
-  | `Lib l -> Lib.contents l
-  | `Bin b -> Bin.contents b
-  | `Container d -> Container.contents d
-  | `Test t -> Test.contents t
-  | `Doc d -> Doc.contents d
+  let rules = base_rules
 
-  let with_deps x = function
-  | `Unit u -> `Unit (Unit.with_deps x u)
-  | `Other o -> `Other (Other.with_deps x o)
-  | `Pkg p -> `Pkg (Pkg.with_deps x p)
-  | `Lib l -> `Lib (Lib.with_deps x l)
-  | `Bin b -> `Bin (Bin.with_deps x b)
-  | `Container d -> `Container (Container.with_deps x d)
-  | `Test t -> `Test (Test.with_deps x t)
-  | `Doc d -> `Doc (Doc.with_deps x d)
-
-  let with_parent x = function
-  | `Unit u -> `Unit (Unit.with_parent x u)
-  | `Other o -> `Other (Other.with_parent x o)
-  | `Pkg p -> `Pkg (Pkg.with_parent x p)
-  | `Lib l -> `Lib (Lib.with_parent x l)
-  | `Bin b -> `Bin (Bin.with_parent x b)
-  | `Container d -> `Container (Container.with_parent x d)
-  | `Test t -> `Test (Test.with_parent x t)
-  | `Doc d -> `Doc (Doc.with_parent x d)
-
-  let generated_files = function
-  | `Unit u -> Unit.generated_files u
-  | `Other o -> Other.generated_files o
-  | `Pkg p -> Pkg.generated_files p
-  | `Lib l -> Lib.generated_files l
-  | `Bin b -> Bin.generated_files b
-  | `Container d -> Container.generated_files d
-  | `Test t -> Test.generated_files t
-  | `Doc d -> Doc.generated_files d
+  let files t =
+    let files = base_files t in
+    let available = available ~all:true t in
+    List.map (fun (a, files) ->
+        As_features.(available &&& a), files
+      ) files
 
   let source t x =
     let error () =
@@ -447,9 +300,9 @@ end = struct
     in
     match t with
     | `Unit u ->
-        (match Unit.source_dir u with
-         | Some dir -> dir / As_action.string_of_file (name t) x
-         | None -> error ())
+        (match u.base_payload.u_origin with
+         | `Path p -> path p / As_action.string_of_file (name t) x
+         | _ -> error ())
     | _ -> error ()
 
   let build_dir t r = match parent t with
@@ -460,19 +313,19 @@ end = struct
     build_dir t r / As_action.string_of_file (name t) x
 
   let unit = function `Unit x -> Some x | _ -> None
-  let unit_ocaml = function `Unit x when x.u_kind = `OCaml -> Some x | _ -> None
-  let unit_c = function `Unit x when x.u_kind = `C -> Some x | _ -> None
-  let unit_js = function `Unit x when x.u_kind = `Js -> Some x | _ -> None
+  let unit_ocaml = function `Unit x when x.base_payload.u_kind = `OCaml -> Some x | _ -> None
+  let unit_c = function `Unit x when x.base_payload.u_kind = `C -> Some x | _ -> None
+  let unit_js = function `Unit x when x.base_payload.u_kind = `Js -> Some x | _ -> None
   let other = function `Other x -> Some x | _ -> None
 
   let pkg = function `Pkg x -> Some x | _ -> None
-  let pkg_kind k = function `Pkg x when Pkg.kind x = k -> Some x | _ -> None
+  let pkg_kind k = function `Pkg x when x.base_payload.p_kind = k -> Some x | _ -> None
   let pkg_ocaml = pkg_kind `OCaml
   let pkg_ocaml_pp = pkg_kind `OCaml_pp
   let pkg_c = pkg_kind `C
 
   let lib = function `Lib x -> Some x | _ -> None
-  let lib_kind k = function `Lib x when Lib.kind x = k -> Some x | _ -> None
+  let lib_kind k = function `Lib x when x.base_payload.l_kind = k -> Some x | _ -> None
   let lib_ocaml = lib_kind `OCaml
   let lib_ocaml_pp = lib_kind `OCaml_pp
 
@@ -500,19 +353,19 @@ end = struct
           | _ -> aux acc t
         else (
           Hashtbl.add deps_tbl (id h) 0;
-          let contents = match h with
-          | `Lib l when link ->
-              let contents = Set.of_list (Lib.contents l) in
-              conmap deps (Lib.contents l)
-              |> List.filter (fun x -> not (Set.mem x contents))
+          let contents = match kind h with
+          | `Lib when link ->
+              let c = Set.of_list (contents h) in
+              conmap deps (contents h)
+              |> List.filter (fun x -> not (Set.mem x c))
           | _ -> contents h in
           let deps = deps h @ contents in
           let d' = if not link then deps else
             List.filter
               (function
               | `Unit _ -> true
-              | `Pkg pkg when Pkg.kind pkg = `OCaml -> true
-              | `Lib lib when Lib.kind lib = `OCaml -> true
+              | `Pkg pkg when pkg.base_payload.p_kind = `OCaml -> true
+              | `Lib lib when lib.base_payload.l_kind = `OCaml -> true
               | _ -> false)
               deps in
           aux acc (d' @ d)
@@ -560,12 +413,7 @@ end = struct
 
 end
 
-and Rule: sig
-  val link: As_action.file -> component As_action.rule
-  val mkdir: component As_action.rule
-  val files: component -> As_resolver.t -> component As_action.node list -> string list
-  val phony_run: component -> string
-end = struct
+module Rule = struct
 
   let link (x:As_action.file) =
     As_action.rule
@@ -598,172 +446,147 @@ end = struct
 
 end
 
-and Unit: sig
-  include Component_ext with type t = comp_unit
-  type kind = [`OCaml|`C|`Js]
-  val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list ->
-    string -> kind -> [`Path of string list | `Other of other] -> t
-  val pack : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> string -> t list -> t
-  val generated: t -> bool
-  val kind: t -> [`OCaml | `C | `Js]
-  val has: As_action.file -> t -> bool
-  val source_dir: t -> string option
-  (* not exported *)
-  val map: (t -> t) -> t list -> t list
-  val comp_flags: component list -> build_dir:string -> As_resolver.t -> As_flags.t
-end = struct
+module Container = struct
+
+  type t = container
+
+  let rules _ = [Rule.mkdir]
+
+  let create ?(available = As_features.true_) ?flags ?deps name contents =
+    let flags = match flags with
+    | None   -> None
+    | Some f -> Some (fun _ _ -> f) in
+    let base = Base.create ~available ?flags ?deps ~rules name `Container () in
+    let c = ref base in
+    let contents = Component.map
+        (Component.with_parent (fun () -> `Container !c)) contents
+    in
+    c := Base.with_contents contents base;
+    !c
+
+end
+
+module Other = struct
+
+  type t = other
+
+  let self_targets_aux rules =
+    let aux acc r =
+      List.fold_left (fun acc -> function
+        | `Self s -> As_action.FileSet.add s acc
+        | _ -> acc
+        ) acc r.As_action.targets
+    in
+    List.fold_left aux As_action.FileSet.empty rules
+    |> As_action.FileSet.to_list
+
+  let self_targets t = self_targets_aux (Component.rules (`Other t))
+
+  let create ?(available=As_features.true_) ?flags ?deps name rules =
+    let files = [available, self_targets_aux rules] in
+    let flags = match flags with
+    | None   -> None
+    | Some f -> Some (fun _ _ -> f)
+    in
+    let rules _ = rules in
+    Base.create ~available ?flags ?deps ~files ~rules name `Other ()
+
+end
+
+module Pkg = struct
+
+  type kind = [ `OCaml | `OCaml_pp | `C ]
+  type t = pkg
+  let name t = Component.name (`Pkg t)
+
+  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
+      ?(opt = false) name kind
+    =
+    let opt_feature name kind =
+      let kind = match kind with
+      | `OCaml -> "OCaml"
+      | `OCaml_pp -> "OCaml pre-processor"
+      | `C -> "C"
+      in
+      let doc = sprintf "%s %s package available" name kind in
+      As_features.create name ~default:true ~doc
+    in
+    let pkg_f = if opt then opt_feature name kind else As_features.true_ in
+    let available = As_features.(available &&& pkg_f) in
+    let flags t r =
+      let open As_flags in
+      flags @@@ As_resolver.pkgs r [name]
+    in
+    Base.create ~flags ~available name `Pkg { p_kind = kind }
+
+  let opt t = Component.available (`Pkg t) <> As_features.true_
+  let kind t = t.base_payload.p_kind
+
+  (* Builtin packages *)
+
+  let compiler_libs_toplevel = create "compiler-libs.toplevel" `OCaml
+  let ctypes_stub = create "ctypes.stubs" `OCaml
+end
+
+module Unit = struct
+
   type t = comp_unit
   type kind = [`OCaml|`C|`Js]
-  let name t = t.u_name
-  let id t = "unit-" ^ name t
-  let kind t = t.u_kind
-  let has kind t = t.u_has kind
-  let available t = t.u_available
-  let contents _t = []
-  let parent t = match t.u_parent with None -> None | Some f -> Some (f ())
-  let with_parent c t = { t with u_parent = Some c }
-  let with_deps u_deps t = { t with u_deps }
-  let source_dir t = match t.u_origin with
-  | `Path p -> Some (path p)
-  | _ -> None
+  let kind t = t.base_payload.u_kind
 
   let map fn ts =
     List.map (fun u -> `Unit u) ts
     |> Component.map (function `Unit u -> `Unit (fn u) | x -> x)
     |> Component.(filter unit)
 
-  let generated t = match t.u_origin with
+  let source_dir t = match t.base_payload.u_origin with
+  | `Path p -> Some (path p)
+  | _ -> None
+
+  let generated t = match t.base_payload.u_origin with
   | `Path _  -> false
   | `Other _ -> true
-
-  let deps t = match t.u_origin with
-  | `Path _  ->  t.u_deps
-  | `Other o -> `Other o :: t.u_deps
-
-  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = []) name (kind:[`OCaml|`C|`Js]) origin
-    =
-    let has (file:As_action.file) =
-      let check k files =
-        if k <> kind then false
-        else match origin with
-        | `Path p -> List.exists (fun f ->
-            Sys.file_exists (path p /  As_action.string_of_file name f)
-          ) files
-        | `Other o -> List.exists (fun f ->
-            List.mem f (Other.self_targets o)
-          ) files
-      in
-      match file with
-      | `Source f -> (match origin with
-        | `Path p -> Sys.file_exists (path p / As_action.string_of_file name f)
-        | _ -> false)
-      | `Dir -> false
-      | `Mli -> check `OCaml [`Mli]
-      | `Ml  -> check `OCaml [`Ml]
-      | `Dep x -> check `OCaml [(x:>As_action.file)]
-      | `Cmti -> check `OCaml [`Mli]
-      | `Cmt -> check `OCaml [`Ml]
-      | `Cmi -> check `OCaml [`Ml;`Mli;`Cmi]
-      | `Cmo -> check `OCaml [`Ml;`Cmo]
-      | `Cmx -> check `OCaml [`Ml;`Cmx]
-      | `Cma -> check `OCaml [`Ml;`Cmo;`Cma]
-      | `Cmxa | `Cmxs | `A | `Byte | `Native -> false
-      | `C -> check `C [`C]
-      | `O -> check `C [`C;`O] || check `OCaml [`Ml; `O]
-      | `So -> check `C [`C;`O]
-      | `Js -> check `Js [`Js]
-      | (`Ext _ | `Other _) as x ->
-          match origin with
-          | `Other o -> List.mem x (Other.self_targets o)
-          | _ -> false
-    in
-    let is_generated = match origin with `Path _ -> false | _ -> true in
-    if not is_generated && kind = `OCaml && not (List.exists has [`Ml;`Mli])
-    then
-      As_shell.fatal_error 1
-        "unit %s: cannot find %s.ml or %s.mli in `%s', stopping.\n"
-        name name name
-        (match origin with `Other _ -> "." | `Path p -> path p / "")
-    else if not is_generated && kind = `C && not (has `C) then
-      As_shell.fatal_error 1
-        "unit %s: cannot find %s.c in `%s', stopping.\n"
-        name name
-        (match origin with `Other _ -> "."  | `Path p -> path p / "")
-    else if not is_generated && kind = `Js && not (has `Js) then
-      As_shell.fatal_error 1
-        "unit %s: cannot find %s.js in `%s', stopping.\n"
-        name name
-        (match origin with `Other _ -> "." | `Path p -> path p / "/")
-    else
-    { u_name = name; u_available = available; u_deps = deps; u_origin = origin;
-      u_flags = flags; u_kind = `OCaml; u_has = has; u_parent = None; }
-
-  let pack ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps=[]) name units =
-    let pack =
-      Container.create ~flags:(As_flags.for_pack name)
-        ("pack-" ^ name)
-        (List.map (fun u -> `Unit u) units)
-    in
-    let units =
-      Container.contents pack
-      |> Component.(filter unit)
-    in
-    let has = function `Cmo | `Cmx -> true | _ -> false in
-    let actions =
-      let cmos =
-        List.filter (Unit.has `Cmo) units
-        |> List.map (fun u -> `N (`Unit u, `Cmo))
-      in
-      let cmxs =
-        List.filter (Unit.has `Cmx) units
-        |> List.map (fun u -> `N (`Unit u, `Cmx))
-      in
-      [ As_action.rule
-          ~phase:(`Compile `Byte)
-          ~targets:[`Self `Cmo; `Self `Cmi]
-          ~prereqs:(`Self `Dir :: cmos)
-          (fun t r f ->
-             let cmos = Rule.files t r cmos in
-             As_action.create "%s -pack %s %s -o %s"
-               (As_resolver.ocamlc r)
-               (String.concat " " (As_flags.get (`Compile `Byte) f))
-               (String.concat " " cmos)
-               (Component.file t r `Cmo))
-      ; As_action.rule
-          ~phase:(`Compile `Native)
-          ~targets:[(`Self `Cmx)]
-          ~prereqs:cmxs
-          (fun t r f ->
-             let cmxs = Rule.files t r cmxs in
-             As_action.create "%s -pack %s %s -o %s"
-               (As_resolver.ocamlopt r)
-               (String.concat " " (As_flags.get (`Compile `Native) f))
-               (String.concat " " cmxs)
-               (Component.file t r `Cmx)) ]
-    in
-    let origin = `Other (Other.create ~deps:[`Container pack] name actions) in
-    { u_name = name; u_available = available; u_flags = flags;
-      u_origin = origin;
-      u_deps = deps; u_kind = `OCaml; u_has = has; u_parent = None; }
-
-  let generated_files t =
-    match t.u_kind with
-    | `OCaml ->  [
-        As_features.byte  , [`Cmi; `Cmo];
-        As_features.native, [`Cmi; `O; `Cmx];
-        As_features.annot , [`Cmt; `Cmti];
-      ]
-    | `C -> [ As_features.true_, [`So; `So] ]
-    | `Js -> []
 
   let _string_of_kind = function
   | `C -> "c"
   | `OCaml -> "ocaml"
   | `Js -> "js"
+
+  let has (file:As_action.file) t =
+    let name = Component.name (`Unit t) in
+    let check k files =
+      if k <> t.base_payload.u_kind then false
+      else match t.base_payload.u_origin with
+      | `Path p -> List.exists (fun f ->
+          Sys.file_exists (path p /  As_action.string_of_file name f)
+        ) files
+      | `Other o -> List.exists (fun f ->
+          List.mem f (Other.self_targets o)
+        ) files
+    in
+    match file with
+    | `Source f -> (match t.base_payload.u_origin with
+      | `Path p -> Sys.file_exists (path p / As_action.string_of_file name f)
+      | _ -> false)
+    | `Dir -> false
+    | `Mli -> check `OCaml [`Mli]
+    | `Ml  -> check `OCaml [`Ml]
+    | `Dep x -> check `OCaml [(x:>As_action.file)]
+    | `Cmti -> check `OCaml [`Mli]
+    | `Cmt -> check `OCaml [`Ml]
+    | `Cmi -> check `OCaml [`Ml;`Mli;`Cmi]
+    | `Cmo -> check `OCaml [`Ml;`Cmo]
+    | `Cmx -> check `OCaml [`Ml;`Cmx]
+    | `Cma -> check `OCaml [`Ml;`Cmo;`Cma]
+    | `Cmxa | `Cmxs | `A | `Byte | `Native -> false
+    | `C -> check `C [`C]
+    | `O -> check `C [`C;`O] || check `OCaml [`Ml; `O]
+    | `So -> check `C [`C;`O]
+    | `Js -> check `Js [`Js]
+    | (`Ext _ | `Other _) as x ->
+        match t.base_payload.u_origin with
+        | `Other o -> List.mem x (Other.self_targets o)
+        | _ -> false
 
   let js_rules _t =
     [ Rule.link `Js ]
@@ -797,10 +620,10 @@ end = struct
 
   let ocaml_rules t =
     let ext file mode =
-      `Ext
-        ((match file with `Ml -> "cml" | `Mli -> "cmli")
-         ^ "-" ^
-         (match mode with `Byte -> "byte" | `Native -> "native"))
+    `Ext
+      ((match file with `Ml -> "cml" | `Mli -> "cmli")
+       ^ "-" ^
+       (match mode with `Byte -> "byte" | `Native -> "native"))
     in
     let precompile x mode =
       let y = ext x mode in
@@ -823,11 +646,11 @@ end = struct
                  (Component.file t r y))
     in
     let ocamldep x =
-      let ocaml_files = match parent t with
+      let ocaml_files = match Component.parent (`Unit t) with
       | None   -> []
       | Some p ->
           let deps =
-            deps t @ Component.deps ~all:true p
+            Component.deps ~all:true (`Unit t)
             |> Component.closure ~link:true
             |> conmap (function
               | `Lib _ as c -> Component.contents c
@@ -838,11 +661,11 @@ end = struct
           let contents = Component.(filter unit) (Component.contents p) in
           let units = deps @ contents in
           let mls =
-            List.filter (Unit.has `Ml) units
+            List.filter (has `Ml) units
             |> List.map (fun u -> `N (`Unit u, `Ml))
           in
           let mlis =
-            List.filter (Unit.has `Mli) units
+            List.filter (has `Mli) units
             |> List.map (fun u -> `N (`Unit u, `Mli))
           in
           mls @ mlis
@@ -901,13 +724,13 @@ end = struct
                (Component.file t r (ext `Ml `Native)))])
 
   let rules t =
-    (match t.u_origin with
-     | `Other o -> o.o_actions
+    (match t.base_payload.u_origin with
+     | `Other o -> Component.rules (`Other o)
      | `Path _  -> [])
-    @ (match parent t with
+    @ (match t.base_parent with
       | None   -> [Rule.mkdir]
       | Some _ -> [])
-    @ match kind t with
+    @ match t.base_payload.u_kind with
     | `C     -> c_rules t
     | `Js    -> js_rules t
     | `OCaml -> ocaml_rules t
@@ -974,166 +797,123 @@ end = struct
     v (`Pp `Byte) (pp_flags `Byte deps r) @@@
     v (`Pp `Native) (pp_flags `Native deps r)
 
-  let flags t r =
-    let deps = deps t |> Component.closure ~link:true in
-    let build_dir = Component.build_dir (`Unit t) r in
+  let mk_flags t r =
+    let c = `Unit t in
+    (* FIXME: Component.closure ~link:true [c] ? *)
+    let deps = Component.deps c |> Component.closure ~link:true in
+    let build_dir = Component.build_dir c r in
     let open As_flags in
-    t.u_flags @@@ comp_flags deps ~build_dir r
+    comp_flags deps ~build_dir r
 
-end
-
-and Other : sig
-  include Component_ext with type t = other
-  val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> string ->
-    component As_action.rule list -> t
-  val empty: t
-  val self_targets : t -> As_action.file list
-end = struct
-  type t = other
-
-  let name t = t.o_name
-  let id t = "other-" ^ name t
-  let available g = g.o_available
-  let deps t = t.o_deps
-  let with_deps o_deps t = { t with o_deps }
-  let parent t = match t.o_parent with None -> None | Some f -> Some (f ())
-  let with_parent c o = { o with o_parent = Some c }
-  let contents _t = []
-  let flags t _ = t.o_flags
-  let rules t = t.o_actions
+  let files = function
+  | `OCaml -> [
+      As_features.byte  , [`Cmi; `Cmo];
+      As_features.native, [`Cmi; `O; `Cmx];
+      As_features.annot , [`Cmt; `Cmti];
+    ]
+  | `C -> [ As_features.true_, [`So; `So] ]
+  | `Js -> []
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = []) o_name o_actions
+      ?(deps = []) name (kind:kind) origin
     =
-    { o_name; o_available = available; o_flags = flags; o_deps = deps;
-      o_actions; o_parent = None; }
-
-  let empty = create "empty" []
-
-  let self_targets t =
-    let aux acc r =
-      List.fold_left (fun acc -> function
-        | `Self s -> As_action.FileSet.add s acc
-        | _ -> acc
-        ) acc r.As_action.targets
+    let deps = match origin with
+    | `Path _  ->  deps
+    | `Other o -> `Other o :: deps
     in
-    List.fold_left aux As_action.FileSet.empty t.o_actions
-    |> As_action.FileSet.to_list
+    let is_generated = match origin with `Path _ -> false | _ -> true in
+    let files = files kind in
+    let flags t r =
+      let open As_flags in
+      flags @@@ mk_flags t r
+    in
+    let t = Base.create ~available ~deps ~flags ~files ~rules name `Unit
+        {u_kind = kind; u_origin = origin; } in
+    if not is_generated
+    && kind = `OCaml
+    && not (List.exists (fun f -> has f t) [`Ml;`Mli])
+    then
+      As_shell.fatal_error 1
+        "unit %s: cannot find %s.ml or %s.mli in `%s', stopping.\n"
+        name name name
+        (match origin with `Other _ -> "." | `Path p -> path p / "")
+    else if not is_generated && kind = `C && not (has `C t) then
+      As_shell.fatal_error 1
+        "unit %s: cannot find %s.c in `%s', stopping.\n"
+        name name
+        (match origin with `Other _ -> "."  | `Path p -> path p / "")
+    else if not is_generated && kind = `Js && not (has `Js t) then
+      As_shell.fatal_error 1
+        "unit %s: cannot find %s.js in `%s', stopping.\n"
+        name name
+        (match origin with `Other _ -> "." | `Path p -> path p / "/")
+    else
+    t
 
-  (* the files are supposed to be taken into account by the component
-     it is part of. *)
-  let generated_files _t = []
-
-end
-
-and Pkg: sig
-  include Component_ext with type t = pkg
-  type kind = [ `OCaml | `OCaml_pp | `C ]
-  val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?opt:bool -> string -> kind -> t
-  val opt: t -> bool
-  val kind : t -> kind
-  val compiler_libs_toplevel : t
-  val ctypes_stub : t
-end = struct
-  type kind = [ `OCaml | `OCaml_pp | `C ]
-  type t = pkg
-
-  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(opt = false) name kind
-    =
-    let opt_feature name kind =
-      let kind = match kind with
-      | `OCaml -> "OCaml"
-      | `OCaml_pp -> "OCaml pre-processor"
-      | `C -> "C"
+  let pack ?available ?flags ?deps name units =
+    let pack =
+      Container.create ~flags:(As_flags.for_pack name)
+        ("pack-" ^ name)
+        (List.map (fun u -> `Unit u) units)
+    in
+    let units =
+      Component.contents (`Container pack)
+      |> Component.(filter unit)
+    in
+    let rules =
+      let cmos =
+        List.filter (has `Cmo) units
+        |> List.map (fun u -> `N (`Unit u, `Cmo))
       in
-      let doc = sprintf "%s %s package available" name kind in
-      As_features.create name ~default:true ~doc
+      let cmxs =
+        List.filter (has `Cmx) units
+        |> List.map (fun u -> `N (`Unit u, `Cmx))
+      in
+      [ As_action.rule
+          ~phase:(`Compile `Byte)
+          ~targets:[`Self `Cmo; `Self `Cmi]
+          ~prereqs:(`Self `Dir :: cmos)
+          (fun t r f ->
+             let cmos = Rule.files t r cmos in
+             As_action.create "%s -pack %s %s -o %s"
+               (As_resolver.ocamlc r)
+               (String.concat " " (As_flags.get (`Compile `Byte) f))
+               (String.concat " " cmos)
+               (Component.file t r `Cmo))
+      ; As_action.rule
+          ~phase:(`Compile `Native)
+          ~targets:[(`Self `Cmx)]
+          ~prereqs:cmxs
+          (fun t r f ->
+             let cmxs = Rule.files t r cmxs in
+             As_action.create "%s -pack %s %s -o %s"
+               (As_resolver.ocamlopt r)
+               (String.concat " " (As_flags.get (`Compile `Native) f))
+               (String.concat " " cmxs)
+               (Component.file t r `Cmx)) ]
     in
-    let pkg_f = if opt then opt_feature name kind else As_features.true_ in
-    let p_available = As_features.(available &&& pkg_f) in
-    { p_name = name; p_flags = flags; p_available; p_kind = kind }
+    let origin = Other.create ~deps:[`Container pack] name rules in
+    create ?available ?flags ?deps name `OCaml (`Other origin)
 
-  let opt t = t.p_available <> As_features.true_
-  let name t = t.p_name
-  let id t = "pkg-" ^ name t
-  let available t = t.p_available
-  let flags t r = As_flags.(As_resolver.pkgs r [t.p_name] @@@ t.p_flags)
-  let deps _t = []
-  let with_deps _ t = t
-  let parent _t = None
-  let with_parent _ t = t
-  let contents _t = []
-  let generated_files _t = []
-  let kind t = t.p_kind
-  let rules _t = []
-
-  (* Builtin packages *)
-
-  let compiler_libs_toplevel = create "compiler-libs.toplevel" `OCaml
-  let ctypes_stub = create "ctypes.stubs" `OCaml
 end
 
-and Lib : sig
-  include Component_ext with type t = lib
-  type kind = [ `OCaml | `OCaml_pp ]
-  val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:Component.t list -> ?pack:bool ->
-    string -> kind ->
-    [`Units of [`Unit of Unit.t] list | `Other of other] -> t
-  val kind : t -> kind
-end = struct
+module Lib = struct
+
   type kind = [ `OCaml | `OCaml_pp ]
   type t = lib
 
-  let name t = t.l_name
-  let id t = "lib-" ^ name t
-  let kind t = t.l_kind
-  let deps t = t.l_deps
-  let with_deps l_deps t = { t with l_deps }
-  let parent t = match t.l_parent with None -> None | Some f -> Some (f ())
-  let with_parent c t = { t with l_parent = Some c }
-  let available t = t.l_available
-  let units t = match t.l_origin with `Units us -> us | _ -> []
-  let contents t = List.map (fun u -> `Unit u) (units t)
+  let kind t = t.base_payload.l_kind
+  let units t = match t.base_payload.l_origin with `Units us -> us | _ -> []
+  let with_origin l_origin t =
+    { t with base_payload = { t.base_payload with l_origin } }
 
-  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = []) ?(pack = false) name kind origin
-    =
-    let l = ref
-        { l_name = name; l_available = available; l_kind = kind;
-          l_origin = `Units []; l_deps = deps;
-          l_flags = flags; l_parent = None; }
-    in
-    let () = match origin with
-    | `Other o  ->
-        let files = Other.self_targets o in
-        let cma = List.mem `Cma files in
-        let cmxa = List.mem `Cmxa files in
-        let cmxs = List.mem `Cmxs files in
-        if not cma && not cmxa && not cmxs then
-          As_shell.fatal_error 1
-            "No rule to generate the files of the %s."
-            name
-        else
-        let available =
-          As_features.(available
-                       &&& (if not cma then not_ byte else true_)
-                       &&& (if not cmxa then not_ native else true_)
-                       &&& (if not cmxs then not_ native_dynlink else true_))
-        in
-        l := { !l with l_origin = `Other o; l_available = available };
-    | `Units us ->
-        let us = List.map (function `Unit u -> u) us in
-        let us = if pack then [Unit.pack name us] else us in
-        let us = Unit.map (Unit.with_parent (fun () -> `Lib !l)) us in
-        l := { !l with l_origin = `Units us };
-    in
-    !l
+  let files = [
+    As_features.byte          , [`Cma];
+    As_features.native        , [`Cmxa; `A];
+    As_features.native_dynlink, [`Cmxs];
+  ]
 
-  let flags t r =
+  let mk_flags t r =
     let us = units t in
     let build_dir = Component.build_dir (`Lib t) r in
     let incl = [sprintf "-I %s" build_dir] in
@@ -1145,9 +925,9 @@ end = struct
       List.filter (Unit.has `Cmx) us
       |> List.map (fun u -> Component.file (`Unit u) r `Cmx)
     in
-    let comp = Unit.comp_flags (deps t) ~build_dir r in
+    let comp = Unit.comp_flags t.base_deps ~build_dir r in
     let open As_flags in
-    t.l_flags @@@ comp @@@
+    comp @@@
     v `Dep incl @@@
     v (`Compile `Byte) incl @@@
     v (`Compile `Native) incl @@@
@@ -1155,16 +935,8 @@ end = struct
     v (`Archive `Native) cmx_deps @@@
     v (`Archive `Shared) cmx_deps
 
-  let generated_files t = [
-    As_features.(byte           &&& t.l_available), [`Cma];
-    As_features.(native         &&& t.l_available), [`Cmxa; `A];
-    As_features.(native_dynlink &&& t.l_available), [`Cmxs];
-  ] @ match t.l_origin with
-    | `Units us -> conmap Unit.generated_files us
-    | `Other _  -> []
-
-  let rules t = match t.l_origin with
-  | `Other o  -> o.o_actions
+  let rules t = match t.base_payload.l_origin with
+  | `Other o  -> Component.rules (`Other o)
   | `Units us ->
       let cmo_deps =
         List.filter (Unit.has `Cmo) us
@@ -1206,113 +978,63 @@ end = struct
       in
       [ Rule.mkdir; byte; native `Native; native `Shared ]
 
-end
-
-and Bin: sig
-  include Component_ext with type t = bin
-  val create :
-    ?available:As_features.t ->
-    ?flags:As_flags.t ->
-    ?deps:Component.t list ->
-    ?byte:bool ->
-    ?native:bool ->
-    ?js: bool ->
-    ?link_all:bool ->
-    ?install:bool ->
-    string ->
-    [`Units of [`Unit of Unit.t] list | `Other of other] -> t
-  val toplevel:
-    ?available:As_features.t ->
-    ?flags:As_flags.t ->
-    ?deps:Component.t list ->
-    ?custom:bool ->
-    ?install:bool ->
-    string ->
-    [`Units of [`Unit of Unit.t ] list | `Other of other] -> t
-  val js: t -> bool
-  val available: t -> As_features.t
-  val is_toplevel: t -> bool
-  val install: t -> bool
-end = struct
-  type t = bin
-
-  let name t = t.b_name
-  let id t = "bin-" ^ name t
-  let parent t = match t.b_parent with None -> None | Some f -> Some (f ())
-  let with_parent c t = { t with b_parent = Some c }
-  let is_toplevel t = t.b_toplevel
-  let install t = t.b_install
-  let available t = t.b_available
-  let js t = t.b_js
-  let deps t = t.b_deps
-  let with_deps b_deps t = { t with b_deps }
-  let units t = match t.b_origin with `Units us -> us | _ -> []
-  let contents t = List.map (fun u -> `Unit u) (units t)
-
-  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = [])
-      ?(byte = true) ?(native = true) ?(js = false)
-      ?(link_all = false) ?(install = true)
-      name origin
+  let create ?(available = As_features.true_) ?(flags = As_flags.empty) ?deps
+      ?(pack = false) name kind origin
     =
-    let available =
-      let n = native and b = byte and j = js in
-      As_features.(available &&&
-                   (if not n then not_ native else true_) &&&
-                   (if not b then not_ byte else true_) &&&
-                   (if not j then not_ js else true_))
+    let flags t r =
+      let open As_flags in
+      flags @@@ mk_flags t r
     in
-    let flags =
-      if link_all then As_flags.(linkall @@@ flags) else flags
-    in
-    let b = ref
-        { b_name = name; b_available = available; b_flags = flags; b_deps = deps;
-          b_parent = None; b_origin = `Units []; b_toplevel = false;
-          b_install = install; b_js = js }
-    in
+    let base = Base.create ~available ~flags ~rules ?deps name `Lib
+        { l_kind = kind; l_origin = `Units []; } in
+    let l = ref base in
     let () = match origin with
-    | `Units us ->
-        let us = List.map (function `Unit u -> u) us in
-        let us = Unit.map (Unit.with_parent (fun () -> `Bin !b)) us  in
-        b := { !b with b_origin = `Units us };
     | `Other o  ->
         let files = Other.self_targets o in
-        let xb = List.mem `Byte files in
-        let xn = List.mem `Native files in
-        let xj = List.mem `Js files in
+        let cma = List.mem `Cma files in
+        let cmxa = List.mem `Cmxa files in
+        let cmxs = List.mem `Cmxs files in
+        if not cma && not cmxa && not cmxs then
+          As_shell.fatal_error 1
+            "No rule to generate the files of the %s."
+            name
+        else
         let available =
-          As_features.(available &&&
-                       (if not xn then not_ native else true_) &&&
-                       (if not xb then not_ byte else true_) &&&
-                       (if not xj then not_ js else true_))
+          As_features.(available
+                       &&& (if not cma then not_ byte else true_)
+                       &&& (if not cmxa then not_ native else true_)
+                       &&& (if not cmxs then not_ native_dynlink else true_))
         in
-        b := { !b with b_origin = `Other o; b_available = available };
+        l := with_origin (`Other o) (Base.with_available available base)
+    | `Units us ->
+        let us = List.map (function `Unit u -> u) us in
+        let us = if pack then [Unit.pack name us] else us in
+        let us = Unit.map (Base.with_parent (fun () -> `Lib !l)) us in
+        let contents = List.map (fun u -> `Unit u) us in
+        l := with_origin (`Units us) (Base.with_contents contents base)
     in
-    !b
+    !l
 
-  let toplevel ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = []) ?(custom = false) ?install name comps
-    =
-    let available = As_features.(not_ native &&& available) in
-    let deps = `Pkg (Pkg.compiler_libs_toplevel) :: deps in
-    let link_byte = [
-      (if custom then "-custom " else "") ^ "-I +compiler-libs topstart.cmo"
-    ] in
-    let nflags = As_flags.v (`Link `Byte) link_byte in
-    let flags = As_flags.(flags @@@ nflags) in
-    let t = create ~available ~flags ~link_all:true ~deps ?install name comps in
-    { t with b_toplevel = true }
+end
 
-  let generated_files t = [
-    As_features.(byte   &&& t.b_available), [`Byte];
-    As_features.(native &&& t.b_available), [`Native];
-    As_features.(js     &&& t.b_available), [`Js];
-  ]
+module Bin = struct
 
-  let link_flags mode t r = match t.b_origin with
+  type t = bin
+
+  let is_toplevel t = t.base_payload.b_toplevel
+  let install t = t.base_payload.b_install
+  let js t = t.base_payload.b_js
+  let units t = match t.base_payload.b_origin with `Units us -> us | _ -> []
+  let with_origin b_origin t =
+    { t with base_payload = { t.base_payload with b_origin } }
+
+  let link_flags mode t r = match t.base_payload.b_origin with
   | `Other _  -> []
   | `Units _ ->
-      let deps = Component.closure ~link:true (deps t @ contents t) in
+      let deps =
+        Component.deps (`Bin t) @ Component.contents (`Bin t)
+        |> Component.closure ~link:true
+      in
       let local = conmap (function
         | `Unit u ->
             if not (Unit.has `Cmo u) then [] else [
@@ -1328,15 +1050,18 @@ end = struct
       let global = match Component.(filter pkg_ocaml) deps with
       | []   -> []
       | pkgs ->
-          let pkgs = List.map Pkg.name pkgs in
+          let pkgs = List.map (fun p -> Component.name (`Pkg p)) pkgs in
           let pkgs = As_resolver.pkgs r pkgs in
           match mode with
           | `Byte   -> As_flags.get (`Link `Byte) pkgs
           | `Native -> As_flags.get (`Link `Native) pkgs in
       global @ local
 
-  let flags t r =
-    let deps = Component.closure ~link:true (deps t) in
+  let mk_flags t r =
+    let deps =
+      Component.deps (`Bin t)
+      |> Component.closure ~link:true
+    in
     let build_dir = Component.build_dir (`Bin t) r in
     let incl = [sprintf "-I %s" build_dir] in
     let comp = Unit.comp_flags deps ~build_dir r in
@@ -1348,7 +1073,7 @@ end = struct
       v (`Link `Byte) (link_flags `Byte t r) @@@
       v (`Link `Native) (link_flags `Native t r)
     in
-    As_flags.(flags @@@ comp @@@ t.b_flags)
+    As_flags.(flags @@@ comp)
 
   let rules t =
     let deps = Component.deps (`Bin t) @ Component.contents (`Bin t) in
@@ -1404,55 +1129,89 @@ end = struct
              (Component.file t r `Js))
     in
     [ Rule.mkdir; byte; native; js ]
-    @ match t.b_origin with
-    | `Other o -> o.o_actions
+    @ match t.base_payload.b_origin with
+    | `Other o -> Component.rules (`Other o)
     | `Units _ -> []
+
+
+  let files = [
+    As_features.byte  , [`Byte];
+    As_features.native, [`Native];
+    As_features.js    , [`Js];
+  ]
+
+  let create ?(available = As_features.true_) ?(flags=As_flags.empty) ?deps
+      ?(byte = true) ?(native = true) ?(js = false)
+      ?(link_all = false) ?(install = true)
+      name origin
+    =
+    let available =
+      let n = native and b = byte and j = js in
+      As_features.(available &&&
+                   (if not n then not_ native else true_) &&&
+                   (if not b then not_ byte else true_) &&&
+                   (if not j then not_ js else true_))
+    in
+    let flags t r =
+      let open As_flags in
+      (if link_all then linkall @@@ flags else flags)
+      @@@ mk_flags t r
+    in
+    let base = Base.create ~available ~flags ~rules ~files ?deps name `Bin
+        { b_origin = `Units []; b_toplevel = false;
+          b_install = install; b_js = js }
+    in
+    let b = ref base in
+    let () = match origin with
+    | `Units us ->
+        let us = List.map (function `Unit u -> u) us in
+        let us = Unit.map (Base.with_parent (fun () -> `Bin !b)) us in
+        let contents = List.map (fun u -> `Unit u) us in
+        b := with_origin (`Units us) (Base.with_contents contents base)
+    | `Other o  ->
+        let files = Other.self_targets o in
+        let xb = List.mem `Byte files in
+        let xn = List.mem `Native files in
+        let xj = List.mem `Js files in
+        let available =
+          As_features.(available &&&
+                       (if not xn then not_ native else true_) &&&
+                       (if not xb then not_ byte else true_) &&&
+                       (if not xj then not_ js else true_))
+        in
+        b := with_origin (`Other o) (Base.with_available available base)
+    in
+    !b
+
+  let toplevel ?(available = As_features.true_) ?(flags = As_flags.empty)
+      ?(deps = []) ?(custom = false) ?install name comps
+    =
+    let available = As_features.(not_ native &&& available) in
+    let deps = `Pkg (Pkg.compiler_libs_toplevel) :: deps in
+    let link_byte = [
+      (if custom then "-custom " else "") ^ "-I +compiler-libs topstart.cmo"
+    ] in
+    let nflags = As_flags.v (`Link `Byte) link_byte in
+    let flags = As_flags.(flags @@@ nflags) in
+    let t = create ~available ~flags ~link_all:true ~deps ?install name comps in
+    { t with base_payload = { t.base_payload with b_toplevel = true } }
 
 end
 
-and Test: sig
-  include Component_ext with type t = test
-  type args = test_args
-  type command = test_command
-  val create: ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:Component.t list -> ?dir:string -> string -> command list -> t
-end = struct
+module Test = struct
+
   type args = test_args
   type command = test_command
   type t = test
 
-  let name t = t.t_name
-  let id t = "test-" ^ name t
-  let available t = t.t_available
-  let flags t _ = t.t_flags
-  let generated_files _t = []
-  let deps t = t.t_deps
-  let with_deps t_deps t = { t with t_deps }
-  let parent t = match t.t_parent with None -> None | Some f -> Some (f ())
-  let with_parent c t = { t with t_parent = Some c }
-  let contents _t = []
-
-  let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = []) ?dir name cmds
-    =
-    let bin_deps =
-      let add_dep acc = function
-      | `Shell _ -> acc | `Bin (`Bin bin, _) -> `Bin bin :: acc
-      in
-      List.fold_left add_dep [] cmds
-    in
-    { t_name = name; t_available = available; t_flags = flags;
-      t_deps = bin_deps @ deps; t_dir = dir; t_commands = cmds;
-      t_parent = None; }
-
-  let commands t = t.t_commands
-  let dir t = t.t_dir
+  let commands t = t.base_payload.t_commands
+  let dir t = t.base_payload.t_dir
 
   let rules t =
     let deps = List.fold_left (fun acc -> function
       | `Bin _ as c -> `N (c, `Byte) :: acc
       | _ -> acc
-      ) [] (deps t) in
+      ) [] (Component.deps (`Test t)) in
     [ Rule.mkdir;
       As_action.rule
         ~phase:`Test
@@ -1474,43 +1233,28 @@ end = struct
            |> As_action.seq
         )]
 
+  let create ?available ?flags ?(deps = [])
+      ?dir name cmds =
+    let deps =
+      let add_dep acc = function
+      | `Shell _ -> acc | `Bin (`Bin bin, _) -> `Bin bin :: acc
+      in
+      List.fold_left add_dep deps cmds
+    in
+    let flags = match flags with
+    | None   -> None
+    | Some f -> Some (fun _ _ -> f)
+    in
+    Base.create ?available ?flags ~rules ~deps name `Test
+      { t_dir = dir; t_commands = cmds; }
+
 end
 
-and Doc: sig
-  include Component_ext with type t = doc
-  val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?install:bool ->
-    string -> component list -> t
-end = struct
+module Doc = struct
+
   type t = doc
-  let name t = t.doc_name
-  let id t = "doc-" ^ name t
 
-  let create ?(available=As_features.true_) ?(flags=As_flags.empty)
-      ?(deps=[]) ?(install=true) name contents =
-    { doc_name = name; doc_contents = contents;
-      doc_available = available; doc_flags = flags;
-      doc_install = install; doc_deps = deps;
-      doc_parent = None; }
-
-  (* FIXME: support opamdoc *)
-  let generated_files _t = []
-  let contents t = t.doc_contents
-  let parent t = match t.doc_parent with None -> None | Some f -> Some (f ())
-  let with_parent c t = { t with doc_parent = Some c }
-  let deps t = t.doc_deps
-  let with_deps doc_deps t = { t with doc_deps }
-  let available t = t.doc_available
-
-  let units t =
-    List.fold_left (fun acc -> function
-      | `Unit u -> u :: acc
-      | `Lib l -> Component.(filter unit) (Lib.contents l) @ acc
-      | _ -> acc
-      ) [] (contents t)
-    |> List.rev
-
-  let flags t r =
+  let mk_flags t r =
     let deps = Component.closure ~link:true [`Doc t] in
     let pkgs =
       deps
@@ -1530,9 +1274,15 @@ end = struct
       |> List.rev_map (fun d -> "-I " ^ d)
     in
     let open As_flags in
-    t.doc_flags @@@
     v `Doc (get (`Compile `Byte) pkgs) @@@
     v `Doc incls
+
+  let units t =
+    List.fold_left (fun acc -> function
+      | `Unit u -> u :: acc
+      | c -> Component.(filter unit) (Component.contents c) @ acc
+      ) [] (Component.contents (`Doc t))
+    |> List.rev
 
   (* FIXME: support opamdoc *)
   let rules t =
@@ -1541,7 +1291,7 @@ end = struct
     [ Rule.mkdir
     ; As_action.rule
         ~phase:`Doc
-        ~targets:[`Phony (Doc.id t)]
+        ~targets:[`Phony (Component.id (`Doc t))]
         ~prereqs:(`Self `Dir :: deps)
         (fun t r f ->
            let files = conmap (fun u ->
@@ -1560,6 +1310,15 @@ end = struct
              (String.concat " " flags)
              (String.concat " " files)
              dir) ]
+
+  let create ?available ?(flags = As_flags.empty) ?deps
+      ?(install = true) name contents =
+    let flags t r =
+      let open As_flags in
+      flags @@@ mk_flags t r
+    in
+    Base.create ?available ~flags ?deps ~rules name `Doc
+      { doc_install = install; }
 
 end
 
@@ -1588,13 +1347,7 @@ let unionmap fn t =
     ) As_features.Set.empty t
 
 let features t =
-  let libs =
-    let libs = Component.(filter lib_ocaml t.components) in
-    unionmap (fun x -> As_features.atoms (Lib.available x)) libs in
-  let pps  =
-    let pps = Component.(filter lib_ocaml_pp t.components) in
-    unionmap (fun x -> As_features.atoms (Lib.available x)) pps in
-  let bins =
-    let bins = Component.(filter bin t.components) in
-    unionmap (fun x -> As_features.atoms (Bin.available x)) bins in
-  As_features.(builtin ++ libs ++ pps ++ bins)
+  let all =
+    unionmap (fun x -> As_features.atoms (Component.available x)) t.components
+  in
+  As_features.(builtin ++ all)

@@ -82,8 +82,8 @@ let bin ?available ?flags ?deps ?byte ?native ?js ?link_all ?install name units 
   `Bin (As_project.Bin.create ?available ?flags ?deps ?byte ?native ?js ?link_all
           ?install name units)
 
-let container ?available ?flags ?deps ?install name contents =
-  `Container (As_project.Container.create ?available ?flags ?deps ?install name contents)
+let container ?available ?flags ?deps name contents =
+  `Container (As_project.Container.create ?available ?flags ?deps name contents)
 
 let doc ?available ?flags ?deps ?install name contents =
   `Doc (As_project.Doc.create ?available ?flags ?deps ?install name contents)

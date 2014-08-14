@@ -367,7 +367,6 @@ val bin : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
 
 val container : ?available:Features.t -> ?flags:Flags.t ->
   ?deps:component list ->
-  ?install:bool ->
   string -> component list -> [> `Container of container ]
 (** FIXME: doc *)
 

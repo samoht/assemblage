@@ -154,7 +154,7 @@ module META = struct
         |> As_project.Component.(filter pkg_ocaml)
         |> List.map As_project.Pkg.name
         |> String.concat " " in
-      let name = As_project.Lib.name lib in
+      let name = As_project.Component.name (`Lib lib) in
       bprintf buf "version  = \"%s\"\n" version;
       bprintf buf "requires = \"%s\"\n" requires;
       bprintf buf "archive(byte) = \"%s.cma\"\n" name;
@@ -165,7 +165,7 @@ module META = struct
     List.iteri (fun i lib ->
         if i = 0 then one lib
         else (
-          bprintf buf "package \"%s\" (" (As_project.Lib.name lib);
+          bprintf buf "package \"%s\" (" (As_project.Component.name (`Lib lib));
           one lib;
           bprintf buf ")\n"
         )
