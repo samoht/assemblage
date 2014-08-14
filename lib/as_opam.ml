@@ -41,7 +41,7 @@ module Install = struct
       bprintf buf "lib: [\n";
       if meta then bprintf buf "  \"META\"\n";
       List.iter (fun l ->
-          let gens = As_project.Lib.generated_files l in
+          let gens = As_project.Component.files (`Lib l) in
           List.iter (fun (flags, files) ->
               List.iter (fun file ->
                   let file = As_project.Component.file (`Lib l) r file in
@@ -53,12 +53,12 @@ module Install = struct
     if bins <> [] then (
       bprintf buf "bin: [\n";
       List.iter (fun b ->
-          let gens = As_project.Bin.generated_files b in
+          let gens = As_project.Component.files (`Bin b) in
           List.iter (fun (flags, files) ->
               List.iter (fun file ->
                   let file = As_project.Component.file (`Bin b) r file in
                   bprintf buf "  \"%s%s\" {\"%s\"}\n"
-                    (opt flags) file (As_project.Bin.name b)
+                    (opt flags) file (As_project.Component.name (`Bin b))
                 ) files;
             ) gens;
         ) bins;

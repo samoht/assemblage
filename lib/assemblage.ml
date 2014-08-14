@@ -37,7 +37,7 @@ type other = As_project.other
 type pkg = As_project.pkg
 type lib = As_project.lib
 type bin = As_project.bin
-type dir = As_project.dir
+type container = As_project.container
 type test = As_project.test
 type doc = As_project.doc
 
@@ -82,8 +82,8 @@ let bin ?available ?flags ?deps ?byte ?native ?js ?link_all ?install name units 
   `Bin (As_project.Bin.create ?available ?flags ?deps ?byte ?native ?js ?link_all
           ?install name units)
 
-let dir ?available ?flags ?deps ?install name contents =
-  `Dir (As_project.Dir.create ?available ?flags ?deps ?install name contents)
+let container ?available ?flags ?deps name contents =
+  `Container (As_project.Container.create ?available ?flags ?deps name contents)
 
 let doc ?available ?flags ?deps ?install name contents =
   `Doc (As_project.Doc.create ?available ?flags ?deps ?install name contents)

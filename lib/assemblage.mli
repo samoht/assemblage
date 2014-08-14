@@ -289,8 +289,8 @@ type lib
 type bin
 (** The type for binary executable descriptions. *)
 
-type dir
-(** The type for directory of file artifacts descriptions. *)
+type container
+(** The type for containers of components. *)
 
 type test
 (** The type for test descriptions. *)
@@ -304,7 +304,7 @@ type component =
   | `Lib of lib
   | `Pkg of pkg
   | `Bin of bin
-  | `Dir of dir
+  | `Container of container
   | `Test of test
   | `Doc of doc ]
 (** The type for components.
@@ -365,18 +365,19 @@ val bin : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
     default, the source files are located into {i bin/} (this is
     controled by the value of [dir]). *)
 
-val dir : ?available:Features.t -> ?flags:Flags.t ->
+val container : ?available:Features.t -> ?flags:Flags.t ->
   ?deps:component list ->
-  ?install:bool ->
-  [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root | `Etc | `Doc
-  | `Misc | `Stublibs | `Man | `Other of string ] -> component list ->
-  [> `Dir of dir ]
+  string -> component list -> [> `Container of container ]
+(** FIXME: doc *)
+
+(*
 (** [dir name ~available ~flags ~deps contents] is a directory named
     [name] that contains the build artefacts of the component [contents].
     If [install] is [true] (default), the artifacts are installed in the
     corresponding directory under the install prefix. It is only available
     whenever [available] is true, it must be build with [flags] and
     depends on [deps] and [contents] to be built. *)
+*)
 
 val pkg : ?available:Features.t -> ?flags:Flags.t -> ?opt:bool -> string ->
   [> `Pkg of pkg]

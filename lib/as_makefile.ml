@@ -313,11 +313,11 @@ let mk_flags r phase t =
   let suffix = As_flags.string_of_phase phase in
   let fn = As_flags.get phase in
   let var = As_project.Component.id t ^ "." ^ suffix in
-  let global = match As_project.Component.container t with
+  let global = match As_project.Component.parent t with
   | None   -> [sprintf "$(%s)" suffix]
-  | Some c -> [sprintf "$(%s.%s)" (As_project.Container.id ~all:false c) suffix]
+  | Some p -> [sprintf "$(%s.%s)" (As_project.Component.id p) suffix]
   in
-  let flags = global @ fn (As_project.Component.flags t r) in
+  let flags = global @ fn (As_project.Component.flags ~all:false t r) in
   Variable.(var =?= `Strings flags)
 
 (* Replace all flags value with a flag variable in which the value is
@@ -376,8 +376,8 @@ module Unit: S with type t = As_project.comp_unit = struct
   let variable r t =
     let c = `Unit t in
     let name = match As_project.Unit.source_dir t with
-    | None   -> As_project.Unit.name t
-    | Some d -> d / As_project.Unit.name t in
+    | None   -> As_project.Component.name (`Unit t)
+    | Some d -> d / As_project.Component.name (`Unit t) in
     let phases = As_project.Component.phases c in
     match As_project.Unit.kind t with
     | `OCaml ->
@@ -394,7 +394,11 @@ module Unit: S with type t = As_project.comp_unit = struct
           [mk_flags r (`Compile `Js) (`Unit t)]
 
   let variables r ts = List.map (variable r) ts
-  let rule r t = List.map (mk_rule r (`Unit t)) (As_project.Unit.rules t)
+
+  let rule r t =
+    let c = `Unit t in
+    List.map (mk_rule r c) (As_project.Component.rules c)
+
   let rules r ts = conmap (rule r) ts
 end
 
@@ -416,7 +420,7 @@ module Lib: S with type t = As_project.lib = struct
 
   let variable r t =
     Variable.stanza
-      ~doc:[sprintf "Library: %s" (As_project.Lib.name t)]
+      ~doc:[sprintf "Library: %s" (As_project.Component.name (`Lib t))]
       (let c = `Lib t in
        let cma = As_project.Component.file c r `Cma in
        let a = As_project.Component.file c r `A in
@@ -425,23 +429,24 @@ module Lib: S with type t = As_project.lib = struct
        let byte = [ byte_f, `Strings [cma] ] in
        let native = [ native_f, `Strings [a; cmxa] ] in
        let native_dynlink = [ native_dynlink_f, `Strings [cmxs] ] in
-       let id = As_project.Lib.id t in
+       let id = As_project.Component.id c in
        let phases = As_project.Component.phases c
        in Variable.(id =:= `Strings [])
-       :: Variable.(id =+= case (As_project.Lib.available t) byte)
-       :: Variable.(id =+= case (As_project.Lib.available t) native)
-       :: Variable.(id =+= case (As_project.Lib.available t) native_dynlink)
+       :: Variable.(id =+= case (As_project.Component.available c) byte)
+       :: Variable.(id =+= case (As_project.Component.available c) native)
+       :: Variable.(id =+= case (As_project.Component.available c) native_dynlink)
        :: List.map (fun phase -> mk_flags r phase c) phases)
 
   let variables r ts =
-    let targets = List.map As_project.Lib.id ts in
+    let targets = List.map (fun t -> As_project.Component.id (`Lib t)) ts in
     Variable.stanza [Variable.("lib" =:= `Strings targets)]
     :: List.map (variable r) ts
 
   let rule r t =
-    let id = As_project.Component.id (`Lib t) in
+    let c = `Lib t in
+    let id = As_project.Component.id c in
     Rule.create ~targets:[id] ~prereqs:[sprintf "$(%s)" id] []
-    :: List.map (mk_rule r (`Lib t)) (As_project.Lib.rules t)
+    :: List.map (mk_rule r c) (As_project.Component.rules c)
 
   let rules r ts =
     Rule.create ~targets:["lib"] ~prereqs:["$(lib)"] []
@@ -456,34 +461,35 @@ module Bin: S with type t = As_project.bin = struct
   let variable r t =
     let c = `Bin t in
     Variable.stanza
-      ~doc:[sprintf "Binary: %s" (As_project.Bin.name t)]
+      ~doc:[sprintf "Binary: %s" (As_project.Component.name c)]
       (let byte = As_project.Component.file c r `Byte in
        let native = As_project.Component.file c r `Native in
        let js = As_project.Component.file c r `Js in
        let byte = [ byte_f, `Strings [byte] ] in
        let native = [ native_f, `Strings [native] ] in
        let js = [ js_f, `Strings [js] ] in
-       let id = As_project.Bin.id t in
+       let id = As_project.Component.id c in
        let phases = As_project.Component.phases c
        in Variable.(id =:= `Strings [])
-       :: Variable.(id =+= case (As_project.Bin.available t) byte)
-       :: Variable.(id =+= case (As_project.Bin.available t) native)
-       :: Variable.(id =+= case (As_project.Bin.available t) js)
+       :: Variable.(id =+= case (As_project.Component.available c) byte)
+       :: Variable.(id =+= case (As_project.Component.available c) native)
+       :: Variable.(id =+= case (As_project.Component.available c) js)
        :: List.map (fun phase -> mk_flags r phase c) phases)
 
   let variables r ts =
-    let targets = List.map As_project.Bin.id ts in
+    let targets = List.map (fun t -> As_project.Component.id (`Bin t)) ts in
     let js_targets =
       List.filter As_project.Bin.js ts
-      |> List.map As_project.Bin.id in
+      |> List.map (fun t -> As_project.Component.id (`Bin t)) in
     Variable.stanza [Variable.("bin" =:= `Strings targets)]
     :: Variable.stanza [Variable.("js" =:= `Strings js_targets)]
     :: List.map (variable r) ts
 
   let rule r t =
-    let id = As_project.Component.id (`Bin t) in
+    let c = `Bin t in
+    let id = As_project.Component.id c in
     Rule.create ~targets:[id] ~prereqs:[sprintf "$(%s)" id] []
-    :: List.map (mk_rule r (`Bin t)) (As_project.Bin.rules t)
+    :: List.map (mk_rule r c) (As_project.Component.rules c)
 
   let rules r ts =
     Rule.create ~targets:["bin"] ~prereqs:["$(bin)"] []
@@ -492,16 +498,20 @@ module Bin: S with type t = As_project.bin = struct
 
 end
 
-module Dir: S with type t = As_project.dir = struct
-  type t = As_project.dir
+module Container: S with type t = As_project.container = struct
+  type t = As_project.container
   let variable r t =
-    let c = `Dir t in
+    let c = `Container t in
     let phases = As_project.Component.phases c in
     Variable.stanza
-      ~doc:[sprintf "Directory: %s" (As_project.Dir.name t)]
+      ~doc:[sprintf "Directory: %s" (As_project.Component.name c)]
       (List.map (fun phase -> mk_flags r phase c) phases)
   let variables r = List.map (variable r)
-  let rule r t = List.map (mk_rule r (`Dir t)) (As_project.Dir.rules t)
+
+  let rule r t =
+    let c = `Container t in
+    List.map (mk_rule r c) (As_project.Component.rules c)
+
   let rules r ts = conmap (rule r) ts
 end
 
@@ -514,9 +524,10 @@ module Test: S with type t = As_project.test = struct
     [Variable.stanza [Variable.("test" =:= `Strings targets)]]
 
   let rule r t =
-    let id = As_project.Component.id (`Test t) in
+    let c = `Test t in
+    let id = As_project.Component.id c in
     Rule.create ~targets:[id] ~prereqs:[sprintf "$(%s)" id] []
-    :: List.map (mk_rule r (`Test t)) (As_project.Test.rules t)
+    :: List.map (mk_rule r c) (As_project.Component.rules c)
 
   let rules r ts =
     Rule.create ~targets:["test"] ~prereqs:["$(test)"] []
@@ -529,20 +540,24 @@ module Doc: S with type t = As_project.doc = struct
   type t = As_project.doc
 
   let variable r t =
+    let c = `Doc t in
     Variable.stanza
-      ~doc:[sprintf "Documentation: %s" (As_project.Doc.name t)]
-      [mk_flags r `Doc (`Doc t)]
+      ~doc:[sprintf "Documentation: %s" (As_project.Component.name c)]
+      [mk_flags r `Doc c]
 
   let variables r ts =
     let add_docs = List.map (fun d ->
+        let c = `Doc d in
         Variable.("doc" =+= case As_features.true_
-                    [As_project.Doc.available d,
-                     `String (As_project.Doc.id d)])
+                    [As_project.Component.available c,
+                     `String (As_project.Component.id c)])
       ) ts in
     Variable.stanza (Variable.("doc" =:= `Strings []) :: add_docs)
     :: List.map (variable r) ts
 
-  let rule r t = List.map (mk_rule r (`Doc t)) (As_project.Doc.rules t)
+  let rule r t =
+    let c = `Doc t in
+    List.map (mk_rule r c) (As_project.Component.rules c)
 
   let rules r ts =
     Rule.create ~targets:["doc"] ~prereqs:["$(doc)"] []
@@ -556,7 +571,7 @@ let variables r ts =
   Bin.variables r (filter bin ts) @
   Test.variables r (filter test ts) @
   Doc.variables r (filter doc ts) @
-  Dir.variables r (filter dir ts) @
+  Container.variables r (filter container ts) @
   Unit.variables r (filter unit ts) @
   Other.variables r (filter other ts) @
   Pkg.variables r (filter pkg ts)
@@ -567,7 +582,7 @@ let rules r ts =
   Bin.rules r (filter bin ts) @
   Test.rules r (filter test ts) @
   Doc.rules r (filter doc ts) @
-  Dir.rules r (filter dir ts) @
+  Container.rules r (filter container ts) @
   Unit.rules r (filter unit ts) @
   Other.rules r (filter other ts) @
   Pkg.rules r (filter pkg ts)

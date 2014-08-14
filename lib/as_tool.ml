@@ -86,8 +86,8 @@ let describe p env build_env =
   let print_units units =
     let aux i n u =
         let mk f ext =
-          if f u then (As_shell.color `Cyan (As_project.Unit.name u ^ ext)) else
-          ""
+          if not (f u) then "" else
+          As_shell.color `Cyan (As_project.Component.name (`Unit u) ^ ext)
         in
         let ml = mk As_project.Unit.(has `Ml) ".ml" in
         let mli = mk As_project.Unit.(has `Mli) ".mli" in

@@ -28,7 +28,7 @@ let init flags =
 
 let modules ~build_dir unit =
   let r = As_ocamlfind.resolver `Direct  ~build_dir () in
-  let () = init (As_project.Unit.flags unit r) in
+  let () = init (As_project.Component.flags (`Unit unit) r) in
   let aux ext =
     let source = As_project.Component.source (`Unit unit) (ext:>As_action.file) in
     let build = As_project.Component.source (`Unit unit) (ext:>As_action.file) in
