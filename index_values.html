@@ -35,12 +35,6 @@ Same as <code class="code"><span class="constructor">Filename</span>.concat</cod
 </div>
 </td></tr>
 <tr><td align="left"><br>A</td></tr>
-<tr><td><a href="Assemblage.html#VALadd">add</a> [<a href="Assemblage.html">Assemblage</a>]</td>
-<td><div class="info">
-<code class="code">add t</code> registers the project <code class="code">t</code> for use by the assemblage
-    command line tools.
-</div>
-</td></tr>
 <tr><td><a href="Assemblage.Flags.html#VALannot">annot</a> [<a href="Assemblage.Flags.html">Assemblage.Flags</a>]</td>
 <td><div class="info">
 <code class="code">annot</code> is the <code class="code">-bin-annot</code> flag in appropriate contexts, only
@@ -50,6 +44,12 @@ Same as <code class="code"><span class="constructor">Filename</span>.concat</cod
 <tr><td><a href="Assemblage.Features.html#VALannot">annot</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
 <code class="code">annot</code> is true iff binary annotations files must be built.
+</div>
+</td></tr>
+<tr><td><a href="Assemblage.html#VALassemble">assemble</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<td><div class="info">
+<code class="code">assemble project</code> runs the default assemblage command line
+    tool with the assemble file <code class="code">file</code> (defaults to <code class="code">assemble.ml</code>.
 </div>
 </td></tr>
 <tr><td align="left"><br>B</td></tr>
@@ -92,11 +92,9 @@ The <code class="code">-cclib x</code> flags.
 The <code class="code">-ccopt x</code> flags.
 </div>
 </td></tr>
-<tr><td><a href="Assemblage.html#VALconfigure">configure</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<tr><td><a href="Assemblage.html#VALcontainer">container</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
-Configure the project by generating the build, META and .install
-    files, using the given build system backend (currently, only GNU
-    make is supported).
+FIXME: doc
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Action.html#VALcreate">create</a> [<a href="Assemblage.Action.html">Assemblage.Action</a>]</td>
@@ -109,13 +107,6 @@ Configure the project by generating the build, META and .install
 <tr><td><a href="Assemblage.Features.html#VALcreate">create</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
 <td><div class="info">
 <code class="code">create default name doc</code> is a feature named <code class="code">name</code>.
-</div>
-</td></tr>
-<tr><td><a href="Assemblage.html#VALcreate">create</a> [<a href="Assemblage.html">Assemblage</a>]</td>
-<td><div class="info">
-<code class="code">create name deps</code> registers the project named <code class="code">name</code>, defining
-    the libraries, binaries and tests defined by the transitive
-    closure of objects in <code class="code">deps</code>.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.html#VALcstubs">cstubs</a> [<a href="Assemblage.html">Assemblage</a>]</td>
@@ -139,17 +130,6 @@ Configure the project by generating the build, META and .install
 <tr><td><a href="Assemblage.Build_env.html#VALdefault">default</a> [<a href="Assemblage.Build_env.html">Assemblage.Build_env</a>]</td>
 <td><div class="info">
 Default project configuration.
-</div>
-</td></tr>
-<tr><td><a href="Assemblage.html#VALdescribe">describe</a> [<a href="Assemblage.html">Assemblage</a>]</td>
-<td><div class="info">
-Describe the project to stdout.
-</div>
-</td></tr>
-<tr><td><a href="Assemblage.html#VALdir">dir</a> [<a href="Assemblage.html">Assemblage</a>]</td>
-<td><div class="info">
-<code class="code">dir name ~available ~flags ~deps contents</code> is a directory named
-    <code class="code">name</code> that contains the build artefacts of the component <code class="code">contents</code>.
 </div>
 </td></tr>
 <tr><td><a href="Assemblage.Features.html#VALdoc">doc</a> [<a href="Assemblage.Features.html">Assemblage.Features</a>]</td>
@@ -235,13 +215,6 @@ Generated source file(s).
 Pack compilation units together.
 </div>
 </td></tr>
-<tr><td><a href="Assemblage.Build_env.html#VALparse">parse</a> [<a href="Assemblage.Build_env.html">Assemblage.Build_env</a>]</td>
-<td><div class="info">
-<code class="code">parse name features</code> parse the arguments given on the
-      command line as a configuration value, for the project <code class="code">name</code> with
-      the possible features <code class="code">features</code>.
-</div>
-</td></tr>
 <tr><td><a href="Assemblage.html#VALpick">pick</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
 <code class="code">unit_in c name</code> is the unit named <code class="code">name</code> is the component
@@ -270,12 +243,9 @@ Pack compilation units together.
 Resolve global package names into command line flags.
 </div>
 </td></tr>
-<tr><td><a href="Assemblage.html#VALprocess">process</a> [<a href="Assemblage.html">Assemblage</a>]</td>
+<tr><td><a href="Assemblage.html#VALproject">project</a> [<a href="Assemblage.html">Assemblage</a>]</td>
 <td><div class="info">
-<code class="code">process ~file name fn</code> reads and processes the OCaml <code class="code">file</code> in a
-    top-level environment (the default is <code class="code">assemble.ml</code>), for the
-    project called <code class="code">name</code>, and apply <code class="code">fn</code> to the projects registered
-    as side-effects.
+<code class="code">project name comps</code>  TODO
 </div>
 </td></tr>
 <tr><td align="left"><br>R</td></tr>
