@@ -8,6 +8,7 @@ license: "ISC"
 depends: [
   "cmdliner"
   "ocamlgraph"
+  "dumpast"
 ]
 build: [
   ["./bootstrap.sh"]
