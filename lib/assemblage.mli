@@ -18,8 +18,7 @@
 
     [Assemblage] provides a simple embedded domain specific language
     to describe [OCaml] {{!projects}projects}. It also provides simple
-    {{!tools}tools} to configure, manage, install and use OCaml
-    projects.
+    tools to configure, manage, install and use OCaml projects.
 
     Describing a project eventually leads to describe its build
     artifacts. The exact mapping betweem project elements and those
@@ -112,8 +111,8 @@ end
 (** Flags
 
     Flags values denote sets of partial command line arguments given
-    to tools in a given context. A context is defined by a {{!phase}phase}
-    and a {{!mode}mode}.
+    to tools in a given context. A context is defined by a compilation
+    {{!phase}phase}.
 
     FIXME describe valid context and to what they correspond. *)
 module Flags : sig

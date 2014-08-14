@@ -21,7 +21,7 @@
     tests, etc. forming a DAG.
 
     Each component as its own particularities but they all extend
-    the {!Component_base} signature. The module signature {{!Graph}Graph}
+    the {!Component} signature. The module signature {{!Graph}Graph}
     models the relation between components. *)
 
 type comp_unit

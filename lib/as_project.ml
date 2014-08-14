@@ -1318,7 +1318,7 @@ module Doc = struct
       let open As_flags in
       flags @@@ mk_flags t r
     in
-    Base.create ?available ~flags ?deps ~rules name `Doc
+    Base.create ?available ~flags ?deps ~rules ~contents name `Doc
       { doc_install = install; }
 
 end
