@@ -315,9 +315,9 @@ let mk_flags r phase t =
   let var = As_project.Component.id t ^ "." ^ suffix in
   let global = match As_project.Component.parent t with
   | None   -> [sprintf "$(%s)" suffix]
-  | Some p -> [sprintf "$(%s.%s)" (As_project.Component.id ~all:false p) suffix]
+  | Some p -> [sprintf "$(%s.%s)" (As_project.Component.id p) suffix]
   in
-  let flags = global @ fn (As_project.Component.flags t r) in
+  let flags = global @ fn (As_project.Component.flags ~all:false t r) in
   Variable.(var =?= `Strings flags)
 
 (* Replace all flags value with a flag variable in which the value is

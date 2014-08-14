@@ -800,7 +800,7 @@ module Unit = struct
   let mk_flags t r =
     let c = `Unit t in
     (* FIXME: Component.closure ~link:true [c] ? *)
-    let deps = Component.deps c |> Component.closure ~link:true in
+    let deps = Component.deps ~all:false c |> Component.closure ~link:true in
     let build_dir = Component.build_dir c r in
     let open As_flags in
     comp_flags deps ~build_dir r
@@ -1032,7 +1032,8 @@ module Bin = struct
   | `Other _  -> []
   | `Units _ ->
       let deps =
-        Component.deps (`Bin t) @ Component.contents (`Bin t)
+        Component.deps ~all:false (`Bin t)
+        @ Component.contents (`Bin t)
         |> Component.closure ~link:true
       in
       let local = conmap (function
@@ -1059,7 +1060,7 @@ module Bin = struct
 
   let mk_flags t r =
     let deps =
-      Component.deps (`Bin t)
+      Component.deps ~all:false (`Bin t)
       |> Component.closure ~link:true
     in
     let build_dir = Component.build_dir (`Bin t) r in
