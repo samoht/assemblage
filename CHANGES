@@ -1,3 +1,6 @@
+0.4.0
+- Fix regression in the generation of docs
+
 0.3.0: [Aug 2014]
 - #43 Simpler and saner command-line options handling.
   Use `--feature=[true|false]` instead of --[enable|disable]-feature
