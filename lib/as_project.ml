@@ -985,7 +985,7 @@ module Lib = struct
       let open As_flags in
       flags @@@ mk_flags t r
     in
-    let base = Base.create ~available ~flags ~rules ?deps name `Lib
+    let base = Base.create ~available ~flags ~rules ~files ?deps name `Lib
         { l_kind = kind; l_origin = `Units []; } in
     let l = ref base in
     let () = match origin with
