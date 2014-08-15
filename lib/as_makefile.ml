@@ -244,17 +244,16 @@ module Rule = struct
 end
 
 type t =
-  { makefile : string;
-    headers : string list;
-    includes : string list;
-    opt_includes : (string list * string list) list;
+  { headers : string list;
     phony : string list;
     variables : Var.stanza list;
-    rules : Rule.t list; }
+    rules : Rule.t list;
+    includes : string list;
+    opt_includes : (string list * string list) list; }
 
 let create ?(headers = []) ?(includes = []) ?(opt_includes = []) ?(phony = [])
-    makefile variables rules =
-  { makefile; phony; headers; variables; rules; includes; opt_includes }
+    variables rules =
+  { headers; phony; variables; rules; includes; opt_includes }
 
 let to_string t =
   let buf = Buffer.create 1024 in
@@ -305,8 +304,8 @@ let to_string t =
   pr_includes buf;
   Buffer.contents buf
 
-let write t =
-  printf "%s write %s\n" (As_shell.color `Green "==>") t.makefile;
-  let oc = open_out t.makefile in
+let write_file makefile t =
+  printf "%s write %s\n" (As_shell.color `Green "==>") makefile;
+  let oc = open_out makefile in
   output_string oc (to_string t);
   close_out oc

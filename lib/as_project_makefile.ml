@@ -519,5 +519,5 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
          mk `Ml @ mk `Mli
        ) units]
   in
-  As_makefile.create ~headers ~phony ~opt_includes makefile variables
+  As_makefile.create ~headers ~phony ~opt_includes variables
     (main :: clean :: distclean :: install :: help :: rules)

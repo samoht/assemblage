@@ -92,9 +92,10 @@ targets : prereqs | order-only-prerequs
       if [ext] is [true], the rule is extensible, that is uses
       [::] instead of [:]. *)
 
-  (** {1 Automatic variables}
+  (** {1 Automatic rule variables}
 
-      TODO this should be moved to variables. *)
+      These variables can be used in recipes to refer to certain
+      definitions of the rule being defined. *)
 
   val target : string
   (** The file name of the target of the rule. If the target is an
@@ -167,11 +168,11 @@ val create :
   ?headers:string list ->
   ?includes: string list ->
   ?opt_includes: (string list * string list) list ->
-  ?phony:string list ->
-  string -> Var.stanza list -> Rule.t list -> t
+  ?phony:string list -> Var.stanza list -> Rule.t list -> t
 (** Create a Makefile. *)
 
 val to_string : t -> string
-(** [to_string t] is a makefile from [t]. *)
+(** [to_string m] is a makefile from [m]. *)
 
-val write : t -> unit
+val write_file : string -> t -> unit
+(** [write_file file m] writes [m] to [file]. *)
