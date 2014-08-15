@@ -22,7 +22,7 @@ let conmap f l = List.concat (List.map f l)
 
 module StringSet = Set.Make (String)
 
-module Variable = struct
+module Var = struct
 
   type assign = string
 
@@ -249,7 +249,7 @@ type t =
     includes : string list;
     opt_includes : (string list * string list) list;
     phony : string list;
-    variables : Variable.stanza list;
+    variables : Var.stanza list;
     rules : Rule.t list; }
 
 let create ?(headers = []) ?(includes = []) ?(opt_includes = []) ?(phony = [])
@@ -264,9 +264,9 @@ let to_string t =
   | l  -> bprintf buf ".PHONY: %s\n\n" (String.concat " " l)
   in
   let pr_variables buf =
-    let pr_variable { Variable.doc; align; simplify; variables }  =
+    let pr_variable { Var.doc; align; simplify; variables }  =
       List.iter (bprintf buf "# %s\n") doc;
-      Variable.generate buf ~simplify ~align variables;
+      Var.generate buf ~simplify ~align variables;
       if doc <> [] || variables <> [] then bprintf buf "\n";
     in
     List.iter pr_variable t.variables;

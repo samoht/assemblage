@@ -14,31 +14,87 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Makefile description and generation. *)
+(** Generate Makefiles. *)
 
-module Rule: sig
-
-  (** Rules. *)
+(** Makefile variables *)
+module Var : sig
 
   type t
-  (** A rule value. *)
+  (** The type for variables. *)
 
-  val create :
-    ?ext:bool ->
-    targets:string list ->
-    prereqs:string list ->
-    ?order_only_prereqs:string list ->
-    string list ->
-    t
-  (** Generate a Makefile rule:
+  val raw_name : t -> string
+  val name : t -> string
+  (** Variable name. *)
 
-      targets : prereqs | order-only-prerequs
-         recipe
-         ...
+  type guard = (t * string) list
 
-      If [ext] is set, the rule is extensible (ie. it uses [::]
-      instead of [:].
-  *)
+  and contents =
+    [ `String of string
+    | `Strings of string list
+    | `Case of (guard * contents) list ]
+  (** Contents can be either a string or case conditions. The handler
+      case [(v1,c1) ... (vn,cn) * action] is the case enabled cases
+      where all variables [vi] are equal to [ci]. In that case the
+      action [action] is performed. *)
+
+  val (=:=) : string -> contents ->  t
+  (** [VAR := x] *)
+
+  val (=+=) : string -> contents -> t
+  (** [VAR += x] *)
+
+  val (=?=) : string -> contents -> t
+  (** [VAR ?= x] *)
+
+  val subst : t -> string -> input:string -> output:string -> t
+    (** Create a new variable by sustituting the contents of an other one.
+
+      [VAR = $(subst ${OLDVAR}:input=output)]*)
+
+  val shell : string -> string -> t
+  (** [VAR = $(shell <command>)] *)
+
+  val files : string -> dir:string -> ext:string -> t
+  (** [VAR = $(wildcard <dir>/*.<ext>)] *)
+
+  val has_feature : As_features.atom -> t
+  (** Is the given feature enabled. *)
+
+  val case : As_features.t -> (As_features.t * contents) list -> contents
+  val bool_true : string
+
+  type stanza =
+    { doc : string list;
+      align : bool;
+      simplify : bool;
+      variables: t list; }
+  (** Variable stanza. *)
+
+  val stanza : ?align:bool -> ?simplify:bool -> ?doc:string list -> t list ->
+    stanza
+end
+
+(** Makefile rules. *)
+module Rule: sig
+
+  type t
+  (** The type for makefile rules. *)
+
+  val create : ?ext:bool -> targets:string list -> prereqs:string list ->
+    ?order_only_prereqs:string list -> string list -> t
+  (** [create ext targets prereqs order_only_prereqs] is a makfile
+      rule defined as follows:
+      {v
+targets : prereqs | order-only-prerequs
+  recipe
+  ... v}
+
+      if [ext] is [true], the rule is extensible, that is uses
+      [::] instead of [:]. *)
+
+  (** {1 Automatic variables}
+
+      TODO this should be moved to variables. *)
 
   val target : string
   (** The file name of the target of the rule. If the target is an
@@ -104,76 +160,15 @@ module Rule: sig
       rule. *)
 end
 
-module Variable: sig
-
-  (** Variables. *)
-
-  type t
-  (** A variable value. *)
-
-  val raw_name : t -> string
-  val name : t -> string
-  (** Variable name. *)
-
-  type guard = (t * string) list
-
-  and contents =
-    [ `String of string
-    | `Strings of string list
-    | `Case of (guard * contents) list ]
-  (** Contents can be either a string or case conditions. The handler
-      case [(v1,c1) ... (vn,cn) * action] is the case enabled cases
-      where all variables [vi] are equal to [ci]. In that case the
-      action [action] is performed. *)
-
-  val (=:=) : string -> contents ->  t
-  (** [VAR := x] *)
-
-  val (=+=) : string -> contents -> t
-  (** [VAR += x] *)
-
-  val (=?=) : string -> contents -> t
-  (** [VAR ?= x] *)
-
-  val subst : t -> string -> input:string -> output:string -> t
-    (** Create a new variable by sustituting the contents of an other one.
-
-      [VAR = $(subst ${OLDVAR}:input=output)]*)
-
-
-
-  val shell : string -> string -> t
-  (** [VAR = $(shell <command>)] *)
-
-  val files : string -> dir:string -> ext:string -> t
-  (** [VAR = $(wildcard <dir>/*.<ext>)] *)
-
-  val has_feature : As_features.atom -> t
-  (** Is the given feature enabled. *)
-
-  val case : As_features.t -> (As_features.t * contents) list -> contents
-  val bool_true : string
-
-  type stanza =
-    { doc : string list;
-      align : bool;
-      simplify : bool;
-      variables: t list; }
-  (** Variable stanza. *)
-
-  val stanza : ?align:bool -> ?simplify:bool -> ?doc:string list -> t list ->
-    stanza
-end
-
 type t
-(** The type for Makefile documents. *)
+(** The type for makefiles. *)
 
 val create :
   ?headers:string list ->
   ?includes: string list ->
   ?opt_includes: (string list * string list) list ->
   ?phony:string list ->
-  string -> Variable.stanza list -> Rule.t list -> t
+  string -> Var.stanza list -> Rule.t list -> t
 (** Create a Makefile. *)
 
 val to_string : t -> string

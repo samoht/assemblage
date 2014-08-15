@@ -37,7 +37,7 @@ let mk_flags r phase t =
   | Some p -> [sprintf "$(%s.%s)" (As_project.Component.id p) suffix]
   in
   let flags = global @ fn (As_project.Component.flags ~all:false t r) in
-  As_makefile.Variable.(var =?= `Strings flags)
+  As_makefile.Var.(var =?= `Strings flags)
 
 (* Replace all flags value with a flag variable in which the value is
    stored. *)
@@ -85,7 +85,7 @@ let mk_rule resolver t rule =
 module type S = sig
   type t
   val rules    : As_resolver.t -> t list -> As_makefile.Rule.t list
-  val variables: As_resolver.t -> t list -> As_makefile.Variable.stanza list
+  val variables: As_resolver.t -> t list -> As_makefile.Var.stanza list
 end
 
 module Unit: S with type t = As_project.comp_unit = struct
@@ -100,15 +100,15 @@ module Unit: S with type t = As_project.comp_unit = struct
     let phases = As_project.Component.phases c in
     match As_project.Unit.kind t with
     | `OCaml ->
-        As_makefile.Variable.stanza
+        As_makefile.Var.stanza
           ~doc:[sprintf "Compilation unit: %s" name]
           (List.map (fun phase -> mk_flags r phase c) phases)
     | `C ->
-        As_makefile.Variable.stanza
+        As_makefile.Var.stanza
           ~doc:[sprintf "C file: %s" name]
           [mk_flags r (`Compile `C) (`Unit t)]
     | `Js ->
-        As_makefile.Variable.stanza
+        As_makefile.Var.stanza
           ~doc:[sprintf "JS file: %s" name]
           [mk_flags r (`Compile `Js) (`Unit t)]
 
@@ -138,7 +138,7 @@ module Lib: S with type t = As_project.lib = struct
   type t = As_project.lib
 
   let variable r t =
-    As_makefile.Variable.stanza
+    As_makefile.Var.stanza
       ~doc:[sprintf "Library: %s" (As_project.Component.name (`Lib t))]
       (let c = `Lib t in
        let cma = As_project.Component.file c r `Cma in
@@ -150,7 +150,7 @@ module Lib: S with type t = As_project.lib = struct
        let native_dynlink = [ native_dynlink_f, `Strings [cmxs] ] in
        let id = As_project.Component.id c in
        let phases = As_project.Component.phases c in
-       let open As_makefile.Variable in
+       let open As_makefile.Var in
        (id =:= `Strings [])
        :: (id =+= case (As_project.Component.available c) byte)
        :: (id =+= case (As_project.Component.available c) native)
@@ -159,7 +159,7 @@ module Lib: S with type t = As_project.lib = struct
 
   let variables r ts =
     let targets = List.map (fun t -> As_project.Component.id (`Lib t)) ts in
-    As_makefile.Variable.(stanza ["lib" =:= `Strings targets])
+    As_makefile.Var.(stanza ["lib" =:= `Strings targets])
     :: List.map (variable r) ts
 
   let rule r t =
@@ -180,7 +180,7 @@ module Bin: S with type t = As_project.bin = struct
 
   let variable r t =
     let c = `Bin t in
-    As_makefile.Variable.stanza
+    As_makefile.Var.stanza
       ~doc:[sprintf "Binary: %s" (As_project.Component.name c)]
       (let byte = As_project.Component.file c r `Byte in
        let native = As_project.Component.file c r `Native in
@@ -190,7 +190,7 @@ module Bin: S with type t = As_project.bin = struct
        let js = [ js_f, `Strings [js] ] in
        let id = As_project.Component.id c in
        let phases = As_project.Component.phases c in
-       let open As_makefile.Variable in
+       let open As_makefile.Var in
        (id =:= `Strings [])
        :: (id =+= case (As_project.Component.available c) byte)
        :: (id =+= case (As_project.Component.available c) native)
@@ -203,7 +203,7 @@ module Bin: S with type t = As_project.bin = struct
       List.filter As_project.Bin.js ts
       |> List.map (fun t -> As_project.Component.id (`Bin t))
     in
-    let open As_makefile.Variable in
+    let open As_makefile.Var in
     (stanza ["bin" =:= `Strings targets])
     :: (stanza ["js" =:= `Strings js_targets])
     :: List.map (variable r) ts
@@ -226,7 +226,7 @@ module Container: S with type t = As_project.container = struct
   let variable r t =
     let c = `Container t in
     let phases = As_project.Component.phases c in
-    As_makefile.Variable.stanza
+    As_makefile.Var.stanza
       ~doc:[sprintf "Directory: %s" (As_project.Component.name c)]
       (List.map (fun phase -> mk_flags r phase c) phases)
   let variables r = List.map (variable r)
@@ -244,7 +244,7 @@ module Test: S with type t = As_project.test = struct
 
   let variables _r ts =
     let targets = List.map (fun t -> As_project.Rule.phony_run (`Test t)) ts in
-    As_makefile.Variable.([stanza ["test" =:= `Strings targets]])
+    As_makefile.Var.([stanza ["test" =:= `Strings targets]])
 
   let rule r t =
     let c = `Test t in
@@ -264,18 +264,18 @@ module Doc: S with type t = As_project.doc = struct
 
   let variable r t =
     let c = `Doc t in
-    As_makefile.Variable.stanza
+    As_makefile.Var.stanza
       ~doc:[sprintf "Documentation: %s" (As_project.Component.name c)]
       [mk_flags r `Doc c]
 
   let variables r ts =
     let add_docs = List.map (fun d ->
         let c = `Doc d in
-        As_makefile.Variable.("doc" =+= case As_features.true_
+        As_makefile.Var.("doc" =+= case As_features.true_
                                 [As_project.Component.available c,
                                  `String (As_project.Component.id c)])) ts
     in
-    As_makefile.Variable.(stanza (("doc" =:= `Strings []) :: add_docs))
+    As_makefile.Var.(stanza (("doc" =:= `Strings []) :: add_docs))
     :: List.map (variable r) ts
 
   let rule r t =
@@ -314,17 +314,17 @@ let global_variables flags =
   let annot = As_features.annot_atom, As_flags.annot in
   let warn_error = As_features.warn_error_atom, As_flags.warn_error in
   let init phase = match As_flags.get phase flags with
-  | [] -> As_makefile.Variable.(As_flags.string_of_phase phase =:= `Strings [])
-  | l  -> As_makefile.Variable.(As_flags.string_of_phase phase =:= `Strings l)
+  | [] -> As_makefile.Var.(As_flags.string_of_phase phase =:= `Strings [])
+  | l  -> As_makefile.Var.(As_flags.string_of_phase phase =:= `Strings l)
   in
   let add phase (feature, flags) =
-    let feature = As_makefile.Variable.has_feature feature in
+    let feature = As_makefile.Var.has_feature feature in
     let var = As_flags.string_of_phase phase in
-    As_makefile.Variable.(var =+= `Case [
+    As_makefile.Var.(var =+= `Case [
         [feature, bool_true], `Strings (As_flags.get phase flags)
       ]) in
   let vars =
-    As_makefile.Variable.("all" =:= `String "lib bin")
+    As_makefile.Var.("all" =:= `String "lib bin")
     :: init (`Compile `Byte)
     :: init (`Compile `Native)
     :: init (`Link `Byte)
@@ -337,7 +337,7 @@ let global_variables flags =
     :: add (`Link `Native) debug
     :: []
   in
-  As_makefile.Variable.stanza ~align:true ~simplify:true vars
+  As_makefile.Var.stanza ~align:true ~simplify:true vars
 
 let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
     ~dumpast t =
@@ -385,18 +385,18 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
               As_features.with_default elt (List.assoc elt features)
             else elt
           ) t)
-    |> List.map As_makefile.Variable.has_feature in
+    |> List.map As_makefile.Var.has_feature in
   let variables =
     let check name =
-      let native = [ (As_makefile.Variable.has_feature
+      let native = [ (As_makefile.Var.has_feature
                         As_features.native_toolchain_atom,
-                      As_makefile.Variable.bool_true) ]
+                      As_makefile.Var.bool_true) ]
       in
       `Case [ (native, `String (name ^ ".opt")); ([], `String name) ] in
-    As_makefile.Variable.stanza ~doc:[""; "Main project configuration"; ""] []
-    :: As_makefile.Variable.stanza
+    As_makefile.Var.stanza ~doc:[""; "Main project configuration"; ""] []
+    :: As_makefile.Var.stanza
       ~align:true ~simplify:true
-      As_makefile.Variable.([
+      As_makefile.Var.([
           ("BUILDIR"     =?= `String buildir);
           ("LIBDIR"      =?= `String (As_resolver.lib_dir resolver));
           shell "ROOTDIR" "pwd";
@@ -410,10 +410,10 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
           ("LN"          =?= `String "ln -sf");
           ("MKDIR"       =?= `String "mkdir -p");
         ])
-    :: As_makefile.Variable.stanza ~align:true feature_variables
-    :: As_makefile.Variable.stanza ~doc:[""; "Global variables"; ""] []
+    :: As_makefile.Var.stanza ~align:true feature_variables
+    :: As_makefile.Var.stanza ~doc:[""; "Global variables"; ""] []
     :: global_variables
-    :: As_makefile.Variable.stanza
+    :: As_makefile.Var.stanza
       ~doc:["";
             "Component configuration.";
             "";
@@ -488,8 +488,8 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
             (As_shell.color `Underline "VAR=val");
           "@echo"; ]
        @ List.map (fun f ->
-           let v = As_makefile.Variable.has_feature f in
-           let k_v = As_makefile.Variable.(raw_name v ^ "=" ^ name v) in
+           let v = As_makefile.Var.has_feature f in
+           let k_v = As_makefile.Var.(raw_name v ^ "=" ^ name v) in
            sprintf "@echo ' - %s -- %s'"
              (As_shell.color `Underline k_v) (As_features.doc_of f)
          ) project_features
