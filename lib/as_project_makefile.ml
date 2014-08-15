@@ -20,12 +20,10 @@ let (/) x y = Filename.concat x y
 let (|>) x f = f x
 let conmap f l = List.concat (List.map f l)
 
-
 let native_dynlink_f = As_features.(native_dynlink &&& native)
 let byte_f = As_features.byte
 let native_f = As_features.native
 let js_f = As_features.js
-
 
 let bool_true = "true"
 let bool_false = "false"
@@ -476,7 +474,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
   let help =
     As_makefile.Rule.create ~targets:["help"] ~prereqs:[]
       ([sprintf "@echo 'Use %s to show the full commands.'"
-          (As_shell.color `Underline "VERBOSE=1");
+          (As_shell.color `Underline "VERBOSE=true");
         sprintf "@echo 'The following targets are available (use \"make %s\"):'"
           (As_shell.color `Underline "<target>");
         "@echo";
@@ -506,7 +504,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
           "@echo";
           "@echo";
           sprintf "@echo 'Current configuration (use \"make %s\" to modify):'"
-            (As_shell.color `Underline "VAR=val");
+            (As_shell.color `Underline "VAR=BOOL");
           "@echo"; ]
        @ List.map (fun f ->
            let v = has_feature f in
