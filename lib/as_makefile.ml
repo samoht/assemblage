@@ -16,93 +16,54 @@
 
 open Printf
 
-let (/) x y = Filename.concat x y
 let (|>) x f = f x
 let conmap f l = List.concat (List.map f l)
 
-module StringSet = Set.Make (String)
-
 module Var = struct
-
   type assign = string
-
-  type t = {
-    name  : string;
-    assign: assign;
-    value : contents;
-  }
+  type t =
+    { name : string;
+      assign : assign;
+      value : contents; }
 
   and guard = (t * string) list
-
   and contents =
     [ `String of string
     | `Strings of string list
     | `Case of (guard * contents) list ]
 
-  let compare v1 v2 = String.compare v1.name v2.name
-
-  let (=:=) name value: t =
-    { name; value; assign = ":="; }
-
-  let (=+=) name value: t =
-    { name; value; assign = "+="; }
-
-  let (=?=) name value: t =
-    { name; value; assign = "?="; }
-
-  let subst t name ~input ~output : t =
-    { name; assign = "=";
-      value = `String (sprintf "$(${%s}:%s=%s)" t.name input output);
-    }
-
   let raw_name t = t.name
-  let name t =
-    sprintf "$(%s)" t.name
+  let name t = sprintf "$(%s)" t.name
+  let compare v1 v2 = String.compare v1.name v2.name
+  let (=:=) name value = { name; assign = ":="; value }
+  let (=+=) name value = { name; assign = "+="; value }
+  let (=?=) name value = { name; assign = "?="; value }
+  let subst t name ~input ~output =
+    { name; assign = "=";
+      value = `String (sprintf "$(${%s}:%s=%s)" t.name input output); }
 
-  let bool_true = "true"
-  let bool_false = "false"
-  let has_feature f =
-    let var = String.uppercase (As_features.name f) in
-    let var = String.map (function '-' -> '_' | x -> x) var in
-    let bool_val = if As_features.default f then bool_true else bool_false in
-    ("HAS_" ^ var) =?= `String bool_val
+  let shell name command =
+    { name; assign = "=";
+      value = `String (sprintf "$(shell %s)" command) }
 
-  (* build the guard pattern *)
-  let guard features =
-    match As_features.cnf features with
-    | `Conflict -> failwith "invalid handler case"
-    | `And l    ->
-      List.map (function
-          | `P f -> has_feature f, bool_true
-          | `N f -> has_feature f, bool_false
-        ) l
-
-  (* build the full handler cases *)
-  let case available cs =
-    let cs = List.filter (fun (f,_) ->
-        As_features.(cnf (available &&& f)) <> `Conflict
-      ) cs in
-    `Case (List.map (fun (f, c) -> guard f, c) cs)
-
-  type no_internal_cases = (guard * t list) list
+  let files name ~dir ~ext =
+    { name; assign = "=";
+      value = `String (sprintf "$(wildcard %s/*.%s)" dir ext) }
 
   (* Move the guard conditions outside of the value declarations. *)
-  let move_guards (t:t): no_internal_cases =
+  type no_internal_cases = (guard * t list) list
+  let move_guards (t : t) : no_internal_cases =
     match t.value with
     | `Case cases ->
-      List.map (fun (guard, contents) ->
-          guard, [{ t with value = contents }]
-        ) cases
+        List.map (fun (guard, contents) ->
+            guard, [{ t with value = contents }]
+          ) cases
     | _ -> [[], [t]]
 
   let string_of_guard g =
     List.map (fun (k,v) -> k.name ^ "=" ^ v) g
     |> String.concat " "
     |> sprintf "{%s}"
-
-  let _string_of_guards g =
-    String.concat ", "
-      (List.map (fun (g, _) -> string_of_guard g) g)
 
   let compare_guards o1 o2 =
     let mk l =
@@ -185,20 +146,11 @@ module Var = struct
     else
       List.iter gen_variable ts
 
-  let shell name command =
-    { name; assign = "=";
-      value = `String (sprintf "$(shell %s)" command) }
-
-  let files name ~dir ~ext =
-    { name; assign = "=";
-      value = `String (sprintf "$(wildcard %s/*.%s)" dir ext) }
-
-  type stanza = {
-    doc      : string list;
-    align    : bool;
-    simplify : bool;
-    variables: t list;
-  }
+  type stanza =
+    { doc : string list;
+      align : bool;
+      simplify : bool;
+      variables : t list; }
 
   let stanza ?(align=false) ?(simplify=false) ?(doc=[]) variables =
     { doc; align; simplify; variables }

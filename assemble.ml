@@ -30,12 +30,12 @@ let lib =
   lib "assemblage"
     ~deps:[cmdliner; graph]
     (`Units [
-        unit "as_features";
-        unit "as_flags";
-        unit "as_resolver";
         unit "as_shell";
         unit "as_git";
         unit "as_makefile";
+        unit "as_features";
+        unit "as_flags";
+        unit "as_resolver";
         unit "as_build_env";
         unit "as_action";
         unit "as_project";

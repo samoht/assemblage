@@ -20,13 +20,34 @@ let (/) x y = Filename.concat x y
 let (|>) x f = f x
 let conmap f l = List.concat (List.map f l)
 
-module StringSet = Set.Make (String)
 
 let native_dynlink_f = As_features.(native_dynlink &&& native)
-
 let byte_f = As_features.byte
 let native_f = As_features.native
 let js_f = As_features.js
+
+
+let bool_true = "true"
+let bool_false = "false"
+let has_feature f =
+  let var = String.uppercase (As_features.name f) in
+  let var = String.map (function '-' -> '_' | x -> x) var in
+  let bool_val = if As_features.default f then bool_true else bool_false in
+  As_makefile.Var.("HAS_" ^ var =?= `String bool_val)
+
+let case available cs = (* build the full handler cases *)
+  let guard features = match As_features.cnf features with
+  | `Conflict -> failwith "invalid handler case"
+  | `And l    ->
+      List.map (function
+        | `P f -> has_feature f, bool_true
+        | `N f -> has_feature f, bool_false
+        ) l
+  in
+  let cs = List.filter (fun (f,_) ->
+      As_features.(cnf (available &&& f)) <> `Conflict
+    ) cs in
+  `Case (List.map (fun (f, c) -> guard f, c) cs)
 
 let mk_flags r phase t =
   let suffix = As_flags.string_of_phase phase in
@@ -318,7 +339,7 @@ let global_variables flags =
   | l  -> As_makefile.Var.(As_flags.string_of_phase phase =:= `Strings l)
   in
   let add phase (feature, flags) =
-    let feature = As_makefile.Var.has_feature feature in
+    let feature = has_feature feature in
     let var = As_flags.string_of_phase phase in
     As_makefile.Var.(var =+= `Case [
         [feature, bool_true], `Strings (As_flags.get phase flags)
@@ -385,12 +406,12 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
               As_features.with_default elt (List.assoc elt features)
             else elt
           ) t)
-    |> List.map As_makefile.Var.has_feature in
+    |> List.map has_feature in
   let variables =
     let check name =
-      let native = [ (As_makefile.Var.has_feature
+      let native = [ (has_feature
                         As_features.native_toolchain_atom,
-                      As_makefile.Var.bool_true) ]
+                      bool_true) ]
       in
       `Case [ (native, `String (name ^ ".opt")); ([], `String name) ] in
     As_makefile.Var.stanza ~doc:[""; "Main project configuration"; ""] []
@@ -488,7 +509,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
             (As_shell.color `Underline "VAR=val");
           "@echo"; ]
        @ List.map (fun f ->
-           let v = As_makefile.Var.has_feature f in
+           let v = has_feature f in
            let k_v = As_makefile.Var.(raw_name v ^ "=" ^ name v) in
            sprintf "@echo ' - %s -- %s'"
              (As_shell.color `Underline k_v) (As_features.doc_of f)

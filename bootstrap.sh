@@ -8,7 +8,7 @@ BDIR="_build/bootstrap"
 LIBDIR="lib"
 PKGS="-package cmdliner,ocamlgraph"
 
-UNITS="as_shell as_git as_features as_flags as_makefile as_resolver as_action
+UNITS="as_shell as_git as_makefile as_features as_flags as_resolver as_action
        as_build_env as_project as_ocamlfind as_project_makefile as_OCaml_incl
        as_OCaml as_opam as_env as_tool as_cmd assemblage"
 

@@ -19,23 +19,25 @@
 (** Makefile variables *)
 module Var : sig
 
+  (** {1 Variables} *)
+
   type t
   (** The type for variables. *)
 
-  val raw_name : t -> string
-  val name : t -> string
-  (** Variable name. *)
-
   type guard = (t * string) list
+  (** The type for guards. FIXME: explain. *)
 
   and contents =
     [ `String of string
     | `Strings of string list
     | `Case of (guard * contents) list ]
-  (** Contents can be either a string or case conditions. The handler
-      case [(v1,c1) ... (vn,cn) * action] is the case enabled cases
-      where all variables [vi] are equal to [ci]. In that case the
-      action [action] is performed. *)
+  (** The type for variable contents. *)
+
+  val raw_name : t -> string
+  (** [name v] is [v]'s variable name. *)
+
+  val name : t -> string
+  (** [name v] is a reference to [v] . *)
 
   val (=:=) : string -> contents ->  t
   (** [VAR := x] *)
@@ -47,9 +49,7 @@ module Var : sig
   (** [VAR ?= x] *)
 
   val subst : t -> string -> input:string -> output:string -> t
-    (** Create a new variable by sustituting the contents of an other one.
-
-      [VAR = $(subst ${OLDVAR}:input=output)]*)
+  (** [VAR = $(subst ${OLDVAR}:input=output)]*)
 
   val shell : string -> string -> t
   (** [VAR = $(shell <command>)] *)
@@ -57,18 +57,14 @@ module Var : sig
   val files : string -> dir:string -> ext:string -> t
   (** [VAR = $(wildcard <dir>/*.<ext>)] *)
 
-  val has_feature : As_features.atom -> t
-  (** Is the given feature enabled. *)
-
-  val case : As_features.t -> (As_features.t * contents) list -> contents
-  val bool_true : string
+  (** {1 Variable stanzas} *)
 
   type stanza =
     { doc : string list;
       align : bool;
       simplify : bool;
-      variables: t list; }
-  (** Variable stanza. *)
+      variables : t list; }
+  (** The type for variable stanza. *)
 
   val stanza : ?align:bool -> ?simplify:bool -> ?doc:string list -> t list ->
     stanza
