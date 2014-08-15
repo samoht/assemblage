@@ -32,7 +32,7 @@ module Var = struct
     | `Strings of string list
     | `Case of (guard * contents) list ]
 
-  let raw_name t = t.name
+  let name t = t.name
   let ref t = sprintf "$(%s)" t.name
   let compare v1 v2 = String.compare v1.name v2.name
   let (=:=) name value = { name; assign = ":="; value }

@@ -33,7 +33,7 @@ module Var : sig
     | `Case of (guard * contents) list ]
   (** The type for variable contents. *)
 
-  val raw_name : t -> string
+  val name : t -> string
   (** [name v] is [v]'s variable name. *)
 
   val ref : t -> string

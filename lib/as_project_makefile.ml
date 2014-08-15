@@ -510,7 +510,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
           "@echo"; ]
        @ List.map (fun f ->
            let v = has_feature f in
-           let k_v = As_makefile.Var.(raw_name v ^ "=" ^ ref v) in
+           let k_v = As_makefile.Var.(name v ^ "=" ^ ref v) in
            sprintf "@echo ' - %s -- %s'"
              (As_shell.color `Underline k_v) (As_features.doc_of f)
          ) project_features
