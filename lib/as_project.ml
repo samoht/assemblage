@@ -908,10 +908,10 @@ module Lib = struct
     { t with base_payload = { t.base_payload with l_origin } }
 
   let files = [
-    As_features.byte          , [`Cma];
-    As_features.native        , [`Cmxa; `A];
+    As_features.byte, [`Cmi; `Cma];
+    As_features.native, [`Cmi; `Cmxa; `A];
     As_features.native_dynlink, [`Cmxs];
-  ]
+    As_features.annot, [`Cmti]; ]
 
   let mk_flags t r =
     let us = units t in
