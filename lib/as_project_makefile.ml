@@ -87,15 +87,18 @@ let mk_rule resolver t rule =
   let action = As_action.run rule.As_action.action t resolver (meta_flags t) in
   let long = String.concat " " action in
   let short =
-    sprintf "%-45s %-30s %s"
-      (As_shell.color `Yellow (As_project.Component.id t))
-      (As_shell.color `Bold ((As_flags.string_of_phase rule.As_action.phase)))
+    sprintf "%-25s %s %s %s"
       (String.concat " " (List.map Filename.basename targets))
+      (As_shell.color `Green "<=")
+      (As_shell.color `Bold ((As_flags.string_of_phase rule.As_action.phase)))
+      (As_project.Component.id t)
   in
   let action = match action with
   | [] -> []
   | _  ->
-      sprintf "@if test -n \"$$VERBOSE\"; then echo '%s'; else echo '%s'; fi"
+      sprintf "@if test -n \"$$VERBOSE\"; \\\n\
+               \        then echo '%s'; \\\n\
+               \        else echo '%s'; fi"
         long short
       :: (List.map (fun x -> "@" ^ x) action)
   in
@@ -436,8 +439,10 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
       ~doc:["";
             "Component configuration.";
             "";
-            "Each component has variables associated to the different phases of the build.";
-            "<NAME>.<PHASE> controls the compilation options for the component <NAME>,";
+            "Each component has variables associated to the different \
+             phases of the build.";
+            "<NAME>.<PHASE> controls the compilation options for the \
+             component <NAME>,";
             "during the phase <PHASE>.";
             "";
            ] []
@@ -448,13 +453,13 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
     As_makefile.Rule.create ~ext:true ~targets:["all"] ~prereqs:[] [
       sprintf "@echo '%s %s ${all}'"
         (As_shell.color `Underline "all")
-        (As_shell.color `Yellow "=>");
+        (As_shell.color `Blue "=>");
       sprintf "@$(MAKE) $(all)";
       sprintf "@if [ \"x${HAS_JS}\" = \"x1\" ]; then $(MAKE) js; fi";
       sprintf "@if [ \"x${HAS_TEST}\" = \"x1\" ]; then $(MAKE) test; fi";
       sprintf "@if [ \"x${HAS_DOC}\" = \"x1\" ]; then $(MAKE) doc; fi";
       sprintf "@if [ \"x${HAS_FULL_DOC}\" = \"x1\" ]; then $(MAKE) full-doc; fi";
-      sprintf "@echo '\027[32m== Done!\027[m'";
+      sprintf "@echo '%s Done!'" (As_shell.color `Green "==>");
     ] in
   let clean =
     As_makefile.Rule.create ~ext:true ~targets:["clean"] ~prereqs:[] [
