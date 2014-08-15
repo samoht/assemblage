@@ -17,9 +17,7 @@
 open Printf
 
 let (/) x y = Filename.concat x y
-
 let (|>) x f = f x
-
 let conmap f l = List.concat (List.map f l)
 
 module StringSet = Set.Make (String)
@@ -143,7 +141,7 @@ module Variable = struct
       | `Strings []  -> gen_string v ""
       | `Strings [s] -> gen_string v s
       | `Strings ss  ->
-        let sep = " \\\n" ^ String.make 4 ' ' in
+        let sep = " \\\n    " in
         gen_string v (String.concat sep (""::ss))
     and gen_case = function
       | [guards, ts] ->
@@ -188,8 +186,7 @@ module Variable = struct
 
   let shell name command =
     { name; assign = "=";
-      value = `String (sprintf "$(shell %s)" command)
-    }
+      value = `String (sprintf "$(shell %s)" command) }
 
   let files name ~dir ~ext =
     { name; assign = "=";
@@ -204,37 +201,36 @@ module Variable = struct
 
   let stanza ?(align=false) ?(simplify=false) ?(doc=[]) variables =
     { doc; align; simplify; variables }
-
 end
 
 module Rule = struct
+  type t =
+    { ext : bool;
+      targets : string list;
+      prereqs : string list;
+      order_only_prereqs : string list;
+      recipe : string list; }
 
-  type t = {
-    ext: bool;
-    targets: string list;
-    prerequisites:string list;
-    order_only_prerequisites:string list;
-    recipe:string list;
-  }
-
-  let create ?(ext=false) ~targets ~prereqs ?(order_only_prereqs=[]) recipe =
-    { ext; targets;
-      prerequisites=prereqs;
-      order_only_prerequisites=order_only_prereqs;
-      recipe }
+  let create ?(ext = false) ~targets ~prereqs ?(order_only_prereqs=[]) recipe =
+    { ext; targets; prereqs; order_only_prereqs; recipe }
 
   let generate buf t =
-    bprintf buf "%s%s %s%s\n"
-      (String.concat " " t.targets)
-      (if t.ext then "::" else ":")
-      (String.concat " " t.prerequisites)
-      (match t.order_only_prerequisites with
-       | []  -> ""
-       | l   -> sprintf " | %s" (String.concat " " l));
-    let () = match t.recipe with
-      | [] -> bprintf buf "\t@\n"
-      | l  -> List.iter (bprintf buf "\t%s\n") l
+    let pp_reqs reqs =
+      if List.length reqs < 2 then String.concat " " reqs else
+      String.concat " \\\n    " ("" :: reqs)
     in
+    let targets = String.concat " " t.targets in
+    let ext = if t.ext then "::" else ":" in
+    let prereqs = pp_reqs t.prereqs in
+    let oo_prereqs = match t.order_only_prereqs with
+    | [] -> "" | reqs -> sprintf " \\\n    | %s" (pp_reqs reqs)
+    in
+    let generate_recipe = function
+    | [] -> bprintf buf "\t@\n"
+    | l -> List.iter (bprintf buf "\t%s\n") l
+    in
+    bprintf buf "%s%s %s%s\n" targets ext prereqs oo_prereqs;
+    generate_recipe t.recipe;
     bprintf buf "\n"
 
   let target = "$@"
@@ -244,61 +240,74 @@ module Rule = struct
   let prereqs = "$^"
   let dedup_prereqs = "$+"
   let stem = "$*"
-
 end
 
-type t = {
-  makefile: string;
-  headers: string list;
-  includes: string list;
-  opt_includes: (string list * string list) list;
-  phony: string list;
-  variables: Variable.stanza list;
-  rules: Rule.t list;
-}
+type t =
+  { makefile : string;
+    headers : string list;
+    includes : string list;
+    opt_includes : (string list * string list) list;
+    phony : string list;
+    variables : Variable.stanza list;
+    rules : Rule.t list; }
 
-let create
-    ?(headers=[])
-    ?(includes=[])
-    ?(opt_includes=[])
-    ?(phony=[])
+let create ?(headers = []) ?(includes = []) ?(opt_includes = []) ?(phony = [])
     makefile variables rules =
-  let opt_includes = ([], ["Makefile.assemble"]) :: opt_includes in
   { makefile; phony; headers; variables; rules; includes; opt_includes }
 
-let write t =
-  printf "%s write %s\n" (As_shell.color `Green "==>") t.makefile;
+let to_string t =
   let buf = Buffer.create 1024 in
-  List.iter (Buffer.add_string buf) t.headers;
-  Buffer.add_string buf "\n";
-  bprintf buf "# Run `make help' to get the list of targets.\n\n";
-  let () = match t.phony with
-    | [] -> ()
-    | l  -> bprintf buf ".PHONY: %s\n\n" (String.concat " " l)
+  let pr_headers buf = List.iter (Buffer.add_string buf) t.headers in
+  let pr_phony buf = match t.phony with
+  | [] -> ()
+  | l  -> bprintf buf ".PHONY: %s\n\n" (String.concat " " l)
   in
-  List.iter (fun { Variable.doc; align; simplify; variables } ->
+  let pr_variables buf =
+    let pr_variable { Variable.doc; align; simplify; variables }  =
       List.iter (bprintf buf "# %s\n") doc;
       Variable.generate buf ~simplify ~align variables;
       if doc <> [] || variables <> [] then bprintf buf "\n";
-    ) t.variables;
-  bprintf buf "\n";
-  List.iter (Rule.generate buf) t.rules;
-  if t.opt_includes <> [] then (
-    let with_guards, no_guards =
-      List.partition (function (g,_) -> g<>[]) t.opt_includes
     in
-    let incl files = bprintf buf "-include %s\n" (String.concat " " files) in
-    incl (conmap snd no_guards);
-    List.iter (fun (guards, files) ->
-        bprintf buf "ifneq ($(filter-out %s,$(MAKECMDGOALS)),)\n" (String.concat " " guards);
-        incl files;
+    List.iter pr_variable t.variables;
+  in
+  let pr_rules buf = List.iter (Rule.generate buf) t.rules in
+  let pr_opt_includes buf = match t.opt_includes with
+  | [] -> ()
+  | includes ->
+      let has_guard (g, _) = g <> [] in
+      let with_guards, no_guards = List.partition has_guard includes in
+      let pr_incl files =
+        let files =
+          if List.length files < 2 then String.concat " " files else
+          String.concat " \\\n    " ("" :: files)
+        in
+        bprintf buf "-include %s\n" files
+      in
+      let pr_guarded (guards, files) =
+        bprintf buf "ifneq ($(filter-out %s,$(MAKECMDGOALS)),)\n"
+          (String.concat " " guards);
+        pr_incl files;
         bprintf buf "endif\n"
-      ) with_guards
-  );
-  if t.includes <> [] then
-    bprintf buf "include %s\n" (String.concat " " t.includes);
+      in
+      pr_incl (conmap snd no_guards);
+      List.iter pr_guarded with_guards
+  in
+  let pr_includes buf = bprintf buf
+      "include %s\n" (String.concat " " t.includes)
+  in
+  pr_headers buf;
+  pr_phony buf;
+  pr_variables buf;
+  bprintf buf "\n";
+  pr_rules buf;
+  pr_opt_includes buf;
+  pr_includes buf;
+  Buffer.contents buf
+
+let write t =
+  printf "%s write %s\n" (As_shell.color `Green "==>") t.makefile;
   let oc = open_out t.makefile in
-  output_string oc (Buffer.contents buf);
+  output_string oc (to_string t);
   close_out oc
 
 (******************************************************************************)
@@ -337,7 +346,7 @@ let mk_rule resolver t rule =
   let compute_deps = match rule.As_action.targets with
   | [ `Self (`Dep _) ] -> true
   | _ -> false  in
-  let prereqs, order_only_prereqs =
+  let prereqs, oo_prereqs =
     List.partition (function
       | `Self `Dir | `N (_, `Dir) -> false
       | `N (`Unit _, (`Ml|`Mli)) when compute_deps -> false
@@ -345,7 +354,7 @@ let mk_rule resolver t rule =
       ) rule.As_action.prereqs
   in
   let prereqs = As_project.Rule.files t resolver prereqs in
-  let order_only_prereqs = As_project.Rule.files t resolver order_only_prereqs in
+  let order_only_prereqs = As_project.Rule.files t resolver oo_prereqs in
   let action = As_action.run rule.As_action.action t resolver (meta_flags t) in
   let long = String.concat " " action in
   let short =
@@ -562,7 +571,6 @@ module Doc: S with type t = As_project.doc = struct
   let rules r ts =
     Rule.create ~targets:["doc"] ~prereqs:["$(doc)"] []
     :: conmap (rule r) ts
-
 end
 
 let variables r ts =
@@ -616,11 +624,13 @@ let global_variables flags =
   in
   Variable.stanza ~align:true ~simplify:true vars
 
-let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features ~dumpast t =
+let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
+    ~dumpast t =
   let preprocessor = if dumpast then (
       if not (As_shell.try_exec "ocaml-dumpast -v") then
         As_shell.fatal_error 1
-          "ocaml-dumpast is not installed. Use `assemblage setup --dumpast=false` \
+          "ocaml-dumpast is not installed. \
+           Use `assemblage setup --dumpast=false` \
            to configure your project without it.";
       Some "$(DUMPAST) camlp4o"
     ) else None in
@@ -641,7 +651,11 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features ~dump
       ()
   in
   let headers =
-    [ sprintf "# Generated by Assemblage v%s.\n" (As_project.version t)]
+    [ sprintf "# Generated by Assemblage for %s %s.\n"
+        (As_project.name t)
+        (As_project.version t);
+      "\n";
+      "# Run `make help' to get the list of targets.\n\n"; ]
   in
   let components = As_project.components t in
   let global_variables = global_variables flags in
@@ -778,6 +792,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features ~dump
   in
   let opt_includes =
     let units = As_project.Component.(filter unit) components in
+    ([], ["Makefile.assemble"]) ::
     [["clean"; "help"; "distclean"],
      conmap (fun u ->
          let mk f =
@@ -787,10 +802,5 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features ~dump
          mk `Ml @ mk `Mli
        ) units]
   in
-  create
-    ~headers
-    ~phony
-    ~opt_includes
-    makefile
-    variables
+  create ~headers ~phony ~opt_includes makefile variables
     (main :: clean :: distclean :: install :: help :: rules)

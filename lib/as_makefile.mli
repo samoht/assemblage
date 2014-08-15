@@ -30,7 +30,7 @@ module Rule: sig
     t
   (** Generate a Makefile rule:
 
-      targets : prereqs | prereqs-only-inputs
+      targets : prereqs | order-only-prerequs
          recipe
          ...
 
@@ -100,7 +100,6 @@ module Rule: sig
       If the target name in an explicit rule does not end with a
       recognized suffix, [$*] is set to the empty string for that
       rule. *)
-
 end
 
 module Variable: sig
