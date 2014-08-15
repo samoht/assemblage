@@ -23,7 +23,8 @@ let conmap f l = List.concat (List.map f l)
 
 type mode = [`Direct|`Indirect|`Makefile]
 
-let query_indirect ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
+let query_indirect ?predicates ?format ?(uniq=false) ?(recursive=false)
+    packages =
   let predicates = match predicates with
     | None   -> ""
     | Some p -> sprintf "-predicates %s " (String.concat "," p) in
@@ -36,7 +37,7 @@ let query_indirect ?predicates ?format ?(uniq=false) ?(recursive=false) packages
   let uniq = match uniq with
     | true   -> " | uniq"
     | false  -> "" in
-  let packages = String.concat " " packages in
+  let packages = String.concat " \\\n            " packages in
   let args = String.concat "" [
       recursive; predicates; format; recursive; packages; uniq
     ] in
@@ -56,18 +57,9 @@ let query_direct ?predicates ?format ?(uniq=false) ?(recursive=false) packages =
   run (String.concat " " cmd)
 
 let query_makefile ?predicates ?format ?uniq:_ ?(recursive=false) packages =
-  let aux (cache, acc) package =
-    let cmd =
-      query_indirect ?predicates ?format ~recursive:false [package]
-      |> String.concat " "
-    in
-    let result = String.concat " " (run cmd) in
-    if StringSet.mem result cache then (cache, acc) else
-    (StringSet.add result cache, sprintf "$(shell %s)" cmd :: acc)
-  in
-  let packages = query_direct ~format:"%p" ~recursive packages in
-  List.fold_left aux (StringSet.empty, []) packages
-  |> snd |> List.rev
+  [ sprintf "$(shell %s)"
+      (String.concat " "
+         (query_indirect ?predicates ?format ~recursive:true packages)) ]
 
 let query ~mode = match mode with
   | `Direct   -> query_direct
