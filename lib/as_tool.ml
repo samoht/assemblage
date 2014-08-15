@@ -63,6 +63,7 @@ let setup p env build_env dumpast `Make =
   let build_dir = As_build_env.build_dir build_env in
   check p;
   log_project env p;
+  Printf.printf "%s write %s\n" (As_shell.color `Green "==>") makefile;
   As_makefile.write_file makefile
     (As_project_makefile.of_project p ~features ~flags ~makefile ~dumpast);
   As_ocamlfind.META.(write (of_project p));

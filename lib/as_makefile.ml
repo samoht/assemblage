@@ -305,7 +305,6 @@ let to_string t =
   Buffer.contents buf
 
 let write_file makefile t =
-  printf "%s write %s\n" (As_shell.color `Green "==>") makefile;
   let oc = open_out makefile in
   output_string oc (to_string t);
   close_out oc
