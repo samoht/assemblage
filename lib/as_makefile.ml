@@ -659,7 +659,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features ~dump
     |> List.map Variable.has_feature in
   let variables =
     let check name =
-      let native = [ (Variable.has_feature As_features.native_atom,
+      let native = [ (Variable.has_feature As_features.native_toolchain_atom,
                       Variable.bool_true) ]
       in
       `Case [ (native, `String (name ^ ".opt")); ([], `String name) ] in

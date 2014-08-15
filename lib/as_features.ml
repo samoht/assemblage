@@ -150,6 +150,10 @@ let native_dynlink_atom = create_atom
     "native-dynlink" ~default:true
     ~doc:"Native code OCaml dynamic linking is available."
 
+let native_toolchain_atom = create_atom
+    "native-toolchain" ~default:true
+    ~doc:"The native compiled OCaml toolchain is available (.opt tools)."
+
 let js_atom = create_atom
     "js" ~default:false
     ~doc:"JavaScript code OCaml compilation with js_of_ocaml is available."
@@ -170,14 +174,13 @@ let doc_atom = create_atom
     "doc" ~default:false ~doc:"Build the documentation."
 
 let builtin = List.fold_left (fun set t -> Set.add t set) Set.empty [
-    byte_atom; native_atom; native_dynlink_atom; js_atom;
-    debug_atom; annot_atom; warn_error_atom;
-    test_atom; doc_atom;
-  ]
+    byte_atom; native_atom; native_dynlink_atom; native_toolchain_atom;
+    js_atom; debug_atom; annot_atom; warn_error_atom; test_atom; doc_atom; ]
 
 let byte = atom byte_atom
 let native = atom native_atom
 let native_dynlink = atom native_dynlink_atom
+let native_toolchain = atom native_dynlink_atom
 let js = atom js_atom
 let annot = atom annot_atom
 let warn_error = atom warn_error_atom

@@ -79,7 +79,7 @@ module Features : sig
 
   (** {1 Built-in features} *)
 
-  val byte: t
+  val byte : t
   (** [byte] is true iff byte code compilation is available. *)
 
   val native : t
@@ -87,6 +87,10 @@ module Features : sig
 
   val native_dynlink : t
   (** [native_dynlink] is true iff native code dynamic linking is available. *)
+
+  val native_toolchain : t
+  (** [native_toolchain] is true iff the native compiled OCaml toolchain
+      is available ([.opt] tools). *)
 
   val js : t
   (** [js] is true iff JavaScript compilation is available. *)
@@ -105,7 +109,6 @@ module Features : sig
 
   val doc : t
   (** [public_doc] is true iff the documentation must be built. *)
-
 end
 
 (** Flags
