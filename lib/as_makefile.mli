@@ -36,8 +36,8 @@ module Var : sig
   val raw_name : t -> string
   (** [name v] is [v]'s variable name. *)
 
-  val name : t -> string
-  (** [name v] is a reference to [v] . *)
+  val ref : t -> string
+  (** [ref v] is a reference to [v] . *)
 
   val (=:=) : string -> contents ->  t
   (** [VAR := x] *)
