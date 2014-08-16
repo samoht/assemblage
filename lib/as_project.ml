@@ -108,48 +108,10 @@ type t =
     flags : As_flags.t;
     components : component list; }
 
-module type Graph = sig
-  include Graph.Sig.I
-  val iter: (V.t -> unit) -> t -> unit
-  val fold: (V.t -> 'a -> 'a) -> t -> 'a -> 'a
-  val to_list: t -> V.t list
-  val of_list: V.t list -> t
-end
-
 module type Set = sig
   include Set.S
   val to_list: t -> elt list
   val of_list: elt list -> t
-end
-
-module Graph
-    (X: sig
-       type t
-       val id: t -> string
-       val deps: t -> t list
-       val contents: t -> t list
-     end) =
-struct
-  module G = Graph.Imperative.Digraph.ConcreteBidirectional(struct
-      type t = X.t
-      let compare x y = String.compare (X.id x) (X.id y)
-      let equal x y = (X.id x) = (X.id y)
-      let hash x = Hashtbl.hash (X.id x)
-    end)
-  include G
-  include Graph.Topological.Make(G)
-
-  let to_list t =
-    fold (fun v acc -> v :: acc) t []
-    |> List.rev
-
-  let of_list ts =
-    let g = create () in
-    List.iter (fun t ->
-        let deps = X.deps t @ X.contents t in
-        List.iter (fun d -> if List.mem d ts then add_edge g d t) deps
-      ) ts;
-    g
 end
 
 module Base = struct
@@ -176,8 +138,6 @@ module Base = struct
       base_available = available; base_deps = deps;
       base_parent = None; base_files = files;
       base_payload = payload; base_rules = rules; base_flags = flags; }
-
-
 end
 
 module Component = struct
@@ -387,13 +347,6 @@ module Component = struct
     aux As_flags.PhaseSet.empty t
     |> As_flags.PhaseSet.remove `Prepare
     |> As_flags.PhaseSet.to_list
-
-  module Graph = Graph(struct
-      type t = component
-      let id = id ~all:true
-      let deps = deps ~all:true
-      let contents = contents
-    end)
 
   let map fn ts =
     let tbl = Hashtbl.create (List.length ts) in

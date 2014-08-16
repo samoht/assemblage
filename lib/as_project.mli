@@ -43,20 +43,6 @@ type component =
   | `Test of test
   | `Doc of doc ]
 
-(** Signature for graphs of components. *)
-module type Graph = sig
-  include Graph.Sig.I
-
-  val iter : (V.t -> unit) -> t -> unit
-  (** Topoligical iteration. *)
-
-  val fold : (V.t -> 'a -> 'a) -> t -> 'a -> 'a
-  (** Topological fold. *)
-
-  val to_list : t -> V.t list
-  val of_list : V.t list -> t
-end
-
 (** Rules. *)
 module Rule: sig
   val files: component -> As_resolver.t -> component As_action.node list -> string list
@@ -106,7 +92,6 @@ module Component: sig
   val map: (t -> t) -> t list -> t list
   val phases: t -> As_flags.phase list
   module Set: Set with type elt = t
-  module Graph: Graph with type V.t = t
 end
 
 (** Compilation units. *)
