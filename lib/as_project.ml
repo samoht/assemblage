@@ -274,13 +274,13 @@ module Component = struct
 
   (* Component list operations *)
 
-  let filter_map fn l =
-    List.fold_left (fun acc x ->
-        match fn x with
-        | None   -> acc
-        | Some x -> x :: acc
-      ) [] l
-    |> List.rev
+  let keep pred cs =
+    let keep acc c = if pred c then c :: acc else acc in
+    List.rev (List.fold_left keep [] cs)
+
+  let filter_map fn cs =
+    let add acc c = match fn c with None -> acc | Some v -> v :: acc in
+    List.rev (List.fold_left add [] cs)
 
   let closure ?(link=false) (ts : t list) : t list =
     let deps_tbl = Hashtbl.create 24 in

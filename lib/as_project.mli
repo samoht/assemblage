@@ -71,6 +71,7 @@ module Component : sig
 
   (** {1 Component list operations} *)
 
+  val keep : (t -> bool) -> t list -> t list
   val filter_map : (t -> 'a option) -> t list -> 'a list
   val map : (t -> t) -> t list -> t list
   val closure : ?link:bool -> t list -> t list
