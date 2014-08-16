@@ -246,7 +246,7 @@ module Component = struct
   | Some c -> As_resolver.build_dir r / id ~all:true c
 
   let file c r a = build_dir c r / As_action.string_of_file (name c) a
-  let source c af = (* FIXME this should be renamed *)
+  let source_dir c af =
     let error () =
       failwith (sprintf "%s does not have any source directory." (id c))
     in
@@ -371,10 +371,10 @@ module Rule = struct
       ~targets:[`Self x]
       ~prereqs:[`Self (`Source x); `Self `Dir]
       (fun t r _f ->
-         let source = Component.source t x in
+         let source_dir = Component.source_dir t x in
          let target = Component.file t r x in
          let cwd = As_resolver.root_dir r in
-         As_action.link r ~source:(cwd / source) ~target)
+         As_action.link r ~source:(cwd / source_dir) ~target)
 
   let mkdir =
     As_action.rule
@@ -386,7 +386,7 @@ module Rule = struct
   let files t r ns =
     List.fold_left (fun acc -> function
       | `Phony x -> x :: acc
-      | `Self (`Source f) -> Component.source t f :: acc
+      | `Self (`Source f) -> Component.source_dir t f :: acc
       | `Self f  -> Component.file t r f :: acc
       | `N (c,f) -> Component.file c r f :: acc
       ) [] ns

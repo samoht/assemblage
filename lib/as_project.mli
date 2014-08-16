@@ -66,7 +66,7 @@ module Component : sig
   val id : ?all:bool -> t -> string
   val build_dir : t -> As_resolver.t -> string
   val file : t -> As_resolver.t -> As_action.file -> string
-  val source : t -> As_action.file -> string
+  val source_dir : t -> As_action.file -> string
   val phases : t -> As_flags.phase list
 
   (** {1 Component list operations} *)
