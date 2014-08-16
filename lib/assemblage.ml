@@ -31,71 +31,71 @@ module Action = As_action
 (* Components *)
 
 type project = As_project.t
-type component = As_project.component
-type comp_unit = As_project.comp_unit
-type other = As_project.other
-type pkg = As_project.pkg
-type lib = As_project.lib
-type bin = As_project.bin
-type container = As_project.container
-type test = As_project.test
-type doc = As_project.doc
+type component = As_component.component
+type comp_unit = As_component.comp_unit
+type other = As_component.other
+type pkg = As_component.pkg
+type lib = As_component.lib
+type bin = As_component.bin
+type container = As_component.container
+type test = As_component.test
+type doc = As_component.doc
 
 let unit ?available ?flags ?deps name origin =
-  `Unit (As_project.Unit.create ?available ?flags ?deps name `OCaml origin)
+  `Unit (As_component.Unit.create ?available ?flags ?deps name `OCaml origin)
 
 let pack ?available ?flags ?deps name units =
   let units = List.map (function `Unit u -> u) units in
-  `Unit (As_project.Unit.pack ?available ?flags ?deps name units)
+  `Unit (As_component.Unit.pack ?available ?flags ?deps name units)
 
 let c ?available ?(flags=As_flags.empty) ?deps ?(cclib = []) ?(ccopt = []) name origin =
   let flags =
     let (@@@) = As_flags.(@@@) in
     flags @@@ As_flags.ccopt ccopt @@@ As_flags.cclib cclib in
-  `Unit (As_project.Unit.create ?available ~flags ?deps name `C origin)
+  `Unit (As_component.Unit.create ?available ~flags ?deps name `C origin)
 
 let js ?available ?(flags=As_flags.empty) ?deps ?(jsflags = []) name origin =
   let flags =
     let (@@@) = As_flags.(@@@) in
     flags @@@ As_flags.v (`Link `Js) jsflags in
-  `Unit (As_project.Unit.create ?available ~flags ?deps name `Js origin)
+  `Unit (As_component.Unit.create ?available ~flags ?deps name `Js origin)
 
 let other ?available ?flags ?deps name action =
-  `Other (As_project.Other.create ?available ?flags ?deps name action)
+  `Other (As_component.Other.create ?available ?flags ?deps name action)
 
 let pkg ?available ?flags ?opt name =
-  `Pkg (As_project.Pkg.create ?available ?flags ?opt name `OCaml)
+  `Pkg (As_component.Pkg.create ?available ?flags ?opt name `OCaml)
 
 let pkg_pp ?available ?flags ?opt name =
-  `Pkg (As_project.Pkg.create ?available ?flags ?opt name `OCaml_pp)
+  `Pkg (As_component.Pkg.create ?available ?flags ?opt name `OCaml_pp)
 
 let pkg_c ?available ?flags ?opt name =
-  `Pkg (As_project.Pkg.create ?available ?flags ?opt name `C)
+  `Pkg (As_component.Pkg.create ?available ?flags ?opt name `C)
 
 let lib ?available ?flags ?deps ?pack name origin =
-  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack name `OCaml origin)
+  `Lib (As_component.Lib.create ?available ?flags ?deps ?pack name `OCaml origin)
 
 let lib_pp ?available ?flags ?deps ?pack name origin =
-  `Lib (As_project.Lib.create ?available ?flags ?deps ?pack name `OCaml_pp origin)
+  `Lib (As_component.Lib.create ?available ?flags ?deps ?pack name `OCaml_pp origin)
 
 let bin ?available ?flags ?deps ?byte ?native ?js ?link_all ?install name units =
-  `Bin (As_project.Bin.create ?available ?flags ?deps ?byte ?native ?js ?link_all
+  `Bin (As_component.Bin.create ?available ?flags ?deps ?byte ?native ?js ?link_all
           ?install name units)
 
 let container ?available ?flags ?deps name contents =
-  `Container (As_project.Container.create ?available ?flags ?deps name contents)
+  `Container (As_component.Container.create ?available ?flags ?deps name contents)
 
 let doc ?available ?flags ?deps ?install name contents =
-  `Doc (As_project.Doc.create ?available ?flags ?deps ?install name contents)
+  `Doc (As_component.Doc.create ?available ?flags ?deps ?install name contents)
 
-type test_command = As_project.Test.command
+type test_command = As_component.Test.command
 
 let test ?available ?flags ?deps ?dir name commands =
-  `Test (As_project.Test.create ?available ?flags ?deps ?dir name commands)
+  `Test (As_component.Test.create ?available ?flags ?deps ?dir name commands)
 
-type test_args = As_project.Test.args
+type test_args = As_component.Test.args
 
-let test_bin bin ?args (): As_project.Test.command =
+let test_bin bin ?args (): As_component.Test.command =
   let args = match args with
   | None   -> (fun _ -> [])
   | Some a -> a
@@ -109,10 +109,10 @@ let test_shell fmt =
 
 let pick name c =
   List.find
-    (fun c -> As_project.Component.name c = name)
-    (As_project.Component.contents c)
+    (fun c -> As_component.name c = name)
+    (As_component.contents c)
 
-let build_dir = As_project.Component.build_dir
+let build_dir = As_component.build_dir
 let root_dir = As_resolver.root_dir
 
 let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
@@ -122,7 +122,7 @@ let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
   let name_stubs = name ^ "_stubs" in
 
   (* 1. compile the bindings. *)
-  let deps = `Pkg As_project.Pkg.ctypes_stub :: deps in
+  let deps = `Pkg As_component.Pkg.ctypes_stub :: deps in
   let bindings = unit name_bindings (`Path path) ~deps in
 
   (* 2. compile the generator of <name>_stubs.{ml,c} and <name>.ml *)
@@ -135,7 +135,7 @@ let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
           ~targets:[`Self `Ml]
           ~prereqs:[]
           (fun _t r _f ->
-             let dir = As_project.Component.build_dir bindings r in
+             let dir = As_component.build_dir bindings r in
              let ml_stubs = dir / name_stubs ^ ".ml" in
              let c_stubs  = dir / name_stubs ^ ".c" in
              let library  = dir / name ^ ".ml" in
@@ -158,8 +158,8 @@ let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
         ~targets:[`Self `Ml; `Self `C]
         ~prereqs:[`N (generator, `Byte)]
         (fun t r _f ->
-           let dir = As_project.Component.build_dir t r in
-           As_action.create ~dir "./%s.byte" (As_project.Component.name t))
+           let dir = As_component.build_dir t r in
+           As_action.create ~dir "./%s.byte" (As_component.name t))
     ] in
   let ml_stubs = unit name_stubs run_generator ~deps:[bindings] in
   let c_stubs = c name_stubs run_generator in

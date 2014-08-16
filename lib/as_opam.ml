@@ -33,20 +33,20 @@ module Install = struct
     let r = As_resolver.create ~build_dir () in
     let name = As_project.name t in
     let components = As_project.components t in
-    let libs = As_project.Component.(filter_map lib_ocaml components) in
+    let libs = As_component.(filter_map lib_ocaml components) in
     let bins =
-      List.filter As_project.Bin.install
-        As_project.Component.(filter_map bin components)
+      List.filter As_component.Bin.install
+        As_component.(filter_map bin components)
     in
     let buf = Buffer.create 1024 in
     if libs <> [] then (
       bprintf buf "lib: [\n";
       if meta then bprintf buf "  \"META\"\n";
       List.iter (fun l ->
-          let gens = As_project.Component.files (`Lib l) in
+          let gens = As_component.files (`Lib l) in
           List.iter (fun (flags, files) ->
               List.iter (fun file ->
-                  let file = As_project.Component.file (`Lib l) r file in
+                  let file = As_component.file (`Lib l) r file in
                   bprintf buf "  \"%s%s\"\n" (opt flags) file
                 ) files;
             ) gens;
@@ -55,12 +55,12 @@ module Install = struct
     if bins <> [] then (
       bprintf buf "bin: [\n";
       List.iter (fun b ->
-          let gens = As_project.Component.files (`Bin b) in
+          let gens = As_component.files (`Bin b) in
           List.iter (fun (flags, files) ->
               List.iter (fun file ->
-                  let file = As_project.Component.file (`Bin b) r file in
+                  let file = As_component.file (`Bin b) r file in
                   bprintf buf "  \"%s%s\" {\"%s\"}\n"
-                    (opt flags) file (As_project.Component.name (`Bin b))
+                    (opt flags) file (As_component.name (`Bin b))
                 ) files;
             ) gens;
         ) bins;

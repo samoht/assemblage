@@ -36,6 +36,7 @@ let lib =
         unit "as_resolver";
         unit "as_build_env";
         unit "as_action";
+        unit "as_component";
         unit "as_project";
         unit "as_opam";
         unit "as_ocamlfind";

@@ -28,10 +28,10 @@ let log_project env p =
 
 let check t =
   (* check that all non-dep packages are actually installed. *)
-  let pkgs = As_project.Component.(filter_map pkg) (As_project.components t) in
+  let pkgs = As_component.(filter_map pkg) (As_project.components t) in
   let not_installed = List.fold_left (fun acc pkg ->
-      let opt = As_project.Pkg.opt pkg in
-      let name = As_project.Component.name (`Pkg pkg) in
+      let opt = As_component.Pkg.opt pkg in
+      let name = As_component.name (`Pkg pkg) in
       if not opt && not (As_shell.try_exec "ocamlfind query %s" name) then
         name :: acc
       else acc
@@ -45,10 +45,10 @@ let check t =
               (String.concat " " t) h
   in
   let pkg_pp =
-    As_project.Component.(filter_map pkg_ocaml_pp) (As_project.components t)
+    As_component.(filter_map pkg_ocaml_pp) (As_project.components t)
   in
   let lib_pp =
-    As_project.Component.(filter_map lib_ocaml_pp) (As_project.components t)
+    As_component.(filter_map lib_ocaml_pp) (As_project.components t)
   in
   if (pkg_pp <> [] || lib_pp <> [])
   && not (As_shell.try_exec "ocaml-dumpast -v") then
@@ -73,8 +73,8 @@ let setup p env build_env dumpast `Make =
 let describe p env build_env =
   let open Printf in
   let print_deps x =
-    let bold_name pkg = As_shell.color `Bold (As_project.Pkg.name pkg) in
-    let pkgs = As_project.Component.(filter_map pkg x) in
+    let bold_name pkg = As_shell.color `Bold (As_component.Pkg.name pkg) in
+    let pkgs = As_component.(filter_map pkg x) in
     match String.concat " " (List.map bold_name pkgs) with
     | "" -> ""
     | pkgs -> sprintf "  ├─── [%s]\n" pkgs
@@ -89,12 +89,12 @@ let describe p env build_env =
     let aux i n u =
         let mk f ext =
           if not (f u) then "" else
-          As_shell.color `Cyan (As_project.Component.name (`Unit u) ^ ext)
+          As_shell.color `Cyan (As_component.name (`Unit u) ^ ext)
         in
-        let ml = mk As_project.Unit.(has `Ml) ".ml" in
-        let mli = mk As_project.Unit.(has `Mli) ".mli" in
+        let ml = mk As_component.Unit.(has `Ml) ".ml" in
+        let mli = mk As_component.Unit.(has `Mli) ".mli" in
         let modules =
-          if As_project.Unit.generated u then ["--generated--"]
+          if As_component.Unit.generated u then ["--generated--"]
           else
           let build_dir = As_build_env.build_dir build_env in
           As_OCaml.modules ~build_dir u in
@@ -106,7 +106,7 @@ let describe p env build_env =
     List.iteri (fun i u -> aux i n u) units in
   let print cs =
     let aux c =
-      let open As_project.Component in
+      let open As_component in
       printf "└─┬─ %s\n%s"
         (As_shell.color `Magenta (id c)) (print_deps (deps c));
         print_units (filter_map unit (contents c)) in

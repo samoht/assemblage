@@ -133,7 +133,7 @@ module META = struct
 
   let of_project t =
     let libs =
-      As_project.Component.(filter_map lib_ocaml) (As_project.components t)
+      As_component.(filter_map lib_ocaml) (As_project.components t)
     in
     let version = As_project.version t in
     let buf = Buffer.create 1024 in
@@ -141,12 +141,12 @@ module META = struct
       let c = `Lib lib in
       let requires =
         conmap
-          As_project.Component.deps (c :: As_project.Component.contents c)
-        |> As_project.Component.closure
-        |> As_project.Component.(filter_map pkg_ocaml)
-        |> List.map As_project.Pkg.name
+          As_component.deps (c :: As_component.contents c)
+        |> As_component.closure
+        |> As_component.(filter_map pkg_ocaml)
+        |> List.map As_component.Pkg.name
         |> String.concat " " in
-      let name = As_project.Component.name (`Lib lib) in
+      let name = As_component.name (`Lib lib) in
       bprintf buf "version  = \"%s\"\n" version;
       bprintf buf "requires = \"%s\"\n" requires;
       bprintf buf "archive(byte) = \"%s.cma\"\n" name;
@@ -157,7 +157,7 @@ module META = struct
     List.iteri (fun i lib ->
         if i = 0 then one lib
         else (
-          bprintf buf "package \"%s\" (" (As_project.Component.name (`Lib lib));
+          bprintf buf "package \"%s\" (" (As_component.name (`Lib lib));
           one lib;
           bprintf buf ")\n"
         )
