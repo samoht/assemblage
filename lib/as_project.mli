@@ -18,11 +18,7 @@
 
     A datastructure to describe projects. Models a project as a
     description of a set of components such as libraries, binaries,
-    tests, etc. forming a DAG.
-
-    Each component as its own particularities but they all extend
-    the {!Component} signature. The module signature {{!Graph}Graph}
-    models the relation between components. *)
+    tests, etc. forming a DAG. *)
 
 type comp_unit
 type other
@@ -33,6 +29,7 @@ type container
 type test
 type doc
 
+type kind = [ `Unit | `Pkg | `Lib | `Bin | `Container | `Test | `Doc | `Other ]
 type component =
   [ `Unit of comp_unit
   | `Other of other
@@ -43,12 +40,6 @@ type component =
   | `Test of test
   | `Doc of doc ]
 
-(** Rules. *)
-module Rule: sig
-  val files: component -> As_resolver.t -> component As_action.node list -> string list
-  val phony_run: component -> string
-end
-
 (** Signature for sets of components. *)
 module type Set = sig
   include Set.S
@@ -57,17 +48,35 @@ module type Set = sig
 end
 
 (** Component descriptions. *)
-module Component: sig
+module Component : sig
   type t = component
-  val name: t -> string
-  val id: ?all:bool -> t -> string
-  val available: ?all:bool -> t -> As_features.t
-  val flags: ?all:bool -> t -> As_resolver.t -> As_flags.t
-  val deps: ?all:bool -> t -> component list
-  val files: t -> (As_features.t * As_action.file list) list
-  val rules: t -> component As_action.rule list
-  val contents: t -> component list
-  val parent: t -> component option
+  (** The type for components. *)
+
+  (** {1 Components base fields} *)
+
+  val name : t -> string
+  val kind : t -> kind
+  val available : ?all:bool -> t -> As_features.t
+  val deps : ?all:bool -> t -> t list
+  val parent : t -> t option
+  val contents : t -> t list
+  val files : t -> (As_features.t * As_action.file list) list
+  val rules : t -> t As_action.rule list
+  val flags : ?all:bool -> t -> As_resolver.t -> As_flags.t
+  val id : ?all:bool -> t -> string
+  val build_dir : t -> As_resolver.t -> string
+  val file : t -> As_resolver.t -> As_action.file -> string
+  val source : t -> As_action.file -> string
+  val phases : t -> As_flags.phase list
+
+  (** {1 Component list operations} *)
+
+  val filter : (t -> 'a option) -> t list -> 'a list
+  val map : (t -> t) -> t list -> t list
+  val closure : ?link:bool -> t list -> t list
+
+  (** {1 Component kinds} *)
+
   val unit : t -> comp_unit option
   val unit_ocaml : t -> comp_unit option
   val unit_c : t -> comp_unit option
@@ -84,14 +93,17 @@ module Component: sig
   val container : t -> container option
   val test : t -> test option
   val doc : t -> doc option
-  val filter : (t -> 'a option) -> t list -> 'a list
-  val closure : ?link:bool -> component list -> component list
-  val build_dir: t -> As_resolver.t -> string
-  val file : t -> As_resolver.t -> As_action.file -> string
-  val source: t -> As_action.file -> string
-  val map: (t -> t) -> t list -> t list
-  val phases: t -> As_flags.phase list
-  module Set: Set with type elt = t
+
+  (** {1 Components sets} *)
+
+  module Set : Set with type elt = t
+end
+
+(** Rules. *)
+module Rule : sig
+  val files : component -> As_resolver.t -> component As_action.node list ->
+    string list
+  val phony_run : component -> string
 end
 
 (** Compilation units. *)
@@ -183,7 +195,6 @@ module Doc : sig
     ?deps:component list -> ?install:bool ->
     string -> component list -> t
 end
-
 
 (** {1 Projects} *)
 

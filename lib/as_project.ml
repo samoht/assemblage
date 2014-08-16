@@ -23,15 +23,21 @@ let path = String.concat Filename.dir_sep
 
 module StringSet = Set.Make (String)
 
-type kind =
-  [ `Unit | `Pkg | `Lib | `Bin
-  | `Container | `Test | `Doc
-  | `Other ]
+module type Set = sig
+  include Set.S
+  val to_list : t -> elt list
+  val of_list : elt list -> t
+end
 
+(* Component kinds *)
+
+type kind = [ `Unit | `Pkg | `Lib | `Bin | `Container | `Test | `Doc | `Other ]
 let string_of_kind = function
 | `Unit -> "unit" | `Pkg -> "pkg" | `Lib -> "lib"
 | `Bin -> "bin" | `Container -> "cont" | `Test -> "test"
 | `Doc -> "doc" | `Other -> "other"
+
+(* Component type *)
 
 type component =
   [ `Unit of comp_unit
@@ -44,109 +50,93 @@ type component =
   | `Other of other ]
 
 and 'a base =
-  { base_name: string;
-    base_kind: kind;
-    base_available: As_features.t;
-    base_deps: component list;
-    base_parent: (unit -> component) option;
-    base_contents: component list;
-    base_files: (As_features.t * As_action.file list) list;
-    base_rules: 'a base -> component As_action.rule list;
-    base_flags: 'a base -> As_resolver.t -> As_flags.t;
-    base_payload: 'a; }
+  { base_name : string;
+    base_kind : kind;
+    base_available : As_features.t;
+    base_deps : component list;
+    base_parent : (unit -> component) option;
+    base_contents : component list;
+    base_files : (As_features.t * As_action.file list) list;
+    base_rules : 'a base -> component As_action.rule list;
+    base_flags : 'a base -> As_resolver.t -> As_flags.t;
+    base_payload : 'a; }
 
 and container = unit base
-
 and other = unit base
 
+and comp_unit = comp_unit_ base
 and comp_unit_ =
   { u_kind : [ `OCaml | `C | `Js ];
     u_origin : [`Path of string list | `Other of other]; }
 
-and comp_unit = comp_unit_ base
-
+and pkg = pkg_ base
 and pkg_ =
   { p_kind : [`OCaml | `OCaml_pp | `C ]; }
 
-and pkg = pkg_ base
-
+and lib = lib_ base
 and lib_ =
   { l_kind : [ `OCaml | `OCaml_pp ];
     l_origin : [`Units of comp_unit list | `Other of other]; }
 
-and lib = lib_ base
-
+and bin = bin_ base
 and bin_ =
   { b_origin : [`Units of comp_unit list | `Other of other];
     b_toplevel : bool;
     b_install : bool;
-    b_js: bool; }
+    b_js : bool; }
 
-and bin = bin_ base
-
+and test = test_ base
+and test_ =
+  { t_dir : string option;
+    t_commands : test_command list; }
 and test_args = As_resolver.t -> string list
-
 and test_command =
   [ `Bin of [`Bin of bin] * test_args
   | `Shell of string ]
 
-and test_ =
-  { t_dir : string option;
-    t_commands : test_command list; }
-
-and test = test_ base
-
-and doc_ =
-  { doc_install: bool; }
-
 and doc = doc_ base
+and doc_ =
+  { doc_install : bool; }
 
-type t =
-  { name : string;
-    version : string;
-    available : As_features.t;
-    flags : As_flags.t;
-    components : component list; }
-
-module type Set = sig
-  include Set.S
-  val to_list: t -> elt list
-  val of_list: elt list -> t
-end
+(* Base components *)
 
 module Base = struct
   let name t = t.base_name
   let kind t = t.base_kind
-  let id t = string_of_kind t.base_kind ^ "-" ^ t.base_name
-  let contents t = t.base_contents
-  let with_contents base_contents t = { t with base_contents }
-  let deps t = t.base_deps
   let available t = t.base_available
-  let with_available base_available t = { t with base_available }
-  let with_deps base_deps t = { t with base_deps }
+  let deps t = t.base_deps
   let parent t = match t.base_parent with None -> None | Some f -> Some (f ())
-  let with_parent c t = { t with base_parent = Some c }
+  let contents t = t.base_contents
   let files t = t.base_files
   let rules t = t.base_rules t
   let flags t r = t.base_flags t r
+  let payload t r = t.base_payload
+  let id t = string_of_kind t.base_kind ^ "-" ^ t.base_name
+
+  let with_available base_available t = { t with base_available }
+  let with_deps base_deps t = { t with base_deps }
+  let with_parent c t = { t with base_parent = Some c }
+  let with_contents base_contents t = { t with base_contents }
 
   let create ?(available=As_features.true_) ?(flags=fun _ _ -> As_flags.empty)
       ?(deps=[]) ?(contents=[]) ?(files=[]) ?(rules=fun _ -> [])
+      ?(parent = None)
       name kind payload
     =
-    { base_name = name; base_kind = kind; base_contents = contents;
-      base_available = available; base_deps = deps;
-      base_parent = None; base_files = files;
-      base_payload = payload; base_rules = rules; base_flags = flags; }
+    { base_name = name; base_kind = kind; base_available = available;
+      base_deps = deps; base_parent = parent; base_contents = contents;
+      base_files = files; base_rules = rules; base_flags = flags;
+      base_payload = payload; }
 end
 
-module Component = struct
+(* Components *)
 
+module Component = struct
   type t = component
-  type component = t
+
+  (* Base field access *)
 
   type 'b app = { app: 'a. 'a base -> 'b }
-  type 'b map = { map: 'a. 'a base -> 'a base }
 
   let base f = function
   | `Unit u -> f.app u
@@ -158,6 +148,20 @@ module Component = struct
   | `Test t -> f.app t
   | `Doc d -> f.app d
 
+  let base_name t = base { app = Base.name } t
+  let base_kind t = base { app = Base.kind } t
+  let base_available t = base { app = Base.available } t
+  let base_deps t = base { app = Base.deps } t
+  let base_contents t = base { app = Base.contents } t
+  let base_parent t = base { app = Base.parent } t
+  let base_files t = base { app = Base.files } t
+  let base_rules t = base { app = Base.rules } t
+  let base_flags t = base { app = Base.flags } t
+  let base_id t = base { app = Base.id } t
+
+  (* Base maps *)
+
+  type 'b map = { map: 'a. 'a base -> 'a base }
   let with_base f = function
   | `Unit u -> `Unit (f.map u)
   | `Other o -> `Other (f.map o)
@@ -168,131 +172,107 @@ module Component = struct
   | `Test t -> `Test (f.map t)
   | `Doc d -> `Doc (f.map d)
 
-  let name t = base { app = Base.name } t
-  let parent t = base { app = Base.parent } t
-  let base_id t = base { app = Base.id } t
-  let base_available t = base { app = Base.available } t
-  let base_deps t = base { app = Base.deps } t
-  let contents t = base { app = Base.contents } t
-  let kind t = base { app = Base.kind } t
-  let base_files t = base { app = Base.files } t
-  let base_rules t = base { app = Base.rules } t
-  let base_flags t = base { app = Base.flags } t
+  let with_available av = with_base { map = fun c -> Base.with_available av c }
+  let with_deps ds = with_base { map = fun c -> Base.with_deps ds c }
+  let with_parent p = with_base { map = fun c -> Base.with_parent p c }
+  let with_contents cs = with_base { map = fun c -> Base.with_contents cs c}
 
-  let with_deps x = with_base { map = fun t -> Base.with_deps x t }
-  let with_parent x = with_base { map = fun t -> Base.with_parent x t }
+  (* Ancestor navigation *)
 
-  let parents t =
+  let parents c = (* FIXME this shouldn't be called parents. *)
     let rec aux acc = function
     | None   -> List.rev acc
-    | Some t -> aux (t::acc) (parent t)
+    | Some c -> aux (c :: acc) (base_parent c)
     in
-    aux [t] (parent t)
+    aux [c] (base_parent c)
 
-  let id ?(all=true) t = match all with
-  | false -> base_id t
-  | true  ->
-      let ids = List.map base_id (parents t) in
-      String.concat "-" ids
+  let id ?(all=true) t =
+    if not all then base_id t else
+    let full_ids = List.map base_id (parents t) in
+    String.concat "-" full_ids
+
+  (* Component sets *)
 
   module Set = struct
-
     include Set.Make(struct
         type t = component
-        let compare x y =
-          String.compare (id ~all:true x) (id ~all:true y)
+        let compare x y = String.compare (id ~all:true x) (id ~all:true y)
       end)
 
     let to_list = elements
-
     let of_list l =
       let add set elt = add elt set in
       List.fold_left add empty l
   end
 
-  let dedup l =
-    List.fold_left (fun (saw, result) elt ->
-        if Set.mem elt saw then (saw, result)
-        else (Set.add elt saw, elt :: result)
-      ) (Set.empty, []) l
-    |> snd |> List.rev
+  let dedup cs =
+    let add (seen, acc) c =
+      if Set.mem c seen then (seen, acc) else
+      Set.add c seen, c :: acc
+    in
+    List.rev (snd (List.fold_left add (Set.empty, []) cs))
 
-  let available ?(all=true) t = match all with
-  | false -> base_available t
-  | true  ->
-      List.fold_left
-        As_features.(&&&)
-        As_features.true_
-        (List.map base_available (parents t))
+  (* Component fields *)
 
-  let deps ?(all=true) t = match all with
-  | false -> base_deps t
-  | true  ->
-      List.fold_left
-        (@)
-        []
-        (List.map base_deps (parents t))
-      |> dedup
+  let name = base_name
+  let kind = base_kind
+  let available ?(all = true) c =
+    if not all then base_available c else
+    let full_avail = List.map base_available (parents c) in
+    List.fold_left As_features.(&&&) As_features.true_ full_avail
 
-  let flags ?(all=true) t r =
-    let open As_flags in
-    let flags t = base_flags t r in
-    match all with
-    | false -> flags t
-    | true  ->
-        List.fold_left
-          As_flags.(@@@)
-          As_flags.empty
-          (List.map flags (parents t))
+  let deps ?(all = true) c =
+    if not all then base_deps c else
+    let full_deps = List.map base_deps (parents c) in
+    dedup (List.fold_left (@) [] full_deps)
+
+  let parent = base_parent
+  let contents = base_contents
+  let files c =
+    let files = base_files c in
+    let available = available ~all:true c in
+    let add_files (a, files) = As_features.(available &&& a), files in
+    List.map add_files files
 
   let rules = base_rules
+  let flags ?(all = true) c r =
+    let resolved_flags c = base_flags c r in
+    if not all then resolved_flags c else
+    let full_flags = List.map resolved_flags (parents c) in
+    List.fold_left As_flags.(@@@) As_flags.empty full_flags
 
-  let files t =
-    let files = base_files t in
-    let available = available ~all:true t in
-    List.map (fun (a, files) ->
-        As_features.(available &&& a), files
-      ) files
+  let build_dir c r = match parent c with
+  | None   -> As_resolver.build_dir r / base_id c
+  | Some c -> As_resolver.build_dir r / id ~all:true c
 
-  let source t x =
+  let file c r a = build_dir c r / As_action.string_of_file (name c) a
+  let source c af = (* FIXME this should be renamed *)
     let error () =
-      failwith (sprintf "%s does not have any source directory." (id t))
+      failwith (sprintf "%s does not have any source directory." (id c))
     in
-    match t with
+    match c with
     | `Unit u ->
         (match u.base_payload.u_origin with
-         | `Path p -> path p / As_action.string_of_file (name t) x
+         | `Path p -> path p / As_action.string_of_file (name c) af
          | _ -> error ())
     | _ -> error ()
 
-  let build_dir t r = match parent t with
-  | None   -> As_resolver.build_dir r / base_id t
-  | Some t -> As_resolver.build_dir r / id ~all:true t
+  let phases t =
+    let rec aux acc t =
+      let phases =
+        rules t
+        |> List.map (fun r -> r.As_action.phase)
+        |> As_flags.PhaseSet.of_list
+      in
+      List.fold_left aux
+        (As_flags.PhaseSet.union phases acc)
+        (contents t)
+    in
+    aux As_flags.PhaseSet.empty t
+    |> As_flags.PhaseSet.remove `Prepare
+    |> As_flags.PhaseSet.to_list
 
-  let file t r x =
-    build_dir t r / As_action.string_of_file (name t) x
-
-  let unit = function `Unit x -> Some x | _ -> None
-  let unit_ocaml = function `Unit x when x.base_payload.u_kind = `OCaml -> Some x | _ -> None
-  let unit_c = function `Unit x when x.base_payload.u_kind = `C -> Some x | _ -> None
-  let unit_js = function `Unit x when x.base_payload.u_kind = `Js -> Some x | _ -> None
-  let other = function `Other x -> Some x | _ -> None
-
-  let pkg = function `Pkg x -> Some x | _ -> None
-  let pkg_kind k = function `Pkg x when x.base_payload.p_kind = k -> Some x | _ -> None
-  let pkg_ocaml = pkg_kind `OCaml
-  let pkg_ocaml_pp = pkg_kind `OCaml_pp
-  let pkg_c = pkg_kind `C
-
-  let lib = function `Lib x -> Some x | _ -> None
-  let lib_kind k = function `Lib x when x.base_payload.l_kind = k -> Some x | _ -> None
-  let lib_ocaml = lib_kind `OCaml
-  let lib_ocaml_pp = lib_kind `OCaml_pp
-
-  let bin = function `Bin x -> Some x | _ -> None
-  let container = function `Container x -> Some x | _ -> None
-  let test = function `Test x -> Some x | _ -> None
-  let doc = function `Doc d -> Some d | _ -> None
+  (* Component list operations *)
 
   let filter fn l =
     List.fold_left (fun acc x ->
@@ -333,21 +313,6 @@ module Component = struct
     in
     aux [] ts
 
-  let phases t =
-    let rec aux acc t =
-      let phases =
-        rules t
-        |> List.map (fun r -> r.As_action.phase)
-        |> As_flags.PhaseSet.of_list
-      in
-      List.fold_left aux
-        (As_flags.PhaseSet.union phases acc)
-        (contents t)
-    in
-    aux As_flags.PhaseSet.empty t
-    |> As_flags.PhaseSet.remove `Prepare
-    |> As_flags.PhaseSet.to_list
-
   let map fn ts =
     let tbl = Hashtbl.create (List.length ts) in
     List.iter (fun t -> Hashtbl.add tbl (id t) None) ts;
@@ -364,10 +329,42 @@ module Component = struct
     in
     List.map aux ts
 
+  (* Component kinds *)
+
+  let unit = function `Unit u -> Some u | _ -> None
+  let unit_ocaml = function
+  | `Unit u when u.base_payload.u_kind = `OCaml -> Some u | _ -> None
+
+  let unit_c = function
+  | `Unit u when u.base_payload.u_kind = `C -> Some u | _ -> None
+
+  let unit_js = function
+  | `Unit u when u.base_payload.u_kind = `Js -> Some u | _ -> None
+
+  let other = function `Other u -> Some u | _ -> None
+
+  let pkg = function `Pkg p -> Some p | _ -> None
+  let pkg_kind k = function
+  | `Pkg p when p.base_payload.p_kind = k -> Some p | _ -> None
+
+  let pkg_ocaml = pkg_kind `OCaml
+  let pkg_ocaml_pp = pkg_kind `OCaml_pp
+  let pkg_c = pkg_kind `C
+
+  let lib = function `Lib l -> Some l | _ -> None
+  let lib_kind k = function
+  | `Lib l when l.base_payload.l_kind = k -> Some l | _ -> None
+
+  let lib_ocaml = lib_kind `OCaml
+  let lib_ocaml_pp = lib_kind `OCaml_pp
+
+  let bin = function `Bin b -> Some b | _ -> None
+  let container = function `Container c -> Some c | _ -> None
+  let test = function `Test t -> Some t | _ -> None
+  let doc = function `Doc d -> Some d | _ -> None
 end
 
 module Rule = struct
-
   let link (x:As_action.file) =
     As_action.rule
       ~phase:`Prepare
@@ -396,11 +393,9 @@ module Rule = struct
     |> List.rev
 
   let phony_run t = Component.id t ^ "-run"
-
 end
 
 module Container = struct
-
   type t = container
 
   let rules _ = [Rule.mkdir]
@@ -416,11 +411,9 @@ module Container = struct
     in
     c := Base.with_contents contents base;
     !c
-
 end
 
 module Other = struct
-
   type t = other
 
   let self_targets_aux rules =
@@ -443,11 +436,9 @@ module Other = struct
     in
     let rules _ = rules in
     Base.create ~available ?flags ?deps ~files ~rules name `Other ()
-
 end
 
 module Pkg = struct
-
   type kind = [ `OCaml | `OCaml_pp | `C ]
   type t = pkg
   let name t = Component.name (`Pkg t)
@@ -482,7 +473,6 @@ module Pkg = struct
 end
 
 module Unit = struct
-
   type t = comp_unit
   type kind = [`OCaml|`C|`Js]
   let kind t = t.base_payload.u_kind
@@ -847,11 +837,9 @@ module Unit = struct
     in
     let origin = Other.create ~deps:[`Container pack] name rules in
     create ?available ?flags ?deps name `OCaml (`Other origin)
-
 end
 
 module Lib = struct
-
   type kind = [ `OCaml | `OCaml_pp ]
   type t = lib
 
@@ -967,11 +955,9 @@ module Lib = struct
         l := with_origin (`Units us) (Base.with_contents contents base)
     in
     !l
-
 end
 
 module Bin = struct
-
   type t = bin
 
   let is_toplevel t = t.base_payload.b_toplevel
@@ -1149,11 +1135,9 @@ module Bin = struct
     let flags = As_flags.(flags @@@ nflags) in
     let t = create ~available ~flags ~link_all:true ~deps ?install name comps in
     { t with base_payload = { t.base_payload with b_toplevel = true } }
-
 end
 
 module Test = struct
-
   type args = test_args
   type command = test_command
   type t = test
@@ -1201,11 +1185,9 @@ module Test = struct
     in
     Base.create ?available ?flags ~rules ~deps name `Test
       { t_dir = dir; t_commands = cmds; }
-
 end
 
 module Doc = struct
-
   type t = doc
 
   let mk_flags t r =
@@ -1273,8 +1255,16 @@ module Doc = struct
     in
     Base.create ?available ~flags ?deps ~rules ~contents name `Doc
       { doc_install = install; }
-
 end
+
+(* Project *)
+
+type t =
+  { name : string;
+    version : string;
+    available : As_features.t;
+    flags : As_flags.t;
+    components : component list; }
 
 let name t = t.name
 let version t = t.version
