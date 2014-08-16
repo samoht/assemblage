@@ -179,16 +179,16 @@ module Component = struct
 
   (* Ancestor navigation *)
 
-  let parents c = (* FIXME this shouldn't be called parents. *)
-    let rec aux acc = function
+  let path_to_root c =  (* c and its ancestors *)
+    let rec loop acc = function
     | None   -> List.rev acc
-    | Some c -> aux (c :: acc) (base_parent c)
+    | Some c -> loop (c :: acc) (base_parent c)
     in
-    aux [c] (base_parent c)
+    loop [c] (base_parent c)
 
-  let id ?(all=true) t =
+  let id ?(all = true) t =
     if not all then base_id t else
-    let full_ids = List.map base_id (parents t) in
+    let full_ids = List.map base_id (path_to_root t) in
     String.concat "-" full_ids
 
   (* Component sets *)
@@ -218,12 +218,12 @@ module Component = struct
   let kind = base_kind
   let available ?(all = true) c =
     if not all then base_available c else
-    let full_avail = List.map base_available (parents c) in
+    let full_avail = List.map base_available (path_to_root c) in
     List.fold_left As_features.(&&&) As_features.true_ full_avail
 
   let deps ?(all = true) c =
     if not all then base_deps c else
-    let full_deps = List.map base_deps (parents c) in
+    let full_deps = List.map base_deps (path_to_root c) in
     dedup (List.fold_left (@) [] full_deps)
 
   let parent = base_parent
@@ -238,7 +238,7 @@ module Component = struct
   let flags ?(all = true) c r =
     let resolved_flags c = base_flags c r in
     if not all then resolved_flags c else
-    let full_flags = List.map resolved_flags (parents c) in
+    let full_flags = List.map resolved_flags (path_to_root c) in
     List.fold_left As_flags.(@@@) As_flags.empty full_flags
 
   let build_dir c r = match parent c with
