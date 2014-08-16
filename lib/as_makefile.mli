@@ -14,55 +14,110 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-module Rule: sig
+(** Generate Makefiles. *)
 
-  (** Rules. *)
+(** Makefile variables *)
+module Var : sig
+
+  (** {1 Variables} *)
 
   type t
-  (** A rule value. *)
+  (** The type for variables. *)
 
-  val create:
-    ?ext:bool ->
-    targets:string list ->
-    prereqs:string list ->
-    ?order_only_prereqs:string list ->
-    string list ->
-    t
-  (** Generate a Makefile rule:
+  type guard = (t * string) list
+  (** The type for guards. FIXME: explain. *)
 
-      targets : prereqs | prereqs-only-inputs
-         recipe
-         ...
+  and contents =
+    [ `String of string
+    | `Strings of string list
+    | `Case of (guard * contents) list ]
+  (** The type for variable contents. *)
 
-      If [ext] is set, the rule is extensible (ie. it uses [::]
-      instead of [:].
-  *)
+  val name : t -> string
+  (** [name v] is [v]'s variable name. *)
 
-  val target: string
+  val ref : t -> string
+  (** [ref v] is a reference to [v] . *)
+
+  val (=:=) : string -> contents ->  t
+  (** [VAR := x] *)
+
+  val (=+=) : string -> contents -> t
+  (** [VAR += x] *)
+
+  val (=?=) : string -> contents -> t
+  (** [VAR ?= x] *)
+
+  val subst : t -> string -> input:string -> output:string -> t
+  (** [VAR = $(subst ${OLDVAR}:input=output)]*)
+
+  val shell : string -> string -> t
+  (** [VAR = $(shell <command>)] *)
+
+  val files : string -> dir:string -> ext:string -> t
+  (** [VAR = $(wildcard <dir>/*.<ext>)] *)
+
+  (** {1 Variable stanzas} *)
+
+  type stanza =
+    { doc : string list;
+      align : bool;
+      simplify : bool;
+      variables : t list; }
+  (** The type for variable stanza. *)
+
+  val stanza : ?align:bool -> ?simplify:bool -> ?doc:string list -> t list ->
+    stanza
+end
+
+(** Makefile rules. *)
+module Rule: sig
+
+  type t
+  (** The type for makefile rules. *)
+
+  val create : ?ext:bool -> targets:string list -> prereqs:string list ->
+    ?order_only_prereqs:string list -> string list -> t
+  (** [create ext targets prereqs order_only_prereqs] is a makfile
+      rule defined as follows:
+      {v
+targets : prereqs | order-only-prerequs
+  recipe
+  ... v}
+
+      if [ext] is [true], the rule is extensible, that is uses
+      [::] instead of [:]. *)
+
+  (** {1 Automatic rule variables}
+
+      These variables can be used in recipes to refer to certain
+      definitions of the rule being defined. *)
+
+  val target : string
   (** The file name of the target of the rule. If the target is an
       archive member, then [$@]is the name of the archive file. In a
       pattern rule that has multiple targets (see Introduction to Pattern
       Rules), [$@] is the name of whichever target caused the rule's
       recipe to be run. *)
 
-  val target_member: string
+  val target_member : string
   (** The target member name, when the target is an archive
       member. See Archives. For example, if the target is foo.a(bar.o)
       then [$%] is bar.o and [$@] is foo.a. [$%] is empty when the
       target is not an archive member. *)
 
-  val prereq: string
+  val prereq : string
   (** The name of the first prerequisite. If the target got its recipe
       from an implicit rule, this will be the first prerequisite added
       by the implicit rule (see Implicit Rules). *)
 
-  val prereqs: string
+  val prereqs : string
  (** The names of all the prerequisites that are newer than the
       target, with spaces between them. For prerequisites which are
       archive members, only the named member is used (see
       Archives). *)
 
-  val changed_prereqs: string
+  val changed_prereqs : string
   (** The names of all the prerequisites, with spaces between
       them. For prerequisites which are archive members, only the
       named member is used (see Archives). A target has only one
@@ -73,14 +128,14 @@ module Rule: sig
       any of the order-only prerequisites; for those see the [$|]
       variable, below.  *)
 
-  val dedup_prereqs: string
+  val dedup_prereqs : string
   (** This is like [$^], but prerequisites listed more than once are
       duplicated in the order they were listed in the makefile. This
       is primarily useful for use in linking commands where it is
       meaningful to repeat library file names in a particular
       order. *)
 
-  val stem: string
+  val stem : string
   (** The stem with which an implicit rule matches (see How Patterns
       Match). If the target is [dir/a.foo.b] and the target pattern is
       [a.%.b] then the stem is [dir/foo]. The stem is useful for
@@ -100,87 +155,20 @@ module Rule: sig
       If the target name in an explicit rule does not end with a
       recognized suffix, [$*] is set to the empty string for that
       rule. *)
-
-end
-
-module Variable: sig
-
-  (** Variables. *)
-
-  type t
-  (** A variable value. *)
-
-  val name: t -> string
-  (** Variable name. *)
-
-  type guard = (t * string) list
-
-  and contents =
-    [ `String of string
-    | `Strings of string list
-    | `Case of (guard * contents) list ]
-  (** Contents can be either a string or case conditions. The handler
-      case [(v1,c1) ... (vn,cn) * action] is the case enabled cases
-      where all variables [vi] are equal to [ci]. In that case the
-      action [action] is performed. *)
-
-  val (=:=): string -> contents ->  t
-  (** [VAR := x] *)
-
-  val (=+=): string -> contents -> t
-  (** [VAR += x] *)
-
-  val (=?=): string -> contents -> t
-  (** [VAR ?= x] *)
-
-  val subst: t -> string -> input:string -> output:string -> t
-    (** Create a new variable by sustituting the contents of an other one.
-
-      [VAR = $(subst ${OLDVAR}:input=output)]
-
-    *)
-
-  val shell: string -> string -> t
-  (** [VAR = $(shell <command>)] *)
-
-  val files: string -> dir:string -> ext:string -> t
-  (** [VAR = $(wildcard <dir>/*.<ext>)] *)
-
-  val has_feature: As_features.atom -> t
-  (** Is the given feature enabled. *)
-
-  type stanza = {
-    doc      : string list;
-    align    : bool;
-    simplify : bool;
-    variables: t list;
-  }
-  (** Variable stanza. *)
-
 end
 
 type t
-(** Makefile documents. *)
+(** The type for makefiles. *)
 
-val create:
+val create :
   ?headers:string list ->
   ?includes: string list ->
   ?opt_includes: (string list * string list) list ->
-  ?phony:string list ->
-  string -> Variable.stanza list -> Rule.t list -> t
+  ?phony:string list -> Var.stanza list -> Rule.t list -> t
 (** Create a Makefile. *)
 
-val of_project:
-  ?buildir:string ->
-  ?makefile:string ->
-  flags:As_flags.t ->
-  features:(As_features.atom * bool) list ->
-  dumpast:bool ->
-  As_project.t -> t
-(** Generate a Makefile from a project description. The optional build
-    environment is used to set default values of variables. These
-    default values can then be easily overwriten in the generated
-    Makefile. *)
+val to_string : t -> string
+(** [to_string m] is a makefile from [m]. *)
 
-val write: t -> unit
-(** Generate a Makefile. *)
+val write_file : string -> t -> unit
+(** [write_file file m] writes [m] to [file]. *)

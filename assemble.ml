@@ -30,17 +30,18 @@ let lib =
   lib "assemblage"
     ~deps:[cmdliner; graph]
     (`Units [
+        unit "as_shell";
+        unit "as_git";
+        unit "as_makefile";
         unit "as_features";
         unit "as_flags";
         unit "as_resolver";
-        unit "as_shell";
-        unit "as_git";
         unit "as_build_env";
         unit "as_action";
         unit "as_project";
         unit "as_opam";
         unit "as_ocamlfind";
-        unit "as_makefile";
+        unit "as_project_makefile";
         as_OCaml_incl;
         unit "as_OCaml" ~deps:[bytecomp];
         unit "as_env";

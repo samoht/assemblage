@@ -908,10 +908,10 @@ module Lib = struct
     { t with base_payload = { t.base_payload with l_origin } }
 
   let files = [
-    As_features.byte          , [`Cma];
-    As_features.native        , [`Cmxa; `A];
+    As_features.byte, [`Cmi; `Cma];
+    As_features.native, [`Cmi; `Cmxa; `A];
     As_features.native_dynlink, [`Cmxs];
-  ]
+    As_features.annot, [`Cmti]; ]
 
   let mk_flags t r =
     let us = units t in
@@ -985,7 +985,7 @@ module Lib = struct
       let open As_flags in
       flags @@@ mk_flags t r
     in
-    let base = Base.create ~available ~flags ~rules ?deps name `Lib
+    let base = Base.create ~available ~flags ~rules ~files ?deps name `Lib
         { l_kind = kind; l_origin = `Units []; } in
     let l = ref base in
     let () = match origin with

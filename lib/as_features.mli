@@ -106,6 +106,10 @@ val native_dynlink: t
 val native_dynlink_atom: atom
 (** Is dynlink for native code enabled ? *)
 
+val native_toolchain: t
+val native_toolchain_atom: atom
+(** The native compiled OCaml toolchain is available ([.opt] tools). *)
+
 val js: t
 val js_atom: atom
 (** Build the javascript objects. *)
