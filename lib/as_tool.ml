@@ -28,12 +28,12 @@ let log_project env p =
 
 let check t =
   (* check that all non-dep packages are actually installed. *)
-  let pkgs = As_project.Component.(filter pkg) (As_project.components t) in
-    let not_installed = List.fold_left (fun acc pkg ->
+  let pkgs = As_project.Component.(filter_map pkg) (As_project.components t) in
+  let not_installed = List.fold_left (fun acc pkg ->
       let opt = As_project.Pkg.opt pkg in
-        let name = As_project.Component.name (`Pkg pkg) in
+      let name = As_project.Component.name (`Pkg pkg) in
       if not opt && not (As_shell.try_exec "ocamlfind query %s" name) then
-          name :: acc
+        name :: acc
       else acc
     ) [] pkgs in
   let () = match not_installed with
@@ -45,10 +45,10 @@ let check t =
               (String.concat " " t) h
   in
   let pkg_pp =
-    As_project.Component.(filter pkg_ocaml_pp) (As_project.components t)
+    As_project.Component.(filter_map pkg_ocaml_pp) (As_project.components t)
   in
   let lib_pp =
-    As_project.Component.(filter lib_ocaml_pp) (As_project.components t)
+    As_project.Component.(filter_map lib_ocaml_pp) (As_project.components t)
   in
   if (pkg_pp <> [] || lib_pp <> [])
   && not (As_shell.try_exec "ocaml-dumpast -v") then
@@ -74,7 +74,7 @@ let describe p env build_env =
   let open Printf in
   let print_deps x =
     let bold_name pkg = As_shell.color `Bold (As_project.Pkg.name pkg) in
-    let pkgs = As_project.Component.(filter pkg x) in
+    let pkgs = As_project.Component.(filter_map pkg x) in
     match String.concat " " (List.map bold_name pkgs) with
     | "" -> ""
     | pkgs -> sprintf "  ├─── [%s]\n" pkgs
@@ -109,7 +109,7 @@ let describe p env build_env =
       let open As_project.Component in
       printf "└─┬─ %s\n%s"
         (As_shell.color `Magenta (id c)) (print_deps (deps c));
-        print_units (filter unit (contents c)) in
+        print_units (filter_map unit (contents c)) in
     List.iter aux cs in
   let components =
     As_project.components p

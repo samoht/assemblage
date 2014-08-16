@@ -274,7 +274,7 @@ module Component = struct
 
   (* Component list operations *)
 
-  let filter fn l =
+  let filter_map fn l =
     List.fold_left (fun acc x ->
         match fn x with
         | None   -> acc
@@ -480,7 +480,7 @@ module Unit = struct
   let map fn ts =
     List.map (fun u -> `Unit u) ts
     |> Component.map (function `Unit u -> `Unit (fn u) | x -> x)
-    |> Component.(filter unit)
+    |> Component.(filter_map unit)
 
   let source_dir t = match t.base_payload.u_origin with
   | `Path p -> Some (path p)
@@ -599,9 +599,9 @@ module Unit = struct
               | `Lib _ as c -> Component.contents c
               | c -> [c]
               )
-            |> Component.(filter unit)
+            |> Component.(filter_map unit)
           in
-          let contents = Component.(filter unit) (Component.contents p) in
+          let contents = Component.(filter_map unit) (Component.contents p) in
           let units = deps @ contents in
           let mls =
             List.filter (has `Ml) units
@@ -679,8 +679,8 @@ module Unit = struct
     | `OCaml -> ocaml_rules t
 
   let pp_flags mode deps r =
-    let libs = Component.(filter lib_ocaml_pp) deps in
-    let pkgs = Component.(filter pkg_ocaml_pp) deps in
+    let libs = Component.(filter_map lib_ocaml_pp) deps in
+    let pkgs = Component.(filter_map pkg_ocaml_pp) deps in
     match libs, pkgs with
     | [], [] -> []
     | _ , _  ->
@@ -702,10 +702,10 @@ module Unit = struct
      container already. *)
   let comp_flags_aux mode deps ~build_dir r =
     let units =
-      Component.(filter unit_ocaml) deps
+      Component.(filter_map unit_ocaml) deps
       |> List.map (fun u -> Component.build_dir (`Unit u) r) in
     let libs =
-      Component.(filter lib_ocaml) deps
+      Component.(filter_map lib_ocaml) deps
       |> List.map (fun l -> Component.build_dir (`Lib l) r) in
     let includes =
       (* We need to keep the -I flags in the right order *)
@@ -717,7 +717,7 @@ module Unit = struct
         List.fold_left add (StringSet.singleton build_dir, []) (units @ libs) in
       List.rev incs
     in
-    let pkgs = match Component.(filter pkg_ocaml) deps with
+    let pkgs = match Component.(filter_map pkg_ocaml) deps with
     | [] -> []
     | pkgs ->
         let pkgs = List.map Pkg.name pkgs in
@@ -801,7 +801,7 @@ module Unit = struct
     in
     let units =
       Component.contents (`Container pack)
-      |> Component.(filter unit)
+      |> Component.(filter_map unit)
     in
     let rules =
       let cmos =
@@ -987,7 +987,7 @@ module Bin = struct
               | `Native -> Component.file (`Lib l) r `Cmxa ]
         | _ -> []
         ) deps in
-      let global = match Component.(filter pkg_ocaml) deps with
+      let global = match Component.(filter_map pkg_ocaml) deps with
       | []   -> []
       | pkgs ->
           let pkgs = List.map (fun p -> Component.name (`Pkg p)) pkgs in
@@ -1194,7 +1194,7 @@ module Doc = struct
     let deps = Component.closure ~link:true [`Doc t] in
     let pkgs =
       deps
-      |> Component.(filter pkg)
+      |> Component.(filter_map pkg)
       |> List.map Pkg.name
       |> As_resolver.pkgs r
     in
@@ -1216,7 +1216,7 @@ module Doc = struct
   let units t =
     List.fold_left (fun acc -> function
       | `Unit u -> u :: acc
-      | c -> Component.(filter unit) (Component.contents c) @ acc
+      | c -> Component.(filter_map unit) (Component.contents c) @ acc
       ) [] (Component.contents (`Doc t))
     |> List.rev
 

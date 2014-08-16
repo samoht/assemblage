@@ -311,25 +311,25 @@ end
 
 let variables r ts =
   let open As_project.Component in
-  Lib.variables r (filter lib ts) @
-  Bin.variables r (filter bin ts) @
-  Test.variables r (filter test ts) @
-  Doc.variables r (filter doc ts) @
-  Container.variables r (filter container ts) @
-  Unit.variables r (filter unit ts) @
-  Other.variables r (filter other ts) @
-  Pkg.variables r (filter pkg ts)
+  Lib.variables r (filter_map lib ts) @
+  Bin.variables r (filter_map bin ts) @
+  Test.variables r (filter_map test ts) @
+  Doc.variables r (filter_map doc ts) @
+  Container.variables r (filter_map container ts) @
+  Unit.variables r (filter_map unit ts) @
+  Other.variables r (filter_map other ts) @
+  Pkg.variables r (filter_map pkg ts)
 
 let rules r ts =
   let open As_project.Component in
-  Lib.rules r (filter lib ts) @
-  Bin.rules r (filter bin ts) @
-  Test.rules r (filter test ts) @
-  Doc.rules r (filter doc ts) @
-  Container.rules r (filter container ts) @
-  Unit.rules r (filter unit ts) @
-  Other.rules r (filter other ts) @
-  Pkg.rules r (filter pkg ts)
+  Lib.rules r (filter_map lib ts) @
+  Bin.rules r (filter_map bin ts) @
+  Test.rules r (filter_map test ts) @
+  Doc.rules r (filter_map doc ts) @
+  Container.rules r (filter_map container ts) @
+  Unit.rules r (filter_map unit ts) @
+  Other.rules r (filter_map other ts) @
+  Pkg.rules r (filter_map pkg ts)
 
 let global_variables flags =
   let debug = As_features.debug_atom, As_flags.debug in
@@ -532,7 +532,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
      |> List.rev)
   in
   let opt_includes =
-    let units = As_project.Component.(filter unit) components in
+    let units = As_project.Component.(filter_map unit) components in
     ([], ["Makefile.assemble"]) ::
     [["clean"; "help"; "distclean"],
      conmap (fun u ->
