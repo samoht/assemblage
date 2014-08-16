@@ -151,7 +151,21 @@ end
 
 module Pkg: S with type t = As_project.pkg = struct
   type t = As_project.pkg
-  let variables _ _ = []
+
+  let mk_flags r pkg phase =
+    let suffix = As_flags.string_of_phase phase in
+    let var = As_project.Component.id pkg ^ "." ^ suffix in
+    let flags = As_project.Component.flags ~all:false pkg r in
+    As_makefile.Var.(var =?= `Strings (As_flags.get phase flags))
+
+  let variable r p =
+    let p = `Pkg p in
+    let doc = [sprintf "Package: %s" (As_project.Component.name p)] in
+    let phases = As_project.Component.phases p in
+    let vars = List.map (fun phase -> mk_flags r p phase) phases in
+    As_makefile.Var.stanza ~doc vars
+
+  let variables r pkgs  = List.map (variable r) pkgs
   let rules _ _ = []
 end
 
@@ -311,14 +325,14 @@ end
 
 let variables r ts =
   let open As_project.Component in
+  Pkg.variables r (filter_map pkg ts) @
   Lib.variables r (filter_map lib ts) @
   Bin.variables r (filter_map bin ts) @
   Test.variables r (filter_map test ts) @
   Doc.variables r (filter_map doc ts) @
   Container.variables r (filter_map container ts) @
   Unit.variables r (filter_map unit ts) @
-  Other.variables r (filter_map other ts) @
-  Pkg.variables r (filter_map pkg ts)
+  Other.variables r (filter_map other ts)
 
 let rules r ts =
   let open As_project.Component in

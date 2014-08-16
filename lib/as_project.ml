@@ -443,6 +443,25 @@ module Pkg = struct
   type t = pkg
   let name t = Component.name (`Pkg t)
 
+  let rules pkg =
+    (* FIXME this is due to the way Component.phases is defined
+       it derives available phases for a component from its rules. *)
+    let phase phase =
+      As_action.rule ~phase
+        ~targets:[]
+        ~prereqs:[] As_action.empty
+    in
+    match pkg.base_payload.p_kind with
+    | `OCaml ->
+        [ phase (`Compile `Byte);
+          phase (`Compile `Native);
+          phase (`Link `Byte);
+          phase (`Link `Native); ]
+    | `OCaml_pp ->
+        [ phase (`Pp `Byte);
+          phase (`Pp `Native); ]
+    | `C -> []
+
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(opt = false) name kind
     =
@@ -461,7 +480,7 @@ module Pkg = struct
       let open As_flags in
       flags @@@ As_resolver.pkgs r [name]
     in
-    Base.create ~flags ~available name `Pkg { p_kind = kind }
+    Base.create ~flags ~available ~rules name `Pkg { p_kind = kind }
 
   let opt t = Component.available (`Pkg t) <> As_features.true_
   let kind t = t.base_payload.p_kind
