@@ -94,7 +94,7 @@ val doc : t -> doc option
 
 module Set : Set with type elt = t
 
-(** {1 Rules and specific components. *)
+(** {1 Rules and specific components.} *)
 
 type component = t
 
