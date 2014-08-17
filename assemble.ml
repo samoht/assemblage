@@ -60,7 +60,7 @@ let ctypes_gen =
 let assemble_assemble =
   (* Sanity check, can we compile assemble.ml to native code ? *)
   let us = `Units [ unit "assemble" (`Path []) ] in
-  bin "assemble" ~deps:[lib] ~link_all:true ~install:false us
+  bin "assemble" ~deps:[lib] ~install:false us
 
 (* Tests & examples *)
 
