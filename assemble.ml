@@ -85,6 +85,7 @@ let tests = [
   mk_example "multi-libs";
   mk_example "containers";
   mk_example "pack";
+  mk_example "threads";
 ]
 
 (* Docs *)
