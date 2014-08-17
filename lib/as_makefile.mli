@@ -39,6 +39,9 @@ module Var : sig
   val ref : t -> string
   (** [ref v] is a reference to [v] . *)
 
+  val (===) : string -> contents -> t
+  (** [VAR = x] *)
+
   val (=:=) : string -> contents ->  t
   (** [VAR := x] *)
 
