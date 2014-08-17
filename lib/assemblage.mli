@@ -174,6 +174,9 @@ module Flags : sig
   val thread : t
   (** [thread] is the [-thread] flag in appropriate contexts. *)
 
+  val vmthread : t
+  (** [vmthread] is the [-vmthread] flag in appropriate contexts. *)
+
   val cclib : string list -> t
   (** The [-cclib x] flags. *)
 

@@ -53,6 +53,7 @@ val annot : t
 val warn_error : t
 val linkall : t
 val thread : t
+val vmthread : t
 val cclib : string list -> t
 val ccopt : string list -> t
 val stub : string -> t
