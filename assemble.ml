@@ -80,6 +80,7 @@ let mk_test ?(example = false) name =
 let mk_example = mk_test ~example:true
 
 let tests = [
+  mk_example "hello";
   mk_example "camlp4";
   mk_example "multi-libs";
   mk_example "containers";
