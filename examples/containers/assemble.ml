@@ -9,6 +9,6 @@ let b2 = bin "b2" (`Units [b])
 
 let l = lib "l" (`Units [a])
 
-let b3 = bin "b3" (`Units [b]) ~deps:[l] ~link_all:true
+let b3 = bin "b3" (`Units [b]) ~deps:[l] ~linkall:true
 
 let () = assemble (project "containers" [b1;b2;b3])

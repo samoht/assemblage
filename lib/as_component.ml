@@ -1072,7 +1072,7 @@ module Bin = struct
 
   let create ?(available = As_features.true_) ?(flags=As_flags.empty) ?deps
       ?(byte = true) ?(native = true) ?(js = false)
-      ?(link_all = false) ?(install = true)
+      ?(linkall = false) ?(install = true)
       name origin
     =
     let available =
@@ -1083,9 +1083,8 @@ module Bin = struct
                    (if not j then not_ js else true_))
     in
     let flags t r =
-      let open As_flags in
-      (if link_all then linkall @@@ flags else flags)
-      @@@ mk_flags t r
+      let flags = if linkall then As_flags.(linkall @@@ flags) else flags in
+      As_flags.(flags @@@ mk_flags t r)
     in
     let base = Base.create ~available ~flags ~rules ~files ?deps name `Bin
         { b_origin = `Units []; b_toplevel = false;
@@ -1123,7 +1122,7 @@ module Bin = struct
     ] in
     let nflags = As_flags.v (`Link `Byte) link_byte in
     let flags = As_flags.(flags @@@ nflags) in
-    let t = create ~available ~flags ~link_all:true ~deps ?install name comps in
+    let t = create ~available ~flags ~linkall:true ~deps ?install name comps in
     { t with base_payload = { t.base_payload with b_toplevel = true } }
 end
 

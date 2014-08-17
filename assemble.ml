@@ -51,7 +51,7 @@ let lib =
 
 let assemblage_tool =
   let us = `Units [ unit "tool" (`Path ["bin"]) ~deps:[toplevel] ] in
-  bin "assemblage" ~deps:[lib] ~link_all:true ~native:false us
+  bin "assemblage" ~deps:[lib] ~linkall:true ~native:false us
 
 let ctypes_gen =
   let us = `Units [ unit "ctypes_gen" (`Path ["bin"]) ] in

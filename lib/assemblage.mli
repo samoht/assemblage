@@ -359,7 +359,7 @@ val lib_pp : ?available:Features.t -> ?flags:Flags.t ->
 
 val bin : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
   ?byte:bool -> ?native:bool -> ?js:bool ->
-  ?link_all:bool -> ?install:bool ->
+  ?linkall:bool -> ?install:bool ->
   string -> [`Units of [`Unit of comp_unit] list | `Other of other]
   -> [> `Bin of bin]
 (** [bin name units] is the binary [name] obtained by compiling

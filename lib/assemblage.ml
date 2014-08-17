@@ -78,9 +78,9 @@ let lib ?available ?flags ?deps ?pack name origin =
 let lib_pp ?available ?flags ?deps ?pack name origin =
   `Lib (As_component.Lib.create ?available ?flags ?deps ?pack name `OCaml_pp origin)
 
-let bin ?available ?flags ?deps ?byte ?native ?js ?link_all ?install name units =
-  `Bin (As_component.Bin.create ?available ?flags ?deps ?byte ?native ?js ?link_all
-          ?install name units)
+let bin ?available ?flags ?deps ?byte ?native ?js ?linkall ?install name units =
+  `Bin (As_component.Bin.create ?available ?flags ?deps ?byte ?native ?js
+          ?linkall ?install name units)
 
 let container ?available ?flags ?deps name contents =
   `Container (As_component.Container.create ?available ?flags ?deps name contents)
