@@ -329,7 +329,7 @@ let rules r ts =
   Other.rules r As_component.(filter_map other ts) @
   Pkg.rules r As_component.(filter_map pkg ts)
 
-let global_variables flags =
+let global_variables flags cs =
   let debug = As_features.debug_atom, As_flags.debug in
   let annot = As_features.annot_atom, As_flags.annot in
   let warn_error = As_features.warn_error_atom, As_flags.warn_error in
@@ -344,7 +344,14 @@ let global_variables flags =
         [feature, bool_true], `Strings (As_flags.get phase flags)
       ]) in
   let vars =
-    As_makefile.Var.("all" =:= `String "lib bin")
+    let all =
+      let has_bins = As_component.(filter_map bin cs) <> [] in
+      let has_libs = As_component.(filter_map lib cs) <> [] in
+      let all = if has_bins then ["bin"] else [] in
+      let all = if has_libs then "lib" :: all else all in
+      `String (String.concat " " all)
+    in
+    As_makefile.Var.("all" =:= all)
     :: init (`Compile `Byte)
     :: init (`Compile `Native)
     :: init (`Link `Byte)
@@ -393,7 +400,7 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
       "# Run `make help' to get the list of targets.\n\n"; ]
   in
   let components = As_project.components t in
-  let global_variables = global_variables flags in
+  let global_variables = global_variables flags components in
   let project_features =
     As_project.features t
     |> As_features.Set.elements in
