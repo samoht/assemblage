@@ -40,7 +40,6 @@ type maker =
   ?lib_dir:string ->
   ?root_dir:string ->
   ?pkgs:(string list -> As_flags.t) ->
-  ?pkgs_defs:(string, string) Hashtbl.t ->
   unit -> t
 
 val create: maker
@@ -59,5 +58,4 @@ val ln: t -> string
 val build_dir: t -> string
 val lib_dir: t -> string
 val root_dir: t -> string
-val pkgs : t -> string list -> As_flags.t
-val pkgs_defs : t -> (string,string) Hashtbl.t
+val pkgs: t -> string list -> As_flags.t

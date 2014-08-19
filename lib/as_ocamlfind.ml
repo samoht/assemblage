@@ -112,25 +112,18 @@ let link_native ~mode names =
     ~recursive:true
     names
 
-let pkgs pkgs_defs ~mode names =
-  let cache phase result =
-    let pkgs = String.concat "_" names in
-    let var = sprintf "pkgs_%s_%s" pkgs (As_flags.string_of_phase phase) in
-    Hashtbl.replace pkgs_defs var (List.hd result);
-    As_flags.v phase [(sprintf "$(%s)" var)]
-  in
+let pkgs ~mode names =
   let open As_flags in
-  cache (`Pp `Byte) (pp_byte ~mode names) @@@
-  cache (`Pp `Native) (pp_byte ~mode names) @@@
-  cache (`Compile `Byte) (comp_byte ~mode names) @@@
-  cache (`Compile `Native) (comp_native ~mode names) @@@
-  cache (`Link `Byte) (link_byte ~mode names) @@@
-  cache (`Link `Native) (link_native ~mode names)
+  v (`Pp `Byte) (pp_byte ~mode names) @@@
+  v (`Pp `Native) (pp_byte ~mode names) @@@
+  v (`Compile `Byte) (comp_byte ~mode names) @@@
+  v (`Compile `Native) (comp_native ~mode names) @@@
+  v (`Link `Byte) (link_byte ~mode names) @@@
+  v (`Link `Native) (link_native ~mode names)
 
 let resolver mode =
   if As_shell.try_exec "ocamlfind list" then
-    let pkgs_defs = Hashtbl.create 255 in
-    As_resolver.create ~pkgs:(pkgs pkgs_defs ~mode) ~pkgs_defs
+    As_resolver.create ~pkgs:(pkgs ~mode)
   else
   As_shell.fatal_error 1 "ocamlfind is not installed on your system, stopping."
 

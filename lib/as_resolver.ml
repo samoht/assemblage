@@ -28,7 +28,6 @@ type t = {
   lib_dir: string;
   root_dir: string;
   pkgs: string list -> As_flags.t;
-  pkgs_defs: (string, string) Hashtbl.t;
 }
 
 type maker =
@@ -45,7 +44,6 @@ type maker =
   ?lib_dir:string ->
   ?root_dir:string ->
   ?pkgs:(string list -> As_flags.t) ->
-  ?pkgs_defs:(string, string) Hashtbl.t ->
   unit -> t
 
 let create
@@ -61,9 +59,7 @@ let create
     ?(build_dir="_build")
     ?(lib_dir="/usr/lib/ocaml")
     ?root_dir
-    ?(pkgs=fun _ -> As_flags.empty)
-    ?(pkgs_defs = Hashtbl.create 0)
-    () =
+    ?(pkgs=fun _ -> As_flags.empty) () =
   let root_dir = match root_dir with
   | Some d -> d
   | None   -> Sys.getcwd ()
@@ -71,7 +67,7 @@ let create
   { ocamlc; ocamlopt; ocamlmklib; preprocessor;
     js_of_ocaml; ocamldoc; ocamldep;
     ln; mkdir;
-    build_dir; lib_dir; root_dir; pkgs; pkgs_defs }
+    build_dir; lib_dir; root_dir; pkgs }
 
 let ocamlc t = t.ocamlc
 let ocamlopt t = t.ocamlopt
@@ -88,4 +84,3 @@ let build_dir t = t.build_dir
 let lib_dir t = t.lib_dir
 let root_dir t = t.root_dir
 let pkgs t = t.pkgs
-let pkgs_defs t = t.pkgs_defs
