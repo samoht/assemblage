@@ -72,6 +72,9 @@ let fatal_error i fmt =
      exit i
     ) fmt
 
+let has_cmd cmd =
+  Sys.command (Printf.sprintf "type %s 1>/dev/null 2>/dev/null" cmd) = 0
+
 let read file =
   try
     let ic = open_in file in
@@ -105,7 +108,7 @@ let exec ?(verbose=verbose) fmt =
 
 let try_exec fmt =
   ksprintf (fun cmd ->
-      let i = Sys.command (sprintf "%s > /dev/null" cmd) in
+      let i = Sys.command (sprintf "%s 1>/dev/null 2>/dev/null" cmd) in
       i = 0
     ) fmt
 
