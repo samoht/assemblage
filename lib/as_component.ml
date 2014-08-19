@@ -677,74 +677,59 @@ module Unit = struct
     | `Js    -> js_rules t
     | `OCaml -> ocaml_rules t
 
-  let pp_flags mode deps r =
-    let libs = filter_map lib_ocaml_pp deps in
-    let pkgs = filter_map pkg_ocaml_pp deps in
-    match libs, pkgs with
-    | [], [] -> []
-    | _ , _  ->
-        let libs = List.map (fun l ->
-            sprintf "%s/%s" (build_dir (`Lib l) r)
-              (match mode with
-               | `Byte   -> file (`Lib l) r `Cma
-               | `Native -> file (`Lib l) r `Cmxa)
-          ) libs in
-        let pkgs =
-          let pkgs = List.map Pkg.name pkgs in
-          let pkgs = As_resolver.pkgs r pkgs in
-          match mode with
-          | `Byte   -> As_flags.get (`Pp `Byte) pkgs
-          | `Native -> As_flags.get (`Pp `Native) pkgs in
-        pkgs @ libs
+  let pp_deps_flags mode deps r =
+    let add_pp_lib l =
+      let dir = build_dir (`Lib l) r in
+      let file = match mode with
+      | `Byte -> file (`Lib l) r `Cma
+      | `Native -> file (`Lib l) r `Cmxa
+      in
+      sprintf "%s/%s" dir file
+    in
+    let lib_flags = List.map add_pp_lib (filter_map lib_ocaml_pp deps) in
+    let pp_pkgs = filter_map pkg_ocaml_pp deps in
+    let pp_pkgs_flags = As_resolver.pkgs r (List.map Pkg.name pp_pkgs) in
+    let pp_pkgs_flags = As_flags.get (`Pp mode) pp_pkgs_flags in
+    pp_pkgs_flags @ lib_flags
 
-  (* build_dir is exclude because it should be included by the
-     container already. *)
-  let comp_flags_aux mode deps ~bdir r =
-    let units =
-      filter_map unit_ocaml deps |> List.map (fun u -> build_dir (`Unit u) r)
+  let pkg_deps_flags mode deps r =
+    let pkgs = filter_map pkg_ocaml deps in
+    let pkg_flags = As_resolver.pkgs r (List.map Pkg.name pkgs) in
+    As_flags.get (`Compile mode) pkg_flags
+
+  let local_deps_flags mode deps ~bdir r =
+    let units_and_libs = function `Lib _ | `Unit _ -> true | _ -> false in
+    let units_and_libs = keep units_and_libs deps in
+    let dirs = List.map (fun c -> build_dir c r) units_and_libs in
+    let incs =
+      (* Need to kep the -I flags in the right order, bdir is excluded
+         because it should already be included by the container. *)
+      let add_dir (seen, acc) dir =
+        if StringSet.mem dir seen then (seen, acc) else
+        (StringSet.add dir seen, (sprintf "-I %s" dir) :: acc)
+      in
+      let seen = StringSet.singleton bdir in
+      List.rev (snd (List.fold_left add_dir (seen, []) dirs))
     in
-    let libs =
-      filter_map lib_ocaml deps |> List.map (fun l -> build_dir (`Lib l) r)
-    in
-    let includes =
-      (* We need to keep the -I flags in the right order *)
-      let iflags inc acc = sprintf "-I %s" inc :: acc in
-      let add (seen, acc) i =
-        if StringSet.mem i seen then (seen, acc)
-        else (StringSet.add i seen, iflags i acc) in
-      let (_, incs) =
-        List.fold_left add (StringSet.singleton bdir, []) (units @ libs) in
-      List.rev incs
-    in
-    let pkgs = match filter_map pkg_ocaml deps with
-    | [] -> []
-    | pkgs ->
-        let pkgs = List.map Pkg.name pkgs in
-        let pkgs = As_resolver.pkgs r pkgs in
-        match mode with
-        | `Byte   -> As_flags.get (`Compile `Byte) pkgs
-        | `Native -> As_flags.get (`Compile `Native) pkgs
-    in
-    match includes with
-    | [] -> pkgs
-    | _  -> pkgs @ [String.concat " " includes]
+    incs
 
   let comp_flags deps ~bdir r =
-    let byte = comp_flags_aux `Byte deps ~bdir r in
-    let native = comp_flags_aux `Native deps ~bdir r in
+    let byte_local = local_deps_flags `Byte deps ~bdir r in
+    let byte_pkgs = pkg_deps_flags `Byte deps r in
+    let native_pkgs = pkg_deps_flags `Native deps r in
+    let native_local = local_deps_flags `Native deps ~bdir r in
     let open As_flags in
-    v `Dep byte @@@
-    v (`Compile `Byte) byte @@@
-    v (`Compile `Native) native @@@
-    v (`Pp `Byte) (pp_flags `Byte deps r) @@@
-    v (`Pp `Native) (pp_flags `Native deps r)
+    v `Dep byte_local @@@
+    v (`Compile `Byte) (byte_pkgs @ byte_local) @@@
+    v (`Compile `Native) (native_pkgs @ native_local) @@@
+    v (`Pp `Byte) (pp_deps_flags `Byte deps r) @@@
+    v (`Pp `Native) (pp_deps_flags `Native deps r)
 
   let mk_flags t r =
     let c = `Unit t in
     (* FIXME: Component.closure ~link:true [c] ? *)
     let deps = deps ~all:false c |> closure ~link:true in
     let bdir = build_dir c r in
-    let open As_flags in
     comp_flags deps ~bdir r
 
   let files = function

@@ -112,14 +112,16 @@ let link_native ~mode names =
     ~recursive:true
     names
 
-let pkgs ~mode names =
-  let open As_flags in
-  v (`Pp `Byte) (pp_byte ~mode names) @@@
-  v (`Pp `Native) (pp_byte ~mode names) @@@
-  v (`Compile `Byte) (comp_byte ~mode names) @@@
-  v (`Compile `Native) (comp_native ~mode names) @@@
-  v (`Link `Byte) (link_byte ~mode names) @@@
-  v (`Link `Native) (link_native ~mode names)
+let pkgs ~mode = function
+| [] -> As_flags.empty
+| names ->
+    let open As_flags in
+    v (`Pp `Byte) (pp_byte ~mode names) @@@
+    v (`Pp `Native) (pp_byte ~mode names) @@@
+    v (`Compile `Byte) (comp_byte ~mode names) @@@
+    v (`Compile `Native) (comp_native ~mode names) @@@
+    v (`Link `Byte) (link_byte ~mode names) @@@
+    v (`Link `Native) (link_native ~mode names)
 
 let resolver mode =
   if As_shell.try_exec "ocamlfind list" then
