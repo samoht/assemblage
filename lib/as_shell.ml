@@ -105,7 +105,7 @@ let exec ?(verbose=verbose) fmt =
 
 let try_exec fmt =
   ksprintf (fun cmd ->
-      let i = Sys.command (sprintf "%s &> /dev/null" cmd) in
+      let i = Sys.command (sprintf "%s > /dev/null" cmd) in
       i = 0
     ) fmt
 
