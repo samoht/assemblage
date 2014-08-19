@@ -3,7 +3,6 @@ open Assemblage
 (* OCamlfind packages *)
 
 let cmdliner = pkg "cmdliner"
-let graph    = pkg "ocamlgraph"
 let bytecomp = pkg "compiler-libs.bytecomp"
 let toplevel = pkg "compiler-libs.toplevel"
 
@@ -27,8 +26,7 @@ let lib =
        else (`Path ["lib";"402"]))
   in
   let unit ?deps name = unit ?deps name (`Path ["lib"]) in
-  lib "assemblage"
-    ~deps:[cmdliner; graph]
+  lib "assemblage" ~deps:[cmdliner]
     (`Units [
         unit "as_shell";
         unit "as_git";
@@ -38,6 +36,7 @@ let lib =
         unit "as_resolver";
         unit "as_build_env";
         unit "as_action";
+        unit "as_component";
         unit "as_project";
         unit "as_opam";
         unit "as_ocamlfind";

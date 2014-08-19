@@ -16,5 +16,5 @@
 
 (** Compiler-libs helpers. *)
 
-val modules : build_dir:string -> As_project.Unit.t -> string list
+val modules : build_dir:string -> As_component.Unit.t -> string list
 (** Return the list of submodules defined in the given compilation unit. *)
