@@ -359,6 +359,26 @@ let global_variables flags =
   in
   As_makefile.Var.stanza ~align:true ~simplify:true vars
 
+let ocamlfind_variables resolver =
+  let open As_makefile.Var in
+  let doc = ["Lazy ocamlfind invocations"] in
+  let memo =
+    [ ("as_memoize" === `String
+       "$(if $(as__memoized_value/$1),$(as__memoized_value/$1),$(strip \
+        $(eval as__memoized_value/$1 := $$2))$(as__memoized_value/$1))")
+    ]
+  in
+  let defs =
+    let add var def defs =
+      let def = sprintf "%s" var =?=
+                `String (sprintf "$(call as_memoize,%s,%s)" var def)
+      in
+      (def :: defs)
+    in
+    Hashtbl.fold add (As_resolver.pkgs_defs resolver) []
+  in
+  As_makefile.Var.stanza ~doc (memo @ defs)
+
 let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
     ~dumpast t =
   let preprocessor = if dumpast then (
@@ -541,5 +561,6 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
          mk `Ml @ mk `Mli
        ) units]
   in
-  As_makefile.create ~headers ~phony ~opt_includes variables
+  let finds = ocamlfind_variables resolver in
+  As_makefile.create ~headers ~phony ~opt_includes (finds :: variables)
     (main :: clean :: distclean :: install :: help :: rules)
