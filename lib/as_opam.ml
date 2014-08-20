@@ -26,8 +26,36 @@ module Install = struct
   }
 
   let opt f =
+    (* FIXME this completly is broken *)
     if f = As_features.true_ || f = As_features.byte then ""
     else "?"
+
+  let lib_artifacts r buf lib =
+    let library = `Lib lib in
+    let add_files ?exts c =
+      let keep file = match exts with
+      | None -> true
+      | Some exts -> List.mem file exts
+      in
+      let add_file f = bprintf buf "  \"?%s\"\n" (As_component.file c r f) in
+      let files =
+        let add_files acc (_, files) =
+          let add_file acc f =
+            if keep f then As_action.FileSet.add f acc else acc
+          in
+          List.fold_left add_file acc files
+        in
+        List.fold_left add_files As_action.FileSet.empty (As_component.files c)
+      in
+      As_action.FileSet.iter add_file files
+    in
+    let us = As_component.(filter_map unit (contents library)) in
+    let intf = List.filter (fun u -> not (As_component.Unit.hidden u)) us in
+    let inline = List.filter (fun u -> not (As_component.Unit.opaque u)) us in
+    add_files library;
+    List.iter (fun u -> add_files ~exts:[`Cmi; `Mli] (`Unit u)) intf;
+    List.iter (fun u -> add_files ~exts:[`Cmx] (`Unit u)) inline;
+    ()
 
   let of_project ?(meta=true) ~build_dir t =
     let r = As_resolver.create ~build_dir () in
@@ -39,19 +67,12 @@ module Install = struct
         As_component.(filter_map bin components)
     in
     let buf = Buffer.create 1024 in
-    if libs <> [] then (
+    if libs <> [] then begin
       bprintf buf "lib: [\n";
       if meta then bprintf buf "  \"META\"\n";
-      List.iter (fun l ->
-          let gens = As_component.files (`Lib l) in
-          List.iter (fun (flags, files) ->
-              List.iter (fun file ->
-                  let file = As_component.file (`Lib l) r file in
-                  bprintf buf "  \"%s%s\"\n" (opt flags) file
-                ) files;
-            ) gens;
-        ) libs;
-      bprintf buf "]\n");
+      List.iter (lib_artifacts r buf) libs;
+      bprintf buf "]\n"
+    end;
     if bins <> [] then (
       bprintf buf "bin: [\n";
       List.iter (fun b ->

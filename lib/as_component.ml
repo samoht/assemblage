@@ -737,8 +737,8 @@ module Unit = struct
 
   let files = function
   | `OCaml -> [
-      As_features.byte  , [`Cmi; `Cmo];
-      As_features.native, [`Cmi; `O; `Cmx];
+      As_features.byte  , [`Mli; `Cmi; `Cmo];
+      As_features.native, [`Mli; `Cmi; `O; `Cmx];
       As_features.annot , [`Cmt; `Cmti];
     ]
   | `C -> [ As_features.true_, [`So; `So] ]
