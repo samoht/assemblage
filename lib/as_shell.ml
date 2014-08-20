@@ -117,7 +117,7 @@ let try_exec fmt =
 let exec_output ?verbose fmt =
   let run_read cmd =
     let file = temp () in
-    exec ?verbose "%s > %s" cmd file;
+    exec ?verbose "%s 1> %s" cmd file;
     read file
   in
   ksprintf run_read fmt
