@@ -52,7 +52,7 @@ let color ts s =
 (* Output messages *)
 
 let show fmt =
-  let show str = printf "%s %s\n%!" (color `Cyan "+") str in
+  let show str = printf "%s\n%!" str in
   ksprintf show fmt
 
 let warn fmt =
@@ -101,7 +101,7 @@ let temp () =
 let exec ?verbose fmt =
   let verbose = match verbose with None -> !verbose_default | Some v -> v in
   let run cmd =
-    if verbose then printf "%s %s\n" (color `Yellow "=>") cmd;
+    if verbose then printf "%s %s\n" (color `Yellow "-->") cmd;
       let i = Sys.command cmd in
       if i <> 0 then fatal_error i "`%s' exited with code %d" cmd i
   in

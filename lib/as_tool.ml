@@ -18,13 +18,13 @@
 let (|>) x f = f x
 
 let log_project env p =
-  let pre =
+  let post =
     if env.As_env.utf8_msgs
-    then "\xF0\x9F\x8D\xB7  " (* UTF-8 <U+1F377, U+0020, U+0020> *)
-    else As_shell.color `Yellow "==>"
+    then " \xF0\x9F\x8D\xB7" (* UTF-8 <U+1F377, U+0020, U+0020> *)
+    else ""
   in
-  Printf.printf "\n%s %s %s\n" pre
-    (As_shell.color `Underline (As_project.name p)) (As_project.version p)
+  Printf.printf "%s %s %s%s\n" (As_shell.color `Black "==>")
+    (As_shell.color `Bold (As_project.name p)) (As_project.version p) post
 
 let check t =
   (* check that all non-dep packages are actually installed. *)

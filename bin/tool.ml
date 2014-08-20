@@ -24,13 +24,14 @@
    assemble.ml can be interpeted correctly. *)
 
 let show_run_start file auto_load =
-  let file = As_shell.color `Bold file in
+  let file = As_shell.color `Black file in
   let auto_load =
     if auto_load then "" else
     Printf.sprintf "[auto-load: %s]"
       (As_shell.color `Magenta (string_of_bool auto_load))
   in
-  As_shell.show "Loading %s. %s" file auto_load
+  As_shell.show "%s Loading %s %s\n" (As_shell.color `Cyan "==>")
+    file auto_load
 
 let run () =
   let setup_env = As_env.parse_setup () in
