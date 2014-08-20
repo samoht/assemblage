@@ -51,10 +51,10 @@ module Install = struct
     in
     let us = As_component.(filter_map unit (contents library)) in
     let keep itfs u = List.mem (As_component.Unit.interface u) itfs in
-    let interfaces = List.filter (keep [`Normal; `Opaque]) us in
+    let ifaces = List.filter (keep [`Normal; `Opaque]) us in
     let cross_inline = List.filter (keep [`Normal]) us in
     add_files library;
-    List.iter (fun u -> add_files ~exts:[`Cmi; `Mli] (`Unit u)) interfaces;
+    List.iter (fun u -> add_files ~exts:[`Cmi; `Cmti; `Mli] (`Unit u)) ifaces;
     List.iter (fun u -> add_files ~exts:[`Cmx] (`Unit u)) cross_inline;
     ()
 
