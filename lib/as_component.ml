@@ -67,7 +67,9 @@ and other = unit base
 and comp_unit = comp_unit_ base
 and comp_unit_ =
   { u_kind : [ `OCaml | `C | `Js ];
-    u_origin : [`Path of string list | `Other of other]; }
+    u_origin : [`Path of string list | `Other of other];
+    u_opaque : bool;
+    u_hidden : bool; }
 
 and pkg = pkg_ base
 and pkg_ =
@@ -475,6 +477,8 @@ module Unit = struct
   type t = comp_unit
   type kind = [`OCaml|`C|`Js]
   let kind t = t.base_payload.u_kind
+  let opaque t = t.base_payload.u_opaque
+  let hidden t = t.base_payload.u_hidden
 
   let map fn ts =
     List.map (fun u -> `Unit u) ts
@@ -762,7 +766,7 @@ module Unit = struct
     | _ -> ()
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-      ?(deps = []) name (kind:kind) origin
+      ?(deps = []) ?(opaque = false) ?(hidden = false) name (kind:kind) origin
     =
     let deps = match origin with
     | `Path _  ->  deps
@@ -771,7 +775,8 @@ module Unit = struct
     let files = files kind in
     let flags t r = As_flags.(flags @@@ mk_flags t r) in
     let t = Base.create ~available ~deps ~flags ~files ~rules name `Unit
-        { u_kind = kind; u_origin = origin; }
+        { u_kind = kind; u_origin = origin; u_opaque = opaque;
+          u_hidden = hidden}
     in
     check t;
     t

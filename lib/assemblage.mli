@@ -325,11 +325,14 @@ type component =
     {- FIXME}} *)
 
 val unit : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-  string -> [`Path of string list | `Other of other] -> [> `Unit of comp_unit]
+  ?opaque:bool -> ?hidden:bool -> string ->
+  [`Path of string list | `Other of other] -> [> `Unit of comp_unit]
 (** [unit name dir ~available ~flags ~deps] is a compilation unit
     named [name] (the filename without extension) present in directory
     [dir].  It is only available whenever [available] is true, it must
-    be build with [flags] and depends on [deps] to be built. *)
+    be build with [flags] and depends on [deps] to be built.
+
+    TODO document opaque & hidden. *)
 
 val pack: ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
   string -> [`Unit of comp_unit] list -> [> `Unit of comp_unit]
