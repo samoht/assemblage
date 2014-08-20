@@ -51,7 +51,7 @@ let lib =
 
 let assemblage_tool =
   let us = `Units [ unit "tool" (`Path ["bin"]) ~deps:[toplevel] ] in
-  bin "assemblage" ~deps:[lib] ~link_all:true ~native:false us
+  bin "assemblage" ~deps:[lib] ~linkall:true ~native:false us
 
 let ctypes_gen =
   let us = `Units [ unit "ctypes_gen" (`Path ["bin"]) ] in
@@ -60,7 +60,7 @@ let ctypes_gen =
 let assemble_assemble =
   (* Sanity check, can we compile assemble.ml to native code ? *)
   let us = `Units [ unit "assemble" (`Path []) ] in
-  bin "assemble" ~deps:[lib] ~link_all:true ~install:false us
+  bin "assemble" ~deps:[lib] ~install:false us
 
 (* Tests & examples *)
 
@@ -80,10 +80,13 @@ let mk_test ?(example = false) name =
 let mk_example = mk_test ~example:true
 
 let tests = [
+  mk_example "hello";
   mk_example "camlp4";
   mk_example "multi-libs";
   mk_example "containers";
   mk_example "pack";
+  mk_example "threads";
+(* mk_examples "threads-lib"; *)
 ]
 
 (* Docs *)

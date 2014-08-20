@@ -150,7 +150,7 @@ module Bin : sig
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list ->
     ?byte:bool -> ?native:bool -> ?js:bool ->
-    ?link_all:bool -> ?install:bool ->
+    ?linkall:bool -> ?install:bool ->
     string ->
     [`Units of [`Unit of Unit.t] list | `Other of other] -> t
   val toplevel : ?available:As_features.t -> ?flags:As_flags.t ->

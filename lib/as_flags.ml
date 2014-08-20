@@ -123,6 +123,11 @@ let thread =
   v (`Link `Byte) f @@@
   v (`Link `Native) f
 
+let vmthread =
+  let f = ["-vmthread"] in
+  v (`Compile `Byte) f @@@
+  v (`Link `Byte) f
+
 (* FIXME: which phase? *)
 let cclib args =
   let f = List.map (sprintf "-cclib %s") args in

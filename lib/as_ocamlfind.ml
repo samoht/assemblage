@@ -27,7 +27,12 @@ let query_indirect ?predicates ?format ?(uniq=false) ?(recursive=false)
     packages =
   let predicates = match predicates with
     | None   -> ""
-    | Some p -> sprintf "-predicates %s " (String.concat "," p) in
+    | Some p ->
+        let has_pkg pkg = List.mem pkg packages in
+        let p = if has_pkg "threads.posix" then "mt" :: "mt_posix" ::p else p in
+        let p = if has_pkg "threads.vm" then "mt" :: "mt_vm" :: p else p in
+        sprintf "-predicates %s " (String.concat "," p)
+  in
   let format = match format with
     | None   -> ""
     | Some f -> sprintf "-format \"%s\" " f in
@@ -112,14 +117,16 @@ let link_native ~mode names =
     ~recursive:true
     names
 
-let pkgs ~mode names =
-  let open As_flags in
-  v (`Pp `Byte) (pp_byte ~mode names) @@@
-  v (`Pp `Native) (pp_byte ~mode names) @@@
-  v (`Compile `Byte) (comp_byte ~mode names) @@@
-  v (`Compile `Native) (comp_native ~mode names) @@@
-  v (`Link `Byte) (link_byte ~mode names) @@@
-  v (`Link `Native) (link_native ~mode names)
+let pkgs ~mode = function
+| [] -> As_flags.empty
+| names ->
+    let open As_flags in
+    v (`Pp `Byte) (pp_byte ~mode names) @@@
+    v (`Pp `Native) (pp_byte ~mode names) @@@
+    v (`Compile `Byte) (comp_byte ~mode names) @@@
+    v (`Compile `Native) (comp_native ~mode names) @@@
+    v (`Link `Byte) (link_byte ~mode names) @@@
+    v (`Link `Native) (link_native ~mode names)
 
 let resolver mode =
   if As_shell.try_exec "ocamlfind list" then

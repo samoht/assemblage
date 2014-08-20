@@ -12,6 +12,6 @@ let b =
   lib "lib2" (`Units [b; c])
 
 let bin =
-  bin "a-test" (`Units [unit "foo" (`Path []) ~deps:[a; a1; b]]) ~link_all:true
+  bin "a-test" (`Units [unit "foo" (`Path []) ~deps:[a; a1; b]]) ~linkall:true
 
 let () = assemble (project "multi-libs" [a; b; bin])
