@@ -1,4 +1,4 @@
-OPAM_DEPENDS="ocamlfind ocamlgraph cmdliner \
+OPAM_DEPENDS="ocamlfind cmdliner \
               sexplib comparelib xmlm ezjsonm ctypes" # For the tests
 
 install_on_linux () {
@@ -53,7 +53,16 @@ eval `opam config env`
 ./bootstrap.sh
 make
 
-opam install dumpast
+# Temporary workaround for compiling dumpast on 4.02
+case "$OCAML_VERSION" in
+    4.02.0) \
+	git clone https://github.com/samoht/ocaml-dumpast.git
+	cd ocaml-dumpast
+	make OCAML_VERSION=402
+	make OCAML_VERSION=402 install
+	cd .. ;;
+    *) opam install dumpast ;;
+esac
 
 make test
 make install
