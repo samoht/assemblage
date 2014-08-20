@@ -101,13 +101,9 @@ let build_env_opts p =
 let no_project setup = match setup with
 | None -> assert false
 | Some setup ->
-    let file = setup.As_env.assemble_file in
     match setup.As_env.exec_status with
-    | `Ok -> assert false
-    | `Error -> `Error (false, str "while loading %s." file)
-    | `No_file -> `Error (false, str "missing %s." file)
-    | `No_cmd -> `Error (false, str "No command ran. Did you call \
-                                     Assemblage.assemble in %s ?" file)
+    | `Ok () -> assert false
+    | `Error msg -> As_shell.fatal_error 1 "%s" msg
 
 let help_cmd setup_env =
   let topic =

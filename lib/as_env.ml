@@ -48,7 +48,7 @@ type setup =
     includes : string list;         (* includes to add to toploop execution. *)
     assemble_file : string;                              (* file to execute. *)
     exec_status :                    (* execution status of [assemble_file]. *)
-      [ `Error | `Ok | `No_cmd | `No_file]; }
+      [ `Ok of unit | `Error of string ]; }
 
 (* The following does a pre-parse of of the command line to look for
    options that will influence the execution of the assemble.ml file. *)
@@ -81,7 +81,7 @@ let setup = ref None
 let get_setup () = !setup
 let parse_setup () =
   let env = { auto_load = true; includes = []; assemble_file = "assemble.ml";
-              exec_status = `Ok }
+              exec_status = `Ok () }
   in
   let args = Array.to_list Sys.argv in
   let verbose = ref false in

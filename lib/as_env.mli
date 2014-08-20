@@ -24,7 +24,7 @@ type setup =
     includes : string list;        (** includes to add to toploop execution. *)
     assemble_file : string;                             (** file to execute. *)
     exec_status :                   (** execution status of [assemble_file]. *)
-      [ `Error | `Ok | `No_cmd | `No_file ]; }
+      [ `Ok of unit | `Error of string ]; }
 (** The type for setup environments.
 
     This is only used by the assemblage tool. It determines the environment
