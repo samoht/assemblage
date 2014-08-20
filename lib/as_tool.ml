@@ -18,43 +18,47 @@
 let (|>) x f = f x
 
 let log_project env p =
-  let pre =
-    if env.As_env.utf8_msgs
-    then "\xF0\x9F\x8D\xB7  " (* UTF-8 <U+1F377, U+0020, U+0020> *)
-    else As_shell.color `Yellow "==>"
+  let post =
+    if not env.As_env.utf8_msgs then "" else
+    " \xF0\x9F\x8D\xB7" (* UTF-8 <U+1F377, U+0020, U+0020> *)
   in
-  Printf.printf "\n%s %s %s\n" pre
-    (As_shell.color `Underline (As_project.name p)) (As_project.version p)
+  Printf.printf "%s %s %s%s\n" (As_shell.color `Black "==>")
+    (As_shell.color `Bold (As_project.name p)) (As_project.version p) post
 
 let check t =
-  (* check that all non-dep packages are actually installed. *)
-  let pkgs = As_component.(filter_map pkg) (As_project.components t) in
-  let not_installed = List.fold_left (fun acc pkg ->
-      let opt = As_component.Pkg.opt pkg in
-      let name = As_component.name (`Pkg pkg) in
-      if not opt && not (As_shell.try_exec "ocamlfind query %s" name) then
-        name :: acc
-      else acc
-    ) [] pkgs in
-  let () = match not_installed with
-  | []   -> ()
-  | [h]  -> As_shell.fatal_error 1
-                "The ocamlfind package %s is not installed, stopping." h
-  | h::t -> As_shell.fatal_error 1
-              "The ocamlfind packages %s and %s are not installed, stopping."
-              (String.concat " " t) h
+  let components = As_project.components t in
+  let check_dumpast () = (* check we have dumpast if there are pp. *)
+    let pkg_pp = As_component.(filter_map pkg_ocaml_pp) components in
+    let lib_pp = As_component.(filter_map lib_ocaml_pp) components in
+    if (pkg_pp <> [] || lib_pp <> []) && not (As_shell.has_cmd "ocaml-dumpast")
+    then
+      As_shell.warn
+        "ocaml-dumpast is needed to setup a project using camlp4 syntax \
+         extensions."
   in
-  let pkg_pp =
-    As_component.(filter_map pkg_ocaml_pp) (As_project.components t)
+  let check_pkgs () = (* check that all required packages installed. *)
+    let missing =
+      let missing acc pkg =
+        let opt = As_component.Pkg.opt pkg in
+        let name = As_component.name (`Pkg pkg) in
+        if not opt && not (As_shell.try_exec "ocamlfind query %s" name)
+        then name :: acc
+        else acc
+      in
+      List.fold_left missing [] (As_component.(filter_map pkg) components)
+    in
+    match missing with
+    | [] -> ()
+    | pkg :: [] ->
+        As_shell.warn "The required ocamlfind package %s is not installed." pkg
+    | pkg :: pkgs ->
+        As_shell.warn "The required ocamlfind packages %s and %s are not \
+                       installed."
+          (String.concat " " pkgs) pkg
   in
-  let lib_pp =
-    As_component.(filter_map lib_ocaml_pp) (As_project.components t)
-  in
-  if (pkg_pp <> [] || lib_pp <> [])
-  && not (As_shell.try_exec "ocaml-dumpast -v") then
-    As_shell.fatal_error 1
-      "ocaml-dumpast is needed to setup a project using camlp4 syntax \
-       extensions."
+  check_pkgs ();
+  check_dumpast ();
+  ()
 
 let setup p env build_env dumpast `Make =
   let features = As_build_env.features build_env in

@@ -741,6 +741,26 @@ module Unit = struct
   | `C -> [ As_features.true_, [`So; `So] ]
   | `Js -> []
 
+  let check t =
+    let is_generated = match t.base_payload.u_origin with
+    | `Path _ -> false
+    | `Other _ -> true
+    in
+    if is_generated then () else
+    let name = t.base_name in
+    let dir = match t.base_payload.u_origin with
+    | `Other _ -> assert false | `Path p -> path p / ""
+    in
+    match t.base_payload.u_kind with
+    | `OCaml when not (List.exists (fun f -> has f t) [`Ml; `Mli]) ->
+        As_shell.warn "unit %s: cannot find %s.ml or %s.mli in `%s'"
+          name name name dir
+    | `C when not (has `C t) ->
+        As_shell.warn "unit %s: cannot find %s.c in `%s'" name name dir
+    | `Js when not (has `Js t) ->
+        As_shell.warn "unit %s: cannot find %s.js in `%s'" name name dir
+    | _ -> ()
+
   let create ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(deps = []) name (kind:kind) origin
     =
@@ -748,33 +768,12 @@ module Unit = struct
     | `Path _  ->  deps
     | `Other o -> `Other o :: deps
     in
-    let is_generated = match origin with `Path _ -> false | _ -> true in
     let files = files kind in
-    let flags t r =
-      let open As_flags in
-      flags @@@ mk_flags t r
-    in
+    let flags t r = As_flags.(flags @@@ mk_flags t r) in
     let t = Base.create ~available ~deps ~flags ~files ~rules name `Unit
-        {u_kind = kind; u_origin = origin; } in
-    if not is_generated
-    && kind = `OCaml
-    && not (List.exists (fun f -> has f t) [`Ml;`Mli])
-    then
-      As_shell.fatal_error 1
-        "unit %s: cannot find %s.ml or %s.mli in `%s', stopping.\n"
-        name name name
-        (match origin with `Other _ -> "." | `Path p -> path p / "")
-    else if not is_generated && kind = `C && not (has `C t) then
-      As_shell.fatal_error 1
-        "unit %s: cannot find %s.c in `%s', stopping.\n"
-        name name
-        (match origin with `Other _ -> "."  | `Path p -> path p / "")
-    else if not is_generated && kind = `Js && not (has `Js t) then
-      As_shell.fatal_error 1
-        "unit %s: cannot find %s.js in `%s', stopping.\n"
-        name name
-        (match origin with `Other _ -> "." | `Path p -> path p / "/")
-    else
+        { u_kind = kind; u_origin = origin; }
+    in
+    check t;
     t
 
   let pack ?available ?flags ?deps name units =
@@ -923,16 +922,17 @@ module Lib = struct
         let no_cma = not (List.mem `Cma files) in
         let no_cmxa = not (List.mem `Cmxa files) in
         let no_cmxs = not (List.mem `Cmxs files) in
-        if no_cma && no_cmxa && no_cmxs then
-          As_shell.fatal_error 1
-            "No rule to generate the files of the %s."
-            name
-        else
         let available = As_features.(available &&&
                                      neg ~on:no_cma byte &&&
                                      neg ~on:no_cmxa native &&&
                                      neg ~on:no_cmxs native_dynlink)
         in
+        let warn file =
+          As_shell.warn "Lib %s: no rule to generate the %s file." name file
+        in
+        if no_cma && byte then warn "cma";
+        if no_cmxa && native then warn "cmxa";
+        if no_cmxs && native_dynlink then warn "cmxs";
         l := with_origin (`Other o) (Base.with_available available base)
     | `Units us ->
         let us = List.map (function `Unit u -> u) us in

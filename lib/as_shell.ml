@@ -18,20 +18,7 @@
 
 open Printf
 
-let verbose =
-  try Sys.getenv "VERBOSE" <> ""
-  with Not_found -> false
-
-let color_tri_state =
-  try match Sys.getenv "COLOR" with
-    | "always" -> `Always
-    | "never"  -> `Never
-    | _        -> `Auto
-  with
-  | Not_found  -> `Auto
-
-let with_color =
-  ref (color_tri_state <> `Never)
+(* Terminal colors *)
 
 type text_style =
   [ `Bold
@@ -45,32 +32,44 @@ type text_style =
   | `Cyan
   | `White ]
 
-let color (c: text_style) s =
-  if not !with_color then s else
-    let code = match c with
-      | `Bold      -> "01"
-      | `Underline -> "04"
-      | `Black     -> "30"
-      | `Red       -> "31"
-      | `Green     -> "32"
-      | `Yellow    -> "33"
-      | `Blue      -> "1;34"
-      | `Magenta   -> "35"
-      | `Cyan      -> "36"
-      | `White     -> "37"
-    in
-    Printf.sprintf "\027[%sm%s\027[m" code s
+let code_of_text_style = function
+| `Bold      -> "01"
+| `Underline -> "04"
+| `Black     -> "30"
+| `Red       -> "31"
+| `Green     -> "32"
+| `Yellow    -> "33"
+| `Blue      -> "1;34"
+| `Magenta   -> "35"
+| `Cyan      -> "36"
+| `White     -> "37"
+
+let color_default = ref `Auto
+let color ts s =
+  if (!color_default = `Never) then s else
+  Printf.sprintf "\027[%sm%s\027[m" (code_of_text_style ts) s
+
+(* Output messages *)
 
 let show fmt =
-  ksprintf (fun str ->
-      printf "%s %s\n%!" (color `Cyan "+") str
-    ) fmt
+  let show str = printf "%s\n%!" str in
+  ksprintf show fmt
+
+let warn fmt =
+  let warn str = eprintf "%s %s\n%!" (color `Red "WARNING") str in
+  ksprintf warn fmt
+
+let error fmt =
+  let error str = eprintf "%s %s\n%!" (color `Red "ERROR") str in
+  ksprintf error fmt
 
 let fatal_error i fmt =
-  ksprintf (fun str ->
-     eprintf "%s: %s\n%!" (color `Red "ERROR") str;
-     exit i
-    ) fmt
+  let fatal str = eprintf "%s: %s\n%!" (color `Red "ERROR") str; exit i in
+  ksprintf fatal fmt
+
+(* Execute commands *)
+
+let verbose_default = ref false
 
 let has_cmd cmd =
   Sys.command (Printf.sprintf "type %s 1>/dev/null 2>/dev/null" cmd) = 0
@@ -99,25 +98,29 @@ let temp () =
   with Sys_error e ->
     fatal_error 1 "while creating temp file: %s" e
 
-let exec ?(verbose=verbose) fmt =
-  ksprintf (fun cmd ->
-      if verbose then printf "%s %s\n" (color `Yellow "=>") cmd;
+let exec ?verbose fmt =
+  let verbose = match verbose with None -> !verbose_default | Some v -> v in
+  let run cmd =
+    if verbose then printf "%s %s\n" (color `Yellow "-->") cmd;
       let i = Sys.command cmd in
       if i <> 0 then fatal_error i "`%s' exited with code %d" cmd i
-    ) fmt
+  in
+  ksprintf run fmt
 
 let try_exec fmt =
-  ksprintf (fun cmd ->
-      let i = Sys.command (sprintf "%s 1>/dev/null 2>/dev/null" cmd) in
-      i = 0
-    ) fmt
+  let try_run cmd =
+    let i = Sys.command (sprintf "%s 1>/dev/null 2>/dev/null" cmd) in
+    i = 0
+  in
+  ksprintf try_run fmt
 
 let exec_output ?verbose fmt =
-  ksprintf (fun cmd ->
-      let file = temp () in
-      exec ?verbose "%s > %s" cmd file;
-      read file
-    ) fmt
+  let run_read cmd =
+    let file = temp () in
+    exec ?verbose "%s 1> %s" cmd file;
+    read file
+  in
+  ksprintf run_read fmt
 
 let in_dir dir fn =
   let pwd = Sys.getcwd () in

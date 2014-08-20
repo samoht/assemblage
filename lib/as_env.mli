@@ -17,7 +17,6 @@
 
 (** Command runtime environment. *)
 
-
 (** {1 Setup environements} *)
 
 type setup =
@@ -25,7 +24,7 @@ type setup =
     includes : string list;        (** includes to add to toploop execution. *)
     assemble_file : string;                             (** file to execute. *)
     exec_status :                   (** execution status of [assemble_file]. *)
-      [ `Error | `Ok | `No_cmd | `No_file ]; }
+      [ `Ok of unit | `Error of string ]; }
 (** The type for setup environments.
 
     This is only used by the assemblage tool. It determines the environment
@@ -46,11 +45,12 @@ val get_setup : unit -> setup option
 type t =
   { setup : setup option;         (* None if not run by assemblage. *)
     verbose : bool;
+    color : [`Auto | `Always | `Never ];
     utf8_msgs : bool; }
 (** The type for command runtime environments. *)
 
-val create : setup option -> bool -> t
-(** [create setup verbose] is an environement with the corresponding
+val create : setup option -> bool -> [`Auto | `Always | `Never] -> t
+(** [create setup verbose color] is an environement with the corresponding
     parameters or as overriden by Sys.env values. *)
 
 val created : unit -> bool
