@@ -81,7 +81,15 @@ let env_opts setup_env =
     let doc = "Give verbose output." in
     Arg.(value & flag & info ["v"; "verbose"] ~doc ~docs)
   in
-  Term.(pure As_env.create $ setup_env_opts setup_env $ verbose_opt)
+  let color_opt =
+    let doc = "Colorize the output. $(docv) must one of `always`, `never' \
+               or `auto'."
+    in
+    let color_tri_state = ["auto", `Auto; "always", `Always; "never", `Never] in
+    Arg.(value & opt (enum color_tri_state) `Auto & info ["color"] ~doc
+           ~docv:"WHEN" ~docs)
+  in
+  Term.(pure As_env.create $ setup_env_opts setup_env $ verbose_opt $ color_opt)
 
 let build_env_opts p =
   let features = match p with
@@ -135,7 +143,8 @@ let setup_cmd p setup_env =
     let doc = "Dump the AST during build (optimisation). FIXME" in
     Arg.(value & opt bool true & info ["dumpast"] ~doc ~docv:"BOOL")
   in
-  Term.(ret (pure setup $ env_opts setup_env $ build_env_opts p $ dumpast_opt $ pure `Make)),
+  Term.(ret (pure setup $ env_opts setup_env $ build_env_opts p $ dumpast_opt $
+             pure `Make)),
   Term.info "setup" ~doc ~sdocs:global_option_section ~man
 
 let describe_cmd p setup_env =

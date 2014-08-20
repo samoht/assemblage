@@ -45,11 +45,12 @@ val get_setup : unit -> setup option
 type t =
   { setup : setup option;         (* None if not run by assemblage. *)
     verbose : bool;
+    color : [`Auto | `Always | `Never ];
     utf8_msgs : bool; }
 (** The type for command runtime environments. *)
 
-val create : setup option -> bool -> t
-(** [create setup verbose] is an environement with the corresponding
+val create : setup option -> bool -> [`Auto | `Always | `Never] -> t
+(** [create setup verbose color] is an environement with the corresponding
     parameters or as overriden by Sys.env values. *)
 
 val created : unit -> bool

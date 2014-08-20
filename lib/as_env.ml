@@ -84,6 +84,7 @@ let parse_setup () =
 type t =
   { setup : setup option;         (* None if not run by assemblage. *)
     verbose : bool;
+    color : [`Auto | `Always | `Never ];
     utf8_msgs : bool; }
 
 let get_bool e ~default =
@@ -93,19 +94,30 @@ let get_bool e ~default =
   with
   Not_found -> default
 
+let get_color_tri_state e ~default =
+  try match Sys.getenv e with
+  | "always" -> `Always
+  | "never" -> `Never
+  | _  -> `Auto
+  with
+  | Not_found -> default
+
+let var_color = "ASSEMBLAGE_COLOR"
 let var_verbose = "ASSEMBLAGE_VERBOSE"
 let var_utf8_msgs = "ASSEMBLAGE_UTF8_MSGS"
 
 let created = ref false
-
-let create setup verbose =
+let create setup verbose color =
   let verbose = get_bool var_verbose ~default:verbose in
+  let color = get_color_tri_state var_color ~default:color in
   let utf8_msgs = get_bool var_utf8_msgs ~default:false in
   created := true;
   As_shell.verbose_default := verbose;
-  { setup; verbose; utf8_msgs; }
+  As_shell.color_default := color;
+  { setup; verbose; color; utf8_msgs; }
 
 let created () = !created
 let variable_docs =
   [ var_verbose, "See option $(b,--verbose).";
+    var_color, "See option $(b,--color).";
     var_utf8_msgs, "Use UTF-8 characters in $(mname) messages."; ]

@@ -31,6 +31,9 @@ type text_style =
   | `Cyan
   | `White ]
 
+val color_default : [ `Auto | `Always | `Never ] ref
+(** [color_default] controls whether {!color} will actually do coloring. *)
+
 val color : text_style -> string -> string
 (** [color style s] is [s] with [style]. *)
 

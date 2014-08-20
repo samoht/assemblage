@@ -18,16 +18,7 @@
 
 open Printf
 
-let color_tri_state =
-  try match Sys.getenv "COLOR" with
-    | "always" -> `Always
-    | "never"  -> `Never
-    | _        -> `Auto
-  with
-  | Not_found  -> `Auto
-
-let with_color =
-  ref (color_tri_state <> `Never)
+(* Terminal colors *)
 
 type text_style =
   [ `Bold
@@ -41,21 +32,22 @@ type text_style =
   | `Cyan
   | `White ]
 
-let color (c: text_style) s =
-  if not !with_color then s else
-    let code = match c with
-      | `Bold      -> "01"
-      | `Underline -> "04"
-      | `Black     -> "30"
-      | `Red       -> "31"
-      | `Green     -> "32"
-      | `Yellow    -> "33"
-      | `Blue      -> "1;34"
-      | `Magenta   -> "35"
-      | `Cyan      -> "36"
-      | `White     -> "37"
-    in
-    Printf.sprintf "\027[%sm%s\027[m" code s
+let code_of_text_style = function
+| `Bold      -> "01"
+| `Underline -> "04"
+| `Black     -> "30"
+| `Red       -> "31"
+| `Green     -> "32"
+| `Yellow    -> "33"
+| `Blue      -> "1;34"
+| `Magenta   -> "35"
+| `Cyan      -> "36"
+| `White     -> "37"
+
+let color_default = ref `Auto
+let color ts s =
+  if (!color_default = `Never) then s else
+  Printf.sprintf "\027[%sm%s\027[m" (code_of_text_style ts) s
 
 (* Output messages *)
 
@@ -77,7 +69,7 @@ let fatal_error i fmt =
 
 (* Execute commands *)
 
-let verbose_default = ref true
+let verbose_default = ref false
 
 let has_cmd cmd =
   Sys.command (Printf.sprintf "type %s 1>/dev/null 2>/dev/null" cmd) = 0
