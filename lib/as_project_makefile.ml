@@ -368,14 +368,16 @@ let global_variables flags cs =
 
 let of_project ?(buildir="_build") ?(makefile="Makefile") ~flags ~features
     ~dumpast t =
-  let preprocessor = if dumpast then (
-      if not (As_shell.try_exec "ocaml-dumpast -v") then
-        As_shell.fatal_error 1
-          "ocaml-dumpast is not installed. \
-           Use `assemblage setup --dumpast=false` \
-           to configure your project without it.";
+  let preprocessor =
+    if not dumpast then None else
+    begin
+      if not (As_shell.has_cmd "ocaml-dumpast")
+      then As_shell.warn "ocaml-dumpast is not installed. \
+                          Use `assemblage setup --dumpast=false` \
+                          to setup your project without it.";
       Some "$(DUMPAST) camlp4o"
-    ) else None in
+    end
+  in
   let resolver =
     As_ocamlfind.resolver `Makefile
       ~ocamlc:"$(OCAMLC)"
