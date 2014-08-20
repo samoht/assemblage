@@ -6,7 +6,7 @@ OCAMLFIND=${OCAMLFIND:="ocamlfind"}
 
 BDIR="_build/bootstrap"
 LIBDIR="lib"
-PKGS="-package cmdliner,ocamlgraph"
+PKGS="-package cmdliner"
 
 UNITS="as_shell as_git as_makefile as_features as_flags as_resolver as_action
        as_build_env as_component as_project as_ocamlfind as_project_makefile
