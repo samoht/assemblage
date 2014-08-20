@@ -829,11 +829,10 @@ module Lib = struct
 
   let kind t = t.base_payload.l_kind
   let units t = match t.base_payload.l_origin with `Units us -> us | _ -> []
-  let files = [
-    As_features.byte, [`Cmi; `Cma];
-    As_features.native, [`Cmi; `Cmxa; `A];
-    As_features.native_dynlink, [`Cmxs];
-    As_features.annot, [`Cmti]; ]
+  let files =
+    [ As_features.byte, [`Cma];
+      As_features.native, [`Cmxa; `A];
+      As_features.native_dynlink, [`Cmxs] ]
 
   let mk_flags t r =
     let bdir = build_dir (`Lib t) r in
