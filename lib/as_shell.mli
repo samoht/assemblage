@@ -17,35 +17,7 @@
 
 (** Execution of shell commands. *)
 
-val show : ('a, unit, string, unit) format4 -> 'a
-(** [show msg] outputs the message [msg] on stdout. *)
-
-val warn : ('a, unit, string, unit) format4 -> 'a
-(** [warn msg] outputs the warning message [msg] on stderr. *)
-
-val error : ('a, unit, string, unit) format4 -> 'a
-(** [error msg] outputs the error message [msg] on stderr. *)
-
-val fatal_error : int -> ('a, unit, string, 'b) format4 -> 'a
-(** [fatal_error i msg] output the error message [msg] on stderr
-    and stops the program with exit code [i]. *)
-
-val has_cmd : string -> bool
-(** [has_cmd cmd] is [true] iff the shell has the command [cmd]. *)
-
-val exec: ?verbose:bool -> ('a, unit, string, unit) format4 -> 'a
-(** Execute a shell command. *)
-
-val exec_output: ?verbose:bool -> ('a, unit, string, string list) format4 -> 'a
-(** Execute a shell command and returns its output. *)
-
-val try_exec: ('a, unit, string, bool) format4 -> 'a
-(** Try to run a given command. *)
-
-val in_dir: string -> (unit -> 'a) -> 'a
-(** Execute a command in a given directory. *)
-
-(** {2 Terminal Colors} *)
+(** {1 Terminal Colors} *)
 
 type text_style =
   [ `Bold
@@ -59,5 +31,41 @@ type text_style =
   | `Cyan
   | `White ]
 
-val color: text_style -> string -> string
-(** Colorize a string using the given style. *)
+val color : text_style -> string -> string
+(** [color style s] is [s] with [style]. *)
+
+(** {1 Output message to the terminal} *)
+
+val show : ('a, unit, string, unit) format4 -> 'a
+(** [show msg] outputs the message [msg] on stdout. *)
+
+val warn : ('a, unit, string, unit) format4 -> 'a
+(** [warn msg] outputs the warning message [msg] on stderr. *)
+
+val error : ('a, unit, string, unit) format4 -> 'a
+(** [error msg] outputs the error message [msg] on stderr. *)
+
+val fatal_error : int -> ('a, unit, string, 'b) format4 -> 'a
+(** [fatal_error i msg] output the error message [msg] on stderr
+    and stops the program with exit code [i]. *)
+
+(** {1 Execute commands} *)
+
+val verbose_default : bool ref
+(** [verbose_default] defines the default value for the [?verbose] argument
+    of this module. *)
+
+val has_cmd : string -> bool
+(** [has_cmd cmd] is [true] iff the shell has the command [cmd]. *)
+
+val exec : ?verbose:bool -> ('a, unit, string, unit) format4 -> 'a
+(** Execute a shell command. *)
+
+val exec_output : ?verbose:bool -> ('a, unit, string, string list) format4 -> 'a
+(** Execute a shell command and returns its output. *)
+
+val try_exec : ('a, unit, string, bool) format4 -> 'a
+(** Try to run a given command. *)
+
+val in_dir : string -> (unit -> 'a) -> 'a
+(** Execute a command in a given directory. *)

@@ -18,10 +18,6 @@
 
 open Printf
 
-let verbose =
-  try Sys.getenv "VERBOSE" <> ""
-  with Not_found -> false
-
 let color_tri_state =
   try match Sys.getenv "COLOR" with
     | "always" -> `Always
@@ -61,6 +57,8 @@ let color (c: text_style) s =
     in
     Printf.sprintf "\027[%sm%s\027[m" code s
 
+(* Output messages *)
+
 let show fmt =
   let show str = printf "%s %s\n%!" (color `Cyan "+") str in
   ksprintf show fmt
@@ -76,6 +74,10 @@ let error fmt =
 let fatal_error i fmt =
   let fatal str = eprintf "%s: %s\n%!" (color `Red "ERROR") str; exit i in
   ksprintf fatal fmt
+
+(* Execute commands *)
+
+let verbose_default = ref true
 
 let has_cmd cmd =
   Sys.command (Printf.sprintf "type %s 1>/dev/null 2>/dev/null" cmd) = 0
@@ -104,25 +106,29 @@ let temp () =
   with Sys_error e ->
     fatal_error 1 "while creating temp file: %s" e
 
-let exec ?(verbose=verbose) fmt =
-  ksprintf (fun cmd ->
-      if verbose then printf "%s %s\n" (color `Yellow "=>") cmd;
+let exec ?verbose fmt =
+  let verbose = match verbose with None -> !verbose_default | Some v -> v in
+  let run cmd =
+    if verbose then printf "%s %s\n" (color `Yellow "=>") cmd;
       let i = Sys.command cmd in
       if i <> 0 then fatal_error i "`%s' exited with code %d" cmd i
-    ) fmt
+  in
+  ksprintf run fmt
 
 let try_exec fmt =
-  ksprintf (fun cmd ->
-      let i = Sys.command (sprintf "%s 1>/dev/null 2>/dev/null" cmd) in
-      i = 0
-    ) fmt
+  let try_run cmd =
+    let i = Sys.command (sprintf "%s 1>/dev/null 2>/dev/null" cmd) in
+    i = 0
+  in
+  ksprintf try_run fmt
 
 let exec_output ?verbose fmt =
-  ksprintf (fun cmd ->
-      let file = temp () in
-      exec ?verbose "%s > %s" cmd file;
-      read file
-    ) fmt
+  let run_read cmd =
+    let file = temp () in
+    exec ?verbose "%s > %s" cmd file;
+    read file
+  in
+  ksprintf run_read fmt
 
 let in_dir dir fn =
   let pwd = Sys.getcwd () in

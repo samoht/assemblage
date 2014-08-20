@@ -97,10 +97,12 @@ let var_verbose = "ASSEMBLAGE_VERBOSE"
 let var_utf8_msgs = "ASSEMBLAGE_UTF8_MSGS"
 
 let created = ref false
+
 let create setup verbose =
-  created := true;
   let verbose = get_bool var_verbose ~default:verbose in
   let utf8_msgs = get_bool var_utf8_msgs ~default:false in
+  created := true;
+  As_shell.verbose_default := verbose;
   { setup; verbose; utf8_msgs; }
 
 let created () = !created
