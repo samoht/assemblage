@@ -48,7 +48,8 @@ let pack ?available ?flags ?deps name units =
   let units = List.map (function `Unit u -> u) units in
   `Unit (As_component.Unit.pack ?available ?flags ?deps name units)
 
-let c ?available ?(flags=As_flags.empty) ?deps ?(cclib = []) ?(ccopt = []) name origin =
+let c ?available ?(flags=As_flags.empty) ?deps ?(cclib = []) ?(ccopt = [])
+    name origin =
   let flags =
     let (@@@) = As_flags.(@@@) in
     flags @@@ As_flags.ccopt ccopt @@@ As_flags.cclib cclib in
@@ -72,18 +73,23 @@ let pkg_pp ?available ?flags ?opt name =
 let pkg_c ?available ?flags ?opt name =
   `Pkg (As_component.Pkg.create ?available ?flags ?opt name `C)
 
-let lib ?available ?flags ?deps ?pack name origin =
-  `Lib (As_component.Lib.create ?available ?flags ?deps ?pack name `OCaml origin)
+let lib ?available ?flags ?deps ?byte ?native ?native_dynlink ?pack name
+    origin =
+  `Lib (As_component.Lib.create ?available ?flags ?deps ?byte ?native
+          ?native_dynlink ?pack name `OCaml origin)
 
-let lib_pp ?available ?flags ?deps ?pack name origin =
-  `Lib (As_component.Lib.create ?available ?flags ?deps ?pack name `OCaml_pp origin)
+let lib_pp ?available ?flags ?deps ?byte ?native ?native_dynlink ?pack name
+    origin =
+  `Lib (As_component.Lib.create ?available ?flags ?deps ?byte ?native
+          ?native_dynlink ?pack name `OCaml_pp origin)
 
 let bin ?available ?flags ?deps ?byte ?native ?js ?linkall ?install name units =
   `Bin (As_component.Bin.create ?available ?flags ?deps ?byte ?native ?js
           ?linkall ?install name units)
 
 let container ?available ?flags ?deps name contents =
-  `Container (As_component.Container.create ?available ?flags ?deps name contents)
+  `Container (As_component.Container.create ?available ?flags ?deps name
+                contents)
 
 let doc ?available ?flags ?deps ?install name contents =
   `Doc (As_component.Doc.create ?available ?flags ?deps ?install name contents)

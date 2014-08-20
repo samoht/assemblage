@@ -901,12 +901,19 @@ module Lib = struct
       [ Rule.mkdir; byte; native `Native; native `Shared ]
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty) ?deps
+      ?(byte = true) ?(native = true) ?(native_dynlink = true)
       ?(pack = false) name kind origin
     =
-    let flags t r =
-      let open As_flags in
-      flags @@@ mk_flags t r
-    in
+    let available =
+      let not_byte = not byte in
+      let not_native = not native in
+      let not_native_dynlink = not native_dynlink in
+      As_features.(available &&&
+                   neg ~on:not_byte byte &&&
+                   neg ~on:not_native native &&&
+                   neg ~on:not_native_dynlink native_dynlink)
+      in
+    let flags t r = As_flags.(flags @@@ mk_flags t r) in
     let base = Base.create ~available ~flags ~rules ~files ?deps name `Lib
         { l_kind = kind; l_origin = `Units []; } in
     let l = ref base in
