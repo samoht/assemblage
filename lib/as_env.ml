@@ -15,6 +15,32 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(* Environment variables *)
+
+let get_bool e ~default =
+  try match Sys.getenv e with
+  | "" | "false" | "0" -> false
+  | _ -> true
+  with
+  Not_found -> default
+
+let color_tri_state_of_string = function
+| "always" -> `Always
+| "never" -> `Never
+| _ -> `Auto
+
+let get_color_tri_state e ~default =
+  try color_tri_state_of_string (Sys.getenv e) with
+  | Not_found -> default
+
+let var_color = "ASSEMBLAGE_COLOR"
+let var_verbose = "ASSEMBLAGE_VERBOSE"
+let var_utf8_msgs = "ASSEMBLAGE_UTF8_MSGS"
+let variable_docs =
+  [ var_verbose, "See option $(b,--verbose).";
+    var_color, "See option $(b,--color).";
+    var_utf8_msgs, "Use UTF-8 characters in $(mname) messages."; ]
+
 (* Setup environments *)
 
 type setup =
@@ -58,6 +84,8 @@ let parse_setup () =
               exec_status = `Ok }
   in
   let args = Array.to_list Sys.argv in
+  let verbose = ref false in
+  let color = ref `Auto in
   let rec parse env = function
   | [] -> { env with includes = List.rev env.includes }
   | "--" :: _ -> parse env [] (* it's all positional after that, stop *)
@@ -72,10 +100,19 @@ let parse_setup () =
               | "--auto-load=false" :: args'
               | "--auto-load" :: "false" :: args' ->
                   parse { env with auto_load = false } args'
+              | "--color" :: arg :: args' ->
+                  color := color_tri_state_of_string arg;
+                  parse env args';
+              | "--color=auto" :: args' -> color := `Auto; parse env args'
+              | "--color=always" :: args' -> color := `Always; parse env args'
+              | "--color=never" :: args' -> color := `Never; parse env args'
+              | "--verbose" :: args' -> verbose := true; parse env args'
               | _ :: args' -> parse env args'
               | [] -> assert false
   in
   let env = parse env args in
+  As_shell.verbose_default := get_bool var_verbose ~default:!verbose;
+  As_shell.color_default := get_color_tri_state var_color ~default:!color;
   setup := Some env;
   env
 
@@ -86,25 +123,6 @@ type t =
     verbose : bool;
     color : [`Auto | `Always | `Never ];
     utf8_msgs : bool; }
-
-let get_bool e ~default =
-  try match Sys.getenv e with
-  | "" | "false" | "0" -> false
-  | _ -> true
-  with
-  Not_found -> default
-
-let get_color_tri_state e ~default =
-  try match Sys.getenv e with
-  | "always" -> `Always
-  | "never" -> `Never
-  | _  -> `Auto
-  with
-  | Not_found -> default
-
-let var_color = "ASSEMBLAGE_COLOR"
-let var_verbose = "ASSEMBLAGE_VERBOSE"
-let var_utf8_msgs = "ASSEMBLAGE_UTF8_MSGS"
 
 let created = ref false
 let create setup verbose color =
@@ -117,7 +135,3 @@ let create setup verbose color =
   { setup; verbose; color; utf8_msgs; }
 
 let created () = !created
-let variable_docs =
-  [ var_verbose, "See option $(b,--verbose).";
-    var_color, "See option $(b,--color).";
-    var_utf8_msgs, "Use UTF-8 characters in $(mname) messages."; ]
