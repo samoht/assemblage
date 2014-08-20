@@ -87,23 +87,17 @@ let pp_native ~mode names =
     names
 *)
 
+let includes ~mode ~recursive ~predicates names =
+  query ~mode ~recursive ~predicates ~format:"-I %d" ~uniq:true names
+
 let comp_byte ~mode names =
-  query ~mode
-    ~predicates:["byte"]
-    ~format:"-I %d"
-    ~recursive:true
-    ~uniq:true
-    names
+  includes ~mode ~recursive:true ~predicates:["byte"] names
 
 let comp_native ~mode names =
-  query ~mode
-    ~predicates:["native"]
-    ~format:"-I %d"
-    ~recursive:true
-    ~uniq:true
-    names
+  includes ~mode ~recursive:true ~predicates:["native"] names
 
 let link_byte ~mode names =
+  includes ~mode ~recursive:true ~predicates:["byte"] names @
   query ~mode
     ~predicates:["byte"]
     ~format:"%d/%a"
@@ -111,6 +105,7 @@ let link_byte ~mode names =
     names
 
 let link_native ~mode names =
+  includes ~mode ~recursive:true ~predicates:["native"] names @
   query ~mode
     ~predicates:["native"]
     ~format:"%d/%a"
