@@ -17,12 +17,18 @@
 
 (** Execution of shell commands. *)
 
-val show: ('a, unit, string, unit) format4 -> 'a
-(** [show msg] outputs the given message on stdout. *)
+val show : ('a, unit, string, unit) format4 -> 'a
+(** [show msg] outputs the message [msg] on stdout. *)
 
-val fatal_error: int -> ('a, unit, string, 'b) format4 -> 'a
-(** [fatal_error i msg] signals an error and stops the program with
-    the exit code [i]. *)
+val warn : ('a, unit, string, unit) format4 -> 'a
+(** [warn msg] outputs the warning message [msg] on stderr. *)
+
+val error : ('a, unit, string, unit) format4 -> 'a
+(** [error msg] outputs the error message [msg] on stderr. *)
+
+val fatal_error : int -> ('a, unit, string, 'b) format4 -> 'a
+(** [fatal_error i msg] output the error message [msg] on stderr
+    and stops the program with exit code [i]. *)
 
 val has_cmd : string -> bool
 (** [has_cmd cmd] is [true] iff the shell has the command [cmd]. *)

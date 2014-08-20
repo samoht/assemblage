@@ -62,15 +62,20 @@ let color (c: text_style) s =
     Printf.sprintf "\027[%sm%s\027[m" code s
 
 let show fmt =
-  ksprintf (fun str ->
-      printf "%s %s\n%!" (color `Cyan "+") str
-    ) fmt
+  let show str = printf "%s %s\n%!" (color `Cyan "+") str in
+  ksprintf show fmt
+
+let warn fmt =
+  let warn str = eprintf "%s %s\n%!" (color `Red "WARNING") str in
+  ksprintf warn fmt
+
+let error fmt =
+  let error str = eprintf "%s %s\n%!" (color `Red "ERROR") str in
+  ksprintf error fmt
 
 let fatal_error i fmt =
-  ksprintf (fun str ->
-     eprintf "%s: %s\n%!" (color `Red "ERROR") str;
-     exit i
-    ) fmt
+  let fatal str = eprintf "%s: %s\n%!" (color `Red "ERROR") str; exit i in
+  ksprintf fatal fmt
 
 let has_cmd cmd =
   Sys.command (Printf.sprintf "type %s 1>/dev/null 2>/dev/null" cmd) = 0
