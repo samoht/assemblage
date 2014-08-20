@@ -24,6 +24,9 @@ val fatal_error: int -> ('a, unit, string, 'b) format4 -> 'a
 (** [fatal_error i msg] signals an error and stops the program with
     the exit code [i]. *)
 
+val has_cmd : string -> bool
+(** [has_cmd cmd] is [true] iff the shell has the command [cmd]. *)
+
 val exec: ?verbose:bool -> ('a, unit, string, unit) format4 -> 'a
 (** Execute a shell command. *)
 

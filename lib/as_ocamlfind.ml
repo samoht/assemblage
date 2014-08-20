@@ -129,8 +129,8 @@ let pkgs ~mode = function
     v (`Link `Native) (link_native ~mode names)
 
 let resolver mode =
-  if As_shell.try_exec "ocamlfind list" then
-    As_resolver.create ~pkgs:(pkgs ~mode)
+  if As_shell.has_cmd "ocamlfind"
+  then As_resolver.create ~pkgs:(pkgs ~mode)
   else
   As_shell.fatal_error 1 "ocamlfind is not installed on your system, stopping."
 
