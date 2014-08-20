@@ -913,19 +913,18 @@ module Lib = struct
     let () = match origin with
     | `Other o  ->
         let files = Other.self_targets o in
-        let cma = List.mem `Cma files in
-        let cmxa = List.mem `Cmxa files in
-        let cmxs = List.mem `Cmxs files in
-        if not cma && not cmxa && not cmxs then
+        let no_cma = not (List.mem `Cma files) in
+        let no_cmxa = not (List.mem `Cmxa files) in
+        let no_cmxs = not (List.mem `Cmxs files) in
+        if no_cma && no_cmxa && no_cmxs then
           As_shell.fatal_error 1
             "No rule to generate the files of the %s."
             name
         else
-        let available =
-          As_features.(available
-                       &&& (if not cma then not_ byte else true_)
-                       &&& (if not cmxa then not_ native else true_)
-                       &&& (if not cmxs then not_ native_dynlink else true_))
+        let available = As_features.(available &&&
+                                     neg ~on:no_cma byte &&&
+                                     neg ~on:no_cmxa native &&&
+                                     neg ~on:no_cmxs native_dynlink)
         in
         l := with_origin (`Other o) (Base.with_available available base)
     | `Units us ->
@@ -1061,11 +1060,13 @@ module Bin = struct
       name origin
     =
     let available =
-      let n = native and b = byte and j = js in
+      let not_native = not native in
+      let not_byte = not byte in
+      let not_js = not js in
       As_features.(available &&&
-                   (if not n then not_ native else true_) &&&
-                   (if not b then not_ byte else true_) &&&
-                   (if not j then not_ js else true_))
+                   neg ~on:not_native native &&&
+                   neg ~on:not_byte byte &&&
+                   neg ~on:not_js js)
     in
     let flags t r =
       let flags = if linkall then As_flags.(linkall @@@ flags) else flags in
@@ -1084,14 +1085,14 @@ module Bin = struct
         b := with_origin (`Units us) (Base.with_contents contents base)
     | `Other o  ->
         let files = Other.self_targets o in
-        let xb = List.mem `Byte files in
-        let xn = List.mem `Native files in
-        let xj = List.mem `Js files in
+        let no_byte = not (List.mem `Byte files) in
+        let no_native = not (List.mem `Native files) in
+        let no_js = not (List.mem `Js files) in
         let available =
           As_features.(available &&&
-                       (if not xn then not_ native else true_) &&&
-                       (if not xb then not_ byte else true_) &&&
-                       (if not xj then not_ js else true_))
+                       neg ~on:no_byte byte &&&
+                       neg ~on:no_native native &&&
+                       neg ~on:no_js js)
         in
         b := with_origin (`Other o) (Base.with_available available base)
     in
@@ -1100,7 +1101,7 @@ module Bin = struct
   let toplevel ?(available = As_features.true_) ?(flags = As_flags.empty)
       ?(deps = []) ?(custom = false) ?install name comps
     =
-    let available = As_features.(not_ native &&& available) in
+    let available = As_features.(neg native &&& available) in
     let deps = `Pkg (Pkg.compiler_libs_toplevel) :: deps in
     let link_byte = [
       (if custom then "-custom " else "") ^ "-I +compiler-libs topstart.cmo"

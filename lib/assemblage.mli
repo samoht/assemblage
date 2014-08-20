@@ -68,7 +68,10 @@ module Features : sig
   val false_ : t
   (** [false_] is always false. *)
 
-  val not_ : t -> t
+  val neg : ?on:bool -> t -> t
+  (** [neg f] is true [iff] [f] is false. If [on] is specified, negates
+      if [on] is [true] and [true_] is returned if [on] is [false]. *)
+
   (** [not_ f] is true iff [f] is false. *)
 
   val (&&&) : t -> t -> t

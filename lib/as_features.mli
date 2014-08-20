@@ -67,8 +67,9 @@ val false_: t
 val atom: atom -> t
 (** [atom t] is the formula containing the singleton feature [t]. *)
 
-val not_: t -> t
-(** [not f] negates the formula [f]. *)
+val neg : ?on:bool -> t -> t
+(** [neg f] negates the formula [f]. If [on] is specified, negates
+    if [on] is [true] and [true_] is returned if [on] is [false]. *)
 
 val (&&&): t -> t -> t
 (** [f1 && f2] is the conjonction of [f1] and [f2]. *)

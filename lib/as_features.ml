@@ -60,11 +60,14 @@ let true_ = True
 let false_ = False
 let atom t = Atom t
 
-let not_ = function
-| True  -> False
-| False -> True
-| Not t -> t
-| t     -> Not t
+let neg ?on f = match on with
+| Some false -> True
+| None | Some true ->
+    match f with
+    | True -> False
+    | False -> True
+    | Not t -> t
+    | t  -> Not t
 
 let (&&&) x y = match x, y with
 | True, x  | x, True  -> x
