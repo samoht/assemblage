@@ -86,7 +86,7 @@ let tests = [
   mk_example "containers";
   mk_example "pack";
   mk_example "threads";
-(* mk_examples "threads-lib"; *)
+  mk_example "threads-lib";
   mk_example "ctypes-libffi";
 ]
 

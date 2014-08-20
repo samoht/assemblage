@@ -138,8 +138,8 @@ module Lib : sig
   type t = lib
   type kind = [ `OCaml | `OCaml_pp ]
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?pack:bool ->
-    string -> kind ->
+    ?deps:component list -> ?byte:bool -> ?native:bool ->
+    ?native_dynlink:bool -> ?pack:bool -> string -> kind ->
     [`Units of [`Unit of Unit.t] list | `Other of other] -> t
   val kind : t -> kind
 end

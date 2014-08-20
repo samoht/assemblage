@@ -68,7 +68,10 @@ module Features : sig
   val false_ : t
   (** [false_] is always false. *)
 
-  val not_ : t -> t
+  val neg : ?on:bool -> t -> t
+  (** [neg f] is true [iff] [f] is false. If [on] is specified, negates
+      if [on] is [true] and [true_] is returned if [on] is [false]. *)
+
   (** [not_ f] is true iff [f] is false. *)
 
   val (&&&) : t -> t -> t
@@ -347,7 +350,7 @@ val other : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
 (** Generated source file(s). *)
 
 val lib : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-  ?pack:bool ->
+  ?byte:bool -> ?native:bool -> ?native_dynlink:bool -> ?pack:bool ->
   string -> [`Units of [`Unit of comp_unit] list | `Other of other]
   -> [> `Lib of lib]
 (** [lib name units] is the project library [name] composed by the compilation
@@ -355,9 +358,9 @@ val lib : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
     compilation units and their dependecies in the given directory. *)
 
 val lib_pp : ?available:Features.t -> ?flags:Flags.t ->
-  ?deps:component list -> ?pack:bool ->
-  string -> [`Units of [`Unit of comp_unit] list | `Other of other]
-  -> [> `Lib of lib]
+  ?deps:component list -> ?byte:bool -> ?native:bool -> ?native_dynlink:bool ->
+  ?pack:bool -> string ->
+  [`Units of [`Unit of comp_unit] list | `Other of other] -> [> `Lib of lib]
 (** [lib_pp] is like {!lib} but it defines a project pre-processor. *)
 
 val bin : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
