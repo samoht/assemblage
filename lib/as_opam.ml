@@ -50,11 +50,12 @@ module Install = struct
       As_action.FileSet.iter add_file files
     in
     let us = As_component.(filter_map unit (contents library)) in
-    let intf = List.filter (fun u -> not (As_component.Unit.hidden u)) us in
-    let inline = List.filter (fun u -> not (As_component.Unit.opaque u)) us in
+    let keep itfs u = List.mem (As_component.Unit.interface u) itfs in
+    let interfaces = List.filter (keep [`Normal; `Opaque]) us in
+    let cross_inline = List.filter (keep [`Normal]) us in
     add_files library;
-    List.iter (fun u -> add_files ~exts:[`Cmi; `Mli] (`Unit u)) intf;
-    List.iter (fun u -> add_files ~exts:[`Cmx] (`Unit u)) inline;
+    List.iter (fun u -> add_files ~exts:[`Cmi; `Mli] (`Unit u)) interfaces;
+    List.iter (fun u -> add_files ~exts:[`Cmx] (`Unit u)) cross_inline;
     ()
 
   let of_project ?(meta=true) ~build_dir t =

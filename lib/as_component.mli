@@ -108,8 +108,10 @@ end
 module Unit : sig
   type t = comp_unit
   type kind = [ `OCaml | `C | `Js ]
+  type interface = [ `Normal | `Opaque | `Hidden ]
+
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list -> ?opaque:bool -> ?hidden:bool ->
+    ?deps:component list -> ?interface:interface  ->
     string -> kind -> [`Path of string list | `Other of other] -> t
 
   val pack : ?available:As_features.t -> ?flags:As_flags.t ->
@@ -118,8 +120,7 @@ module Unit : sig
   val generated : t -> bool
   val kind : t -> [`OCaml | `C | `Js]
   val has : As_action.file -> t -> bool
-  val opaque : t -> bool
-  val hidden : t -> bool
+  val interface : t -> interface
   val source_dir : t -> string option
 end
 

@@ -325,7 +325,7 @@ type component =
     {- FIXME}} *)
 
 val unit : ?available:Features.t -> ?flags:Flags.t -> ?deps:component list ->
-  ?opaque:bool -> ?hidden:bool -> string ->
+  ?interface:[`Normal | `Opaque | `Hidden] -> string ->
   [`Path of string list | `Other of other] -> [> `Unit of comp_unit]
 (** [unit name dir ~available ~flags ~deps] is a compilation unit
     named [name] (the filename without extension) present in directory
