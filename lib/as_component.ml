@@ -133,7 +133,6 @@ end
 
 (* Components *)
 
-
 type t = component
 
 (* Base field access *)
@@ -830,9 +829,6 @@ module Lib = struct
 
   let kind t = t.base_payload.l_kind
   let units t = match t.base_payload.l_origin with `Units us -> us | _ -> []
-  let with_origin l_origin t =
-    { t with base_payload = { t.base_payload with l_origin } }
-
   let files = [
     As_features.byte, [`Cmi; `Cma];
     As_features.native, [`Cmi; `Cmxa; `A];
@@ -840,69 +836,49 @@ module Lib = struct
     As_features.annot, [`Cmti]; ]
 
   let mk_flags t r =
-    let us = units t in
     let bdir = build_dir (`Lib t) r in
     let incl = [sprintf "-I %s" bdir] in
-    let cmo_deps =
-      List.filter (Unit.has `Cmo) us
-      |> List.map (fun u -> file (`Unit u) r `Cmo)
-    in
-    let cmx_deps =
-      List.filter (Unit.has `Cmx) us
-      |> List.map (fun u -> file (`Unit u) r `Cmx)
-    in
+    let us = units t in
+    let dep ext u = file (`Unit u) r ext in
+    let cmo_deps = List.filter (Unit.has `Cmo) us |> List.map (dep `Cmo) in
+    let cmx_deps = List.filter (Unit.has `Cmo) us |> List.map (dep `Cmx) in
     let comp = Unit.comp_flags t.base_deps ~bdir r in
     let open As_flags in
     comp @@@
     v `Dep incl @@@
     v (`Compile `Byte) incl @@@
     v (`Compile `Native) incl @@@
-    v (`Archive `Byte) cmo_deps @@@
-    v (`Archive `Native) cmx_deps @@@
-    v (`Archive `Shared) cmx_deps
+    v (`Archive `Byte) ("-a" :: cmo_deps) @@@
+    v (`Archive `Native) ("-a" :: cmx_deps) @@@
+    v (`Archive `Shared) ("-shared" :: "-linkall" :: cmx_deps)
+
+  let archive_action compiler phase ext c r flags =
+    let flags = String.concat " " (As_flags.get phase flags) in
+    As_action.create "%s %s -o %s" (compiler r) flags (file c r ext)
 
   let rules t = match t.base_payload.l_origin with
   | `Other o  -> rules (`Other o)
   | `Units us ->
-      let cmo_deps =
-        List.filter (Unit.has `Cmo) us
-        |> List.map (fun u -> `N (`Unit u, `Cmo))
-      in
-      let cmx_deps =
-        List.filter (Unit.has `Cmx) us
-        |> List.map (fun u -> `N (`Unit u, `Cmx))
-      in
-      let byte =
+      let dep ext u = `N (`Unit u, ext) in
+      let archive_byte =
+        let phase = `Archive `Byte in
+        let cmo_deps = List.filter (Unit.has `Cmo) us |> List.map (dep `Cmo) in
         As_action.rule
-          ~phase:(`Archive `Byte)
-          ~targets:[`Self `Cma]
-          ~prereqs:(`Self `Dir :: cmo_deps)
-          (fun t r f ->
-             As_action.create "%s -a %s -o %s"
-               (As_resolver.ocamlc r)
-               (String.concat " " (As_flags.get (`Archive `Byte) f))
-               (file t r `Cma))
+          ~phase ~targets:[`Self `Cma] ~prereqs:(`Self `Dir :: cmo_deps)
+          (archive_action As_resolver.ocamlc phase `Cma)
       in
-      let native mode =
+      let archive_native mode =
+        let phase = (`Archive mode :> As_flags.phase) in
+        let cmx_deps = List.filter (Unit.has `Cmx) us |> List.map (dep `Cmx) in
         let ext = match mode with `Shared -> `Cmxs | `Native -> `Cmxa in
         let exts = match mode with `Shared -> [`Cmxs] | `Native -> [`Cmxa;`A] in
-        let phase = match mode with
-        | `Shared -> `Archive `Shared
-        | `Native -> `Archive `Native
-        in
         As_action.rule
-          ~phase
-          ~targets:(List.map (fun x -> `Self x) exts)
+          ~phase ~targets:(List.map (fun x -> `Self x) exts)
           ~prereqs:(`Self `Dir :: cmx_deps)
-          (fun t r f ->
-             As_action.create "%s %s %s -o %s"
-               (As_resolver.ocamlopt r)
-               (match mode with `Shared -> "-shared -linkall"
-                              | `Native -> "-a")
-               (String.concat " " (As_flags.get phase f))
-               (file t r ext))
+          (archive_action As_resolver.ocamlopt phase ext)
       in
-      [ Rule.mkdir; byte; native `Native; native `Shared ]
+      [ Rule.mkdir;
+        archive_byte; archive_native `Native; archive_native `Shared ]
 
   let create ?(available = As_features.true_) ?(flags = As_flags.empty) ?deps
       ?(byte = true) ?(native = true) ?(native_dynlink = true)
@@ -916,17 +892,14 @@ module Lib = struct
                    neg ~on:not_byte byte &&&
                    neg ~on:not_native native &&&
                    neg ~on:not_native_dynlink native_dynlink)
-      in
+    in
     let flags t r = As_flags.(flags @@@ mk_flags t r) in
-    let base = Base.create ~available ~flags ~rules ~files ?deps name `Lib
-        { l_kind = kind; l_origin = `Units []; } in
-    let l = ref base in
-    let () = match origin with
+    match origin with
     | `Other o  ->
-        let files = Other.self_targets o in
-        let no_cma = not (List.mem `Cma files) in
-        let no_cmxa = not (List.mem `Cmxa files) in
-        let no_cmxs = not (List.mem `Cmxs files) in
+        let ofiles = Other.self_targets o in
+        let no_cma = not (List.mem `Cma ofiles) in
+        let no_cmxa = not (List.mem `Cmxa ofiles) in
+        let no_cmxs = not (List.mem `Cmxs ofiles) in
         let available = As_features.(available &&&
                                      neg ~on:no_cma byte &&&
                                      neg ~on:no_cmxa native &&&
@@ -938,15 +911,20 @@ module Lib = struct
         if no_cma && byte then warn "cma";
         if no_cmxa && native then warn "cmxa";
         if no_cmxs && native_dynlink then warn "cmxs";
-        l := with_origin (`Other o) (Base.with_available available base)
+        Base.create ~available ~flags ~rules ~files ?deps name `Lib
+          { l_kind = kind; l_origin = `Other o }
     | `Units us ->
+        let base = Base.create ~available ~flags ~rules ~files ?deps name `Lib
+            { l_kind = kind; l_origin = `Units []; }
+        in
+        let c = ref base in
         let us = List.map (function `Unit u -> u) us in
         let us = if pack then [Unit.pack name us] else us in
-        let us = Unit.map (Base.with_parent (fun () -> `Lib !l)) us in
-        let contents = List.map (fun u -> `Unit u) us in
-        l := with_origin (`Units us) (Base.with_contents contents base)
-    in
-    !l
+        let us = Unit.map (Base.with_parent (fun () -> `Lib !c)) us in
+        let base_contents = List.map (fun u -> `Unit u) us in
+        let base_payload = { l_kind = kind; l_origin = `Units us } in
+        c := { base with base_contents; base_payload; };
+        !c
 end
 
 module Bin = struct

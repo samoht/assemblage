@@ -46,7 +46,6 @@ module type Set = sig
   val of_list : elt list -> t
 end
 
-
 (** {1 Components base fields} *)
 
 val name : t -> string
