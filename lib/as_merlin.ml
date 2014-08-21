@@ -63,6 +63,8 @@ let add_directive m = function
   | `PKG p -> { m with pkg=SSet.union (set_of_list p) m.pkg }
   | `EXT e -> { m with ext=SSet.union (set_of_list e) m.ext }
 
+let is_built_component c = List.mem (As_component.kind c) [`Unit; `Lib; `Bin]
+
 let of_project ~build_dir p =
   let r = As_resolver.create ~build_dir () in
   let open As_component in
@@ -75,7 +77,7 @@ let of_project ~build_dir p =
   in
   let b = List.fold_left (fun set c ->
     SSet.add (build_dir c r) set
-  ) SSet.empty components in
+  ) SSet.empty (keep is_built_component components) in
   let pkg =
     set_of_list (List.rev_map Pkg.name (filter_map pkg_ocaml    components))
   in
