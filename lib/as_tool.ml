@@ -64,14 +64,18 @@ let setup p env build_env dumpast `Make =
   let features = As_build_env.features build_env in
   let flags = As_build_env.flags build_env in
   let makefile = "Makefile" in
+  let merlin = ".merlin" in
   let build_dir = As_build_env.build_dir build_env in
+  let file_arrow = As_shell.color `Green "==>" in
   check p;
   log_project env p;
-  Printf.printf "%s write %s\n" (As_shell.color `Green "==>") makefile;
+  Printf.printf "%s write %s\n" file_arrow makefile;
   As_makefile.write_file makefile
     (As_project_makefile.of_project p ~features ~flags ~makefile ~dumpast);
   As_ocamlfind.META.(write (of_project p));
   As_opam.Install.(write (of_project ~build_dir p));
+  Printf.printf "%s write %s\n" file_arrow merlin;
+  As_merlin.(write_file merlin (of_project ~build_dir p));
   `Ok ()
 
 let describe p env build_env =
