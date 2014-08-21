@@ -46,7 +46,6 @@ module type Set = sig
   val of_list : elt list -> t
 end
 
-
 (** {1 Components base fields} *)
 
 val name : t -> string
@@ -109,14 +108,19 @@ end
 module Unit : sig
   type t = comp_unit
   type kind = [ `OCaml | `C | `Js ]
+  type interface = [ `Normal | `Opaque | `Hidden ]
+
   val create : ?available:As_features.t -> ?flags:As_flags.t ->
-    ?deps:component list ->
+    ?deps:component list -> ?interface:interface  ->
     string -> kind -> [`Path of string list | `Other of other] -> t
+
   val pack : ?available:As_features.t -> ?flags:As_flags.t ->
     ?deps:component list -> string -> t list -> t
-  val generated: t -> bool
-  val kind: t -> [`OCaml | `C | `Js]
+
+  val generated : t -> bool
+  val kind : t -> [`OCaml | `C | `Js]
   val has : As_action.file -> t -> bool
+  val interface : t -> interface
   val source_dir : t -> string option
 end
 

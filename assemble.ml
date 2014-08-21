@@ -21,11 +21,13 @@ let ocaml_version =
 
 let lib =
   let as_OCaml_incl =
-    unit "as_OCaml_incl" ~deps:[bytecomp]
+    unit "as_OCaml_incl" ~deps:[bytecomp] ~interface:`Hidden
       (if ocaml_version < (4,2) then (`Path ["lib";"401"])
        else (`Path ["lib";"402"]))
   in
-  let unit ?deps name = unit ?deps name (`Path ["lib"]) in
+  let unit ?deps ?(interface = `Hidden) name =
+    unit ?deps ~interface name (`Path ["lib"])
+  in
   lib "assemblage" ~deps:[cmdliner]
     (`Units [
         unit "as_shell";
@@ -46,7 +48,7 @@ let lib =
         unit "as_env";
         unit "as_tool";
         unit "as_cmd";
-        unit "assemblage";
+        unit "assemblage" ~interface:`Normal;
       ])
 
 let assemblage_tool =

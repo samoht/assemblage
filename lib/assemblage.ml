@@ -41,8 +41,9 @@ type container = As_component.container
 type test = As_component.test
 type doc = As_component.doc
 
-let unit ?available ?flags ?deps name origin =
-  `Unit (As_component.Unit.create ?available ?flags ?deps name `OCaml origin)
+let unit ?available ?flags ?deps ?interface name origin =
+  `Unit (As_component.Unit.create ?available ?flags ?deps ?interface
+           name `OCaml origin)
 
 let pack ?available ?flags ?deps name units =
   let units = List.map (function `Unit u -> u) units in
