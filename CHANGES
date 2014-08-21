@@ -1,5 +1,6 @@
-0.4.0
+0.4.0: [trunk]
 - Fix regression in the generation of docs
+- Merlin .merlin file generation
 
 0.3.0: [Aug 2014]
 - #43 Simpler and saner command-line options handling.

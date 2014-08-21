@@ -41,6 +41,7 @@ let lib =
         unit "as_component";
         unit "as_project";
         unit "as_opam";
+        unit "as_merlin";
         unit "as_ocamlfind";
         unit "as_project_makefile";
         as_OCaml_incl;

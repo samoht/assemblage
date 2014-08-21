@@ -89,7 +89,7 @@ val container : t -> container option
 val test : t -> test option
 val doc : t -> doc option
 
-(** {1 Components sets} *)
+(** {1 Component sets} *)
 
 module Set : Set with type elt = t
 

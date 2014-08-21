@@ -22,6 +22,7 @@ precise (and static) dependency relationships.
 
 Using a project description, the tools can generate:
 
+- a `.merlin` to help edit the project;
 - a `Makefile` to build the project;
 - a `.install` to install the project; and
 - a `META` file to use the project.
@@ -55,59 +56,63 @@ install and use the project. `describe` simply displays a summary
 of the project:
 
 ```shell
-$ thomas@piana:~/git/assemblage$ assemblage describe
+thomas@piana:~/git/assemblage$ assemblage describe
+==> Loading assemble.ml
 
-assemblage describe
-+ Loading assemble.ml.
-
-==> assemblage 7d2c98
-
+==> assemblage 3b27e2
 └─┬─ lib-assemblage
-  ├─── [cmdliner ocamlgraph]
+  ├─── [cmdliner]
+  ├─ as_shell.ml      as_shell.mli
+  ├─ as_git.ml        as_git.mli
+  ├─ as_makefile.ml   as_makefile.mli
+  ├─── Rule
+  ├─── Var
   ├─ as_features.ml   as_features.mli
   ├─── Set
   ├─ as_flags.ml      as_flags.mli
   ├─── PhaseSet
   ├─ as_resolver.ml   as_resolver.mli
-  ├─ as_shell.ml      as_shell.mli
-  ├─ as_git.ml        as_git.mli
   ├─ as_build_env.ml  as_build_env.mli
   ├─ as_action.ml     as_action.mli
   ├─── FileSet
-  ├─ as_project.ml    as_project.mli
+  ├─ as_component.ml  as_component.mli
   ├─── Bin
-  ├─── Component
-  ├─── Component.Graph
-  ├─── Component.Set
   ├─── Container
-  ├─── Dir
   ├─── Doc
   ├─── Lib
   ├─── Other
   ├─── Pkg
   ├─── Rule
+  ├─── Set
   ├─── Test
   ├─── Unit
+  ├─ as_project.ml    as_project.mli
   ├─ as_opam.ml       as_opam.mli
   ├─── Install
+  ├─ as_merlin.ml     as_merlin.mli
+  ├─── Directive
   ├─ as_ocamlfind.ml  as_ocamlfind.mli
   ├─── META
-  ├─ as_makefile.ml   as_makefile.mli
-  ├─── Rule
-  ├─── Variable
+  ├─ as_project_makefile.mlas_project_makefile.mli
+  ├─ as_OCaml_incl.ml
+  ├─── Pparse
+  ├─── StringSet
   ├─ as_OCaml.ml      as_OCaml.mli
+  ├─ as_env.ml        as_env.mli
+  ├─ as_tool.ml       as_tool.mli
   ├─ as_cmd.ml        as_cmd.mli
   ├─ assemblage.ml    assemblage.mli
   ├─── Action
   ├─── Build_env
-  ├─── Cmd
   ├─── Features
   ├─── Flags
   └─── Resolver
-└─┬─ bin-ctypes-gen
-  └─ ctypes_gen.ml
 └─┬─ bin-assemblage
   └─ tool.ml
+└─┬─ bin-ctypes-gen
+  └─ ctypes_gen.ml
+└─┬─ bin-assemble
+  └─ assemble.ml
 ```
 
 You can find few examples in the `examples/` directory, where projects
