@@ -7,7 +7,6 @@ authors: [
 license: "ISC"
 depends: [
   "cmdliner"
-  "ocamlgraph"
   "dumpast"
 ]
 build: [
