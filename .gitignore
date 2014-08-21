@@ -3,3 +3,4 @@ doc/*.html
 META
 assemblage.install
 Makefile
+.merlin
