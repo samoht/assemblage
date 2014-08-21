@@ -1,2 +1,30 @@
-PKG cmdliner ocamlgraph compiler-libs.toplevel optcomp
-B _build/**
+# include assemblage package for editor assistance in assemble.ml
+PKG assemblage
+
+
+PKG compiler-libs.toplevel
+PKG compiler-libs.bytecomp
+PKG cmdliner
+
+B _build/test-threads-lib
+B _build/test-threads
+B _build/test-pack
+B _build/test-multi-libs
+B _build/test-hello
+B _build/test-ctypes-libffi
+B _build/test-containers
+B _build/test-camlp4
+B _build/pkg-compiler-libs.toplevel
+B _build/pkg-compiler-libs.bytecomp
+B _build/pkg-cmdliner
+B _build/lib-assemblage
+B _build/doc-public
+B _build/doc-dev
+B _build/bin-ctypes-gen
+B _build/bin-assemble
+B _build/bin-assemblage
+
+S lib/401
+S lib
+S bin
+S 
