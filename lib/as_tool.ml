@@ -76,7 +76,7 @@ let setup p env build_env dumpast `Make =
   As_ocamlfind.META.(write (of_project p));
   As_opam.Install.(write (of_project ~build_dir p));
   Printf.printf "%s write %s\n" file_arrow merlin;
-  As_merlin.(write_file merlin (of_project ~build_dir p));
+(*  As_merlin.(write_file merlin (of_project ~build_dir p)); *)
   `Ok ()
 
 let describe p env build_env =
