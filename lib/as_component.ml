@@ -584,11 +584,12 @@ module Unit = struct
                let target = file t r y in
                As_action.link r ~source ~target
            | Some preprocessor ->
-               As_action.create "%s %s %s > %s"
+             let out_file = file t r y in
+               As_action.create "%s %s %s > %s || ( rm -f %s && false )"
                  preprocessor
                  (String.concat " " (As_flags.get (`Pp mode) f))
                  (file t r x)
-                 (file t r y))
+                 out_file out_file)
     in
     let ocamldep x =
       let ocaml_files = match parent (`Unit t) with
