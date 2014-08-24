@@ -47,4 +47,4 @@ $OCAMLFIND ocamlc $OPTS $UPKGS -I $BDIR -linkpkg $CMOS $BDIR/tool.cmo \
 
 # Run it on assemblage's assemblage.ml
 $BDIR/assemblage.boot setup --auto-load=false -I $BDIR \
-    --warn-error=false --test=false --dumpast=false
+    --warn-error=false --test=false --dumpast=false --merlin=false

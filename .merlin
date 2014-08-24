@@ -1,0 +1,14 @@
+PKG compiler-libs.toplevel
+PKG compiler-libs.bytecomp
+PKG cmdliner
+
+B _build/bootstrap
+B _build/lib-assemblage
+B _build/bin-ctypes-gen
+B _build/bin-assemble
+B _build/bin-assemblage
+
+S lib/401
+S lib/402
+S lib
+S bin
