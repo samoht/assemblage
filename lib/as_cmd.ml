@@ -132,15 +132,19 @@ let setup_cmd p setup_env =
     help_sections;
   in
   let setup = match p with
-  | None -> fun _ _ _ _ -> no_project setup_env
-  | Some p -> As_tool.setup p
+  | None -> fun _ _ _ _ _ -> no_project setup_env
+  | Some p -> fun s b d make merlin -> As_tool.setup p s b d make ~merlin
   in
   let dumpast_opt =
     let doc = "Dump the AST during build (optimisation). FIXME" in
     Arg.(value & opt bool true & info ["dumpast"] ~doc ~docv:"BOOL")
   in
+  let merlin_opt =
+    let doc = "Generate a .merlin file." in
+    Arg.(value & opt bool true & info ["merlin"] ~doc ~docv:"BOOL")
+  in
   Term.(ret (pure setup $ env_opts setup_env $ build_env_opts p $ dumpast_opt $
-             pure `Make)),
+             pure `Make $ merlin_opt)),
   Term.info "setup" ~doc ~sdocs:global_option_section ~man
 
 let describe_cmd p setup_env =

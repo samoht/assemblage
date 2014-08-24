@@ -18,6 +18,6 @@
 (** Project tools. *)
 
 val setup : As_project.t -> As_env.t -> As_build_env.t -> bool
-  -> [`Make ] -> [> `Ok of unit ]
+  -> [`Make] -> merlin:bool -> [> `Ok of unit ]
 
 val describe : As_project.t -> As_env.t -> As_build_env.t -> [> `Ok of unit ]

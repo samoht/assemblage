@@ -19,7 +19,7 @@
 val of_project:
   ?buildir:string ->
   ?makefile:string ->
-  ?merlin:string ->
+  ?clean_files:string list ->
   flags:As_flags.t ->
   features:(As_features.atom * bool) list ->
   dumpast:bool ->

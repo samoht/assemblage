@@ -366,7 +366,7 @@ let global_variables flags cs =
   in
   As_makefile.Var.stanza ~align:true ~simplify:true vars
 
-let of_project ?(buildir="_build") ?(makefile="Makefile") ?(merlin=".merlin")
+let of_project ?(buildir="_build") ?(makefile="Makefile") ?(clean_files=[])
     ~flags ~features ~dumpast t =
   let preprocessor =
     if not dumpast then None else
@@ -476,7 +476,8 @@ let of_project ?(buildir="_build") ?(makefile="Makefile") ?(merlin=".merlin")
   let distclean =
     As_makefile.Rule.create ~ext:true ~targets:["distclean"]
       ~prereqs:["clean"] [
-      sprintf "rm -f %s %s.install META %s" makefile  (As_project.name t) merlin
+      sprintf "rm -f %s %s.install META %s" makefile  (As_project.name t)
+        (String.concat " " clean_files)
     ] in
   let install =
     As_makefile.Rule.create ~ext:true ~targets:["install"] ~prereqs:["all"] [
