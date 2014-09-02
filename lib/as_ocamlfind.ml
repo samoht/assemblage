@@ -72,11 +72,16 @@ let query ~mode = match mode with
   | `Makefile -> query_makefile
 
 let pp_byte ~mode names =
-  query ~mode
-    ~predicates:["syntax";"preprocessor"]
-    ~recursive:true
-    ~format:"%d/%a"
-    names
+  (query ~mode
+     ~predicates:["syntax";"preprocessor"]
+     ~recursive:true
+     ~format:"-I %d"
+     names
+  )@(query ~mode
+       ~predicates:["syntax";"preprocessor"]
+       ~recursive:true
+       ~format:"%a"
+       names)
 
 (*
 let pp_native ~mode names =
