@@ -23,7 +23,7 @@
     Describing a project eventually leads to describe its build
     artifacts. The exact mapping betweem project elements and those
     build artifacts depends on the presence or absence of
-    {{!Features}features}. Examples of such features are weather to
+    {{!Features}features}. Examples of such features are whether to
     compile and run the tests (user-defined feature), the presence of
     the native compiler (system-dependant feature), compiling a
     library using [async] or [lwt] as a backend (environment-dependant
