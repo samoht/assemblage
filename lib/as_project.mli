@@ -14,29 +14,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Project
+(** Project.
 
-    A datastructure to describe projects. Models a project as a
-    description of a set of components such as libraries, binaries,
-    tests, etc. forming a DAG. *)
+    For documentation see {!Assemblage.Project}. *)
 
 (** {1 Projects} *)
 
 type t
-(** The type for describing projects. *)
 
-val create : ?available:As_features.t -> ?flags:As_flags.t ->
-  ?version:string -> string -> As_component.t list -> t
-(** [create cs n] is the project named [n] with components [cs]. *)
+val create : ?cond:As_cond.t -> ?args:As_args.t -> string ->
+  'a As_part.t list -> t
 
-val components : t -> As_component.t list
-(** Return the project components in context. *)
+val parts : t -> As_part.kind As_part.t list
+(** [parts proj] is the projects's parts. *)
 
 val name : t -> string
-(** [name t] is the project name. *)
 
-val version : t -> string
-(** [version t] is the project version. *)
-
-val features : t -> As_features.Set.t
-(** [features t] is the collection of features used in the project. *)
+val cond_atoms : t -> As_cond.Set.t

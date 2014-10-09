@@ -1,14 +1,12 @@
 open Assemblage
 
-let a = unit "a" (`Path ["src"])
+let dir = [ "src" ]
 
-let b = pack "b" [
-    unit "a" (`Path ["src";"b"]);
-    unit "c" (`Path ["src";"b"]);
-  ]
+let a = unit "a" ~dir
+let b =
+  let dir = dir / "b" in
+  pack "b" [ unit "a" ~dir; unit "c" ~dir; ]
 
-let main = bin "main" ~deps:[a;b] (`Units [
-    unit "main" (`Path ["src"])
-  ])
+let main = bin "main" ~deps:[a;b] [ unit "main" ~dir ]
 
 let () = assemble (project "pack" [main])

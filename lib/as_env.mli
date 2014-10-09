@@ -15,47 +15,49 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Command runtime environment. *)
+(** Build environment.
 
-(** {1 Setup environements} *)
+    For documentation see {!Assemblage.Env}. *)
 
-type setup =
-  { auto_load : bool;          (** [true] to add assemblage lib to includes. *)
-    includes : string list;        (** includes to add to toploop execution. *)
-    assemble_file : string;                             (** file to execute. *)
-    exec_status :                   (** execution status of [assemble_file]. *)
-      [ `Ok of unit | `Error of string ]; }
-(** The type for setup environments.
+(** {1 Build environment} *)
 
-    This is only used by the assemblage tool. It determines the environment
-    in which assemble.ml will be executed and the result of that execution. *)
+type t
 
-val parse_setup : unit -> setup
-(** [parse_setup ()] must be called by the assemblage tool.
+val create :
+  ?ocamlc:string ->
+  ?ocamlopt:string ->
+  ?ocamldep:string ->
+  ?ocamlmklib:string ->
+  ?ocamldoc:string ->
+  ?ocaml_pp:string option ->
+  ?ln:string ->
+  ?mkdir:string ->
+  ?js_of_ocaml:string ->
+  ?build_dir:As_path.rel ->
+  ?root_dir:As_path.t ->
+  ?ocamlfind_pkgs:(string list -> As_args.t) ->
+  ?pkg_config:(string list -> As_args.t) ->
+  unit -> t
 
-    This function is not called by assemble.ml files (and thus not
-    called if the assemble.ml file is used as a standalone
-    executable). *)
+(** {1 Directories} *)
 
-val get_setup : unit -> setup option
-(** [get_setup ()] returns the setup environment, if any. *)
+val build_dir : t -> As_path.rel
+val root_dir : t -> As_path.t
+val push_build_dir : t -> As_path.rel -> t
 
-(** {1 Command runtime environments} *)
+(** {1 Program binaries} *)
 
-type t =
-  { setup : setup option;         (* None if not run by assemblage. *)
-    verbose : bool;
-    color : [`Auto | `Always | `Never ];
-    utf8_msgs : bool; }
-(** The type for command runtime environments. *)
+val ocamlc : t -> string
+val ocamlopt : t -> string
+val ocamldep : t -> string
+val ocamlmklib : t -> string
+val ocamldoc : t -> string
+val ocaml_pp : t -> string option
+val js_of_ocaml : t -> string
+val mkdir : t -> string
+val ln : t -> string
 
-val create : setup option -> bool -> [`Auto | `Always | `Never] -> t
-(** [create setup verbose color] is an environement with the corresponding
-    parameters or as overriden by Sys.env values. *)
+(** {1 Package queries} *)
 
-val created : unit -> bool
-(** [true] if an environment value was created with {!created} *)
-
-val variable_docs : (string * string) list
-(** [variable_docs] is a list of environement variables and their
-    documentation *)
+val ocamlfind_pkgs : t -> string list -> As_args.t
+val pkg_config : t -> string list -> As_args.t

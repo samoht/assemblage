@@ -19,90 +19,102 @@ let ocaml_version =
     Printf.eprintf "Unknown OCaml version: %s\n%!" Sys.ocaml_version;
     exit 1
 
-let lib =
-  let as_OCaml_incl =
-    unit "as_OCaml_incl" ~deps:[bytecomp] ~interface:`Hidden
-      (if ocaml_version < (4,2) then (`Path ["lib";"401"])
-       else (`Path ["lib";"402"]))
+let lib_assemblage =
+  let kind = `OCaml (`Both, `Hidden) in
+  let unit ?deps ?(kind = kind) name = unit ?deps ~kind name ~dir:["lib"] in
+  lib "assemblage"
+    [ unit "as_string";
+      unit "as_path";
+      unit "as_cond";
+      unit "as_context";
+      unit "as_args";
+      unit "as_env";
+      unit "as_product";
+      unit "as_rule";
+      unit "as_part";
+      unit "as_git";
+      unit "as_project";
+      unit "as_describe";
+      unit "assemblage" ~kind:(`OCaml (`Both, `Normal)); ]
+
+let lib_driver_make =
+  let kind = `OCaml (`Both, `Hidden) in
+  let as_ocaml_incl =
+    let dir = [ "lib" ] / (if ocaml_version < (4,2) then "401" else "402") in
+    unit "as_ocaml_incl" ~deps:[bytecomp] ~kind ~dir
   in
-  let unit ?deps ?(interface = `Hidden) name =
-    unit ?deps ~interface name (`Path ["lib"])
-  in
-  lib "assemblage" ~deps:[cmdliner]
-    (`Units [
-        unit "as_shell";
-        unit "as_git";
-        unit "as_makefile";
-        unit "as_features";
-        unit "as_flags";
-        unit "as_resolver";
-        unit "as_build_env";
-        unit "as_action";
-        unit "as_component";
-        unit "as_project";
-        unit "as_opam";
-        unit "as_merlin";
-        unit "as_ocamlfind";
-        unit "as_project_makefile";
-        as_OCaml_incl;
-        unit "as_OCaml" ~deps:[bytecomp];
-        unit "as_env";
-        unit "as_tool";
-        unit "as_cmd";
-        unit "assemblage" ~interface:`Normal;
-      ])
+  let dir = ["driver-make"] in
+  let unit ?deps ?(kind = kind) name = unit ?deps ~kind name ~dir in
+  lib "assemblage_driver_make" ~deps:[cmdliner]
+    [ unit "as_shell";
+      unit "as_makefile";
+      unit "as_cstubs";
+      unit "as_ocamlfind";
+      unit "as_pkg_config";
+      unit "as_makefile";
+      unit "as_project_makefile";
+      as_ocaml_incl;
+      unit "as_ocaml" ~deps:[bytecomp];
+      unit "as_opam";
+      unit "as_merlin";
+      unit "assemblage_env";
+      unit "as_setup_env";
+      unit "as_setup";
+      unit "as_tool";
+      unit "assemblage_cmd";
+      unit "assemblage" ~kind:(`OCaml (`Both, `Normal)); ]
 
 let assemblage_tool =
-  let us = `Units [ unit "tool" (`Path ["bin"]) ~deps:[toplevel] ] in
-  bin "assemblage" ~deps:[lib] ~linkall:true ~native:false us
+  let u = unit "tool" ~dir:["bin"] ~deps:[toplevel] in
+  bin "assemblage" [u] ~deps:[lib_assemblage; lib_driver_make]
+    ~args:Args.linkall ~native:false
 
 let ctypes_gen =
-  let us = `Units [ unit "ctypes_gen" (`Path ["bin"]) ] in
-  bin "ctypes-gen" ~deps:[lib] ~native:false us
+  let u = unit "ctypes_gen" ~dir:["bin"] in
+  bin "ctypes-gen" [u] ~deps:[lib_assemblage] ~native:false
 
 let assemble_assemble =
   (* Sanity check, can we compile assemble.ml to native code ? *)
-  let us = `Units [ unit "assemble" (`Path []) ] in
-  bin "assemble" ~deps:[lib] ~install:false us
+  let u = unit "assemble" in
+  bin "assemble" [u] ~deps:[lib_assemblage; lib_driver_make]
 
 (* Tests & examples *)
 
 let mk_test ?(example = false) name =
-  let base = if example then "examples/" else "test/" in
-  let dir = base ^ name in
-  let args cmd r =
-    [ cmd; "--auto-load=false"; "-I"; root_dir r / build_dir lib r; ]
+  let dir = [(if example then "examples" else "test"); name] in
+  let args cmd env _ =
+    let libdir = Product.dirname (List.hd (Part.products env lib_assemblage)) in
+    [ cmd; "--auto-load=false"; "-I"; Path.to_string libdir; ]
   in
-  test name ~dir [
-    test_bin assemblage_tool ~args:(args "describe") ();
-    test_bin assemblage_tool ~args:(args "setup") ();
-    test_shell "make";
-    test_shell "make distclean";
-  ]
+  run ~cond:Cond.test name ~dir @@ fun env ->
+  [ Part.Bin.cmd assemblage_tool (args "describe" env);
+    Part.Bin.cmd assemblage_tool (args "setup" env);
+    Rule.cmd ["make"];
+    Rule.cmd ["make distclean"]; ]
 
 let mk_example = mk_test ~example:true
 
-let tests = [
-  mk_example "hello";
-  mk_example "camlp4";
-  mk_example "multi-libs";
-  mk_example "containers";
-  mk_example "pack";
-  mk_example "threads";
-  mk_example "threads-lib";
-  mk_example "ctypes-libffi";
-]
+let tests =
+  [ mk_example "hello";
+    mk_example "camlp4";
+    mk_example "multi-libs";
+    mk_example "containers";
+    mk_example "pack";
+    mk_example "threads";
+    mk_example "threads-lib";
+    mk_example "ctypes-libffi"; ]
 
 (* Docs *)
 
-let dev_doc = doc ~install:false "dev" [lib]
-let doc = doc "public" [pick "assemblage" lib]
+let dev_doc = doc ~keep:Part.Doc.dev "dev" [lib_assemblage]
+let api_doc = doc "api" [lib_assemblage]
 
 (* The project *)
 
-let p = project "assemblage"
-    ([ lib;
-       assemblage_tool; ctypes_gen; assemble_assemble;
-       dev_doc; doc ] @ tests)
+let p =
+  Project.create "assemblage" @@
+  [ lib_assemblage;
+    assemblage_tool; assemble_assemble; ctypes_gen; dev_doc; api_doc ] @
+  tests
 
 let () = assemble p

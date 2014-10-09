@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,177 +15,71 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Printf
+(* Building *)
 
-(* Features and flags *)
+module Path = As_path
+module Cond = As_cond
+module Context = As_context
+module Args = As_args
+module Env = As_env
+module Product = As_product
+module Rule = As_rule
 
-let (/) = Filename.concat
+type cond = As_cond.t
+type context = As_context.t
+type args = As_args.t
+type env = As_env.t
+type rule = As_rule.t
 
-module Features = As_features
-module Flags = As_flags
+(* Parts *)
 
-(* Resolvers and actions *)
+module Part = As_part
 
-module Resolver = As_resolver
-module Action = As_action
+type path = string list
+let ( / ) segs seg = List.rev (seg :: List.rev segs)
 
-(* Components *)
+type part_kind = As_part.kind
+type +'a part = 'a As_part.t
 
-type project = As_project.t
-type component = As_component.component
-type comp_unit = As_component.comp_unit
-type other = As_component.other
-type pkg = As_component.pkg
-type lib = As_component.lib
-type bin = As_component.bin
-type container = As_component.container
-type test = As_component.test
-type doc = As_component.doc
+let unit ?cond ?args ?deps ?(kind = `OCaml (`Both, `Normal)) ?(dir = []) name =
+  let src_dir = fun _ -> As_path.rel_of_segs dir in
+  As_part.Unit.create ?cond ?args ?deps name kind ~src_dir
 
-let unit ?available ?flags ?deps ?interface name origin =
-  `Unit (As_component.Unit.create ?available ?flags ?deps ?interface
-           name `OCaml origin)
+let lib ?cond ?args ?deps ?byte ?native ?native_dynlink ?(kind = `OCaml) name
+    units =
+  As_part.Lib.create ?cond ?args ?deps ?byte ?native ?native_dynlink
+    name kind units
 
-let pack ?available ?flags ?deps name units =
-  let units = List.map (function `Unit u -> u) units in
-  `Unit (As_component.Unit.pack ?available ?flags ?deps name units)
+let bin ?cond ?args ?deps ?byte ?native ?js ?(kind = `OCaml) name units =
+  As_part.Bin.create ?cond ?args ?deps ?byte ?native ?js name kind units
 
-let c ?available ?(flags=As_flags.empty) ?deps ?(cclib = []) ?(ccopt = [])
-    name origin =
-  let flags =
-    let (@@@) = As_flags.(@@@) in
-    flags @@@ As_flags.ccopt ccopt @@@ As_flags.cclib cclib in
-  `Unit (As_component.Unit.create ?available ~flags ?deps name `C origin)
+let pkg ?cond ?args ?(kind = `OCaml `OCamlfind) name =
+  As_part.Pkg.create ?cond ?args name kind
 
-let js ?available ?(flags=As_flags.empty) ?deps ?(jsflags = []) name origin =
-  let flags =
-    let (@@@) = As_flags.(@@@) in
-    flags @@@ As_flags.v (`Link `Js) jsflags in
-  `Unit (As_component.Unit.create ?available ~flags ?deps name `Js origin)
+let run ?cond ?args ?deps ?(dir = []) name cmds =
+  let run_dir = As_path.rel_of_segs dir in
+  As_part.Run.create ?cond ?args ?deps ~run_dir name cmds
 
-let other ?available ?flags ?deps name action =
-  `Other (As_component.Other.create ?available ?flags ?deps name action)
+let doc ?cond ?args ?deps ?keep ?kind name parts =
+  As_part.Doc.create ?cond ?args ?deps ?keep ?kind name parts
 
-let pkg ?available ?flags ?opt name =
-  `Pkg (As_component.Pkg.create ?available ?flags ?opt name `OCaml)
+let dir ?cond ?args ?deps ?keep ?install kind =
+  As_part.Dir.create ?cond ?args ?deps ?keep ?install kind
 
-let pkg_pp ?available ?flags ?opt name =
-  `Pkg (As_component.Pkg.create ?available ?flags ?opt name `OCaml_pp)
-
-let pkg_c ?available ?flags ?opt name =
-  `Pkg (As_component.Pkg.create ?available ?flags ?opt name `C)
-
-let lib ?available ?flags ?deps ?byte ?native ?native_dynlink ?pack name
-    origin =
-  `Lib (As_component.Lib.create ?available ?flags ?deps ?byte ?native
-          ?native_dynlink ?pack name `OCaml origin)
-
-let lib_pp ?available ?flags ?deps ?byte ?native ?native_dynlink ?pack name
-    origin =
-  `Lib (As_component.Lib.create ?available ?flags ?deps ?byte ?native
-          ?native_dynlink ?pack name `OCaml_pp origin)
-
-let bin ?available ?flags ?deps ?byte ?native ?js ?linkall ?install name units =
-  `Bin (As_component.Bin.create ?available ?flags ?deps ?byte ?native ?js
-          ?linkall ?install name units)
-
-let container ?available ?flags ?deps name contents =
-  `Container (As_component.Container.create ?available ?flags ?deps name
-                contents)
-
-let doc ?available ?flags ?deps ?install name contents =
-  `Doc (As_component.Doc.create ?available ?flags ?deps ?install name contents)
-
-type test_command = As_component.Test.command
-
-let test ?available ?flags ?deps ?dir name commands =
-  `Test (As_component.Test.create ?available ?flags ?deps ?dir name commands)
-
-type test_args = As_component.Test.args
-
-let test_bin bin ?args (): As_component.Test.command =
-  let args = match args with
-  | None   -> (fun _ -> [])
-  | Some a -> a
-  in
-  `Bin (bin, args)
-
-let test_shell fmt =
-  ksprintf (fun str -> `Shell str) fmt
-
-(* Component helpers *)
-
-let pick name c =
-  List.find
-    (fun c -> As_component.name c = name)
-    (As_component.contents c)
-
-let build_dir = As_component.build_dir
-let root_dir = As_resolver.root_dir
-
-let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
-    name (`Path path)
-  =
-  let name_bindings = name ^ "_bindings" in
-  let name_stubs = name ^ "_stubs" in
-
-  (* 1. compile the bindings. *)
-  let deps = `Pkg As_component.Pkg.ctypes_stub :: deps in
-  let bindings = unit name_bindings (`Path path) ~deps in
-
-  (* 2. compile the generator of <name>_stubs.{ml,c} and <name>.ml *)
-  let generator =
-    let name_generator = name ^ "_generator" in
-    let ctypes_gen =
-      other (name ^ "-generator") [
-        As_action.rule
-          ~phase:`Prepare
-          ~targets:[`Self `Ml]
-          ~prereqs:[]
-          (fun _t r _f ->
-             let dir = As_component.build_dir bindings r in
-             let ml_stubs = dir / name_stubs ^ ".ml" in
-             let c_stubs  = dir / name_stubs ^ ".c" in
-             let library  = dir / name ^ ".ml" in
-             let headers = match headers with
-             | [] -> ""
-             | hs -> sprintf "--headers %s " (String.concat "," hs) in
-             As_action.create ~dir
-               "ctypes-gen %s--ml-stubs %s --c-stubs %s --library %s %s"
-               headers ml_stubs c_stubs library name)
-      ] in
-    let unit = unit name_generator ctypes_gen in
-    bin name_generator (`Units [unit])
-  in
-
-  (* 3. compile the generated stubs *)
-  let run_generator =
-    other (name ^ "-generator.run") [
-      As_action.rule
-        ~phase:`Prepare
-        ~targets:[`Self `Ml; `Self `C]
-        ~prereqs:[`N (generator, `Byte)]
-        (fun t r _f ->
-           let dir = As_component.build_dir t r in
-           As_action.create ~dir "./%s.byte" (As_component.name t))
-    ] in
-  let ml_stubs = unit name_stubs run_generator ~deps:[bindings] in
-  let c_stubs = c name_stubs run_generator in
-  let main = unit name run_generator ~deps:[ml_stubs; c_stubs] in
-
-  (* 4. compile the main library *)
-  let flags =
-    let link_flags = cflags @ List.map (sprintf "-l%s") clibs in
-    As_flags.(cclib link_flags @@@ stub name_stubs) in
-  (* FIXME: which action ? *)
-  lib name ~flags ?available (`Units [bindings; ml_stubs; c_stubs; main])
+let silo ?cond ?args ?deps name parts =
+  As_part.Silo.create ?cond ?args ?deps name parts
 
 (* Projects *)
 
-let project = As_project.create
+module Project = As_project
+type project = Project.t
 
-(* Tools *)
+let projects = ref []
+let assemble p = projects  := p :: !projects
+let projects () = !projects
 
-module Build_env = As_build_env
-module Cmd = As_cmd
-let assemble = As_cmd.assemble
+(* Misc *)
+
+module String = As_string
+module Fmt = As_fmt
+module Log = As_log

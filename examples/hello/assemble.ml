@@ -1,4 +1,4 @@
 open Assemblage
 
-let hello = bin "hello" (`Units [ unit "main" (`Path []) ])
+let hello = bin "hello" [ unit "main" ]
 let () = assemble (project "hello" [hello])

@@ -1,6 +1,6 @@
 open Assemblage
 
-let units = `Units [ unit "main" (`Path []) ]
+let units = [ unit "main" ]
 
 let posix =
   let deps = [ pkg "threads.posix" ] in

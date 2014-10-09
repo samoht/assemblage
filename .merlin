@@ -8,7 +8,8 @@ B _build/bin-ctypes-gen
 B _build/bin-assemble
 B _build/bin-assemblage
 
-S lib/401
-S lib/402
 S lib
+S driver-make/401
+S driver-make/402
+S driver-make
 S bin

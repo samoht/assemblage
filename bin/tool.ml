@@ -23,9 +23,15 @@
    The assemblage tool just prepares the environment so that
    assemble.ml can be interpeted correctly. *)
 
+open Assemblage
+
 let str = Printf.sprintf
 let err_no_file file = `Error (str "missing %s." file)
 let err_loading file = `Error (str "while loading %s." file)
+let err_multiple_projects file =
+  `Error (str "Multiple projects are registered. \
+               Did you call Assemblage.assemble more than once in %s ?" file)
+
 let err_no_cmd file =
   `Error (str "No command ran. Did you call Assemblage.assemble in %s ?" file)
 
@@ -35,46 +41,51 @@ let err_no_ocamlfind =
                \       specify the path to the assemblage library with -I.")
 
 let show_run_start file auto_load =
-  let file = As_shell.color `Black file in
-  let auto_load =
-    if auto_load then "" else
-    Printf.sprintf "[auto-load: %s]"
-      (As_shell.color `Magenta (string_of_bool auto_load))
+  let pp_auto_load ppf () =
+    if auto_load then () else
+    Fmt.(pp ppf "[auto-load: %a]" (pp_styled `Magenta pp_bool)) auto_load
   in
-  As_shell.show "%s Loading %s %s\n" (As_shell.color `Cyan "==>")
-    file auto_load
+  Log.show "%a Loading %s %a"
+    Fmt.(pp_styled `Cyan pp_rarrow) () file pp_auto_load ()
 
 let auto_includes () =
-  if not (As_shell.has_cmd "ocamlfind") then err_no_ocamlfind else
-  `Ok (As_shell.exec_output "ocamlfind query -r assemblage")
+  if not (Asd_shell.has_cmd "ocamlfind") then err_no_ocamlfind else
+  `Ok (Asd_shell.exec_output "ocamlfind query -r assemblage")
 
 let error setup_env status =
-  let setup_env = { setup_env with As_env.exec_status = status } in
-  As_cmd.assemble_no_project setup_env
+  let setup_env = { setup_env with Assemblage_env.exec_status = status } in
+  Assemblage_cmd.assemble_no_project setup_env
 
 let run () =
-  let setup_env = As_env.parse_setup () in
+  let setup_env = Assemblage_env.parse_setup () in
   let includes =
-    if not setup_env.As_env.auto_load then `Ok setup_env.As_env.includes else
+    if not setup_env.Assemblage_env.auto_load
+    then `Ok setup_env.Assemblage_env.includes
+    else
     match auto_includes () with
-    | `Ok auto_incs -> `Ok (setup_env.As_env.includes @ auto_incs)
+    | `Ok auto_incs -> `Ok (setup_env.Assemblage_env.includes @ auto_incs)
     | `Error _ as err -> err
   in
   match includes with
   | `Error _ as err -> error setup_env err
   | `Ok includes ->
-      let file = setup_env.As_env.assemble_file in
-      if not (Sys.file_exists file) then error setup_env (err_no_file file) else
+      let file = setup_env.Assemblage_env.assemble_file in
+      if not (Sys.file_exists file) then error setup_env (err_no_file file)
+      else
       begin
         Toploop.initialize_toplevel_env ();
         Toploop.set_paths ();
         List.iter Topdirs.dir_directory includes;
-        show_run_start file setup_env.As_env.auto_load;
+        show_run_start file setup_env.Assemblage_env.auto_load;
         match Toploop.use_silently Format.err_formatter file with
         | false -> error setup_env (err_loading file)
         | true ->
-            if As_env.created () then () else
-            error setup_env (err_no_cmd file)
+            (* FIXME review *)
+            match Assemblage.projects () with
+            | [] -> error setup_env (err_no_cmd file)
+            | [p] -> Assemblage_cmd.assemble p
+            | l -> error setup_env (err_multiple_projects file)
+                     (* FIXME list project names *)
       end
 
 let () = run ()

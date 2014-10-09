@@ -22,38 +22,26 @@ let (|>) x f = f x
 
 type t =
   { name : string;
-    version : string;
-    available : As_features.t;
-    flags : As_flags.t;
-    components : As_component.t list; }
+    cond : As_cond.t;
+    args : As_args.t;
+    parts : As_part.kind As_part.t list; }
 
 let name t = t.name
-let version t = t.version
-let components t = t.components
+let parts t = t.parts
 
-let create ?(available = As_features.true_) ?(flags = As_flags.empty)
-    ?version name components =
-  let version = match version with
-  | Some v -> v
-  | None   ->
-      match As_git.describe () with
-      | Some v -> v
-      | None   ->
-          match As_git.head () with
-          | Some v -> v
-          | None   -> "version-not-set"
-  in
-  let components = As_component.closure ~link:false components in
-  { name; version; available; flags; components; }
+let create ?(cond = As_cond.true_) ?(args = As_args.empty)
+    name parts =
+  { name; cond; args;
+    parts = (parts :> As_part.kind As_part.t list); }
 
 let unionmap fn t =
   List.fold_left (fun set t ->
-      As_features.(set ++ (fn t))
-    ) As_features.Set.empty t
+      As_cond.Set.union set (fn t)
+    ) As_cond.Set.empty t
 
-let features t =
+let cond_atoms t =
   let all =
-    unionmap (fun x -> As_features.atoms
-                 (As_component.available x)) t.components
+    unionmap (fun x -> As_cond.atoms
+                 (As_part.cond x)) t.parts
   in
-  As_features.(builtin ++ all)
+  As_cond.Set.union As_cond.builtin all

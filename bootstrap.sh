@@ -8,9 +8,14 @@ BDIR="_build/bootstrap"
 LIBDIR="lib"
 PKGS="-package cmdliner"
 
-UNITS="as_shell as_git as_makefile as_features as_flags as_resolver as_action
-       as_build_env as_component as_project as_ocamlfind as_project_makefile
-       as_OCaml_incl as_OCaml as_opam as_merlin as_env as_tool as_cmd assemblage"
+LIB_UNITS="as_string as_fmt as_log as_cond as_context as_path as_args as_env \
+           as_product as_rule as_part as_project assemblage"
+
+DRIVER_MAKE_UNITS="asd_cstubs asd_merlin asd_ocaml_incl asd_ocaml \
+                   asd_setup_env asd_shell asd_git asd_pkg_config \
+                   asd_opam asd_ocamlfind asd_makefile asd_project_makefile \
+                   assemblage_env asd_setup asd_describe asd_project_version \
+                   assemblage_cmd"
 
 CMOS=""
 
@@ -22,27 +27,51 @@ major=`ocamlc -version | cut -d. -f 1`
 xminor=`ocamlc -version | cut -d. -f 2`
 if [ $major -ge 4 ] && [ $xminor -le 01 ]; then minor=01; else minor=$xminor; fi
 
-# Build the assemblage's library compilation units in $BDIR
-for u in $UNITS; do
-    case $u in
-    "as_OCaml_incl") f=$major$minor/$u; UPKGS="$PKGS,compiler-libs.bytecomp"; OPTS="" ;;
-    "as_OCaml") f="$u"; UPKGS="$PKGS,compiler-libs.bytecomp"; OPTS="$OPTS" ;;
-    *)          f="$u"; UPKGS="$PKGS"; OPTS="" ;;
-    esac
+build_units ()
+{
+    UNITS_DIR=$1
+    UNITS=$2
+    for u in $UNITS; do
+        case $u in
+            "asd_ocaml_incl")
+                f=$major$minor/$u;
+                UPKGS="$PKGS,compiler-libs.bytecomp";
+                OPTS="" ;;
+            "asd_ocaml")
+                f="$u";
+                UPKGS="$PKGS,compiler-libs.bytecomp";
+                OPTS="" ;;
+            *)
+                f="$u";
+                UPKGS="$PKGS";
+                OPTS="" ;;
+        esac
 
-    CMI="$BDIR/$u.cmi"
-    CMO="$BDIR/$u.cmo"
-    CMOS="$CMOS $CMO"
+        CMI="$BDIR/$u.cmi"
+        CMO="$BDIR/$u.cmo"
 
-    if [ -f $LIBDIR/$f.mli ]; then $OCAMLFIND ocamlc -c -I $BDIR $UPKGS $OPTS -o $CMI $LIBDIR/$f.mli; fi
-    $OCAMLFIND ocamlc -c -I $BDIR $UPKGS $OPTS -o $CMO $LIBDIR/$f.ml
-done
+        if [ -f $UNITS_DIR/$f.mli ]; then
+            $OCAMLFIND ocamlc -g -c -I $BDIR $UPKGS $OPTS -o $CMI \
+                              $UNITS_DIR/$f.mli;
+        fi
+
+        if [ -f $UNITS_DIR/$f.ml ]; then
+            $OCAMLFIND ocamlc -g -c -I $BDIR $UPKGS $OPTS -o $CMO \
+                              $UNITS_DIR/$f.ml;
+            CMOS="$CMOS $CMO"
+        fi
+    done
+}
+
+# Build the assemblage's library and make driver compilation units in $BDIR
+build_units "lib" "$LIB_UNITS"
+build_units "driver-make" "$DRIVER_MAKE_UNITS"
 
 # Build the assemblage command line tool
 UPKGS="$PKGS,compiler-libs.toplevel"
 OPTS=""
-$OCAMLFIND ocamlc $OPTS $UPKGS -I $BDIR -c -o $BDIR/tool.cmo bin/tool.ml
-$OCAMLFIND ocamlc $OPTS $UPKGS -I $BDIR -linkpkg $CMOS $BDIR/tool.cmo \
+$OCAMLFIND ocamlc $OPTS $UPKGS -I $BDIR -g -c -o $BDIR/tool.cmo bin/tool.ml
+$OCAMLFIND ocamlc $OPTS $UPKGS -I $BDIR -g -linkpkg $CMOS $BDIR/tool.cmo \
     -o $BDIR/assemblage.boot
 
 # Run it on assemblage's assemblage.ml
