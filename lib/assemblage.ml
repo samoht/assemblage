@@ -19,6 +19,7 @@
 
 module Path = As_path
 module Cond = As_cond
+module Conf = As_conf
 module Context = As_context
 module Args = As_args
 module Env = As_env

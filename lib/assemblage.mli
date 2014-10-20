@@ -188,6 +188,413 @@ module Path : sig
   (** [p + ext] is [add_ext p e]. Left associative. *)
 end
 
+(** Build configuration. *)
+module Conf : sig
+
+  (** {1 Configuration values} *)
+
+  type 'a value
+  (** The type for configuration values evaluating to values of type ['a]. *)
+
+  val const : 'a -> 'a value
+  (** [const v] is a configuration value that evaluates to [v]. *)
+
+  val app : ('a -> 'b) value -> 'a value -> 'b value
+  (** [app f v] is a configuration value that evalautes to the result
+      of applying the evalaution of [v] to the one of [f]. *)
+
+  val ( $ ) : ('a -> 'b) value -> 'a value -> 'b value
+  (** [f $ v] is [app f v]. *)
+
+  val eval : 'a value -> 'a
+  (** [eval v] is [v]'s value. *)
+
+  (** {1 Configuration value converters}  *)
+
+  type 'a parser = string -> [ `Error of string | `Ok of 'a ]
+  (** The type for configuration value parsers. *)
+
+  type 'a printer = Format.formatter -> 'a -> unit
+  (** The type for configuration value printers. *)
+
+  type 'a converter = 'a parser * 'a printer
+  (** The type for configuration value converters. *)
+
+  val bool : bool converter
+  (** [bool] converts values with [bool_of_string].  *)
+
+  val int : int converter
+  (** [int] converts values with [int_of_string]. *)
+
+  val string : string converter
+  (** [string] converts values with the indentity function. *)
+
+  val path : As_path.t converter
+  (** [path] converts value with {!As_path.of_string}. *)
+
+  val abs_path : As_path.abs converter
+  (** [path] converts value with {!As_path.of_string}. *)
+
+  val rel_path : As_path.rel converter
+  (** [path] converts value with {!As_path.of_string}. *)
+
+  val enum : (string * 'a) list -> 'a converter
+  (** [enum l] converts values such that string names in l map to
+      the corresponding value of type ['a]. *)
+
+  val version : (int * int * int * string option) converter
+  (** [version] converts values of the form
+      [[v|V]major.minor[.patch][(-|+).*]]. *)
+
+  (** {1 Configuration keys}
+
+      Configuration keys are named and documented configuration values.
+      They can always be set from the command line. They can also be
+      consulted to determine other configuration keys. *)
+
+  type 'a key
+  (** The type for configuration keys. *)
+
+  module Key : sig
+
+    type t = V : 'a key -> t
+
+    val equal : t -> t -> bool
+    (** [equal k k'] is [true] iff [name k = name k']. *)
+
+    val compare : t -> t -> int
+    (** [compare k k'] compares [k] and [k'] and is compatible with {!equal}. *)
+
+    val name : 'a key -> string
+    (** [name k] is [k]'s name. *)
+
+    val public : 'a key -> bool
+    (** [public k] is [k]'s public status. *)
+
+    val converter : 'a key -> 'a value converter
+    (** [converter k] is [k]'s value converter. *)
+
+    val value : 'a key -> 'a value
+    (** [value k] is [k]'s value *)
+
+    val doc : 'a key -> string option
+    (** [doc k] is [k]'s documentation string (if any). *)
+
+    val docv : 'a key -> string option
+    (** [docv k] is [k]'s value documentation meta-variable (if any). *)
+
+    val docs : 'a key -> string option
+    (** [docs k] is [k]'s documentation section (if any). *)
+  end
+
+  val key : ?public:bool -> ?docs:string -> ?docv:string -> ?doc:string ->
+    string -> 'a converter -> 'a value -> 'a key
+  (** [key public docs docv doc name conv v] is a configuration key
+      named [key] (must be unique in the program) converted using
+      [converter] and that defaults to [v]. The key is public according
+      to [public] (defaults to [true]) in which case [docs] is a
+      documentation section under which the key should be documented
+      according to the documentation string [doc] and the value
+      documentation meta-variable [docv].
+
+      {b Warning.} For public keys that belong to the same
+      configuration [name] should be unique otherwise this may lead to
+      assertion failures in certain assemblage drivers.  In particular
+      do not reuse the {!builtin} names (they have the same name as
+      the key variables with underscores replaced by dashes). *)
+
+  (** {1 Configurations} *)
+
+  type t
+  (** The type for configurations. *)
+
+  val empty : t
+  (** [empty] is the empty configuration. *)
+
+  val is_empty : t -> bool
+  (** [is_empty c] is [true] iff [c] is empty. *)
+
+  val add : t -> 'a key -> t
+  (** [add c k] adds key [k] to configuration [c]. *)
+
+  val ( + ) : t -> 'a key -> t
+  (** [c + k] is [add c k]. *)
+
+  val set : t -> 'a key -> 'a value -> t
+  (** [set c k v] sets the key [k] to [v] in [c]. *)
+
+  val merge : t -> t -> t
+  (** [merge c c'] merge the configuration [c] and [c']. If a key is
+      defined in both [c] and [c'] the value of the key in [c'] takes
+      over. *)
+
+  val ( ++ ) : t -> t -> t
+  (** [c ++ c'] is {!merge} [c c']. *)
+
+  val find : t -> 'a key -> 'a value option
+  (** [find c k] is the value of [k] in [c] (if any). *)
+
+  val get : t -> 'a key -> 'a value
+  (** [get c k] is the value of [k] in [c].
+
+      @raise Invalid_argument if [k] is not in [c]. *)
+
+  val ( @ ) : t -> 'a key -> 'a value
+  (** [c @ k] is [get k v] *)
+
+  val fold : ('a -> Key.t -> 'a) -> 'a -> t -> 'a
+  (** [fold f acc c] folds [f] over [c] using [acc]. *)
+
+  val iter : (Key.t -> unit) -> t -> unit
+  (** [iter f c] iterates [f] over [c]. *)
+
+  val exists : (Key.t -> bool) -> t -> bool
+  (** [exists p] is [true] iff there is a key of [c] that satisfies [p]. *)
+
+  val keep : (Key.t -> bool) -> t -> t
+  (** [keep p c] is all the keys of [c] that satisfy [p]. *)
+
+  val subset : t -> t -> bool
+  (** [subset c c'] is [true] iff all keys of [c] are in [c'] (but not
+      necessarily with the same value). *)
+
+  val diff : t -> t -> t
+  (** [diff c c'] is [c] without the keys of [c']. *)
+
+  val keys : t -> Key.t list
+  (** [keys c] is the list of all keys of [c]. *)
+
+  val name_dups : t -> Key.t list
+  (** [name_dups c] returns a list of keys which have the same
+      name in [c]. This should be the empty list. *)
+
+  val parse : t -> t Cmdliner.Term.t
+  (** [parse c] is a Cmdliner term that parses [c].
+
+      FIXME: this doesn't belong here remove the Cmdliner dep. *)
+
+  (** {1 Configuration value dependencies} *)
+
+  val value_deps : 'a value -> t
+  (** [value_deps v] is the minimal configuration that may be needed to
+      determine [v]. *)
+
+  (** {1:builtin Built-in configuration keys} *)
+
+  val builtin_base : t
+  (** The configuration made of {!builtin_build_props}, {!builtin_build_dirs},
+      {!builtin_ocaml}, {!builtin_base_utils}. *)
+
+  (** {2:builtin_build Build property keys} *)
+
+  val debug : bool key
+  (** [debug] is [true] iff build products in general must support debugging
+      (defaults to [false]). *)
+
+  val profile : bool key
+  (** [profile] is [true] iff build products in general must support profiling
+      (defaults to [false]). *)
+
+  val test : bool key
+  (** [test] is [true] iff test build products should be built
+      (defaults to [false]). *)
+
+  val doc : bool key
+  (** [doc] is [true] iff documentation should be built
+      (defaults to [false]). *)
+
+  val jobs : int key
+  (** [jobs] is the number of jobs to run for building (defaults to machine
+      processor count). *)
+
+  val builtin_build_props : t
+  (** [builtin_build_props] is the configuration made of all all build
+      property keys. *)
+
+  (** {2:build_directories Build directories} *)
+
+  val root_dir : As_path.t key
+  (** [root_dir] is the absolute path to the project directory. *)
+
+  val build_dir : As_path.rel key
+  (** [build_dir] is the path to the build directory expressed relative to the
+      {!root_dir}. *)
+
+  val product_dir : As_path.rel key
+  (** [product_dir] is the path to the directory where current build product
+      should be produced. This key is private and expressed relative to the
+      {!root_dir}. *)
+
+  val builtin_build_dirs : t
+  (** [builtin_dirs] is the configuration made of all assemblage directories. *)
+
+  (** {2:ocaml_system OCaml system keys} *)
+
+  val ocaml_native_tools : bool key
+  (** [ocaml_native_tools] is [true] to use the native compiled ([.opt])
+      OCaml tools (defaults to [true]). For example if [true] this will
+      automatically set the {!ocamlc} configuration key to
+      ["ocamlc.opt"], unless it was explicitely specified on the command
+      line. *)
+
+  val ocaml_version : (int * int * int * string option) key
+  (** [ocaml_version] is the OCaml compiler version. *)
+
+  val ocaml_byte : bool key
+  (** [ocaml_byte] is [true] iff OCaml byte code compilation is
+      requested (defaults to [true]). *)
+
+  val ocaml_native : bool key
+  (** [ocaml_native] is [true] iff OCaml native code compilation is
+      requested (defaults to [true]). *)
+
+  val ocaml_native_dynlink : bool key
+  (** [ocaml_native_dynlink] is [true] iff OCaml native code dynamic linking is
+      requested (defaults to [true]). *)
+
+  val ocaml_js : bool key
+  (** [ocaml_js] is [true] iff OCaml JavaScript compilation is requested
+      (defaults to [false]). *)
+
+  val ocaml_annot : bool key
+  (** [ocaml_annot] is [true] iff OCaml binary annotation files generation
+      is requested (defaults to [true]). *)
+
+  val ocaml_warn_error : bool key
+  (** [ocaml_warn_error] is [true] iff OCaml compilers should treat warnings
+      as errors (defaults to [false]). *)
+
+  val ocaml_pp : string key
+  (** TODO *)
+
+  val ocamlc : string key
+  (** [ocamlc] is the
+      {{:http://caml.inria.fr/pub/docs/manual-ocaml/comp.html}[ocamlc]}
+      utility.*)
+
+  val ocamlopt : string key
+  (** [ocamlopt] is the
+      {{:http://caml.inria.fr/pub/docs/manual-ocaml/native.html}[ocamlopt]}
+      utility.*)
+
+  val js_of_ocaml : string key
+  (** [js_of_ocaml] is the
+      {{:http://ocsigen.org/js_of_ocaml/}[js_of_ocaml]} utility. *)
+
+  val ocamldep : string key
+  (** [ocamldep] is the
+      {{:http://caml.inria.fr/pub/docs/manual-ocaml/depend.html}[ocamldep]}
+      utility. *)
+
+  val ocamlmklib : string key
+  (** [ocamlmklib] is the
+      {{:http://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#sec468}
+      [ocamlmklib]} utility. *)
+
+  val ocamllex : string key
+  (** [ocamllex] is the
+      {{:http://caml.inria.fr/pub/docs/manual-ocaml/lexyacc.html#sec276}
+      ocamlyacc} utility. *)
+
+  val ocamlyacc : string key
+  (** [ocamlyacc] is the
+      {{:http://caml.inria.fr/pub/docs/manual-ocaml/lexyacc.html#sec287}
+      ocamlyacc} utility. *)
+
+  val ocaml : string key
+  (** [ocaml] is the
+      {{:http://caml.inria.fr/pub/docs/manual-ocaml/toplevel.html}[ocaml]}
+      utility. *)
+
+  val ocamlrun : string key
+  (** [ocamlrun] is the
+      {{:http://caml.inria.fr/pub/docs/manual-ocaml/runtime.html}[ocamlrun]}
+      utility. *)
+
+  val ocamldebug : string key
+  (** [ocamldebug] is the
+      {{:http://caml.inria.fr/pub/docs/manual-ocaml/debugger.html}ocamldebug}
+      utility. *)
+
+  val ocamlprof : string key
+  (** [ocamlprof] is the
+      {{:http://caml.inria.fr/pub/docs/manual-ocaml/profil.html}ocamlprof}
+      utility. *)
+
+  val ocamlfind : string key
+  (** [ocamlfind] is the
+      {{:http://projects.camlcity.org/projects/findlib.html}[ocamlfind]}
+      utility. *)
+
+  val builtin_ocaml : t
+  (** [builtin_ocaml] is the configuration made of all OCaml system keys. *)
+
+  (** {2 Basic system utilities} *)
+
+  val echo : string key
+  (** [echo] is the
+      the {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/echo.html}
+      echo} utility. *)
+
+  val ln : string key
+  (** [ln] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/ln.html}ln}
+      utility. *)
+
+  val cp : string key
+  (** [cp] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/cp.html}[cp]}
+      utility. *)
+
+  val mkdir : string key
+  (** [mkdir] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/mkdir.html}
+      [mkdir]} utility. *)
+
+  val cat : string key
+  (** [cat] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/cat.html}
+      [cat]} utility. *)
+
+  val make : string key
+  (** [make] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/make.html}
+      [make]} utility. *)
+
+  val builtin_base_utils : t
+  (** [builtin_base_utils] is the configuration made of all basic
+      system utilities. *)
+
+  (** {2 C system keys} *)
+
+  val cc : string key
+  (** [cc] is the C compiler. *)
+
+  val pkg_config : string key
+  (** [pkg_config] is the {{:http://pkg-config.freedesktop.org/}pkg-config}
+      utility. *)
+
+  val builtin_c : t
+  (** [builtin_c] is the configuration made of all C system keys. *)
+
+  (** {2 Machine information keys} *)
+
+  val uname : string key
+  (** [uname] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/uname.html}
+      [uname]} utility. *)
+
+  val os : string key
+  (** [os] is the operating system name (default to lowercased [uname -s]). *)
+
+  val arch : string key
+  (** [arch] is the hardware architecture (defaults to [uname -m]). *)
+
+  val builtin_machine_info : t
+  (** [builtin_machine_info] is the configuration made of all machine
+      information keys. *)
+end
+
 (** Build conditions.
 
     Build conditions denote boolean values determined by the build
@@ -298,7 +705,7 @@ module Cond : sig
   (** [atoms c] is the set of atomic conditions present in [c]. *)
 
   val builtin : Set.t
-  (** [builtin] is the set of {{!builtin}built-in conditions}. *)
+  (** [builtin] is the set of built-in conditions. *)
 
   (** {1:cnf Conditions in conjunctive normal form} *)
 
