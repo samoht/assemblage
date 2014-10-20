@@ -1147,6 +1147,29 @@ module String : sig
 
       @raise Invalid_argument if [sep] is the empty string. *)
 
+  val cut : sep:string -> string -> (string * string) option
+  (** [cut sep s] is either the pair [Some (l,r)] of the two
+      (possibly empty) substrings of [s] that are delimited by the first
+      match of the non empty separator string [sep] or [None] if [sep]
+      can't be matched in [s]. Matching starts from the beginning of [s].
+
+      The invariant [l ^ sep ^ r = s] holds.
+
+      @raise Invalid_argument if [sep] is the empty string. *)
+
+  val rcut : sep:string -> string -> (string * string) option
+  (** [rcut sep s] is like {!cut} but the matching is done backwards
+      starting from the end of [s].
+
+      @raise Invalid_argument if [sep] is the empty string. *)
+
+  val slice : ?start:int -> ?stop:int -> string -> string
+  (** [slice ~start ~stop s] is the string s.[start], s.[start+1], ...
+      s.[stop - 1]. [start] defaults to [0] and [stop] to [String.length s].
+
+      If [start] or [stop] are negative they are subtracted from
+      [String.length s]. This means that [-1] denotes the last
+      character of the string. *)
 
   (** {1 Sets of strings} *)
 

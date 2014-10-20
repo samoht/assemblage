@@ -77,6 +77,7 @@ let to_string = function
 | `Abs segs -> "/" ^ String.concat Filename.dir_sep segs
 
 let of_string s =                                (* N.B. collapses // to / *)
+  (* FIXME use String.split *)
   let rec split sep acc j =
     let i = try String.rindex_from s j sep with Not_found -> -1 in
     if (i = -1) then (String.sub s 0 (j + 1)) :: acc else
