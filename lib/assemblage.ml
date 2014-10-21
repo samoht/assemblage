@@ -15,9 +15,16 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(* Perliminaries *)
+
+module String = As_string
+module Fmt = As_fmt
+module Log = As_log
+module Path = As_path
+module Cmd = As_cmd
+
 (* Building *)
 
-module Path = As_path
 module Cond = As_cond
 module Conf = As_conf
 module Context = As_context
@@ -78,9 +85,3 @@ type project = Project.t
 let projects = ref []
 let assemble p = projects  := p :: !projects
 let projects () = !projects
-
-(* Misc *)
-
-module String = As_string
-module Fmt = As_fmt
-module Log = As_log

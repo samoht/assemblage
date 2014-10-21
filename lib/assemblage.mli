@@ -28,12 +28,214 @@
 
     {e Release %%VERSION%% — %%MAINTAINER%% } *)
 
-(** {1:build Building} *)
 
-type cond
-type args
-type rule
-type env
+(** {1 Preliminaries} *)
+
+(** String utilities and string sets.
+
+    Adds {!String.split} and {!String.Set} to the OCaml String module. *)
+module String : sig
+  include module type of String
+
+  val split : sep:string -> string -> string list
+  (** [split sep s] is the list of all (possibly empty)
+      substrings of [s] that are delimited by matches of the non empty
+      separator string [sep].
+
+      Matching separators in [s] starts from the beginning of [s] and once
+      one is found, the separator is skipped and matching starts again
+      (i.e. separator matches can't overlap). If there is no separator
+      match in [s], [[s]] is returned.
+
+      The invariants [String.concat sep (String.split sep s) = s] and
+      [String.split sep s <> []] always hold.
+
+      @raise Invalid_argument if [sep] is the empty string. *)
+
+  val cut : sep:string -> string -> (string * string) option
+  (** [cut sep s] is either the pair [Some (l,r)] of the two
+      (possibly empty) substrings of [s] that are delimited by the first
+      match of the non empty separator string [sep] or [None] if [sep]
+      can't be matched in [s]. Matching starts from the beginning of [s].
+
+      The invariant [l ^ sep ^ r = s] holds.
+
+      @raise Invalid_argument if [sep] is the empty string. *)
+
+  val rcut : sep:string -> string -> (string * string) option
+  (** [rcut sep s] is like {!cut} but the matching is done backwards
+      starting from the end of [s].
+
+      @raise Invalid_argument if [sep] is the empty string. *)
+
+  val slice : ?start:int -> ?stop:int -> string -> string
+  (** [slice ~start ~stop s] is the string s.[start], s.[start+1], ...
+      s.[stop - 1]. [start] defaults to [0] and [stop] to [String.length s].
+
+      If [start] or [stop] are negative they are subtracted from
+      [String.length s]. This means that [-1] denotes the last
+      character of the string. *)
+
+  (** {1 Sets of strings} *)
+
+  module Set : sig
+    include Set.S with type elt = string
+    val of_list : string list -> t
+  end
+end
+
+(** Formatters. *)
+module Fmt : sig
+
+  (** {1 Formatters} *)
+
+  type 'a formatter = Format.formatter -> 'a -> unit
+  (** The type for formatters of values of type ['a]. *)
+
+  val pp : Format.formatter -> ('a, Format.formatter, unit) Pervasives.format ->
+    'a
+  (** [pp] is {!Format.fprintf} *)
+
+  val rpp : ('a, Format.formatter, unit) Pervasives.format ->
+    Format.formatter -> 'a
+  (** [rpp] is [pp fmt ppf] *)
+
+  val nop : 'a formatter
+  (** [nop] does nothing. *)
+
+  val pp_cut : unit formatter
+  (** [pp_cut] is {!Format.pp_print_cut}. *)
+
+  val pp_sp : unit formatter
+  (** [pp_sp] is {!Format.pp_print_space}. *)
+
+  val pp_str : string formatter
+  (** [pp_str] is {!Format.pp_print_string}. *)
+
+  val pp_int : int formatter
+  (** [pp_int] is {!Format.pp_print_int}. *)
+
+  val pp_bool : bool formatter
+  (** [pp_bool] is {!Format.pp_print_bool}. *)
+
+  val pp_larrow : unit formatter
+  (** [pp_larrow] formats a left arrow. *)
+
+  val pp_rarrow : unit formatter
+  (** [pp_rarrow] formats a right arrow. *)
+
+  val pp_opt : ?pp_none:unit formatter -> 'a formatter -> 'a option formatter
+  (** [pp_opt pp_none pp_v] formats value of type ['a option]. The default
+      value of [pp_none] prints nothing. *)
+
+  val pp_list : ?pp_sep:unit formatter -> 'a formatter -> 'a list formatter
+  (** [pp_list pp_sep pp_v] formats lists of type ['a]. Each value
+      is printed with [pp_v] followed by [pp_sep] (defaults to {!pp_cut}).
+      Empty lists never print anything. *)
+
+  val pp_text : string formatter
+  (** [pp_text] formats text by replacing spaces and newlines in the string
+      with calls to {!Format.pp_print_space} and {!Format.pp_force_newline}. *)
+
+  val pp_lines : string formatter
+  (** [pp_lines] formats lines by replacing newlines in the string
+      with calls to {!Format.pp_force_newline}. *)
+
+  (** {1:styled Styled formatting} *)
+
+  type style_tags = [ `Ansi | `None ]
+  (** The type for style tags.
+      {ul
+      {- [`Ansi], tags the text with
+      {{:http://www.ecma-international.org/publications/standards/Ecma-048.htm}
+      ANSI escape sequences}.}
+      {- [`None], text remains untagged.}} *)
+
+  type style =
+    [ `Bold
+    | `Underline
+    | `Black
+    | `Red
+    | `Green
+    | `Yellow
+    | `Blue
+    | `Magenta
+    | `Cyan
+    | `White ]
+  (** The type for styles. *)
+
+  val style_tags : unit -> style_tags
+  (** [style_tags ()] is the current tag style used by {!pp_styled}.
+      Initial value is [`None]. *)
+
+  val set_style_tags : style_tags -> unit
+  (** [set_style_tags s] sets the current tag style used by {!pp_style}. *)
+
+  val pp_styled : style -> 'a formatter -> 'a formatter
+  (** [pp_styled style pp] formats according to [pp] but styled with [style]. *)
+
+  val pp_styled_str : style -> string formatter
+  (** [pp_styled_str style] is [pp_styled_str style pp_str]. *)
+end
+
+(** Assemblage log. *)
+module Log : sig
+
+  (** {1 Log level and output} *)
+
+  (** The type for log levels. *)
+  type level = Show | Marker | Error | Warning | Info | Debug
+
+  val level : unit -> level option
+  (** [level ()] is the log level (if any). If the log level is [(Some l)]
+      any message whose level is [<= l] is logged. If level is [None]
+      no message is ever logged. At startup the level is [(Some Info)]. *)
+
+  val set_level : level option -> unit
+  (** [set_level l] sets the log level to [l]. See {!level}. *)
+
+  val set_formatter : [`All | `Level of level ] -> Format.formatter -> unit
+  (** [set_formatter spec ppf] sets the formatter for a given level or
+      for all the levels according to [spec]. At startup the formatter
+      of level [Show] is {!Format.std_formatter} and all the other level
+      formatters are {!Format.err_formatter}. *)
+
+  (** {1 Logging} *)
+
+  val msg : level -> ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** [msg l fmt ...] logs a message with level [l]. *)
+
+  val kmsg :
+    (unit -> 'a) -> level -> ('b, Format.formatter, unit, 'a) format4 -> 'b
+  (** [kmsg k l fmt ...] is like [msg l fmt] but calls [k ()] before
+      returning. *)
+
+  val show : ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** [show fmt ...] logs a message with level [Show]. *)
+
+  val mark : ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** [mark fmt ...] logs  a message with level [Marker]. *)
+
+  val err : ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** [err fmt ...] logs a message with level [Error]. *)
+
+  val warn : ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** [warn fmt ...] logs a message with level [Warning]. *)
+
+  val info : ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** [info fmt ...] logs a message with level [Info]. *)
+
+  val debug : ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** [debug info ...] logs a message with level [Debug]. *)
+
+  (** {1 Log monitoring} *)
+
+  val err_count : unit -> int
+  (** [err_count ()] is the number of messages logged with level [Error]. *)
+
+  val warn_count : unit -> int
+  (** [warn_count ()] is the number of messages logged with level [Warning]. *)
+end
 
 (** File paths.
 
@@ -188,6 +390,176 @@ module Path : sig
   (** [p + ext] is [add_ext p e]. Left associative. *)
 end
 
+(** Executing (non build) commands and IO operations. *)
+module Cmd : sig
+
+  (** {1:command_results Command results} *)
+
+  type 'a result = [ `Ok of 'a | `Error of string ]
+  (** The type for command results. *)
+
+  val ret : 'a -> 'a result
+  (** [ret v] is [`Ok v]. *)
+
+  val error : string -> 'a result
+  (** [error e] is [`Error e]. *)
+
+  val on_error : ?level:Log.level -> use:'a -> 'a result -> 'a
+  (** [on_error ~level ~use r] is:
+      {ul
+      {- [v] if [r = `Ok v]}
+      {- [use] if [r = `Error msg]. As a side effect [msg] is
+       {{!Log}logged} with level [level] (defaults to
+       [Log.Error])}} *)
+
+  val bind : 'a result -> ('a -> 'b result) -> 'b result
+  (** [bind r f] is:
+      {ul
+      {- [f v] if [r = `Ok v].}
+      {- [r] if [r = `Error _].}} *)
+
+  val map : 'a result -> ('a -> 'b) -> 'b result
+  (** [map r f] is [bind r (fun v -> ret (f v))]. *)
+
+  val ( >>= ) : 'a result -> ('a -> 'b result) -> 'b result
+  (** [r >>= f] is [bind r f]. *)
+
+  val ( >>| ) : 'a result -> ('a -> 'b) -> 'b result
+  (** [r >>| f] is [map r f]. *)
+
+  (** Infix operators.
+
+      Gathers {!Cmd}'s infix operators. *)
+  module Infix : sig
+
+    (** {1 Infix operators} *)
+
+    val ( >>= ) : 'a result -> ('a -> 'b result) -> 'b result
+    (** Same as {!Cmd.( >>= )}. *)
+
+    val ( >>| ) : 'a result -> ('a -> 'b) -> 'b result
+    (** Same as {!Cmd.( >>| )}. *)
+  end
+
+  (** {1:files_dirs Working with files and directories} *)
+
+  (** Files. *)
+  module File : sig
+
+    (** {1 Files}
+
+        {b Note.} When paths are {{!Path.rel}relative} they are expressed
+        relative to the {{!Dir.getcwd}current working directory}. *)
+
+    val exists : Path.t -> bool result
+    (** [exists file] is [true] iff [file] exists and is not a directory. *)
+
+    val null : Path.t
+    (** [null] represents a file that discard all writes. *)
+
+    val with_inf : (in_channel -> 'a -> 'b result) -> Path.t -> 'a ->
+      'b result
+    (** [with_inf f inf v] opens [inf] as a channel [ic] and returns [f
+        ic v] if no error occurs. In case of error the channel is closed
+        and the error is returned. If [inf] is [""], [ic] is
+        {!Pervasives.stdin} and not closed. *)
+
+    val with_outf : (out_channel -> 'a -> 'b result) -> Path.t -> 'a ->
+      'b result
+    (** [with_inf f outf v] opens [outf] as a channel [oc] and returns
+        [f oc v] if no error occurs. In case of error the channel is
+        closed and the error is returned. If [outf] is [""], [oc] is
+        {!Pervasives.stdout} and not closed. *)
+
+    val input : Path.t -> string result
+    (** [input file] is [file]'s content. *)
+
+    val input_lines : Path.t -> string list result
+    (** [read_lines file] is [files]'s content splitted at ['\n']. *)
+
+    val output : Path.t -> string -> unit result
+    (** [output file content] outputs [content] to [file]. *)
+
+    val output_lines : Path.t -> string list -> unit result
+    (** [output_lines file lines] outputs [lines] separated by ['\n'] to
+        [file]. *)
+
+    val output_subst : (string * string) list -> Path.t -> string ->
+    unit result
+    (** [output_subst vars file content] outputs [content] to [file]. In
+        [content] patterns of the form ["%%ID%%"] are replaced by the value
+        of [List.assoc "ID" vars] (if any). *)
+
+    val delete : ?maybe:bool -> Path.t -> unit result
+    (** [delete ~maybe file] deletes file [file]. If [maybe] is [true]
+        (defaults to [false]) no error is reported if the file doesn't exit. *)
+
+    val temp : string -> Path.t result
+    (** [temp suffix] creates a temporary file with suffix [suffix] and returns
+        its name. The file is destroyed at the end of program execution. *)
+  end
+
+  (** Directories. *)
+  module Dir : sig
+
+    (** {1 Directories}
+
+        {b Note.} When paths are {{!Path.rel}relative} they are expressed
+        relative to the {{!Dir.getcwd}current working directory}. *)
+
+    val exists : Path.t -> bool result
+    (** [exists dir] is [true] if directory [dir] exists. *)
+
+    val getcwd : unit -> Path.t result
+    (** [getcwd ()] is the current working directory. *)
+
+    val chdir : Path.t -> unit result
+    (** [chdir dir] changes the current working directory to [dir]. *)
+
+    val fold_files_rec : ?skip:string list -> (string -> 'a -> 'a result) ->
+      'a -> string list -> 'a result
+    (** [fold_files_rec skip f acc paths] folds [f] over the files
+        found in [paths]. Files and directories whose suffix matches an
+        element of [skip] are skipped. *)
+  end
+
+  (** {1:executing_commands Executing commands} *)
+
+  val exists : string -> bool result
+  (** [exists cmd] is [true] if [cmd] exists and can be invoked. *)
+
+  val exec_ret : string -> string list -> int result
+  (** [exec_ret cmd args] executes [cmd] with arguments [args] and
+      always returns [`Ok] with the exit code of the invocation. *)
+
+  val exec : string -> string list -> unit result
+  (** [exec cmd args] executes [cmd] with arguments [args]. On exit
+      code [0] returns [`Ok ()]. Otherwise an error message with
+      the failed invocation and its exit code is returned in [`Error]. *)
+
+  val input : string -> string list -> string result
+  (** [input cmd args] execute [cmd] with arguments [args]. On exit code
+      [0] returns the contents of the invocation's [stdout] with [`Ok].
+      Otherwise an error message with the failed invocation and its exit
+      code is returned in [`Error]. *)
+
+  val input_lines : string -> string list -> string list result
+  (** [input_lines cmd args] is like [input cmd args] but the input is
+      splitted at ['\n']. *)
+
+  val output : string -> string list -> Path.t -> unit result
+  (** [output cmd args file] execute [cmd] with arguments [args] and writes
+      the invocation's [stdout] to [file]. *)
+end
+
+
+(** {1:building Building} *)
+
+type cond
+type args
+type rule
+type env
+
 (** Build configuration. *)
 module Conf : sig
 
@@ -229,14 +601,14 @@ module Conf : sig
   val string : string converter
   (** [string] converts values with the indentity function. *)
 
-  val path : As_path.t converter
-  (** [path] converts value with {!As_path.of_string}. *)
+  val path : Path.t converter
+  (** [path] converts value with {!Path.of_string}. *)
 
-  val abs_path : As_path.abs converter
-  (** [path] converts value with {!As_path.of_string}. *)
+  val abs_path : Path.abs converter
+  (** [path] converts value with {!Path.of_string}. *)
 
-  val rel_path : As_path.rel converter
-  (** [path] converts value with {!As_path.of_string}. *)
+  val rel_path : Path.rel converter
+  (** [path] converts value with {!Path.of_string}. *)
 
   val enum : (string * 'a) list -> 'a converter
   (** [enum l] converts values such that string names in l map to
@@ -413,14 +785,14 @@ module Conf : sig
 
   (** {2:build_directories Build directories} *)
 
-  val root_dir : As_path.t key
+  val root_dir : Path.t key
   (** [root_dir] is the absolute path to the project directory. *)
 
-  val build_dir : As_path.rel key
+  val build_dir : Path.rel key
   (** [build_dir] is the path to the build directory expressed relative to the
       {!root_dir}. *)
 
-  val product_dir : As_path.rel key
+  val product_dir : Path.rel key
   (** [product_dir] is the path to the directory where current build product
       should be produced. This key is private and expressed relative to the
       {!root_dir}. *)
@@ -935,10 +1307,10 @@ module Product : sig
       of the effect for effect products. *)
 
   val raw_path : t -> string
-  (** [raw_path p] is [As_path.to_string (path p)]. *)
+  (** [raw_path p] is [Path.to_string (path p)]. *)
 
   val basename : t -> string
-  (** [basename p] is [As_path.basename (path p)]. *)
+  (** [basename p] is [Path.basename (path p)]. *)
 
   val dirname : t -> Path.rel
   (** [dirname p] is the dirname of the path for path products and
@@ -952,23 +1324,23 @@ module Product : sig
   val is_effect : t -> bool
   (** [is_effect p] is [true] iff [p] is an effect product. *)
 
-  val has_ext : As_path.ext -> t -> bool
+  val has_ext : Path.ext -> t -> bool
   (** [has_ext ext p] is [true] iff [p] is a file product and has
       extension [ext]. *)
 
-  val keep_ext : As_path.ext -> t ->
-    ([`File of As_path.rel ] * cond) option
+  val keep_ext : Path.ext -> t ->
+    ([`File of Path.rel ] * cond) option
   (** [keep_ext ext p] is [Some p] iff [has_ext ext p] is [true]. *)
 
   (** {1:args Converting to arguments} *)
 
-  val target_to_args : ?pre:string list -> As_context.t list -> t -> As_args.t
+  val target_to_args : ?pre:string list -> Context.t list -> t -> Args.t
   (** [target_to_args pre ctxs p] is [target p] prefixed by [pre]
       (defaults to [[]]) in contexts [ctxs] for product [p]. [p]'s
       condition is propagated in the arguments. *)
 
-  val dirname_to_args : ?pre:string list -> As_context.t list -> t ->
-    As_args.t
+  val dirname_to_args : ?pre:string list -> Context.t list -> t ->
+    Args.t
   (** [dirname_to_args pre ctxs p] is [dirname p] prefixed by [pre]
       (defaults to [[]]) in contexts [ctxs]. [p]'s condition is
       propagated in the arguments. *)
@@ -1531,213 +1903,6 @@ val assemble : project -> unit
 val projects : unit -> project list
 (**/**)
 
-(** {1 Miscellaneous} *)
-
-(** String utilities and string sets.
-
-    Adds {!String.split} and {!String.Set} to the OCaml String module. *)
-module String : sig
-  include module type of String
-
-  val split : sep:string -> string -> string list
-  (** [split sep s] is the list of all (possibly empty)
-      substrings of [s] that are delimited by matches of the non empty
-      separator string [sep].
-
-      Matching separators in [s] starts from the beginning of [s] and once
-      one is found, the separator is skipped and matching starts again
-      (i.e. separator matches can't overlap). If there is no separator
-      match in [s], [[s]] is returned.
-
-      The invariants [String.concat sep (String.split sep s) = s] and
-      [String.split sep s <> []] always hold.
-
-      @raise Invalid_argument if [sep] is the empty string. *)
-
-  val cut : sep:string -> string -> (string * string) option
-  (** [cut sep s] is either the pair [Some (l,r)] of the two
-      (possibly empty) substrings of [s] that are delimited by the first
-      match of the non empty separator string [sep] or [None] if [sep]
-      can't be matched in [s]. Matching starts from the beginning of [s].
-
-      The invariant [l ^ sep ^ r = s] holds.
-
-      @raise Invalid_argument if [sep] is the empty string. *)
-
-  val rcut : sep:string -> string -> (string * string) option
-  (** [rcut sep s] is like {!cut} but the matching is done backwards
-      starting from the end of [s].
-
-      @raise Invalid_argument if [sep] is the empty string. *)
-
-  val slice : ?start:int -> ?stop:int -> string -> string
-  (** [slice ~start ~stop s] is the string s.[start], s.[start+1], ...
-      s.[stop - 1]. [start] defaults to [0] and [stop] to [String.length s].
-
-      If [start] or [stop] are negative they are subtracted from
-      [String.length s]. This means that [-1] denotes the last
-      character of the string. *)
-
-  (** {1 Sets of strings} *)
-
-  module Set : sig
-    include Set.S with type elt = string
-    val of_list : string list -> t
-  end
-end
-
-(** Formatters. *)
-module Fmt : sig
-
-  (** {1 Formatters} *)
-
-  type 'a formatter = Format.formatter -> 'a -> unit
-  (** The type for formatters of values of type ['a]. *)
-
-  val pp : Format.formatter -> ('a, Format.formatter, unit) Pervasives.format ->
-    'a
-  (** [pp] is {!Format.fprintf} *)
-
-  val rpp : ('a, Format.formatter, unit) Pervasives.format ->
-    Format.formatter -> 'a
-  (** [rpp] is [pp fmt ppf] *)
-
-  val nop : 'a formatter
-  (** [nop] does nothing. *)
-
-  val pp_cut : unit formatter
-  (** [pp_cut] is {!Format.pp_print_cut}. *)
-
-  val pp_sp : unit formatter
-  (** [pp_sp] is {!Format.pp_print_space}. *)
-
-  val pp_str : string formatter
-  (** [pp_str] is {!Format.pp_print_string}. *)
-
-  val pp_int : int formatter
-  (** [pp_int] is {!Format.pp_print_int}. *)
-
-  val pp_bool : bool formatter
-  (** [pp_bool] is {!Format.pp_print_bool}. *)
-
-  val pp_larrow : unit formatter
-  (** [pp_larrow] formats a left arrow. *)
-
-  val pp_rarrow : unit formatter
-  (** [pp_rarrow] formats a right arrow. *)
-
-  val pp_opt : ?pp_none:unit formatter -> 'a formatter -> 'a option formatter
-  (** [pp_opt pp_none pp_v] formats value of type ['a option]. The default
-      value of [pp_none] prints nothing. *)
-
-  val pp_list : ?pp_sep:unit formatter -> 'a formatter -> 'a list formatter
-  (** [pp_list pp_sep pp_v] formats lists of type ['a]. Each value
-      is printed with [pp_v] followed by [pp_sep] (defaults to {!pp_cut}).
-      Empty lists never print anything. *)
-
-  val pp_text : string formatter
-  (** [pp_text] formats text by replacing spaces and newlines in the string
-      with calls to {!Format.pp_print_space} and {!Format.pp_force_newline}. *)
-
-  val pp_lines : string formatter
-  (** [pp_lines] formats lines by replacing newlines in the string
-      with calls to {!Format.pp_force_newline}. *)
-
-  (** {1:styled Styled formatting} *)
-
-  type style_tags = [ `Ansi | `None ]
-  (** The type for style tags.
-      {ul
-      {- [`Ansi], tags the text with
-      {{:http://www.ecma-international.org/publications/standards/Ecma-048.htm}
-      ANSI escape sequences}.}
-      {- [`None], text remains untagged.}} *)
-
-  type style =
-    [ `Bold
-    | `Underline
-    | `Black
-    | `Red
-    | `Green
-    | `Yellow
-    | `Blue
-    | `Magenta
-    | `Cyan
-    | `White ]
-  (** The type for styles. *)
-
-  val style_tags : unit -> style_tags
-  (** [style_tags ()] is the current tag style used by {!pp_styled}.
-      Initial value is [`None]. *)
-
-  val set_style_tags : style_tags -> unit
-  (** [set_style_tags s] sets the current tag style used by {!pp_style}. *)
-
-  val pp_styled : style -> 'a formatter -> 'a formatter
-  (** [pp_styled style pp] formats according to [pp] but styled with [style]. *)
-
-  val pp_styled_str : style -> string formatter
-  (** [pp_styled_str style] is [pp_styled_str style pp_str]. *)
-end
-
-(** Assemblage log. *)
-module Log : sig
-
-  (** {1 Log level and output} *)
-
-  (** The type for log levels. *)
-  type level = Show | Marker | Error | Warning | Info | Debug
-
-  val level : unit -> level option
-  (** [level ()] is the log level (if any). If the log level is [(Some l)]
-      any message whose level is [<= l] is logged. If level is [None]
-      no message is ever logged. At startup the level is [(Some Info)]. *)
-
-  val set_level : level option -> unit
-  (** [set_level l] sets the log level to [l]. See {!level}. *)
-
-  val set_formatter : [`All | `Level of level ] -> Format.formatter -> unit
-  (** [set_formatter spec ppf] sets the formatter for a given level or
-      for all the levels according to [spec]. At startup the formatter
-      of level [Show] is {!Format.std_formatter} and all the other level
-      formatters are {!Format.err_formatter}. *)
-
-  (** {1 Logging} *)
-
-  val msg : level -> ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [msg l fmt ...] logs a message with level [l]. *)
-
-  val kmsg :
-    (unit -> 'a) -> level -> ('b, Format.formatter, unit, 'a) format4 -> 'b
-  (** [kmsg k l fmt ...] is like [msg l fmt] but calls [k ()] before
-      returning. *)
-
-  val show : ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [show fmt ...] logs a message with level [Show]. *)
-
-  val mark : ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [mark fmt ...] logs  a message with level [Marker]. *)
-
-  val err : ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [err fmt ...] logs a message with level [Error]. *)
-
-  val warn : ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [warn fmt ...] logs a message with level [Warning]. *)
-
-  val info : ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [info fmt ...] logs a message with level [Info]. *)
-
-  val debug : ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [debug info ...] logs a message with level [Debug]. *)
-
-  (** {1 Log monitoring} *)
-
-  val err_count : unit -> int
-  (** [err_count ()] is the number of messages logged with level [Error]. *)
-
-  val warn_count : unit -> int
-  (** [warn_count ()] is the number of messages logged with level [Warning]. *)
-end
 
 (** {1:basics Basics}
 

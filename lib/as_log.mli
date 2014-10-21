@@ -16,7 +16,7 @@
 
 (** Assemblage log.
 
-    For documentation see {!Log}. *)
+    For documentation see {!Assemblage.Log}. *)
 
 (** {1 Log level and output} *)
 

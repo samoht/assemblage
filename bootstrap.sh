@@ -8,8 +8,9 @@ BDIR="_build/bootstrap"
 LIBDIR="lib"
 PKGS="-package cmdliner"
 
-LIB_UNITS="as_string as_fmt as_log as_cond as_context as_path as_args as_conf \
-           as_env as_product as_rule as_part as_project assemblage"
+LIB_UNITS="as_string as_path as_fmt as_log as_cmd as_conf as_cond \
+           as_context as_args as_env as_product as_rule as_part \
+           as_project assemblage"
 
 DRIVER_MAKE_UNITS="asd_cstubs asd_merlin asd_ocaml_incl asd_ocaml \
                    asd_setup_env asd_shell asd_git asd_pkg_config \

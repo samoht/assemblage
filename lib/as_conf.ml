@@ -456,8 +456,10 @@ let os =
              option `-s')."
   in
 (*
-   TODO
-  let get_os uname = Cmd.read uname [ "-u" ] >>= String.lowercase in
+  let get_os uname =
+    Cmd.on_error ~use:"unknown" @@
+    Cmd.(read_stdout uname [ "-u" ] >>| String.trim >>| String.lowercase)
+  in
   let get_os = const get_os $ (value uname) in
 *)
   let get_os = const Sys.os_type in
