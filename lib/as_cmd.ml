@@ -195,11 +195,11 @@ let exists cmd =
    combinators (e.g. input below) and thus always quote the args.
 
    2. Should we always redirect output on Sys.command. E.g.
-      Sys.command "doesntexist" makes spurious outputs.
+      Sys.command "doesntexist" makes spurious outputs. OTOH
+      when command fail it can give useful hints.
 
    3. Should we treat exit code 127 specially, see if it's the
-      case on windows.
-*)
+      case on windows. *)
 
 let mk_cmd cmd args = String.concat " " (cmd :: args)
 let exec_ret cmd args = ret (Sys.command (mk_cmd cmd args))

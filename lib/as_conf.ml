@@ -14,140 +14,177 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* Build configuration *)
-
 let str = Printf.sprintf
+
+(* Configuration value converters. *)
 
 type 'a parser = string -> [ `Error of string | `Ok of 'a ]
 type 'a printer = Format.formatter -> 'a -> unit
 type 'a converter = 'a parser * 'a printer
 
-module rec Value : sig
-  type 'a typed = Kset.t * 'a
+(* Universal type, see http://mlton.org/UniversalType *)
 
-  val const : 'a -> 'a typed
-  val app : ('a -> 'b) typed -> 'a typed -> 'b typed
-  val eval : 'a typed -> 'a
-  val deps : 'a typed -> Kset.t
-
+module Univ : sig
   type t
-
-  val create : unit -> ('a -> t) * (t -> 'a option)
+  val create : unit -> (('a -> t) * (t -> 'a option))
 end = struct
-  type 'a typed = Kset.t * 'a
-
-  let const v = Kset.empty, v
-  let app (kf, f) (kv, v) = (Kset.union kf kv), f v
-  let eval v = snd v
-  let deps v = fst v
-
   type t = exn
-
   let create (type s) () =
-    (* universal type see http://mlton.org/UniversalType *)
     let module M = struct exception E of s option end in
     (fun x -> M.E (Some x)), (function M.E x -> x | _ -> None)
 end
 
-and Key : sig
-  type 'a typed
+(* Typed keys and values are related through existential key maps to
+   universal types. We try to make that recursive definition as
+   compact and simple as possible and here. Concrete modules and types
+   with further explanations are defined later. *)
 
-  val name : 'a typed -> string
-  val public : 'a typed -> bool
-  val converter : 'a typed -> 'a Value.typed converter
-  val value : 'a typed -> 'a Value.typed
-  val doc : 'a typed -> string option
-  val docs : 'a typed -> string option
-  val docv : 'a typed -> string option
-  val untyped_value : 'a typed -> Value.t
-  val of_value : 'a typed -> Value.t -> 'a Value.typed option
-  val to_value : 'a typed -> 'a Value.typed -> Value.t
-  val with_value : 'a typed -> 'a Value.typed -> 'a typed
+type 'a key_ =                           (* typed keys to any kind of value. *)
+  { id : int;                                    (* a unique id for the key. *)
+    name : string;                                   (* the name of the key. *)
+    public : bool;          (* true if value can be defined by the end user. *)
+    converter : 'a converter;        (* key value parser and pretty printer. *)
+    default_value : 'a;                        (* default value for the key. *)
+    to_univ : 'a -> Univ.t;                (* injection to a universal type. *)
+    of_univ : Univ.t -> 'a option;      (* projection from a universal type. *)
+    doc : string option;                                      (* doc string. *)
+    docv : string option;            (* doc meta-variable for the key value. *)
+    docs : string option; }                      (* doc section for the key. *)
 
-  type t = V : 'a typed -> t
+type key_value = Default | Value of Univ.t
 
-  val create : ?public:bool -> ?docs:string -> ?docv:string -> ?doc:string ->
-    string -> 'a converter -> 'a Value.typed -> 'a typed
-
-  val equal : t -> t -> bool
+module rec Def : sig
+  type conf = key_value Kmap.t                             (* configuration. *)
+  type 'a value = conf * (conf -> 'a)        (* value, see 'a Value.t below. *)
+  type t = V : 'a value key_ -> t    (* existential of a typed key to value. *)
   val compare : t -> t -> int
 end = struct
+  type conf = key_value Kmap.t
+  type 'a value = conf * (conf -> 'a)
+  type t = V : 'a value key_ -> t
+  let compare (V k0) (V k1) = (compare : int -> int -> int) k0.id k1.id
+end
 
-  type 'a typed =
-    { id : int;
-      name : string;
-      public : bool;
-      converter : 'a Value.typed converter;
-      value : Value.t;
-      doc : string option;
-      docv : string option;
-      docs : string option;
-      to_value : 'a Value.typed -> Value.t;
-      of_value : Value.t -> 'a Value.typed option; }
+and Kmap : (Map.S with type key = Def.t) = Map.Make (Def)
 
-  let name k = k.name
-  let public k = k.public
-  let converter k = k.converter
-  let value k : 'a Value.typed =
-    let deps, v = match k.of_value k.value with
-    | None -> assert false
-    | Some v -> v
+(* Configurations *)
+
+module Conf = struct
+  include Kmap
+  let merge =                       (* the right map overrides the left one. *)
+    let choose _ l r = match l, r with
+    | (Some _ as v), None | None, (Some _ as v) -> v
+    | Some _, (Some _ as v) -> v
+    | None, None -> None
     in
-    Kset.add (Key.V k) deps, v
+    Kmap.merge choose
 
-  let doc k = k.doc
-  let docv k = k.docv
-  let docs k = k.docs
-  let untyped_value k = k.value
-  let with_value k v = { k with value = k.to_value v }
-  let of_value k = k.of_value
-  let to_value k = k.to_value
+  let add c k v = add k v c
+  let find c k = find k c
+end
 
-  type t = V : 'a typed -> t
+type t = Def.conf
+
+(* Configuration values *)
+
+module Value = struct
+  type 'a t = Def.conf * (Def.conf -> 'a)
+  (* The first component of a value of type 'a Def.value is a map that
+     keeps, in its domain, track of the configuration keys we access;
+     the range of the map should be [`Default]. The second component
+     is a function that given an actual configuration yields a
+     value. *)
+
+  let const v = Conf.empty, fun _ -> v
+  let app (cf, f) (cv, v) = Conf.merge cf cf, fun c -> (f c) (v c)
+  let deps (c, _) = c
+  let eval c (_, v) = v c
+end
+
+type 'a value = 'a Value.t
+let const = Value.const
+let app = Value.app
+let ( $ ) = app
+let deps = Value.deps
+let eval = Value.eval
+
+(* Configuration keys *)
+
+type 'a key = 'a value key_
+
+module Key = struct
+
+  (* Existential key (needs to be exposed to drivers) *)
+
+  type t = Def.t = V : 'a key -> t
+
+  let equal (V k0) (V k1) = (k0.id : int) = (k1.id : int)
+  let compare (V k0) (V k1) = (compare : int -> int -> int) k0.id k1.id
+
+  (* Typed key *)
 
   let value_converter_of_converter (parse, print) =
     let parse s = match parse s with
     | `Ok v -> `Ok (Value.const v)
     | `Error _ as e -> e
     in
-    let print ppf v = print ppf (Value.eval v) in
+    let print ppf v = print ppf (Value.eval (Value.deps v) v) in
     parse, print
 
   let id =
     let count = ref (-1) in
     fun () -> incr count; !count
 
-  let create ?(public = true) ?docs ?docv ?doc name converter value =
+  let create ?(public = true) ?docs ?docv ?doc name converter default_value =
     let id = id () in
     let converter = value_converter_of_converter converter in
-    let to_value, of_value = Value.create () in
-    let value = to_value value in
-    { id; name; public; converter; value; doc; docv; docs; to_value; of_value }
+    let to_univ, of_univ = Univ.create () in
+    { id; name; public; converter; default_value; doc; docv; docs;
+      to_univ; of_univ }
 
-  let equal (V k0) (V k1) = (k0.id : int) = (k1.id : int)
-  let compare (V k0) (V k1) =
-    (Pervasives.compare : int -> int -> int) k0.id k1.id
+  let name k = k.name
+  let public k = k.public
+  let converter k = k.converter
+  let default_value k : 'a Value.t =
+    let deps, v = k.default_value in
+    Conf.add deps (V k) Default, v
+
+  let doc k = k.doc
+  let docv k = k.docv
+  let docs k = k.docs
+  let of_univ k = k.of_univ
+  let to_univ k = k.to_univ
+
+  let value k =
+    let deps, default_value = k.default_value in
+    let deps = Conf.add deps (V k) Default in
+    let v c = match try Some (Conf.find c (V k)) with Not_found -> None with
+    | None ->
+        As_log.warn
+          "Key@ `%s'@ not@ found@ in@ configuration@ (driver@ error).@ \
+           Using@ the@ key's@ default@ value@ (`%a')"
+            k.name (snd k.converter) k.default_value;
+        snd (k.default_value) c
+    | Some Default -> snd (k.default_value) c
+    | Some Value u ->
+        match k.of_univ u with
+        | Some (_, v) -> v c
+        | None -> assert false
+    in
+    deps, v
 
 end
 
-and Kset : (Set.S with type elt = Key.t) = Set.Make (Key)
+let key = Key.create
+let value = Key.value
 
-type 'a key = 'a Key.typed
-type 'a value = 'a Value.typed
-
-(* Configuration values *)
-
-let const = Value.const
-let app = Value.app
-let ( $ ) = app
-let eval = Value.eval
-let value_deps = Value.deps
-
-(* Configuration value converters *)
+(* Configuration value converters
+   FIXME remove Cmdliner dep *)
 
 let bool = Cmdliner.Arg.bool
 let int = Cmdliner.Arg.int
 let string = Cmdliner.Arg.string
+let enum = Cmdliner.Arg.enum
 
 let path =
   let parse s = `Ok (As_path.of_string s) in
@@ -170,7 +207,6 @@ let abs_path =
   let err s = str "`%s' is not an absolute path." s in
   path_kind As_path.is_abs As_path.as_abs err
 
-let enum = Cmdliner.Arg.enum
 let version =
   let parser s =
     try
@@ -215,43 +251,27 @@ let version =
   in
   parser, printer
 
-(* Configuration keys
-
-   FIXME: we could check here that [key] is never called twice in the
-   program with the same name. *)
-
-let key = Key.create
-
 (* Configurations *)
 
-type t = Kset.t
-
-let empty = Kset.empty
-let is_empty = Kset.is_empty
-let add c k = Kset.add (Key.V k) c
-let set c k v = Kset.add (Key.V (Key.with_value k v)) c
+let empty = Conf.empty
+let is_empty = Conf.is_empty
+let add c k = Conf.add c (Key.V k) Default
+let set c k v = Conf.add c (Key.V k) (Value (Key.to_univ k v))
 let find c k =
-  try
-    let Key.V kv = Kset.find (Key.V k) c in
-    let deps, v = match Key.of_value k (Key.untyped_value kv) with
-    | None -> assert false
-    | Some v -> v
-    in
-    Some (Kset.add (Key.V k) deps, v)
+  try match Conf.find c (Key.V k) with
+  | Default -> Some (Key.default_value k)
+  | Value v ->
+      match Key.of_univ k v with
+      | Some (deps, v) -> Some (Conf.add deps (Key.V k) Default, v)
+      | None -> assert false
   with Not_found -> None
 
 let get c k = match find c k with
 | None -> invalid_arg (str "no key named %s in configuration" (Key.name k))
 | Some v -> v
 
-let merge c0 c1 =
-  let add k acc =
-    if not (Kset.mem k acc) then Kset.add k acc else
-    (* Value may differ, remove from acc and add overriding value *)
-    Kset.add k (Kset.remove k acc)
-  in
-  Kset.fold add c1 c0
-
+let merge = Conf.merge
+(*
 let fold f acc c = Kset.fold (fun k acc -> f acc k) c acc
 let iter = Kset.iter
 let exists = Kset.exists
@@ -267,15 +287,18 @@ let name_dups c =
   in
   let _, dups = fold check_dup (As_string.Set.empty, empty) c in
   keys dups
+*)
 
 let ( + ) = add
 let ( @ ) = get
 let ( ++ ) = merge
 
-let parse c = (* FIXME move that out of the module *)
-  let add (Key.V k) acc =
+let parse c =
+  (* FIXME move that out of the module.
+     FIXME need to consider deps. *)
+  let add (Key.V k) _ acc =
     let c = Key.converter k in
-    let v = Key.value k in
+    let v = Key.default_value k in
     let doc = Key.doc k in
     let docs = Key.docs k in
     let docv = Key.docv k in
@@ -283,7 +306,7 @@ let parse c = (* FIXME move that out of the module *)
     let opt = Cmdliner.Arg.(value (opt c v & i)) in
     Cmdliner.Term.(pure set $ acc $ pure k $ opt)
   in
-  Kset.fold add c (Cmdliner.Term.pure c)
+  Conf.fold add c (Cmdliner.Term.pure c)
 
 (* Builtin configuration keys *)
 
@@ -317,7 +340,9 @@ let jobs =
   let get_jobs () =
       try match Sys.os_type with
       | "Win32" -> int_of_string (Sys.getenv "NUMBER_OF_PROCESSORS")
-      | _ -> 1 (* TODO Cmd.read "getconf" [ "_NPROCESSORS_ONLN" ] *)
+      | _ ->
+          As_cmd.on_error ~use:1 @@
+          As_cmd.(input "getconf" [ "_NPROCESSORS_ONLN" ] >>| int_of_string)
       with Not_found | Failure _ -> 1
   in
   let get_jobs = const get_jobs $ const () in
@@ -343,7 +368,7 @@ let build_dir =
   key "root-dir" rel_path build_dir ~docs ~doc ~docv:"PATH"
 
 let product_dir =
-  key "product-dir" rel_path ~public:false (Key.value build_dir)
+  key "product-dir" rel_path ~public:false (value build_dir)
 
 let builtin_build_dirs = empty + root_dir + build_dir + product_dir
 
@@ -383,7 +408,7 @@ let ocaml_utility_key = utility_key docs
 let ocaml_utility_key_maybe_opt bin_str =
   let doc = str "The %s utility." bin_str in
   let bin native = if native then str "%s.opt" bin_str else bin_str in
-  let bin = const bin $ Key.value ocaml_native_tools in
+  let bin = const bin $ value ocaml_native_tools in
   key bin_str string bin ~doc ~docv:"BIN" ~docs
 
 let ocaml_pp = ocaml_utility_key "ocaml_pp"
@@ -403,15 +428,17 @@ let ocamlfind = ocaml_utility_key "ocamlfind"
 
 let ocaml_version =
   let doc = "The OCaml compiler version. Default inferred by invoking
-             the tool specified by option $(b,--ocamlc) or $(b,--ocamlopt)."
+             an OCaml compiler with `-version'."
   in
-(*
-  TODO
-  let tool nat = if nat then value ocamlopt else value ocamlc in
-  let get_version tool = Cmd.read tool [ "-version" ] >>= (fst version) in
-  let get_version = const get_version $ (const tool $ ocaml_native-tools) in
-*)
-  let get_version = const (4, 01, 0, None) in
+  let tool nat ocamlopt ocamlc = if nat then ocamlopt else ocamlc in
+  let tool =
+    const tool $ value ocaml_native_tools $ value ocamlopt $ value ocamlc
+  in
+  let get_version tool =
+    As_cmd.on_error ~use:(0, 0, 0, Some "unknown") @@
+    As_cmd.(input tool [ "-version" ] >>| String.trim >>= (fst version))
+  in
+  let get_version = const get_version $ tool in
   key "ocaml-version" version get_version ~doc ~docv:"VERSION" ~docs
 
 let builtin_ocaml =
@@ -451,36 +478,32 @@ let machine_info_key = utility_key docs
 
 let uname = machine_info_key "uname"
 let os =
-  let doc = "The operating system name (defaults inferred by lowercasing the
+  let doc = "The operating system name. Default inferred by lowercasing the
              result of invoking the tool specified by option $(b,--uname) with
-             option `-s')."
+             option `-s'."
   in
-(*
   let get_os uname =
-    Cmd.on_error ~use:"unknown" @@
-    Cmd.(read_stdout uname [ "-u" ] >>| String.trim >>| String.lowercase)
+    As_cmd.on_error ~use:"unknown" @@
+    As_cmd.(input uname [ "-s" ] >>| String.trim >>| String.lowercase)
   in
-  let get_os = const get_os $ (value uname) in
-*)
-  let get_os = const Sys.os_type in
+  let get_os = const get_os $ value uname in
   key "os" string get_os ~doc ~docs ~docv:"STRING"
 
 let arch =
-  let doc = "The operating system name (defaults inferred by lowercasing the
-             result of invoking the tool specified by option $(b,--uname) with
-             option `-s')."
+  let doc = "The hardware architecture to compile for. Default inferred
+             by lowercasing the result of invoking the tool specified by
+             option $(b,--uname) with option `-m'."
   in
-(*
-   TODO
-  let get_arch uname = Cmd.read uname [ "-m" ] in
-  let get_arch = const get_os $ (value uname) in
-*)
-  let get_arch = const "x86_64" in
+  let get_arch uname =
+    As_cmd.on_error ~use:"unknown" @@
+    As_cmd.(input uname [ "-m" ] >>| String.trim >>| String.lowercase)
+  in
+  let get_arch = const get_arch $ value uname in
   key "arch" string get_arch ~doc ~docs ~docv:"STRING"
 
 let builtin_machine_info = empty + os + arch
 
 let builtin_base =
-  let ( +++ ) = Kset.union in
+  let ( +++ ) = Conf.merge in
   builtin_build_props +++ builtin_build_dirs +++ builtin_ocaml +++
   builtin_base_utils

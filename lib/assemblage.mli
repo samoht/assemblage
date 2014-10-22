@@ -250,7 +250,7 @@ module Path : sig
   type filename = string
   (** The type for file names (basenames). *)
 
-  type segs = private string list
+  type segs
   (** The type for lists of path segments. *)
 
   type rel = [`Rel of segs]
@@ -560,7 +560,21 @@ type args
 type rule
 type env
 
-(** Build configuration. *)
+(** Build configuration.
+
+    Assemblage keeps tracks of the configuration needed to define a
+    build system through configuration values. A configuration value
+    denotes a concrete value of a certain type and remembers the
+    configuration keys it may need to define this value.
+
+    Configuration keys are named configuration value and they are
+    meant to be redefined by the end user of the build system
+    (e.g. from the command line). A configuration key can be used to
+    determine a configuration value or other configuration keys.
+
+
+    Before defining your own keys you should prefer the
+    {{!builtin}built-in ones}. *)
 module Conf : sig
 
   (** {1 Configuration values} *)
@@ -572,16 +586,13 @@ module Conf : sig
   (** [const v] is a configuration value that evaluates to [v]. *)
 
   val app : ('a -> 'b) value -> 'a value -> 'b value
-  (** [app f v] is a configuration value that evalautes to the result
+  (** [app f v] is a configuration value that evaluates to the result
       of applying the evalaution of [v] to the one of [f]. *)
 
   val ( $ ) : ('a -> 'b) value -> 'a value -> 'b value
   (** [f $ v] is [app f v]. *)
 
-  val eval : 'a value -> 'a
-  (** [eval v] is [v]'s value. *)
-
-  (** {1 Configuration value converters}  *)
+  (** {1 Configuration keys} *)
 
   type 'a parser = string -> [ `Error of string | `Ok of 'a ]
   (** The type for configuration value parsers. *)
@@ -591,6 +602,31 @@ module Conf : sig
 
   type 'a converter = 'a parser * 'a printer
   (** The type for configuration value converters. *)
+
+  type 'a key
+  (** The type for configuration keys. *)
+
+  val key : ?public:bool -> ?docs:string -> ?docv:string -> ?doc:string ->
+    string -> 'a converter -> 'a value -> 'a key
+  (** [key public docs docv doc name conv v] is a configuration key
+      named [name] converted using [converter] and that defaults to
+      [v] if unspecified by the build system user. The key is public
+      according to [public] (defaults to [true]) in which case [docs]
+      is a documentation section under which the key should be
+      documented according to the documentation string [doc] and the
+      value documentation meta-variable [docv].
+
+      {b Warning.} No two public keys should share the same [name] as
+      this may lead to difficulties in certain assemblage drivers
+      (like the inability to define the key on the command line).  In
+      particular do not reuse the {!builtin} names (they have the same
+      name as the key variables with underscores replaced by
+      dashes). *)
+
+  val value : 'a key -> 'a value
+  (** [value k] is [k]'s value. *)
+
+  (** {2 Built-in value converters}  *)
 
   val bool : bool converter
   (** [bool] converts values with [bool_of_string].  *)
@@ -617,63 +653,6 @@ module Conf : sig
   val version : (int * int * int * string option) converter
   (** [version] converts values of the form
       [[v|V]major.minor[.patch][(-|+).*]]. *)
-
-  (** {1 Configuration keys}
-
-      Configuration keys are named and documented configuration values.
-      They can always be set from the command line. They can also be
-      consulted to determine other configuration keys. *)
-
-  type 'a key
-  (** The type for configuration keys. *)
-
-  module Key : sig
-
-    type t = V : 'a key -> t
-
-    val equal : t -> t -> bool
-    (** [equal k k'] is [true] iff [name k = name k']. *)
-
-    val compare : t -> t -> int
-    (** [compare k k'] compares [k] and [k'] and is compatible with {!equal}. *)
-
-    val name : 'a key -> string
-    (** [name k] is [k]'s name. *)
-
-    val public : 'a key -> bool
-    (** [public k] is [k]'s public status. *)
-
-    val converter : 'a key -> 'a value converter
-    (** [converter k] is [k]'s value converter. *)
-
-    val value : 'a key -> 'a value
-    (** [value k] is [k]'s value *)
-
-    val doc : 'a key -> string option
-    (** [doc k] is [k]'s documentation string (if any). *)
-
-    val docv : 'a key -> string option
-    (** [docv k] is [k]'s value documentation meta-variable (if any). *)
-
-    val docs : 'a key -> string option
-    (** [docs k] is [k]'s documentation section (if any). *)
-  end
-
-  val key : ?public:bool -> ?docs:string -> ?docv:string -> ?doc:string ->
-    string -> 'a converter -> 'a value -> 'a key
-  (** [key public docs docv doc name conv v] is a configuration key
-      named [key] (must be unique in the program) converted using
-      [converter] and that defaults to [v]. The key is public according
-      to [public] (defaults to [true]) in which case [docs] is a
-      documentation section under which the key should be documented
-      according to the documentation string [doc] and the value
-      documentation meta-variable [docv].
-
-      {b Warning.} For public keys that belong to the same
-      configuration [name] should be unique otherwise this may lead to
-      assertion failures in certain assemblage drivers.  In particular
-      do not reuse the {!builtin} names (they have the same name as
-      the key variables with underscores replaced by dashes). *)
 
   (** {1 Configurations} *)
 
@@ -713,43 +692,6 @@ module Conf : sig
 
   val ( @ ) : t -> 'a key -> 'a value
   (** [c @ k] is [get k v] *)
-
-  val fold : ('a -> Key.t -> 'a) -> 'a -> t -> 'a
-  (** [fold f acc c] folds [f] over [c] using [acc]. *)
-
-  val iter : (Key.t -> unit) -> t -> unit
-  (** [iter f c] iterates [f] over [c]. *)
-
-  val exists : (Key.t -> bool) -> t -> bool
-  (** [exists p] is [true] iff there is a key of [c] that satisfies [p]. *)
-
-  val keep : (Key.t -> bool) -> t -> t
-  (** [keep p c] is all the keys of [c] that satisfy [p]. *)
-
-  val subset : t -> t -> bool
-  (** [subset c c'] is [true] iff all keys of [c] are in [c'] (but not
-      necessarily with the same value). *)
-
-  val diff : t -> t -> t
-  (** [diff c c'] is [c] without the keys of [c']. *)
-
-  val keys : t -> Key.t list
-  (** [keys c] is the list of all keys of [c]. *)
-
-  val name_dups : t -> Key.t list
-  (** [name_dups c] returns a list of keys which have the same
-      name in [c]. This should be the empty list. *)
-
-  val parse : t -> t Cmdliner.Term.t
-  (** [parse c] is a Cmdliner term that parses [c].
-
-      FIXME: this doesn't belong here remove the Cmdliner dep. *)
-
-  (** {1 Configuration value dependencies} *)
-
-  val value_deps : 'a value -> t
-  (** [value_deps v] is the minimal configuration that may be needed to
-      determine [v]. *)
 
   (** {1:builtin Built-in configuration keys} *)
 
@@ -965,6 +907,7 @@ module Conf : sig
   val builtin_machine_info : t
   (** [builtin_machine_info] is the configuration made of all machine
       information keys. *)
+
 end
 
 (** Build conditions.
@@ -1897,11 +1840,82 @@ module Project : sig
 end
 
 val assemble : project -> unit
-(** [assemble p] registers [p] for assembling with an assemblage driver. *)
+(** [assemble p] registers [p] for assembling by an assemblage driver. *)
 
-(**/**)
-val projects : unit -> project list
-(**/**)
+
+(** Private functions and types for implementing drivers.
+
+    {b Warning.} Assemblage users should not use these definitions. *)
+module Private : sig
+
+  (** {1 Assembled projects} *)
+
+  val projects : unit -> project list
+  (** [projects] is the list of projects that were {!assemble}d by
+      the library so far. *)
+
+  (** {1 Building} *)
+
+  (** Build configuration. *)
+  module Conf : sig
+
+    (** {1 Build configuration} *)
+
+    include module type of Conf
+
+    (** {1 Configuration value dependencies and evaluation} *)
+
+    val deps : 'a value -> t
+    (** [deps v] is the set of configuration keys which may be needed
+        for evaluating [v]. *)
+
+    val eval : t -> 'a value -> 'a
+    (** [eval c v] evaluates [v] in the configuration [c].
+
+        @raise Invalid_argument if [c] is not a subset of [deps c]. *)
+
+    (** {1 Keys} *)
+
+    (** Configuration keys. *)
+    module Key : sig
+
+      (** {1 Existential keys} *)
+
+      (** The type for existential keys. *)
+      type t = V : 'a key -> t
+
+      val equal : t -> t -> bool
+      (** [equal k k'] is [true] iff [name k = name k']. *)
+
+      val compare : t -> t -> int
+      (** [compare k k'] compares [k] and [k'] and is compatible
+          with {!equal}. *)
+
+      (** {1 Typed key accessors} *)
+
+      val name : 'a key -> string
+      (** [name k] is [k]'s name. *)
+
+      val public : 'a key -> bool
+      (** [public k] is [k]'s public status. *)
+
+      val converter : 'a key -> 'a value converter
+      (** [converter k] is [k]'s value converter. *)
+
+      val default_value : 'a key -> 'a value
+      (** [default_value k] is [k]'s default value. *)
+
+      val doc : 'a key -> string option
+      (** [doc k] is [k]'s documentation string (if any). *)
+
+      val docv : 'a key -> string option
+      (** [docv k] is [k]'s value documentation meta-variable (if any). *)
+
+      val docs : 'a key -> string option
+      (** [docs k] is [k]'s documentation section (if any). *)
+    end
+  end
+end
 
 
 (** {1:basics Basics}

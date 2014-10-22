@@ -84,4 +84,8 @@ type project = Project.t
 
 let projects = ref []
 let assemble p = projects  := p :: !projects
-let projects () = !projects
+
+module Private = struct
+  let projects () = !projects
+  module Conf = As_conf
+end

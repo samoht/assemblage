@@ -21,7 +21,7 @@
 (** {1 File paths} *)
 
 type filename = string
-type segs = private string list
+type segs
 type rel = [`Rel of segs]
 type abs = [`Abs of segs]
 type t = [ abs | rel ]

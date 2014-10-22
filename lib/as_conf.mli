@@ -25,13 +25,34 @@ type 'a value
 val const : 'a -> 'a value
 val app : ('a -> 'b) value -> 'a value -> 'b value
 val ( $ ) : ('a -> 'b) value -> 'a value -> 'b value
-val eval : 'a value -> 'a
 
-(** {1 Configuration value converters}  *)
+(** {1 Configuration keys} *)
 
 type 'a parser = string -> [ `Error of string | `Ok of 'a ]
 type 'a printer = Format.formatter -> 'a -> unit
 type 'a converter = 'a parser * 'a printer
+type 'a key
+
+module Key : sig
+  type t = V : 'a key -> t
+  val equal : t -> t -> bool
+  val compare : t -> t -> int
+
+  val name : 'a key -> string
+  val public : 'a key -> bool
+  val converter : 'a key -> 'a value converter
+  val default_value : 'a key -> 'a value
+  val doc : 'a key -> string option
+  val docv : 'a key -> string option
+  val docs : 'a key -> string option
+end
+
+val key : ?public:bool -> ?docs:string -> ?docv:string -> ?doc:string ->
+  string -> 'a converter -> 'a value -> 'a key
+
+val value : 'a key -> 'a value
+
+(** {2 Configuration key value converters} *)
 
 val bool : bool converter
 val int : int converter
@@ -42,35 +63,9 @@ val rel_path : As_path.rel converter
 val enum : (string * 'a) list -> 'a converter
 val version : (int * int * int * string option) converter
 
-(** {1 Configuration keys} *)
-
-type 'a key
-
-module Key : sig
-  type t = V : 'a key -> t
-
-  val equal : t -> t -> bool
-  val compare : t -> t -> int
-  val name : 'a key -> string
-  val public : 'a key -> bool
-  val converter : 'a key -> 'a value converter
-  val value : 'a key -> 'a value
-  val doc : 'a key -> string option
-  val docv : 'a key -> string option
-  val docs : 'a key -> string option
-end
-
-val key : ?public:bool -> ?docs:string -> ?docv:string -> ?doc:string ->
-  string -> 'a converter -> 'a value -> 'a key
-
 (** {1 Configurations} *)
 
-module Kset : sig
-  include Set.S with type elt = Key.t
-end
-
-type t = Kset.t
-
+type t
 val empty : t
 val is_empty : t -> bool
 val add : t -> 'a key -> t
@@ -82,6 +77,7 @@ val find : t -> 'a key -> 'a value option
 val get : t -> 'a key -> 'a value
 val ( @ ) : t -> 'a key -> 'a value
 val parse : t -> t Cmdliner.Term.t
+(*
 val fold : ('a -> Key.t -> 'a) -> 'a -> t -> 'a
 val iter : (Key.t -> unit) -> t -> unit
 val exists : (Key.t -> bool) -> t -> bool
@@ -90,10 +86,10 @@ val subset : t -> t -> bool
 val diff : t -> t -> t
 val keys : t -> Key.t list
 val name_dups : t -> Key.t list
+*)
 
-(** {1 Configuration value dependencies} *)
-
-val value_deps : 'a value -> t
+val eval : t -> 'a value -> 'a
+val deps : 'a value -> t
 
 (** {1:builtin Built-in configuration keys} *)
 
