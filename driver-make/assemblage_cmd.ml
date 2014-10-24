@@ -17,6 +17,7 @@
 
 open Assemblage
 open Assemblage.Private
+open Assemblage_cli
 
 let str = Printf.sprintf
 
@@ -97,9 +98,9 @@ let env_opts setup_env =
   Term.(pure Assemblage_env.create $ setup_env_opts setup_env $ verbose_opt $
         color_opt)
 
-let conf_opts p =
+let conf_cli p =
   let conf = match p with None -> Conf.empty | Some p -> Project.conf p in
-  Assemblage_cli.Cli.term_of_conf conf
+  Cli.term_of_conf conf, Cli.man_of_conf conf
 
 let no_project setup = match setup with
 | None -> assert false
@@ -123,7 +124,7 @@ let help_cmd setup_env =
              Term.choice_names $ topic)),
   Term.info "help" ~doc ~sdocs:global_option_section ~man
 
-let setup_cmd p setup_env conf_opts =
+let setup_cmd p setup_env conf_opts conf_man =
   let doc = "setup an OCaml project" in
   let man =
     [ `S "DESCRIPTION";
@@ -132,34 +133,33 @@ let setup_cmd p setup_env conf_opts =
           for the build system can be specified on the command line using \
           the flags described below. The configuration can be changed on \
           build system invocations without having to $(b,setup) again."; ] @
+    conf_man @
     help_sections;
   in
   let setup = match p with
-  | None -> fun _ _ _ _ _ -> no_project setup_env
+  | None -> fun _ _ _ _ -> no_project setup_env
   | Some p ->
       (* FIXME let the user specify on the command line *)
       let version = Asd_project_version.get () in
-      fun s conf d make merlin -> Asd_setup.setup ~version p s d make ~merlin
-  in
-  let dumpast_opt =
-    let doc = "Dump the AST during build (optimisation). FIXME" in
-    Arg.(value & opt bool true & info ["dumpast"] ~doc ~docv:"BOOL")
+      fun s conf make merlin -> Asd_setup.setup ~version p s make ~merlin
   in
   let merlin_opt =
     let doc = "Generate a .merlin file." in
     Arg.(value & opt bool true & info ["merlin"] ~doc ~docv:"BOOL")
   in
-  Term.(ret (pure setup $ env_opts setup_env $ conf_opts $ dumpast_opt $
-             pure `Make $ merlin_opt)),
+  Term.(ret (pure setup $ env_opts setup_env $ conf_opts $ pure `Make $
+             merlin_opt)),
   Term.info "setup" ~doc ~sdocs:global_option_section ~man
 
-let describe_cmd p setup_env conf_opts =
+let describe_cmd p setup_env conf_opts conf_man =
   let doc = "describe an OCaml project" in
   let man =
     [ `S "DESCRIPTION";
       `P "The $(b,describe) command outputs a summary of the components \
           defined by an assemble.ml file.";
-    ] @ help_sections;
+    ] @
+    conf_man @
+    help_sections;
   in
   let describe = match p with
   | None -> fun _ _ -> no_project setup_env
@@ -188,11 +188,11 @@ let default_cmd setup_env =
     ~doc ~man
 
 let assemble setup_env p =
-  let conf_opts = conf_opts p in (* N.B. do it only once *)
+  let conf_opts, conf_man = conf_cli p in (* N.B. do it only once *)
   let cmds =
     [ help_cmd setup_env;
-      setup_cmd p setup_env conf_opts;
-      describe_cmd p setup_env conf_opts; ]
+      setup_cmd p setup_env conf_opts conf_man;
+      describe_cmd p setup_env conf_opts conf_man; ]
   in
   match Term.eval_choice (default_cmd setup_env) cmds with
   | `Ok () | `Version | `Help -> exit 0

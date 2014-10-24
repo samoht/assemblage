@@ -75,19 +75,11 @@ end = struct
       doc : string option; docv : string option; docs : string option; }
 
   type t = V : 'a key -> t
-
   let compare (V k0) (V k1) = (compare : int -> int -> int) k0.id k1.id
 end
 
 and Kmap : (Map.S with type key = Def.t) = Map.Make (Def)
 and Kset : (Set.S with type elt = Def.t) = Set.Make (Def)
-
-(* Types *)
-
-(* A key is a name for a value. It has a default value, a converter to
-   interact with the end user and the conversion functions to a
-   universal value. The concrete value of a key is defined by the map
-   of a configuration. *)
 
 (* Configuration values *)
 
@@ -135,6 +127,43 @@ module Key = struct
   module Map = Kmap
 end
 
+let pp_key_dup ppf (Key.V k) = As_fmt.pp ppf
+    "Key name `%s'@ not unique@ in@ the@ configuration.@ \
+     This@ may@ lead@ to@ unexpected@ driver@ behaviour." (Key.name k)
+
+let pp_miss_key ppf (Key.V k) = As_fmt.pp ppf
+    "Key@ `%s'@ not@ found@ in@ configuration@ (driver@ error).@ \
+     The@ key's@ default@ value@ will@ be@ used." (Key.name k)
+
+let docs_project = "Project keys"
+let doc_project =
+  "These keys inform the build system about properties specific to
+   this project."
+
+let key_id =
+  let count = ref (-1) in
+  fun () -> incr count; !count
+
+let key ?(public = true) ?(docs = docs_project) ?docv ?doc name
+    converter default
+  =
+  let id = key_id () in
+  let to_univ, of_univ = Univ.create () in
+  { Def.id; name; public; converter; default; doc; docv; docs = Some docs;
+    to_univ; of_univ }
+
+let value k =
+  let deps, _ = Key.default k in
+  let deps = Kset.add (Key.V k) deps in
+  let v c = match try Some (Kmap.find (Key.V k) c) with Not_found -> None with
+  | None -> As_log.warn "%a" pp_miss_key (Key.V k); (snd (Key.default k)) c
+  | Some u ->
+      match Key.of_univ k u with
+      | Some (_, v) -> v c
+      | None -> assert false
+  in
+  deps, v
+
 (* Configurations *)
 
 type t = Def.conf
@@ -172,41 +201,7 @@ let of_keys s =
   in
   Kset.fold add s Kmap.empty
 
-(* Configuration error messages *)
-
-let pp_key_dup ppf (Key.V k) = As_fmt.pp ppf
-    "Key name `%s'@ not unique@ in@ the@ configuration.@ \
-     This@ may@ lead@ to@ unexpected@ driver@ behaviour." (Key.name k)
-
-let pp_miss_key ppf (Key.V k) = As_fmt.pp ppf
-    "Key@ `%s'@ not@ found@ in@ configuration@ (driver@ error).@ \
-     The@ key's@ default@ value@ will@ be@ used." (Key.name k)
-
-(* Key creation and value. *)
-
-let key_id =
-  let count = ref (-1) in
-  fun () -> incr count; !count
-
-let key ?(public = true) ?docs ?docv ?doc name converter default =
-  let id = key_id () in
-  let to_univ, of_univ = Univ.create () in
-  { Def.id; name; public; converter; default; doc; docv; docs;
-    to_univ; of_univ }
-
-let value k =
-  let deps, _ = Key.default k in
-  let deps = Kset.add (Key.V k) deps in
-  let v c = match try Some (Kmap.find (Key.V k) c) with Not_found -> None with
-  | None -> As_log.warn "%a" pp_miss_key (Key.V k); (snd (Key.default k)) c
-  | Some u ->
-      match Key.of_univ k u with
-      | Some (_, v) -> v c
-      | None -> assert false
-  in
-  deps, v
-
-(* Configuration value converters
+(* Bultin configuration value converters
    FIXME remove Cmdliner dep *)
 
 let bool = Cmdliner.Arg.bool
@@ -281,37 +276,49 @@ let version : (int * int * int * string option) converter =
 
 (* Builtin configuration keys *)
 
-let utility_key docs bin_str =
+let utility_key ~docs bin_str =
   let doc = str "The %s utility." bin_str in
   key bin_str string (const bin_str) ~doc ~docv:"BIN" ~docs
 
+(* Project keys *)
+
+let project_key = key ~docs:docs_project
+let project_version =
+  let doc = "Version of the project." in
+  let v = const "TODO" in
+  project_key "project-version" string v ~doc ~docv:"VERSION"
+
 (* Build property keys *)
 
-let docs = "BUILD PROPERTIES"
+let docs_build_properties = "Build property keys"
+let doc_build_properties =
+  "These keys inform the build system about global build settings."
+
+let build_properties_key = key ~docs:docs_build_properties
 
 let debug =
   let doc = "Build products with debugging support." in
-  key "debug" bool (const false) ~docs ~doc ~docv:"BOOL"
+  build_properties_key "debug" bool (const false) ~doc ~docv:"BOOL"
 
 let profile =
   let doc = "Build products with profiling support." in
-  key "profile" bool (const false) ~docs ~doc ~docv:"BOOL"
+  build_properties_key "profile" bool (const false) ~doc ~docv:"BOOL"
 
 let warn_error =
-  let doc = "Try to treat tool warnings as errors." in
-  key "warn-error" bool (const true) ~doc ~docv:"BOOL" ~docs
+  let doc = "Try to treat utility warnings as errors." in
+  build_properties_key "warn-error" bool (const false) ~doc ~docv:"BOOL"
 
 let test =
   let doc = "Build test build products." in
-  key "test" bool (const false) ~docs ~doc ~docv:"BOOL"
+  build_properties_key "test" bool (const false) ~doc ~docv:"BOOL"
 
 let doc =
   let doc = "Build documentation." in
-  key "doc" bool (const false) ~docs ~doc ~docv:"BOOL"
+  build_properties_key "doc" bool (const false) ~doc ~docv:"BOOL"
 
 let jobs =
-  let doc = "Number of jobs to run for building (defaults to machine processor
-             count)." in
+  let doc = "Number of jobs to run for building."
+  in
   let get_jobs () =
     try match Sys.os_type with
     | "Win32" -> int_of_string (Sys.getenv "NUMBER_OF_PROCESSORS")
@@ -322,80 +329,95 @@ let jobs =
     with Not_found | Failure _ -> 1
   in
   let get_jobs = const get_jobs $ const () in
-  key "jobs" int get_jobs ~docs ~doc ~docv:"COUNT"
+  build_properties_key "jobs" int get_jobs ~doc ~docv:"COUNT"
 
 (* Build directories keys *)
 
-let docs = "DIRECTORIES"
+let docs_build_directories = "Directory keys"
+let doc_build_directories =
+  "These keys inform the build system about directories."
+
+let build_directories_key = key ~docs:docs_build_directories
 
 let root_dir =
   let doc = "Absolute path to the project directory." in
   let get_cwd () = As_path.(to_abs (of_string (Sys.getcwd ()))) in
   let get_cwd = const get_cwd $ const () in
-  key "root-dir" path get_cwd ~docs ~doc ~docv:"PATH"
+  build_directories_key "root-dir" path get_cwd ~doc ~docv:"PATH"
 
 let build_dir =
   let doc = "Path to the build directory expressed relative the root \
              directory (see $(b,--root-dir))."
   in
   let build_dir = const (As_path.dir "_build") in
-  key "build-dir" rel_path build_dir ~docs ~doc ~docv:"PATH"
+  build_directories_key "build-dir" rel_path build_dir ~doc ~docv:"PATH"
 
 let product_dir =
-  key "product-dir" rel_path ~public:false ~docs (value build_dir)
+  build_directories_key "product-dir" rel_path ~public:false (value build_dir)
 
 (* OCaml system keys *)
 
-let docs = "OCAML SYSTEM"
+let docs_ocaml_system = "OCaml system keys"
+let doc_ocaml_system =
+  "These keys inform the build system about the OCaml system and
+   desired compilation outcomes."
 
-let ocaml_native_tools =
-  let doc = "true to use the native compiled (.opt) OCaml tools." in
-  key "ocaml-native-tools" bool (const true) ~doc ~docv:"BOOL" ~docs
+let ocaml_system_key = key ~docs:docs_ocaml_system
+let ocaml_system_utility = utility_key ~docs:docs_ocaml_system
 
 let ocaml_byte =
   let doc = "true if OCaml byte code compilation is requested." in
-  key "ocaml-byte" bool (const true) ~doc ~docv:"BOOL" ~docs
+  ocaml_system_key "ocaml-byte" bool (const true) ~doc ~docv:"BOOL"
 
 let ocaml_native =
   let doc = "true if OCaml native code compilation is requested." in
-  key "ocaml-native" bool (const true) ~doc ~docv:"BOOL" ~docs
+  ocaml_system_key "ocaml-native" bool (const true) ~doc ~docv:"BOOL"
 
 let ocaml_native_dynlink =
   let doc = "true if OCaml native code dynamic linking is requested." in
-  key "ocaml-native-dynlink" bool (const true) ~doc ~docv:"BOOL" ~docs
+  ocaml_system_key "ocaml-native-dynlink" bool (const true) ~doc ~docv:"BOOL"
 
 let ocaml_js =
   let doc = "true if OCaml JavaScript compilation is requested." in
-  key "ocaml-js" bool (const false) ~doc ~docv:"BOOL" ~docs
+  ocaml_system_key "ocaml-js" bool (const false) ~doc ~docv:"BOOL"
 
 let ocaml_annot =
   let doc = "true if OCaml binary annotation files is requested." in
-  key "ocaml-annot" bool (const true) ~doc ~docv:"BOOL" ~docs
+  ocaml_system_key "ocaml-annot" bool (const true) ~doc ~docv:"BOOL"
 
-let ocaml_utility_key = utility_key docs
-let ocaml_utility_key_maybe_opt bin_str =
+let ocaml_build_ast =
+  let doc = "Parse and dump the OCaml source AST using the tool specified
+             with $(b,--ocaml-dumpast)."
+  in
+  ocaml_system_key "ocaml-build-ast" bool (const false) ~doc ~docv:"BOOL"
+
+let ocaml_native_tools =
+  let doc = "true to use the native compiled (.opt) OCaml tools." in
+  ocaml_system_key "ocaml-native-tools" bool (const true) ~doc ~docv:"BOOL"
+
+let ocaml_system_utility_maybe_opt bin_str =
   let doc = str "The %s utility." bin_str in
   let bin native = if native then str "%s.opt" bin_str else bin_str in
   let bin = const bin $ value ocaml_native_tools in
-  key bin_str string bin ~doc ~docv:"BIN" ~docs
+  ocaml_system_key bin_str string bin ~doc ~docv:"BIN"
 
-let ocaml_pp = ocaml_utility_key "ocaml_pp"
-let ocamlc = ocaml_utility_key_maybe_opt "ocamlc"
-let ocamlopt = ocaml_utility_key_maybe_opt "ocamlopt"
-let js_of_ocaml = ocaml_utility_key "js_of_ocaml"
-let ocamldep = ocaml_utility_key_maybe_opt "ocamldep"
-let ocamlmklib = ocaml_utility_key"ocamlmklib"
-let ocamldoc = ocaml_utility_key_maybe_opt "ocamldoc"
-let ocamllex = ocaml_utility_key_maybe_opt "ocamllex"
-let ocamlyacc = ocaml_utility_key "ocamlyacc"
-let ocaml = ocaml_utility_key "ocaml"
-let ocamlrun = ocaml_utility_key "ocamlrun"
-let ocamldebug = ocaml_utility_key "ocamldebug"
-let ocamlprof = ocaml_utility_key "ocamlprof"
-let ocamlfind = ocaml_utility_key "ocamlfind"
-let opam = ocaml_utility_key "opam"
-let opam_installer = ocaml_utility_key "opam-installer"
-let opam_admin = ocaml_utility_key "opam-admin"
+let ocaml_dumpast = ocaml_system_utility "ocaml_dumpast"
+let ocamlc = ocaml_system_utility_maybe_opt "ocamlc"
+let ocamlopt = ocaml_system_utility_maybe_opt "ocamlopt"
+let js_of_ocaml = ocaml_system_utility "js_of_ocaml"
+let ocamldep = ocaml_system_utility_maybe_opt "ocamldep"
+let ocamlmklib = ocaml_system_utility"ocamlmklib"
+let ocamldoc = ocaml_system_utility_maybe_opt "ocamldoc"
+let ocamllex = ocaml_system_utility_maybe_opt "ocamllex"
+let ocamlyacc = ocaml_system_utility "ocamlyacc"
+let ocaml = ocaml_system_utility "ocaml"
+let ocamlrun = ocaml_system_utility "ocamlrun"
+let ocamldebug = ocaml_system_utility "ocamldebug"
+let ocamlprof = ocaml_system_utility "ocamlprof"
+let ocamlfind = ocaml_system_utility "ocamlfind"
+let opam = ocaml_system_utility "opam"
+let opam_installer = ocaml_system_utility "opam-installer"
+let opam_admin = ocaml_system_utility "opam-admin"
 
 let ocaml_version =
   let doc = "The OCaml compiler version. Default inferred by invoking
@@ -410,54 +432,70 @@ let ocaml_version =
     As_cmd.(input tool [ "-version" ] >>| String.trim >>= (fst version))
   in
   let get_version = const get_version $ tool in
-  key "ocaml-version" version get_version ~doc ~docv:"VERSION" ~docs
-
-(* Basic system utilities *)
-
-let docs = "BASE SYSTEM"
-let base_utility_key = utility_key docs
-
-let echo = base_utility_key "echo"
-let ln = base_utility_key "ln"
-let cp = base_utility_key "cp"
-let mkdir = base_utility_key "mkdir"
-let cat = base_utility_key "cat"
-let make = base_utility_key "make"
+  ocaml_system_key "ocaml-version" version get_version ~doc ~docv:"VERSION"
 
 (* C system keys *)
 
-let docs = "C SYSTEM"
-let c_utility_key = utility_key docs
+let docs_c_system = "C system keys"
+let doc_c_system =
+  "These keys inform the build system about the C system."
 
-let cc = c_utility_key "cc"
-let pkg_config = c_utility_key "pkg-config"
+let c_system_key = key ~docs:docs_c_system
+let c_system_utility = utility_key ~docs:docs_c_system
+
+let cc = c_system_utility "cc"
+let pkg_config = c_system_utility "pkg-config"
 
 (* Machine information keys *)
 
-let docs = "MACHINE INFORMATION"
-let machine_info_key = utility_key docs
+let docs_machine_information = "Machine information keys"
+let doc_machine_information =
+  "These keys inform the build system about the host and target machines. The
+   defaults for the host machine are inferred by invoking the $(b,uname) key.
+   The defaults for the target machine equate those of the host."
 
-let uname = machine_info_key "uname"
-let os =
-  let doc = "The operating system name. Default inferred by lowercasing the
-             result of invoking the tool specified by option $(b,--uname) with
-             option `-s'."
-  in
+let machine_info_key = key ~docs:docs_machine_information
+let machine_info_utility = utility_key ~docs:docs_machine_information
+
+let uname = machine_info_utility "uname"
+let host_os =
+  let doc = "The host machine operating system name." in
   let get_os uname =
     As_cmd.on_error ~use:"unknown" @@
     As_cmd.(input uname [ "-s" ] >>| String.trim >>| String.lowercase)
   in
   let get_os = const get_os $ value uname in
-  key "os" string get_os ~doc ~docs ~docv:"STRING"
+  machine_info_key "host-os" string get_os ~doc ~docv:"STRING"
 
-let arch =
-  let doc = "The hardware architecture to compile for. Default inferred
-             by lowercasing the result of invoking the tool specified by
-             option $(b,--uname) with option `-m'."
-  in
+let host_arch =
+  let doc = "The host machine hardware architecture." in
   let get_arch uname =
     As_cmd.on_error ~use:"unknown" @@
     As_cmd.(input uname [ "-m" ] >>| String.trim >>| String.lowercase)
   in
   let get_arch = const get_arch $ value uname in
-  key "arch" string get_arch ~doc ~docs ~docv:"STRING"
+  machine_info_key "host-arch" string get_arch ~doc ~docv:"STRING"
+
+let target_os =
+  let doc = "The target machine operating system name." in
+  machine_info_key "target-os" string (value host_os) ~doc ~docv:"STRING"
+
+let target_arch =
+  let doc = "The target machine hardware architecture." in
+  machine_info_key "target-arch" string (value host_arch) ~doc ~docv:"STRING"
+
+(* System utility keys *)
+
+let docs_system_utilities = "System utility keys"
+let doc_system_utilities =
+  "These keys inform the build system about the system utilities to use."
+
+let system_utilities_key = key ~docs:docs_system_utilities
+let system_utilities_utility = utility_key ~docs:docs_system_utilities
+
+let echo = system_utilities_utility "echo"
+let ln = system_utilities_utility "ln"
+let cp = system_utilities_utility "cp"
+let mkdir = system_utilities_utility "mkdir"
+let cat = system_utilities_utility "cat"
+let make = system_utilities_utility "make"

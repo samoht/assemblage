@@ -111,7 +111,7 @@ let mk_part env p = match Part.rules env p with
     List.concat (List.rev_map mk_rule rules)
 
 let of_project ?(buildir = "_build") ?(makefile = "Makefile")
-    ?(clean_files = []) ~dumpast ~version p =
-  let env = env dumpast in
+    ?(clean_files = []) ~version p =
+  let env = env false in
   header version p @ dirs buildir @ tools () @
   List.(concat (map (mk_part env) (Project.parts p)))

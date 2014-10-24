@@ -92,7 +92,16 @@ val pp_key_dup : Format.formatter -> Key.t -> unit
 
 (** {1 Built-in configuration keys} *)
 
+(** {1 Project keys} *)
+
+val project_version : string key
+val docs_project : string
+val doc_project : string
+
 (** {2 Build property keys} *)
+
+val docs_build_properties : string
+val doc_build_properties : string
 
 val debug : bool key
 val profile : bool key
@@ -101,7 +110,10 @@ val test : bool key
 val doc : bool key
 val jobs : int key
 
-(** {2 Build directories} *)
+(** {2 Build directory keys} *)
+
+val docs_build_directories : string
+val doc_build_directories : string
 
 val root_dir : As_path.t key
 val build_dir : As_path.rel key
@@ -109,14 +121,18 @@ val product_dir : As_path.rel key
 
 (** {2 OCaml system keys} *)
 
+val docs_ocaml_system : string
+val doc_ocaml_system : string
+
 val ocaml_native_tools : bool key
 val ocaml_version : (int * int * int * string option) key
 val ocaml_byte : bool key
 val ocaml_native : bool key
 val ocaml_native_dynlink : bool key
+val ocaml_build_ast : bool key
 val ocaml_js : bool key
 val ocaml_annot : bool key
-val ocaml_pp : string key
+val ocaml_dumpast : string key
 val ocamlc : string key
 val ocamlopt : string key
 val js_of_ocaml : string key
@@ -134,7 +150,29 @@ val opam : string key
 val opam_installer : string key
 val opam_admin : string key
 
-(** {2 Basic system utilities} *)
+(** {2 C system keys} *)
+
+val docs_c_system : string
+val doc_c_system : string
+
+val cc : string key
+val pkg_config : string key
+
+(** {2 Machine information keys} *)
+
+val docs_machine_information : string
+val doc_machine_information : string
+
+val uname : string key
+val host_os : string key
+val host_arch : string key
+val target_os : string key
+val target_arch : string key
+
+(** {2 System utility keys} *)
+
+val docs_system_utilities : string
+val doc_system_utilities : string
 
 val echo : string key
 val ln : string key
@@ -142,14 +180,3 @@ val cp : string key
 val mkdir : string key
 val cat : string key
 val make : string key
-
-(** {2 C system keys} *)
-
-val cc : string key
-val pkg_config : string key
-
-(** {2 Machine information keys} *)
-
-val uname : string key
-val os : string key
-val arch : string key

@@ -21,7 +21,6 @@ val of_project :
   ?buildir:string ->
   ?makefile:string ->
   ?clean_files:string list ->
-  dumpast:bool ->
   version:string -> Assemblage.project -> Asd_makefile.t
 (** Generate a Makefile from a project description. The optional build
     environment is used to set default values of variables. These

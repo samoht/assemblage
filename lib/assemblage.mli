@@ -625,6 +625,9 @@ module Conf : sig
       documented according to the documentation string [doc] and the
       value documentation meta-variable [docv].
 
+      TODO add hints about how to write doc, docv, and docs.
+      docs defaults to {!docs_project}.
+
       {b Warning.} No two public keys should share the same [name] as
       this may lead to difficulties in certain assemblage drivers
       (like the inability to define the key on the command line).  In
@@ -665,7 +668,16 @@ module Conf : sig
 
   (** {1:builtin Built-in configuration keys} *)
 
-  (** {2:builtin_build Build property keys} *)
+  val project_version : string key
+  (** [project_version] is the version number of the project (defaults
+      is inferred from the VCS). FIXME what to do on distrib setup ?
+      read from a file ? *)
+
+  val docs_project : string
+  (** [docs_project] is the name of the documentation section
+      in which project keys are described. *)
+
+  (** {2:build_property_keys Build property keys} *)
 
   val debug : bool key
   (** [debug] is [true] iff build products in general must support debugging
@@ -691,31 +703,38 @@ module Conf : sig
   (** [jobs] is the number of jobs to run for building (defaults to machine
       processor count). *)
 
-  (** {2:build_directories Build directories} *)
+  val docs_build_properties : string
+  (** [docs_build_properties] is the name of the documentation section
+      in which build property keys are described. *)
+
+  (** {2:build_directory_keys Build directory keys} *)
 
   val root_dir : Path.t key
-  (** [root_dir] is the absolute path to the project directory. *)
+  (** [root_dir] is the absolute path to the project directory (defaults
+      to the driver program current directory). *)
 
   val build_dir : Path.rel key
   (** [build_dir] is the path to the build directory expressed relative to the
-      {!root_dir}. *)
+      {!root_dir} (defaults to ["_build"]). *)
 
   val product_dir : Path.rel key
   (** [product_dir] is the path to the directory where current build product
       should be produced. This key is private and expressed relative to the
       {!root_dir}. *)
 
-  (** {2:ocaml_system OCaml system keys} *)
+  val docs_build_directories : string
+  (** [docs_build_directories] is the name of the documentation section
+      in which build directory keys are described. *)
+
+  (** {2:ocaml_system_keys OCaml system keys} *)
 
   val ocaml_native_tools : bool key
   (** [ocaml_native_tools] is [true] to use the native compiled ([.opt])
-      OCaml tools (defaults to [true]). For example if [true] this will
-      automatically set the {!ocamlc} configuration key to
-      ["ocamlc.opt"], unless it was explicitely specified on the command
-      line. *)
+      OCaml tools (defaults to [true]). *)
 
   val ocaml_version : (int * int * int * string option) key
-  (** [ocaml_version] is the OCaml compiler version. *)
+  (** [ocaml_version] is the OCaml compiler version (defaults is inferred
+      by invoking an OCaml compiler). *)
 
   val ocaml_byte : bool key
   (** [ocaml_byte] is [true] iff OCaml byte code compilation is
@@ -737,131 +756,177 @@ module Conf : sig
   (** [ocaml_annot] is [true] iff OCaml binary annotation files generation
       is requested (defaults to [true]). *)
 
-  val ocaml_pp : string key
-  (** TODO *)
+  val ocaml_build_ast : bool key
+  (** [ocaml_build_ast] is [true] if OCaml source AST should be built
+      and dumped to a file with {!ocaml_dumpast} (defaults to
+      [false]).  This may speed up your builds if you have
+      pre-processing cancer. *)
+
+  val ocaml_dumpast : string key
+  (** [ocaml_dumpast] is the
+      {{:https://github.com/samoht/ocaml-dumpast}[ocaml-dumpast]} utility
+      (defaults to ["ocaml-dumpast"].) *)
 
   val ocamlc : string key
   (** [ocamlc] is the
       {{:http://caml.inria.fr/pub/docs/manual-ocaml/comp.html}[ocamlc]}
-      utility.*)
+      utility (defaults to ["ocamlc"] or ["ocamlc.opt"] according to
+      {!ocaml_native_tools}).*)
 
   val ocamlopt : string key
   (** [ocamlopt] is the
       {{:http://caml.inria.fr/pub/docs/manual-ocaml/native.html}[ocamlopt]}
-      utility.*)
+      utility (defaults to ["ocamlopt"] or ["ocamlopt.opt"] according to
+      {!ocaml_native_tools}).*)
 
   val js_of_ocaml : string key
   (** [js_of_ocaml] is the
-      {{:http://ocsigen.org/js_of_ocaml/}[js_of_ocaml]} utility. *)
+      {{:http://ocsigen.org/js_of_ocaml/}[js_of_ocaml]} utility (defaults to
+      ["js_of_ocaml"]). *)
 
   val ocamldep : string key
   (** [ocamldep] is the
       {{:http://caml.inria.fr/pub/docs/manual-ocaml/depend.html}[ocamldep]}
-      utility. *)
+      utility (defaults to ["ocamldep"] or ["ocamldep.opt"] according to
+      {!ocaml_native_tools}). *)
 
   val ocamlmklib : string key
   (** [ocamlmklib] is the
       {{:http://caml.inria.fr/pub/docs/manual-ocaml/intfc.html#sec468}
-      [ocamlmklib]} utility. *)
+      [ocamlmklib]} utility (defaults to ["ocamlmklib"]). *)
+
+  val ocamldep : string key
+  (** [ocamldep] is the
+      {{:http://caml.inria.fr/pub/docs/manual-ocaml/ocamldoc.html}[ocamldoc]}
+      utility (defaults to ["ocamldoc"] or ["ocamldoc.opt"] according to
+      {!ocaml_native_tools}). *)
 
   val ocamllex : string key
   (** [ocamllex] is the
       {{:http://caml.inria.fr/pub/docs/manual-ocaml/lexyacc.html#sec276}
-      ocamlyacc} utility. *)
+      [ocamllex]} utility (defaults to ["ocamllex"] or ["ocamllex.opt"]
+      according to {!ocaml_native_tools}). *)
 
   val ocamlyacc : string key
   (** [ocamlyacc] is the
       {{:http://caml.inria.fr/pub/docs/manual-ocaml/lexyacc.html#sec287}
-      ocamlyacc} utility. *)
+      [ocamlyacc]} utility (defaults to ["ocamlyacc"]). *)
 
   val ocaml : string key
   (** [ocaml] is the
       {{:http://caml.inria.fr/pub/docs/manual-ocaml/toplevel.html}[ocaml]}
-      utility. *)
+      utility (defaults to ["ocaml"]). *)
 
   val ocamlrun : string key
   (** [ocamlrun] is the
       {{:http://caml.inria.fr/pub/docs/manual-ocaml/runtime.html}[ocamlrun]}
-      utility. *)
+      utility (defaults to ["ocamlrun"]). *)
 
   val ocamldebug : string key
   (** [ocamldebug] is the
       {{:http://caml.inria.fr/pub/docs/manual-ocaml/debugger.html}[ocamldebug]}
-      utility. *)
+      utility (defaults to ["ocamldebug"]). *)
 
   val ocamlprof : string key
   (** [ocamlprof] is the
       {{:http://caml.inria.fr/pub/docs/manual-ocaml/profil.html}[ocamlprof]}
-      utility. *)
+      utility (defaults to ["ocamlprof"]). *)
 
   val ocamlfind : string key
   (** [ocamlfind] is the
       {{:http://projects.camlcity.org/projects/findlib.html}[ocamlfind]}
-      utility. *)
+      utility (defaults to ["ocamlfind"]). *)
 
   val opam : string key
-  (** [opam] is the {{:http://opam.ocaml.org/}[opam]} tool. *)
+  (** [opam] is the {{:http://opam.ocaml.org/}[opam]} tool
+      (defaults to ["opam"]). *)
 
   val opam_installer : string key
-  (** [opam_installer] is the [opam-installer] tool distributed with {!opam}. *)
+  (** [opam_installer] is the [opam-installer] tool
+      (defaults to ["opam-installer"]) *)
 
   val opam_admin : string key
-  (** [opam_admin] is the [opam-admin] tool distributed with {!opam}. *)
+  (** [opam_admin] is the [opam-admin] tool (defaults to ["opam-admin"]) *)
 
-  (** {2 Basic system utilities} *)
+  val docs_ocaml_system : string
+  (** [docs_ocaml_system] is the name of the documentation section
+      in which OCaml system keys are described. *)
 
-  val echo : string key
-  (** [echo] is the
-      the {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/echo.html}
-      echo} utility. *)
-
-  val ln : string key
-  (** [ln] is the
-      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/ln.html}ln}
-      utility. *)
-
-  val cp : string key
-  (** [cp] is the
-      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/cp.html}[cp]}
-      utility. *)
-
-  val mkdir : string key
-  (** [mkdir] is the
-      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/mkdir.html}
-      [mkdir]} utility. *)
-
-  val cat : string key
-  (** [cat] is the
-      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/cat.html}
-      [cat]} utility. *)
-
-  val make : string key
-  (** [make] is the
-      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/make.html}
-      [make]} utility. *)
-
-  (** {2 C system keys} *)
+  (** {2:c_system_keys C system keys} *)
 
   val cc : string key
-  (** [cc] is the C compiler. *)
+  (** [cc] is the C compiler (defaults to ["cc"]) *)
 
   val pkg_config : string key
-  (** [pkg_config] is the {{:http://pkg-config.freedesktop.org/}pkg-config}
-      utility. *)
+  (** [pkg_config] is the {{:http://pkg-config.freedesktop.org/}[pkg-config]}
+      utility (defaults to ["pkg-config"]). *)
 
-  (** {2 Machine information keys} *)
+  val docs_c_system : string
+  (** [docs_c_system] is the name of the documentation section
+      in which C system keys are described. *)
+
+  (** {2:machine_information_keys Machine information keys} *)
 
   val uname : string key
   (** [uname] is the
       {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/uname.html}
-      [uname]} utility. *)
+      [uname]} utility (defaults to ["uname"]). *)
 
-  val os : string key
-  (** [os] is the operating system name (default to lowercased [uname -s]). *)
+  val host_os : string key
+  (** [host_os] is the operating system name of the host machine (defaults
+      is the lowercased result of {!uname} invoked with [-s]). *)
 
-  val arch : string key
-  (** [arch] is the hardware architecture (defaults to [uname -m]). *)
+  val host_arch : string key
+  (** [host_arch] is the hardware architecture of the host machine (defaults
+      is the lowercased result of {!uname} invoked with [-m]). *)
 
+  val target_os : string key
+  (** [target_os] is the operating system name of the host machine (defaults
+      to the value of {!host_arch}). *)
+
+  val target_arch : string key
+  (** [target_arch] is the hardware architecture of the host machine (defaults
+      to the value of {!target_arch}. *)
+
+  val docs_machine_information : string
+  (** [docs_machine_utilities] is the name of the documentation section
+      in which machine information keys are described. *)
+
+  (** {2:system_utility_keys System utility keys} *)
+
+  val echo : string key
+  (** [echo] is the
+      the {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/echo.html}
+      echo} utility (defaults to ["echo"]). *)
+
+  val ln : string key
+  (** [ln] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/ln.html}ln}
+      utility (defaults to ["ln"]). *)
+
+  val cp : string key
+  (** [cp] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/cp.html}[cp]}
+      utility (defaults to ["cp"]). *)
+
+  val mkdir : string key
+  (** [mkdir] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/mkdir.html}
+      [mkdir]} (defaults to ["mkdir"]). *)
+
+  val cat : string key
+  (** [cat] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/cat.html}
+      [cat]} (defaults to ["cat"]). *)
+
+  val make : string key
+  (** [make] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/make.html}
+      [make]} utility (defaults to ["make"]). *)
+
+  val docs_system_utilities : string
+  (** [docs_system_utilities] is the name of the documentation section
+      in which system utility keys are described. *)
 end
 
 (** Build rule contexts.
@@ -1803,6 +1868,15 @@ module Private : sig
 
         @raise Invalid_argument if [c] is not a subset of [deps c]. *)
 
+    (** {1 Builtin key sections documentation} *)
+
+    val doc_project : string
+    val doc_build_properties : string
+    val doc_build_directories : string
+    val doc_ocaml_system : string
+    val doc_c_system : string
+    val doc_machine_information : string
+    val doc_system_utilities : string
   end
 
   (** Projects. *)
