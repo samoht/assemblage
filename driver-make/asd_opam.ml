@@ -25,10 +25,12 @@ module Install = struct
     contents: string;
   }
 
+(*
   let opt f =
     (* FIXME this completly is broken *)
     if f = Cond.true_ || f = Cond.byte then ""
     else "?"
+*)
 
   let lib_artifacts r buf lib = [] (* TODO *)
 (*

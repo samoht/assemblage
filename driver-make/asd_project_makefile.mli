@@ -17,13 +17,10 @@
 
 (** Project makefile generation. *)
 
-
 val of_project :
   ?buildir:string ->
   ?makefile:string ->
   ?clean_files:string list ->
-  args:Assemblage.args ->
-  atomic_conds:(Assemblage.Cond.atom * bool) list ->
   dumpast:bool ->
   version:string -> Assemblage.project -> Asd_makefile.t
 (** Generate a Makefile from a project description. The optional build

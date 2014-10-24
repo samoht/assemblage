@@ -24,6 +24,7 @@
    assemble.ml can be interpeted correctly. *)
 
 open Assemblage
+open Assemblage.Private
 
 let str = Printf.sprintf
 let err_no_file file = `Error (str "missing %s." file)
@@ -48,6 +49,7 @@ let show_run_start file auto_load =
   Log.show "%a Loading %s %a"
     Fmt.(pp_styled `Cyan pp_rarrow) () file pp_auto_load ()
 
+(* TODO allow override ocamlfind through env variable *)
 let auto_includes () =
   if not (Asd_shell.has_cmd "ocamlfind") then err_no_ocamlfind else
   `Ok (Asd_shell.exec_output "ocamlfind query -r assemblage")
@@ -81,7 +83,7 @@ let run () =
         | false -> error setup_env (err_loading file)
         | true ->
             (* FIXME review *)
-            match Assemblage.projects () with
+            match Project.list () with
             | [] -> error setup_env (err_no_cmd file)
             | [p] -> Assemblage_cmd.assemble p
             | l -> error setup_env (err_multiple_projects file)

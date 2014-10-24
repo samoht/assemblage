@@ -18,4 +18,4 @@
 (** Describe a project. *)
 
 val describe : version:string -> Assemblage.project ->
-  Assemblage_env.t -> Asd_setup_env.t -> [> `Ok of unit ]
+  Assemblage_env.t -> [> `Ok of unit ]

@@ -18,4 +18,4 @@
 (** Setup a project. *)
 
 val setup : version:string -> Assemblage.project -> Assemblage_env.t ->
-  Asd_setup_env.t -> bool -> [`Make] -> merlin:bool -> [> `Ok of unit ]
+  bool -> [`Make] -> merlin:bool -> [> `Ok of unit ]

@@ -10,7 +10,7 @@ PKGS="-package cmdliner"
 
 LIB_UNITS="as_string as_path as_fmt as_log as_cmd as_conf as_cond \
            as_context as_args as_env as_product as_rule as_part \
-           as_project assemblage"
+           as_project assemblage assemblage_cli"
 
 DRIVER_MAKE_UNITS="asd_cstubs asd_merlin asd_ocaml_incl asd_ocaml \
                    asd_setup_env asd_shell asd_git asd_pkg_config \
@@ -77,4 +77,4 @@ $OCAMLFIND ocamlc $OPTS $UPKGS -I $BDIR -g -linkpkg $CMOS $BDIR/tool.cmo \
 
 # Run it on assemblage's assemblage.ml
 $BDIR/assemblage.boot setup --auto-load=false -I $BDIR \
-    --warn-error=false --test=false --dumpast=false --merlin=false
+     --warn-error=false --test=false --dumpast=false --merlin=false

@@ -24,11 +24,11 @@
 type raw_args = string list
 type t
 
-val create : ?cond:As_cond.t -> As_context.t -> raw_args -> t
+val create : ?cond:bool As_conf.value -> As_context.t -> raw_args -> t
 val append : t -> t -> t
 val ( @@@ ) : t -> t -> t
 val concat : t list -> t
-val get : As_context.t -> t -> (As_cond.t * raw_args) list
+val get : As_context.t -> t -> (bool As_conf.value * raw_args) list
 
 (** {1 Built-in arguments} *)
 

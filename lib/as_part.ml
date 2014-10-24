@@ -85,7 +85,7 @@ type meta =
 type +'a t =
   { p_kind : kind;
     p_name : string;
-    p_cond : As_cond.t;
+    p_cond : bool As_conf.value;
     p_deps : kind t list;
     p_args : As_env.t -> kind t -> As_args.t;
     p_rules : As_env.t -> kind t -> As_rule.t list;
@@ -146,7 +146,7 @@ let to_set l =
 
 (* Part constructor *)
 
-let create ?(cond = As_cond.true_) ?(args = fun _ _ -> As_args.empty)
+let create ?(cond = As_conf.true_) ?(args = fun _ _ -> As_args.empty)
     ?(deps = []) ?(rules = fun _ _ -> []) name kind meta =
   let deps = to_set deps in
   { p_kind = (kind :> kind);
@@ -336,7 +336,7 @@ module Unit = struct
 
   let ocaml_compile_ml_byte env u =
     let context = `Compile `Byte in
-    let product p = `File p, As_cond.(cond u &&& byte) in
+    let product p = `File p, As_conf.(cond u &&& value ocaml_byte) in
     let has_mli = match kind u with `OCaml (`Both, _) -> true | _ -> false in
     let ml_dep = unit_file `Ml_dep env u in
     let cml = unit_file (ocamlpp_ext `Ml `Byte) env u in
@@ -354,7 +354,7 @@ module Unit = struct
 
   let ocaml_compile_ml_native env u =
     let context = `Compile `Native in
-    let product p = `File p, As_cond.(cond u &&& native) in
+    let product p = `File p, As_conf.(cond u &&& value ocaml_native) in
     let has_mli = match kind u with `OCaml (`Both, _) -> true | _ -> false in
     let cml = unit_file (ocamlpp_ext `Ml `Native) env u in
     let cmi = unit_file `Cmi env u in
@@ -459,7 +459,7 @@ module Lib = struct
 
   let ocaml_archive_byte units env l =
     let context = `Archive `Byte in
-    let product p = `File p, As_cond.(cond l &&& byte) in
+    let product p = `File p, As_conf.(cond l &&& value ocaml_byte) in
     let units_prods = List.(flatten (map (products env) units)) in
     let units_cmo = List.(filter (As_product.has_ext `Cmo) units_prods) in
     let cma = lib_file `Cma env l in
@@ -475,7 +475,7 @@ module Lib = struct
 
   let ocaml_archive_native units env l =
     let context = `Archive `Native in
-    let product p = `File p, As_cond.(cond l &&& native) in
+    let product p = `File p, As_conf.(cond l &&& value ocaml_native) in
     let units_prods = List.(flatten (map (products env) units)) in
     let units_cmx = List.(filter (As_product.has_ext `Cmx) units_prods) in
     let cmxa = lib_file `Cmxa env l in
@@ -491,7 +491,7 @@ module Lib = struct
 
   let ocaml_archive_shared units env l =
     let context = `Archive `Native in
-    let product p = `File p, As_cond.(cond l &&& native_dynlink) in
+    let product p = `File p, As_conf.(cond l &&& value ocaml_native_dynlink) in
     let units_prods = List.(flatten (map (products env) units)) in
     let units_cmx = List.(filter (As_product.has_ext `Cmx) units_prods) in
     let cmxs = lib_file `Cmxs env l in

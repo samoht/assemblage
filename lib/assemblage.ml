@@ -25,7 +25,6 @@ module Cmd = As_cmd
 
 (* Building *)
 
-module Cond = As_cond
 module Conf = As_conf
 module Context = As_context
 module Args = As_args
@@ -33,7 +32,7 @@ module Env = As_env
 module Product = As_product
 module Rule = As_rule
 
-type cond = As_cond.t
+type cond = bool As_conf.value
 type context = As_context.t
 type args = As_args.t
 type env = As_env.t
@@ -81,11 +80,9 @@ let silo ?cond ?args ?deps name parts =
 
 module Project = As_project
 type project = Project.t
-
-let projects = ref []
-let assemble p = projects  := p :: !projects
+let assemble = Project.assemble
 
 module Private = struct
-  let projects () = !projects
+  module Project = As_project
   module Conf = As_conf
 end

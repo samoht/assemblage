@@ -555,23 +555,20 @@ end
 
 (** {1:building Building} *)
 
-type cond
-type args
-type rule
-type env
-
 (** Build configuration.
 
-    Assemblage keeps tracks of the configuration needed to define a
-    build system through configuration values. A configuration value
-    denotes a concrete value of a certain type and remembers the
-    configuration keys it may need to define this value.
+    TODO reword
+
+    Assemblage keeps tracks of the configuration keys needed to
+    define a project and its build system through configuration
+    values. A configuration value denotes a concrete value of a
+    certain type and remembers the configuration keys it may need to
+    define this value.
 
     Configuration keys are named configuration value and they are
     meant to be redefined by the end user of the build system
     (e.g. from the command line). A configuration key can be used to
     determine a configuration value or other configuration keys.
-
 
     Before defining your own keys you should prefer the
     {{!builtin}built-in ones}. *)
@@ -591,6 +588,18 @@ module Conf : sig
 
   val ( $ ) : ('a -> 'b) value -> 'a value -> 'b value
   (** [f $ v] is [app f v]. *)
+
+  val true_ : bool value
+  (** [true_] is [const true]. *)
+
+  val false_ : bool value
+  (** [false_] is [const false]. *)
+
+  val ( &&& ) : bool value -> bool value -> bool value
+  (** [a &&& b] is [const ( && ) $ a $ b]. *)
+
+  val ( ||| ) : bool value -> bool value -> bool value
+  (** [a &&& b] is [const ( || ) $ a $ b]. *)
 
   (** {1 Configuration keys} *)
 
@@ -654,50 +663,7 @@ module Conf : sig
   (** [version] converts values of the form
       [[v|V]major.minor[.patch][(-|+).*]]. *)
 
-  (** {1 Configurations} *)
-
-  type t
-  (** The type for configurations. *)
-
-  val empty : t
-  (** [empty] is the empty configuration. *)
-
-  val is_empty : t -> bool
-  (** [is_empty c] is [true] iff [c] is empty. *)
-
-  val add : t -> 'a key -> t
-  (** [add c k] adds key [k] to configuration [c]. *)
-
-  val ( + ) : t -> 'a key -> t
-  (** [c + k] is [add c k]. *)
-
-  val set : t -> 'a key -> 'a value -> t
-  (** [set c k v] sets the key [k] to [v] in [c]. *)
-
-  val merge : t -> t -> t
-  (** [merge c c'] merge the configuration [c] and [c']. If a key is
-      defined in both [c] and [c'] the value of the key in [c'] takes
-      over. *)
-
-  val ( ++ ) : t -> t -> t
-  (** [c ++ c'] is {!merge} [c c']. *)
-
-  val find : t -> 'a key -> 'a value option
-  (** [find c k] is the value of [k] in [c] (if any). *)
-
-  val get : t -> 'a key -> 'a value
-  (** [get c k] is the value of [k] in [c].
-
-      @raise Invalid_argument if [k] is not in [c]. *)
-
-  val ( @ ) : t -> 'a key -> 'a value
-  (** [c @ k] is [get k v] *)
-
   (** {1:builtin Built-in configuration keys} *)
-
-  val builtin_base : t
-  (** The configuration made of {!builtin_build_props}, {!builtin_build_dirs},
-      {!builtin_ocaml}, {!builtin_base_utils}. *)
 
   (** {2:builtin_build Build property keys} *)
 
@@ -708,6 +674,10 @@ module Conf : sig
   val profile : bool key
   (** [profile] is [true] iff build products in general must support profiling
       (defaults to [false]). *)
+
+  val warn_error : bool key
+  (** [warn_error] is [true] iff tools in general should treat
+      warnings as errors (defaults to [false]). *)
 
   val test : bool key
   (** [test] is [true] iff test build products should be built
@@ -720,10 +690,6 @@ module Conf : sig
   val jobs : int key
   (** [jobs] is the number of jobs to run for building (defaults to machine
       processor count). *)
-
-  val builtin_build_props : t
-  (** [builtin_build_props] is the configuration made of all all build
-      property keys. *)
 
   (** {2:build_directories Build directories} *)
 
@@ -738,9 +704,6 @@ module Conf : sig
   (** [product_dir] is the path to the directory where current build product
       should be produced. This key is private and expressed relative to the
       {!root_dir}. *)
-
-  val builtin_build_dirs : t
-  (** [builtin_dirs] is the configuration made of all assemblage directories. *)
 
   (** {2:ocaml_system OCaml system keys} *)
 
@@ -773,10 +736,6 @@ module Conf : sig
   val ocaml_annot : bool key
   (** [ocaml_annot] is [true] iff OCaml binary annotation files generation
       is requested (defaults to [true]). *)
-
-  val ocaml_warn_error : bool key
-  (** [ocaml_warn_error] is [true] iff OCaml compilers should treat warnings
-      as errors (defaults to [false]). *)
 
   val ocaml_pp : string key
   (** TODO *)
@@ -827,12 +786,12 @@ module Conf : sig
 
   val ocamldebug : string key
   (** [ocamldebug] is the
-      {{:http://caml.inria.fr/pub/docs/manual-ocaml/debugger.html}ocamldebug}
+      {{:http://caml.inria.fr/pub/docs/manual-ocaml/debugger.html}[ocamldebug]}
       utility. *)
 
   val ocamlprof : string key
   (** [ocamlprof] is the
-      {{:http://caml.inria.fr/pub/docs/manual-ocaml/profil.html}ocamlprof}
+      {{:http://caml.inria.fr/pub/docs/manual-ocaml/profil.html}[ocamlprof]}
       utility. *)
 
   val ocamlfind : string key
@@ -840,8 +799,14 @@ module Conf : sig
       {{:http://projects.camlcity.org/projects/findlib.html}[ocamlfind]}
       utility. *)
 
-  val builtin_ocaml : t
-  (** [builtin_ocaml] is the configuration made of all OCaml system keys. *)
+  val opam : string key
+  (** [opam] is the {{:http://opam.ocaml.org/}[opam]} tool. *)
+
+  val opam_installer : string key
+  (** [opam_installer] is the [opam-installer] tool distributed with {!opam}. *)
+
+  val opam_admin : string key
+  (** [opam_admin] is the [opam-admin] tool distributed with {!opam}. *)
 
   (** {2 Basic system utilities} *)
 
@@ -875,10 +840,6 @@ module Conf : sig
       {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/make.html}
       [make]} utility. *)
 
-  val builtin_base_utils : t
-  (** [builtin_base_utils] is the configuration made of all basic
-      system utilities. *)
-
   (** {2 C system keys} *)
 
   val cc : string key
@@ -887,9 +848,6 @@ module Conf : sig
   val pkg_config : string key
   (** [pkg_config] is the {{:http://pkg-config.freedesktop.org/}pkg-config}
       utility. *)
-
-  val builtin_c : t
-  (** [builtin_c] is the configuration made of all C system keys. *)
 
   (** {2 Machine information keys} *)
 
@@ -904,136 +862,6 @@ module Conf : sig
   val arch : string key
   (** [arch] is the hardware architecture (defaults to [uname -m]). *)
 
-  val builtin_machine_info : t
-  (** [builtin_machine_info] is the configuration made of all machine
-      information keys. *)
-
-end
-
-(** Build conditions.
-
-    Build conditions denote boolean values determined by the build
-    environment {e after} the project was setup. They are used to
-    condition the presence of {{!Args}build arguments}, the
-    existence of project {{!Part}parts} and the existence of part's
-    {{!Product}build products}.
-
-    Examples of conditions are: request byte code compilation, request
-    native code compilation, request usage of the native compiled
-    tools, presence of an optional package, request debug build support, etc. *)
-module Cond : sig
-
-  (** {1:conds Conditions} *)
-
-  type t = cond
-  (** The type for conditions. In a build environment a value of this type
-      denotes a boolean value. *)
-
-  val create : ?default:bool -> string -> doc:string -> cond
-  (** [create default name doc] is an {{!atomic}atomic condition}
-      named [name].  [default] (defaults to [true]) indicates the
-      boolean value the condition takes if the build environment
-      doesn't determine it. [doc] is used for documenting the
-      condition, this should be a single, short, sentence starting
-      with an uppercase letter and ending with a period. *)
-
-  val true_ : cond
-  (** [true_] is always true. *)
-
-  val false_ : cond
-  (** [false_] is always false. *)
-
-  val neg : ?on:bool -> cond -> cond
-  (** [neg c] is true [iff] [c] is false. If [on] is specified, negates
-      if [on] is [true] but returns [true_] if [on] is [false]. *)
-
-  val ( &&& ) : cond -> cond -> cond
-  (** [c &&& c'] is true iff both [c] and [c'] are true. *)
-
-  val ( ||| ) : cond -> cond -> cond
-  (** [c ||| c'] is true iff either [c] or [c'] is true. *)
-
-  (** {1:builtin Built-in conditions} *)
-
-  val byte : cond
-  (** [byte] is true iff byte code compilation is requested. *)
-
-  val native : cond
-  (** [native] is true iff native code compilation is requested. *)
-
-  val native_dynlink : cond
-  (** [native_dynlink] is true iff native code dynamic linking is requested. *)
-
-  val native_tools : cond
-  (** [native_tools] is true iff compilation with the native compiled
-      OCaml toolchain is requested ([.opt] tools). *)
-
-  val js : cond
-  (** [js] is true iff JavaScript compilation is requested. *)
-
-  val annot : cond
-  (** [annot] is true iff binary annotation files must be built. *)
-
-  val debug : cond
-  (** [debug] is true iff builds must support debugging. *)
-
-  val warn_error : cond
-  (** [warn_error] is true iff builds must consider warnings as errors. *)
-
-  val test : cond
-  (** [test] is true iff tests must be built. *)
-
-  val doc : cond
-  (** [doc] is true iff the documentation must be built. *)
-
-  (** {1:atomic Atomic conditions}
-
-      Atomic conditions are the atoms of an {!cond} value that are
-      assigned a truth value by the build environment. They correspond
-      either to {{!section:builtin}built-in conditions} or conditions
-      created with {!create}. The {!atoms} function allows to collect them
-      from an arbitrary condition. *)
-
-  type atom
-  (** The type for atomic conditions. *)
-
-  val name : atom -> string
-  (** [name a] is the name of [a]. See {!create}. *)
-
-  val default : atom -> bool
-  (** [default a] is the default value of [a]. See {!create}. *)
-
-  val atom_doc : atom -> string
-  (** [atom_doc a] is the documentation of [a]. See {!create}. *)
-
-  val eval : (atom * bool) list -> t -> bool
-  (** [eval tbl c] evaluates condition [c] given the truth table
-      [tbl]. If an atom of [c] does not appear in [tbl] it is
-      assigned it's default value. *)
-
-  (** {1:atomicsets Sets of atomic conditions} *)
-
-  module Set : Set.S with type elt = atom
-  (** Sets of atomic conditions. *)
-
-  val atoms : t -> Set.t
-  (** [atoms c] is the set of atomic conditions present in [c]. *)
-
-  val builtin : Set.t
-  (** [builtin] is the set of built-in conditions. *)
-
-  (** {1:cnf Conditions in conjunctive normal form} *)
-
-  type clause = [ `P of atom | `N of atom ] list
-  (** The type for conjunctive normal form clauses. A disjunction of
-      positive or negative atomic conditions. *)
-
-  type cnf = [ `True | `False | `And of clause list ]
-  (** The type for conditions in conjunctive normal form (CNF). Either
-      [`True], [`False] or a conjunction of clauses. *)
-
-  val cnf : t -> cnf
-  (** [cnf c] is [c] as a conjunctive normal form *)
 end
 
 (** Build rule contexts.
@@ -1061,6 +889,11 @@ module Context : sig
   val to_string : t -> string
   (** [to_string c] is [c] as a string. *)
 end
+
+type cond = bool Conf.value
+type args
+type rule
+type env
 
 (** Build command arguments.
 
@@ -1827,7 +1660,10 @@ module Project : sig
 
   val create : ?cond:cond -> ?args:args -> string ->
     'a part list -> project
-  (** [create cs n] is the project named [n] with components [cs]. *)
+  (** [create cond args cs n] is the project named [n] with components [cs].
+      [cond] determines if the project can exist in a build configuration.
+
+      FIXME [args]. *)
 
   val name : project -> string
   (** [name p] is the [p]'s name. *)
@@ -1835,46 +1671,36 @@ module Project : sig
   val parts : project -> part_kind part list
   (** [parts p] is [p]'s parts. *)
 
-  val cond_atoms : project -> Cond.Set.t
-  (** [cond_atoms proj] is the collection of features used in the project. *)
+  val args : project -> args
+  (** [args p] is [p]'s args. *)
+
+  val cond : project -> cond
+  (** [cond p] is [p]'s cond. *)
 end
 
 val assemble : project -> unit
 (** [assemble p] registers [p] for assembling by an assemblage driver. *)
 
-
 (** Private functions and types for implementing drivers.
 
-    {b Warning.} Assemblage users should not use these definitions. *)
+    Open the module after {!Assemblage} to use it.
+
+    {b Warning.} Assemblage users should not use these definitions to
+    describe their project. *)
 module Private : sig
 
-  (** {1 Assembled projects} *)
-
-  val projects : unit -> project list
-  (** [projects] is the list of projects that were {!assemble}d by
-      the library so far. *)
-
-  (** {1 Building} *)
+  (** {1 Private} *)
 
   (** Build configuration. *)
   module Conf : sig
 
-    (** {1 Build configuration} *)
+    (** {1:build Build configuration} *)
 
     include module type of Conf
+    with type 'a value = 'a Conf.value
+     and type 'a key = 'a Conf.key
 
-    (** {1 Configuration value dependencies and evaluation} *)
-
-    val deps : 'a value -> t
-    (** [deps v] is the set of configuration keys which may be needed
-        for evaluating [v]. *)
-
-    val eval : t -> 'a value -> 'a
-    (** [eval c v] evaluates [v] in the configuration [c].
-
-        @raise Invalid_argument if [c] is not a subset of [deps c]. *)
-
-    (** {1 Keys} *)
+    (** {1:keys Keys} *)
 
     (** Configuration keys. *)
     module Key : sig
@@ -1891,7 +1717,10 @@ module Private : sig
       (** [compare k k'] compares [k] and [k'] and is compatible
           with {!equal}. *)
 
-      (** {1 Typed key accessors} *)
+      (** {1:typed Typed key accessors} *)
+
+      val id : 'a key -> int
+      (** [id k] is the unique id of the key. *)
 
       val name : 'a key -> string
       (** [name k] is [k]'s name. *)
@@ -1899,11 +1728,11 @@ module Private : sig
       val public : 'a key -> bool
       (** [public k] is [k]'s public status. *)
 
-      val converter : 'a key -> 'a value converter
-      (** [converter k] is [k]'s value converter. *)
+      val converter : 'a key -> 'a converter
+      (** [converter k] is [k]'s value type converter. *)
 
-      val default_value : 'a key -> 'a value
-      (** [default_value k] is [k]'s default value. *)
+      val default : 'a key -> 'a value
+      (** [default k] is [k]'s default value. *)
 
       val doc : 'a key -> string option
       (** [doc k] is [k]'s documentation string (if any). *)
@@ -1913,10 +1742,85 @@ module Private : sig
 
       val docs : 'a key -> string option
       (** [docs k] is [k]'s documentation section (if any). *)
+
+      (** {1:setmap Key sets and maps} *)
+
+      module Set : Set.S with type elt = t
+      module Map : Map.S with type key = t
     end
+
+    (** {1:configurations Configurations} *)
+
+    type t
+    (** The type for configurations. *)
+
+    val empty : t
+    (** [empty] is the empty configuration. *)
+
+    val is_empty : t -> bool
+    (** [is_empty c] is [true] iff [c] is empty. *)
+
+    val add : t -> 'a key -> t
+    (** [add c k] adds key [k] to configuration [c]. *)
+
+    val set : t -> 'a key -> 'a value -> t
+    (** [set c k v] sets the key [k] to [v] in [c]. *)
+
+    val merge : t -> t -> t
+    (** [merge c c'] merge the configuration [c] and [c']. If a key is
+        defined in both [c] and [c'] the value of the key in [c'] takes
+        over. *)
+
+    val find : t -> 'a key -> 'a value option
+    (** [find c k] is the value of [k] in [c] (if any). *)
+
+    val get : t -> 'a key -> 'a value
+    (** [get c k] is the value of [k] in [c].
+
+        @raise Invalid_argument if [k] is not in [c]. *)
+
+    val of_keys : Key.Set.t -> t
+    (** [of_keys ks] is a configuration where each key of [ks] maps to
+        its default value. *)
+
+    val domain : t -> Key.Set.t
+    (** [domain c] is the configuration keys of [c]. *)
+
+    (** {1 Configuration error messages} *)
+
+    val pp_key_dup : t -> Format.formatter -> Key.t -> unit
+    (** [pp_key_dup c ppf k] prints a message that says that the name
+        of [k] was already found in configuration [c] and that [k]'s
+        default value will be used. *)
+
+    (** {1 Configuration value dependencies and evaluation} *)
+
+    val deps : 'a value -> Key.Set.t
+    (** [deps v] is the set of configuration keys which may be needed
+        for evaluating [v]. *)
+
+    val eval : t -> 'a value -> 'a
+    (** [eval c v] evaluates [v] in the configuration [c].
+
+        @raise Invalid_argument if [c] is not a subset of [deps c]. *)
+
+  end
+
+  (** Projects. *)
+  module Project : sig
+
+    (** {1 Project} *)
+
+    include module type of Project with type t = Project.t
+
+    val conf : project -> Conf.t
+    (** [conf p] is the configuration needed to define [p]. *)
+
+    val list : unit -> project list
+    (** [list] is the list of projects that were {!assemble}d by
+        the library so far. *)
   end
 end
-
 
 (** {1:basics Basics}
 

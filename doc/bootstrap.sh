@@ -15,7 +15,7 @@ mkdir -p $BDIR
 
 # Gather .mli and compile their cmis.
 for f in `ls lib/*.mli driver-make/*.mli`; do
-    ln $f $BDIR/`basename $f`
+    ln -s "../../$f" $BDIR/`basename $f`
 done
 
 MLIS=`ocamldep -sort $BDIR/*.mli`

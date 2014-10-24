@@ -59,25 +59,36 @@ type style =
   [ `Bold | `Underline | `Black | `Red | `Green | `Yellow | `Blue | `Magenta
   | `Cyan | `White ]
 
-
 let style_tags = ref `None
 let set_style_tags s = style_tags := s
 let style_tags () = !style_tags
 
 let ansi_style_code = function
-| `Bold -> "01"
-| `Underline -> "04"
-| `Black -> "30"
-| `Red -> "31"
-| `Green -> "32"
-| `Yellow -> "33"
-| `Blue -> "1;34"
-| `Magenta -> "35"
-| `Cyan -> "36"
-| `White -> "37"
+| `Bold -> "\027[01m"
+| `Underline -> "\027[04m"
+| `Black -> "\027[30m"
+| `Red -> "\027[31m"
+| `Green -> "\027[32m"
+| `Yellow -> "\027[33m"
+| `Blue -> "\027[1;34m"
+| `Magenta -> "\027[35m"
+| `Cyan -> "\027[36m"
+| `White -> "\027[37m"
+
+let style_tag_funs =
+  { Format.mark_open_tag = (fun t -> t);
+    Format.mark_close_tag = (fun _ -> "\027[m");
+    Format.print_open_tag = (fun _ -> ());
+    Format.print_close_tag = (fun _ -> ()); }
 
 let pp_styled style pp_v = match style_tags () with
 | `None -> pp_v
-| `Ansi -> fun ppf -> pp ppf "\027[%sm%a\027[m" (ansi_style_code style) pp_v
+| `Ansi ->
+    fun ppf ->
+      Format.pp_set_formatter_tag_functions ppf style_tag_funs;
+      Format.pp_set_mark_tags ppf true;
+      Format.kfprintf
+        (fun ppf -> Format.pp_close_tag ppf ()) ppf
+        "%a%a" Format.pp_open_tag (ansi_style_code style) pp_v
 
 let pp_styled_str style = pp_styled style pp_str

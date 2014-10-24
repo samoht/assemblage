@@ -46,8 +46,8 @@ val has_context : As_context.t -> t -> bool
 
 (** {1 Built-in rules} *)
 
-val link : ?cond:As_cond.t -> ?args:As_args.t -> As_env.t -> src:As_path.rel ->
-  dst:As_path.rel -> t
+val link : ?cond:bool As_conf.value -> ?args:As_args.t -> As_env.t ->
+  src:As_path.rel -> dst:As_path.rel -> t
 
-val mkdir : ?cond:As_cond.t -> ?args:As_args.t -> As_env.t ->
+val mkdir : ?cond:bool As_conf.value -> ?args:As_args.t -> As_env.t ->
   dir:As_path.rel -> t

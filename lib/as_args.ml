@@ -20,10 +20,12 @@ let str = Printf.sprintf
 (* Arguments *)
 
 type raw_args = string list
-type arg = { cond : As_cond.t; context : As_context.t; raw_args : raw_args; }
+type arg = { cond : bool As_conf.value; context : As_context.t;
+             raw_args : raw_args; }
+
 type t = arg list
 
-let create ?(cond = As_cond.true_) context raw_args =
+let create ?(cond = As_conf.true_) context raw_args =
   [{ cond; context; raw_args }]
 
 let empty = []
@@ -41,7 +43,7 @@ let get ctx args =
 
 let debug =
   let f = ["-g"] in
-  let create = create ~cond:As_cond.debug in
+  let create = create ~cond:As_conf.(value debug) in
   concat
     [ create (`Compile `Byte) f;
       create (`Compile `Native) f;
@@ -52,14 +54,14 @@ let debug =
 
 let annot =
   let f = ["-bin-annot"] in
-  let create = create ~cond:As_cond.annot in
+  let create = create ~cond:As_conf.(value ocaml_annot) in
   concat
     [ create (`Compile `Byte) f;
       create (`Compile `Native) f; ]
 
 let warn_error =
   let f = ["-warn-error A-44-4-48 -w A-44-4-48"] in
-  let create = create ~cond:As_cond.warn_error in
+  let create = create ~cond:As_conf.(value warn_error) in
   concat
     [ create (`Compile `Byte) f;
       create (`Compile `Native) f; ]

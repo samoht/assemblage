@@ -39,7 +39,7 @@ val coerce_if : ([< kind] as 'b) -> 'a t -> 'b t option
 
 val name : 'a t -> string
 val kind : 'a t -> kind
-val cond : 'a t -> As_cond.t
+val cond : 'a t -> bool As_conf.value
 val args : As_env.t -> 'a t -> As_args.t
 val deps : 'a t -> kind t list
 val rules : As_env.t -> 'a t -> As_rule.t list
@@ -66,7 +66,7 @@ val to_set : 'a t list -> 'a t list
 
 module Base : sig
   val create :
-    ?cond:As_cond.t -> ?args:(As_env.t -> kind t -> As_args.t) ->
+    ?cond:bool As_conf.value -> ?args:(As_env.t -> kind t -> As_args.t) ->
     ?deps:'a t list -> string ->
     (As_env.t -> kind t -> As_rule.t list) -> [> `Base] t
 end
@@ -82,7 +82,7 @@ module Unit : sig
   val src_dir : As_env.t -> [< `Unit] t -> As_path.rel
 
   val create :
-    ?cond:As_cond.t -> ?args:As_args.t -> ?deps:'a t list ->
+    ?cond:bool As_conf.value -> ?args:As_args.t -> ?deps:'a t list ->
     ?src_dir:(As_env.t -> As_path.rel) -> string -> kind -> [> `Unit] t
 
   val check_set : 'a t list -> 'a t list
@@ -104,7 +104,7 @@ module Lib : sig
   val native_dynlink : [< `Lib] t -> bool
 
   val create :
-    ?cond:As_cond.t -> ?args:As_args.t -> ?deps:part_kind t list ->
+    ?cond:bool As_conf.value -> ?args:As_args.t -> ?deps:part_kind t list ->
     ?byte:bool -> ?native:bool -> ?native_dynlink:bool ->
     string -> kind -> [< `Unit] t list -> [> `Lib] t
 
@@ -126,7 +126,7 @@ module Bin : sig
   val js : [< `Bin] t -> bool
 
   val create :
-    ?cond:As_cond.t ->
+    ?cond:bool As_conf.value ->
     ?args:As_args.t ->
     ?deps:part_kind t list ->
     ?byte:bool -> ?native:bool -> ?js:bool ->
@@ -153,7 +153,7 @@ module Pkg : sig
   type spec = [ `C of c_lookup | `OCaml of ocaml_lookup ]
 
   val create :
-    ?cond:As_cond.t -> ?args:As_args.t -> string -> spec -> [> `Pkg] t
+    ?cond:bool As_conf.value -> ?args:As_args.t -> string -> spec -> [> `Pkg] t
 
   val of_base : kind -> [< `Base] t -> [> `Pkg] t
 
@@ -165,7 +165,7 @@ module Run : sig
   val run_dir : [< `Run] t -> As_path.t
 
   val create :
-    ?cond:As_cond.t ->
+    ?cond:bool As_conf.value ->
     ?args:As_args.t ->
     ?deps:'a t list ->
     ?run_dir:As_path.t ->
@@ -179,7 +179,7 @@ module Doc : sig
   val kind : [< `Doc] t -> [`OCamldoc ]
 
   val create :
-    ?cond:As_cond.t ->
+    ?cond:bool As_conf.value ->
     ?args:As_args.t ->
     ?deps:'a t list ->
     ?keep:(As_env.t -> [< `Unit] t -> bool) ->
@@ -199,7 +199,7 @@ module Dir : sig
   val install : [< `Dir] t -> bool
 
   val create :
-    ?cond:As_cond.t ->
+    ?cond:bool As_conf.value ->
     ?args:As_args.t ->
     ?deps: 'a t list ->
     ?keep:(As_env.t -> 'a t -> (As_path.t * As_product.t) list) ->
@@ -212,7 +212,7 @@ end
 
 module Silo : sig
   val create :
-    ?cond:As_cond.t ->
+    ?cond:bool As_conf.value ->
     ?args:As_args.t ->
     ?deps:'a t list ->
     string -> 'a t list -> [> `Silo] t

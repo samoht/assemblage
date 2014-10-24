@@ -86,7 +86,7 @@ let mk_test ?(example = false) name =
     let libdir = Product.dirname (List.hd (Part.products env lib_assemblage)) in
     [ cmd; "--auto-load=false"; "-I"; Path.to_string libdir; ]
   in
-  run ~cond:Cond.test name ~dir @@ fun env ->
+  run ~cond:Conf.(value test) name ~dir @@ fun env ->
   [ Part.Bin.cmd assemblage_tool (args "describe" env);
     Part.Bin.cmd assemblage_tool (args "setup" env);
     Rule.cmd ["make"];

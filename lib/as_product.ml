@@ -17,7 +17,7 @@
 (* Build products *)
 
 type t = [ `File of As_path.rel
-         | `Effect of string * As_path.rel ] * As_cond.t
+         | `Effect of string * As_path.rel ] * bool As_conf.value
 
 let cond (_, f) = f
 let target = function `File p, _ -> As_path.to_string p | `Effect (n, _), _ -> n

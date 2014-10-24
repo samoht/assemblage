@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,34 +15,34 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Printf
-
-let (|>) x f = f x
-
 (* Project *)
 
 type t =
   { name : string;
-    cond : As_cond.t;
+    cond : bool As_conf.value;
     args : As_args.t;
     parts : As_part.kind As_part.t list; }
 
-let name t = t.name
-let parts t = t.parts
-
-let create ?(cond = As_cond.true_) ?(args = As_args.empty)
-    name parts =
+let create ?(cond = As_conf.true_) ?(args = As_args.empty) name parts =
   { name; cond; args;
     parts = (parts :> As_part.kind As_part.t list); }
 
-let unionmap fn t =
-  List.fold_left (fun set t ->
-      As_cond.Set.union set (fn t)
-    ) As_cond.Set.empty t
+let name t = t.name
+let cond t = t.cond
+let args t = t.args
+let parts t = t.parts
+let conf t = (* TODO *)
+  let ( + ) = As_conf.add in
+  let open As_conf in
+  empty + debug + profile + test + doc + jobs +
+  root_dir + build_dir + product_dir
+  + ocaml_native_tools + ocaml_byte + ocaml_native +
+  ocaml_native_dynlink + ocaml_js + ocaml_annot + warn_error +
+  ocaml_pp + ocamlc + ocamlopt + js_of_ocaml + ocamldep + ocamlmklib +
+  ocamldoc + ocamllex + ocamlyacc + ocaml + ocamlrun + ocamldebug + ocamlprof +
+  ocamlfind + ocaml_version + echo + ln + cp + mkdir + cat + make + cc +
+  pkg_config + uname + os + arch + opam + opam_installer + opam_admin
 
-let cond_atoms t =
-  let all =
-    unionmap (fun x -> As_cond.atoms
-                 (As_part.cond x)) t.parts
-  in
-  As_cond.Set.union As_cond.builtin all
+let projects = ref []
+let assemble p = projects := p :: !projects
+let list () = List.rev !projects

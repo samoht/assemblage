@@ -21,9 +21,9 @@
 (** {1 Build products} *)
 
 type t = [ `File of As_path.rel
-         | `Effect of string * As_path.rel ] * As_cond.t
+         | `Effect of string * As_path.rel ] * bool As_conf.value
 
-val cond : t -> As_cond.t
+val cond : t -> bool As_conf.value
 val target : t -> string
 val path : t -> As_path.rel
 val raw_path : t -> string
@@ -36,7 +36,7 @@ val is_file : t -> bool
 val is_effect : t -> bool
 val has_ext : As_path.ext -> t -> bool
 val keep_ext : As_path.ext -> t ->
-  ([`File of As_path.rel ] * As_cond.t) option
+  ([`File of As_path.rel ] * bool As_conf.value) option
 
 (** Converting to arguments *)
 

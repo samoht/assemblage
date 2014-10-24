@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -16,18 +17,20 @@
 
 (** Project.
 
-    For documentation see {!Assemblage.Project}. *)
+    For documentation see {!Assemblage.Private.Project}. *)
 
-(** {1 Projects} *)
+(** {1 Project} *)
 
 type t
 
-val create : ?cond:As_cond.t -> ?args:As_args.t -> string ->
+val create : ?cond:bool As_conf.value -> ?args:As_args.t -> string ->
   'a As_part.t list -> t
 
-val parts : t -> As_part.kind As_part.t list
-(** [parts proj] is the projects's parts. *)
-
 val name : t -> string
+val cond : t -> bool As_conf.value
+val args : t -> As_args.t
+val parts : t -> As_part.kind As_part.t list
+val conf : t -> As_conf.t
 
-val cond_atoms : t -> As_cond.Set.t
+val assemble : t -> unit
+val list : unit -> t list

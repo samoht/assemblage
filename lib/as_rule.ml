@@ -27,7 +27,8 @@ type t =
 
 let create ~context ~inputs ~outputs ~action =
   let inputs_conds = List.map snd inputs in
-  let adjust (t, cond) = t, List.fold_left As_cond.(&&&) cond inputs_conds in
+  let inputs_conds = List.fold_left As_conf.(&&&) As_conf.true_ inputs_conds in
+  let adjust (t, cond) = t, As_conf.(cond &&& inputs_conds) in
   let outputs = List.map adjust outputs in
   { context; inputs; outputs; action }
 
@@ -42,7 +43,7 @@ let has_context ctx r = r.context = ctx
 
 (* Built-in rules *)
 
-let link ?(cond = As_cond.true_) ?(args = As_args.empty) env ~src ~dst =
+let link ?(cond = As_conf.true_) ?(args = As_args.empty) env ~src ~dst =
   let dst_dir = As_path.(as_rel (dirname dst)) in
   let inputs = [ `File src, cond; `File dst_dir, cond] in
   let outputs = [ `File dst, cond ] in
@@ -52,7 +53,7 @@ let link ?(cond = As_cond.true_) ?(args = As_args.empty) env ~src ~dst =
   let action = [args, link] in
   create ~context:(`Other "link") ~inputs ~outputs ~action
 
-let mkdir ?(cond = As_cond.true_) ?(args = As_args.empty) env ~dir:d =
+let mkdir ?(cond = As_conf.true_) ?(args = As_args.empty) env ~dir:d =
   let inputs = [] in
   let outputs = [ `File d, cond ] in
   let mkdir args = As_env.mkdir env :: args @ [As_path.to_string d] in

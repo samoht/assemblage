@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,9 +14,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-val cstubs : ?available:bool As_conf.value -> ?deps:'a As_part.t list ->
-  ?headers:string list -> ?cflags:string list -> ?clibs:string list ->
-  string -> dir:string list -> [> `Lib] As_part.t
-(** [stubs name dir] is the C stub generations, using Ctypes, of the
-    compilation unit [name]. The [Name_bindings] module should be
-    located in [dir]. *)
+(** Command lines for drivers. *)
+
+open Assemblage
+open Assemblage.Private
+
+module Cli : sig
+
+  val term_of_conf : Conf.t -> Conf.t Cmdliner.Term.t
+  (** [term_of_conf c] is a command line term that allows to set the value of
+      the public configuration keys of [c] using flags on the command line. For
+      a given key [k], the default value if the flag is absent is the value of
+      [k] in [c] ({b not} the default value of the key). *)
+
+end

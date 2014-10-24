@@ -67,10 +67,10 @@ let kmsg k l fmt =
 let msg l fmt = kmsg (fun () -> ()) l fmt
 let show fmt = msg Show fmt
 let mark fmt = msg Marker fmt
-let err fmt = msg Marker fmt
-let warn fmt = msg Marker fmt
-let info fmt = msg Marker fmt
-let debug fmt = msg Marker fmt
+let err fmt = msg Error fmt
+let warn fmt = msg Warning fmt
+let info fmt = msg Info fmt
+let debug fmt = msg Debug fmt
 
 (* Log monitoring *)
 

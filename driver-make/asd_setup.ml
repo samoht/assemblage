@@ -68,11 +68,9 @@ let check t =
   check_dumpast ();
   ()
 
-let setup ~version p env build_env dumpast `Make ~merlin =
-  let atomic_conds = Asd_setup_env.atomic_conds build_env in
-  let args = Asd_setup_env.args build_env in
+let setup ~version p env dumpast `Make ~merlin =
   let makefile = "Makefile" in
-  let build_dir = Asd_setup_env.build_dir build_env in
+  let build_dir = "_build_dir" (* TODO fixme *) in
   let pp_file_arrow = Fmt.(pp_styled `Green pp_rarrow) in
   let merlin_file = ".merlin" in
   let clean_files = if merlin then [merlin_file] else [] in
@@ -80,9 +78,8 @@ let setup ~version p env build_env dumpast `Make ~merlin =
   log_project env version p;
   Log.show "%a write %s" pp_file_arrow () makefile;
   Asd_makefile.write_file makefile
-    (Asd_project_makefile.of_project ~version p ~atomic_conds ~args ~makefile
-       ~dumpast
-       ~clean_files);
+    (Asd_project_makefile.of_project ~version p ~makefile
+       ~dumpast ~clean_files);
   Asd_ocamlfind.META.(write (of_project ~version p));
   Asd_opam.Install.(write (of_project ~build_dir p));
   if merlin then begin

@@ -25,6 +25,10 @@ type 'a value
 val const : 'a -> 'a value
 val app : ('a -> 'b) value -> 'a value -> 'b value
 val ( $ ) : ('a -> 'b) value -> 'a value -> 'b value
+val true_ : bool value
+val false_ : bool value
+val ( &&& ) : bool value -> bool value -> bool value
+val ( ||| ) : bool value -> bool value -> bool value
 
 (** {1 Configuration keys} *)
 
@@ -38,13 +42,17 @@ module Key : sig
   val equal : t -> t -> bool
   val compare : t -> t -> int
 
+  val id : 'a key -> int
   val name : 'a key -> string
   val public : 'a key -> bool
-  val converter : 'a key -> 'a value converter
-  val default_value : 'a key -> 'a value
+  val converter : 'a key -> 'a converter
+  val default : 'a key -> 'a value
   val doc : 'a key -> string option
   val docv : 'a key -> string option
   val docs : 'a key -> string option
+
+  module Set : Set.S with type elt = t
+  module Map : Map.S with type key = t
 end
 
 val key : ?public:bool -> ?docs:string -> ?docv:string -> ?doc:string ->
@@ -69,51 +77,37 @@ type t
 val empty : t
 val is_empty : t -> bool
 val add : t -> 'a key -> t
-val ( + ) : t -> 'a key -> t
 val set : t -> 'a key -> 'a value -> t
 val merge : t -> t -> t
-val ( ++ ) : t -> t -> t
 val find : t -> 'a key -> 'a value option
 val get : t -> 'a key -> 'a value
-val ( @ ) : t -> 'a key -> 'a value
-val parse : t -> t Cmdliner.Term.t
-(*
-val fold : ('a -> Key.t -> 'a) -> 'a -> t -> 'a
-val iter : (Key.t -> unit) -> t -> unit
-val exists : (Key.t -> bool) -> t -> bool
-val keep : (Key.t -> bool) -> t -> t
-val subset : t -> t -> bool
-val diff : t -> t -> t
-val keys : t -> Key.t list
-val name_dups : t -> Key.t list
-*)
-
+val domain : t -> Key.Set.t
+val of_keys : Key.Set.t -> t
 val eval : t -> 'a value -> 'a
-val deps : 'a value -> t
+val deps : 'a value -> Key.Set.t
 
-(** {1:builtin Built-in configuration keys} *)
+(** {1 Configuration error messages} *)
 
-val builtin_base : t
+val pp_key_dup : t -> Format.formatter -> Key.t -> unit
 
-(** {2:builtin_build Build property keys} *)
+(** {1 Built-in configuration keys} *)
+
+(** {2 Build property keys} *)
 
 val debug : bool key
 val profile : bool key
+val warn_error : bool key
 val test : bool key
 val doc : bool key
 val jobs : int key
 
-val builtin_build_props : t
-
-(** {2:build_directories Build directories} *)
+(** {2 Build directories} *)
 
 val root_dir : As_path.t key
 val build_dir : As_path.rel key
 val product_dir : As_path.rel key
 
-val builtin_build_dirs : t
-
-(** {2:ocaml_system OCaml system keys} *)
+(** {2 OCaml system keys} *)
 
 val ocaml_native_tools : bool key
 val ocaml_version : (int * int * int * string option) key
@@ -122,13 +116,13 @@ val ocaml_native : bool key
 val ocaml_native_dynlink : bool key
 val ocaml_js : bool key
 val ocaml_annot : bool key
-val ocaml_warn_error : bool key
 val ocaml_pp : string key
 val ocamlc : string key
 val ocamlopt : string key
 val js_of_ocaml : string key
 val ocamldep : string key
 val ocamlmklib : string key
+val ocamldoc : string key
 val ocamllex : string key
 val ocamlyacc : string key
 val ocaml : string key
@@ -136,8 +130,9 @@ val ocamlrun : string key
 val ocamldebug : string key
 val ocamlprof : string key
 val ocamlfind : string key
-
-val builtin_ocaml : t
+val opam : string key
+val opam_installer : string key
+val opam_admin : string key
 
 (** {2 Basic system utilities} *)
 
@@ -148,19 +143,13 @@ val mkdir : string key
 val cat : string key
 val make : string key
 
-val builtin_base_utils : t
-
 (** {2 C system keys} *)
 
 val cc : string key
 val pkg_config : string key
-
-val builtin_c : t
 
 (** {2 Machine information keys} *)
 
 val uname : string key
 val os : string key
 val arch : string key
-
-val builtin_machine_info : t

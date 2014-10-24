@@ -28,7 +28,7 @@ let log_project env version p =
     (Fmt.pp_styled `Black Fmt.pp_rarrow) ()
     (Fmt.pp_styled_str `Bold) (Project.name p) version post
 
-let describe ~version p env build_env =
+let describe ~version p env =
   let open Printf in
 (*
   let print_deps x = (* TODO *) ()
