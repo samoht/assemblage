@@ -174,15 +174,13 @@ let of_keys s =
 
 (* Configuration error messages *)
 
-let pp_key_dup c ppf (Key.V k) = As_fmt.pp ppf
-    "Key name `%s'@ is@ not unique @ in@ the@ configuration.@ \
-     This@ key@ value@ will@ always@ use@ its@ default@ value@ (`%a')."
-    (Key.name k) (snd (Key.converter k)) (eval c (Key.default k))
+let pp_key_dup ppf (Key.V k) = As_fmt.pp ppf
+    "Key name `%s'@ not unique@ in@ the@ configuration.@ \
+     This@ may@ lead@ to@ unexpected@ driver@ behaviour." (Key.name k)
 
-let pp_miss_key c ppf (Key.V k) = As_fmt.pp ppf
-  "Key@ `%s'@ not@ found@ in@ configuration@ (driver@ error).@ \
-   Using@ the@ key's@ default@ value@ (`%a')."
-    (Key.name k) (snd (Key.converter k)) (eval c (Key.default k))
+let pp_miss_key ppf (Key.V k) = As_fmt.pp ppf
+    "Key@ `%s'@ not@ found@ in@ configuration@ (driver@ error).@ \
+     The@ key's@ default@ value@ will@ be@ used." (Key.name k)
 
 (* Key creation and value. *)
 
@@ -200,7 +198,7 @@ let value k =
   let deps, _ = Key.default k in
   let deps = Kset.add (Key.V k) deps in
   let v c = match try Some (Kmap.find (Key.V k) c) with Not_found -> None with
-  | None -> As_log.warn "%a" (pp_miss_key c) (Key.V k); (snd (Key.default k)) c
+  | None -> As_log.warn "%a" pp_miss_key (Key.V k); (snd (Key.default k)) c
   | Some u ->
       match Key.of_univ k u with
       | Some (_, v) -> v c

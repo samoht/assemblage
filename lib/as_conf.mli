@@ -88,7 +88,7 @@ val deps : 'a value -> Key.Set.t
 
 (** {1 Configuration error messages} *)
 
-val pp_key_dup : t -> Format.formatter -> Key.t -> unit
+val pp_key_dup : Format.formatter -> Key.t -> unit
 
 (** {1 Built-in configuration keys} *)
 

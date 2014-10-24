@@ -1788,10 +1788,9 @@ module Private : sig
 
     (** {1 Configuration error messages} *)
 
-    val pp_key_dup : t -> Format.formatter -> Key.t -> unit
-    (** [pp_key_dup c ppf k] prints a message that says that the name
-        of [k] was already found in configuration [c] and that [k]'s
-        default value will be used. *)
+    val pp_key_dup : Format.formatter -> Key.t -> unit
+    (** [pp_key_dup ppf k] prints a message that says that the name of
+        [k] is not unique in a configuration. *)
 
     (** {1 Configuration value dependencies and evaluation} *)
 
