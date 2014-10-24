@@ -54,13 +54,13 @@ let kmsg k l fmt =
   if not (should_log l) then Format.ikfprintf k dumb fmt else
   let pp_msg ppf style label fmt =
     Format.kfprintf k ppf
-      ("%a: @[" ^^ fmt ^^ "@]@.") (As_fmt.(pp_styled style pp_str)) label
+      ("[%a] @[" ^^ fmt ^^ "@]@.") (As_fmt.(pp_styled style pp_str)) label
   in
   match l with
   | Show -> Format.kfprintf k !show_ppf ("@[" ^^ fmt ^^ "@]@.")
   | Marker -> Format.kfprintf k !marker_ppf ("@[" ^^ fmt ^^ "@]@.")
   | Error -> incr err_count; pp_msg !err_ppf `Red "ERROR" fmt
-  | Warning -> incr warn_count; pp_msg !warn_ppf `Red "WARNING" fmt
+  | Warning -> incr warn_count; pp_msg !warn_ppf `Yellow "WARNING" fmt
   | Info -> pp_msg !info_ppf `Blue "INFO" fmt
   | Debug -> pp_msg !debug_ppf `Green "DEBUG" fmt
 
