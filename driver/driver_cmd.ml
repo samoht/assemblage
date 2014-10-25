@@ -17,7 +17,7 @@
 
 open Assemblage
 open Assemblage.Private
-open Assemblage_cli
+open Assemblage_cmdliner
 
 let str = Printf.sprintf
 
@@ -100,7 +100,7 @@ let env_opts setup_env =
 
 let conf_cli p =
   let conf = match p with None -> Conf.empty | Some p -> Project.conf p in
-  Cli.term_of_conf conf, Cli.man_of_conf conf
+  Conf_cli.term_of_conf conf, Conf_cli.man_of_conf conf
 
 let no_project setup = match setup with
 | None -> assert false

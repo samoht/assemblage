@@ -17,6 +17,7 @@
 
 (* The assemblage command line tool.
 
+   FIXME this is no longer true.
    The users's assemble.ml handles the whole program and especially
    its command line interface by calling Assemble.assemble.
 
@@ -58,9 +59,9 @@ let auto_includes () =
 
 let error setup_env status =
   let setup_env = { setup_env with Assemblage_env.exec_status = status } in
-  Assemblage_cmd.assemble_no_project setup_env
+  Driver_cmd.assemble_no_project setup_env
 
-let run () =
+let main () =
   let setup_env = Assemblage_env.parse_setup () in
   let includes =
     if not setup_env.Assemblage_env.auto_load
@@ -87,9 +88,9 @@ let run () =
             (* FIXME review *)
             match Project.list () with
             | [] -> error setup_env (err_no_cmd file)
-            | [p] -> Assemblage_cmd.assemble p
+            | [p] -> Driver_cmd.assemble p
             | l -> error setup_env (err_multiple_projects file)
                      (* FIXME list project names *)
       end
 
-let () = run ()
+let () = main ()

@@ -14,21 +14,20 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Command lines for drivers.
+(** Driver cmdliner support.
 
-    [Assemblage_cli] contains a few useful tools to define command lines
-    and documentation with {!Cmdliner}.
+    [Assemblage_cmdliner] has a few useful tools to define command
+    lines and documentation with {!Cmdliner}.
 
-    Open the module to use it.
-*)
+    Open the module to use it. *)
 
 open Assemblage
 open Assemblage.Private
 
-(** {1 Command line} *)
+(** {1 Cmdliner} *)
 
-(** Command lines for drivers. *)
-module Cli : sig
+(** Build configuration support. *)
+module Conf_cli : sig
 
   (** {1 Configuration specification and documentation} *)
 

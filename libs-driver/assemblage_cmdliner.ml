@@ -18,7 +18,7 @@ open Assemblage
 open Assemblage.Private
 open Cmdliner
 
-module Cli = struct
+module Conf_cli = struct
 
   let uppercase = function None -> None | Some s -> Some (String.uppercase s)
   let value_converter_of_converter (parse, _) =
