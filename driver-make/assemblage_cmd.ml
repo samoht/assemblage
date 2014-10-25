@@ -139,9 +139,7 @@ let setup_cmd p setup_env conf_opts conf_man =
   let setup = match p with
   | None -> fun _ _ _ _ -> no_project setup_env
   | Some p ->
-      (* FIXME let the user specify on the command line *)
-      let version = Asd_project_version.get () in
-      fun s conf make merlin -> Asd_setup.setup ~version p s make ~merlin
+      fun s conf make merlin -> Asd_setup.setup p s make ~merlin
   in
   let merlin_opt =
     let doc = "Generate a .merlin file." in
@@ -163,10 +161,7 @@ let describe_cmd p setup_env conf_opts conf_man =
   in
   let describe = match p with
   | None -> fun _ _ -> no_project setup_env
-  | Some p ->
-      (* FIXME let the user specify on the command line *)
-      let version = Asd_project_version.get () in
-      fun env conf -> Asd_describe.describe ~version p env
+  | Some p -> fun env conf -> Asd_describe.describe p env
   in
   Term.(ret (pure describe $ env_opts setup_env $ conf_opts)),
   Term.info "describe" ~doc ~sdocs:global_option_section ~man

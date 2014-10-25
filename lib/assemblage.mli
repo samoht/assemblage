@@ -31,10 +31,11 @@
 
 (** {1 Preliminaries} *)
 
-(** String utilities and string sets.
-
-    Adds {!String.split} and {!String.Set} to the OCaml String module. *)
+(** String module with convenient additions and sets of strings. *)
 module String : sig
+
+  (** {1 String} *)
+
   include module type of String
 
   val split : sep:string -> string -> string list
@@ -441,7 +442,8 @@ module Cmd : sig
     (** Same as {!Cmd.( >>| )}. *)
   end
 
-  (** {1:files_dirs Working with files and directories} *)
+  (** {1:files_dirs_vcs Working with files, directories and version control
+      systems} *)
 
   (** Files. *)
   module File : sig
@@ -523,6 +525,41 @@ module Cmd : sig
         element of [skip] are skipped. *)
   end
 
+  (** Version control systems.
+
+      {b Note.} To remain VCS agnostic use the result of
+      {!find} or {!get} rather than explicitely mentioning your VCS. *)
+  module Vcs : sig
+
+    (** {1 Version control systems} *)
+
+    type t = [ `Git | `Hg ]
+    (** The type for version control systems. *)
+
+    val exists : Path.t -> t -> bool result
+    (** [exists root vcs] is [true] if the VCS [vcs] is detected in directory
+        [root]. *)
+
+    val find : Path.t -> t option result
+    (** [find root] looks for an arbitrary VCS in directory [root]. *)
+
+    val get : Path.t -> t result
+    (** [get root] is like {!exists} but returns an error if no VCS
+        was found. *)
+
+    val head : ?dirty:bool -> Path.t -> t -> string result
+    (** [head dirty root vcs] is the HEAD commit identifier of the VCS
+        [vcs] in in directory [root]. If [dirty] is [true] (default)
+        an indicator is appended to the identifier if the working tree
+        is dirty. *)
+
+    val describe : ?dirty:bool -> Path.t -> t -> string result
+    (** [describe dirty root vcs] identifies the HEAD commit using
+        tags from the VCS [vcs] in directory [root]. If [dirty] is
+        [true] (default) an indicator is appended to the identifier if
+        the working tree is dirty. *)
+  end
+
   (** {1:executing_commands Executing commands} *)
 
   val exists : string -> bool result
@@ -537,15 +574,16 @@ module Cmd : sig
       code [0] returns [`Ok ()]. Otherwise an error message with
       the failed invocation and its exit code is returned in [`Error]. *)
 
-  val input : string -> string list -> string result
+  val input : ?trim:bool -> string -> string list -> string result
   (** [input cmd args] execute [cmd] with arguments [args]. On exit code
       [0] returns the contents of the invocation's [stdout] with [`Ok].
       Otherwise an error message with the failed invocation and its exit
-      code is returned in [`Error]. *)
+      code is returned in [`Error]. If [trim] is [true] the contents
+      is passed to {!String.trim} before being returned. *)
 
   val input_lines : string -> string list -> string list result
-  (** [input_lines cmd args] is like [input cmd args] but the input is
-      splitted at ['\n']. *)
+  (** [input_lines cmd args] is like [input ~trim:false cmd args] but
+      the input is splitted at ['\n']. *)
 
   val output : string -> string list -> Path.t -> unit result
   (** [output cmd args file] execute [cmd] with arguments [args] and writes
@@ -1755,6 +1793,32 @@ val assemble : project -> unit
 module Private : sig
 
   (** {1 Private} *)
+
+  (** {1 Command} *)
+  module Cmd : sig
+
+    (** Version control systems *)
+    module Vcs : sig
+
+      (** {1 Version control systems} *)
+
+      include module type of Cmd.Vcs
+
+      val set_override : t option -> unit
+      (** [set_override (Some vcs)] has the effect of bypassing VCS discovery.
+          [vcs] will always {!Cmd.Vcs.exists}, {!Cmd.Vcs.find} and
+          {!Cmd.Vcs.get} will always
+          always return this [vcs]. *)
+
+      val set_override_exec : string option -> unit
+      (** [set_override_exec (Some vcs_exec)] uses [vcs_exec] as the VCS
+          executable, use in conjunction with {!set_override} otherwise
+          it has no effect. *)
+    end
+
+    include module type of Cmd with module Vcs := Vcs
+  end
+
 
   (** Build configuration. *)
   module Conf : sig

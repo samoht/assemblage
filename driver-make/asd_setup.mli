@@ -17,5 +17,5 @@
 
 (** Setup a project. *)
 
-val setup : version:string -> Assemblage.project -> Assemblage_env.t ->
+val setup : Assemblage.project -> Assemblage_env.t ->
   [`Make] -> merlin:bool -> [> `Ok of unit ]

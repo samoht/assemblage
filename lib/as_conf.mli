@@ -92,6 +92,15 @@ val pp_key_dup : Format.formatter -> Key.t -> unit
 
 (** {1 Built-in configuration keys} *)
 
+(** {2 Build directory keys} *)
+
+val docs_build_directories : string
+val doc_build_directories : string
+
+val root_dir : As_path.t key
+val build_dir : As_path.rel key
+val product_dir : As_path.rel key
+
 (** {1 Project keys} *)
 
 val project_version : string key
@@ -109,15 +118,6 @@ val warn_error : bool key
 val test : bool key
 val doc : bool key
 val jobs : int key
-
-(** {2 Build directory keys} *)
-
-val docs_build_directories : string
-val doc_build_directories : string
-
-val root_dir : As_path.t key
-val build_dir : As_path.rel key
-val product_dir : As_path.rel key
 
 (** {2 OCaml system keys} *)
 

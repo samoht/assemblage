@@ -17,6 +17,7 @@
 
 
 open Assemblage
+open Assemblage.Private
 
 let log_project env version p =
   let post =
@@ -68,7 +69,8 @@ let check t =
   check_dumpast ();
   ()
 
-let setup ~version p env `Make ~merlin =
+let setup p env `Make ~merlin =
+  let version = "FIXME" in
   let makefile = "Makefile" in
   let build_dir = "_build_dir" (* TODO fixme *) in
   let pp_file_arrow = Fmt.(pp_styled `Green pp_rarrow) in

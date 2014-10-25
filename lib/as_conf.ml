@@ -274,19 +274,52 @@ let version : (int * int * int * string option) converter =
   in
   parser, printer
 
-(* Builtin configuration keys *)
+(* Build directories keys *)
 
-let utility_key ~docs bin_str =
-  let doc = str "The %s utility." bin_str in
-  key bin_str string (const bin_str) ~doc ~docv:"BIN" ~docs
+let docs_build_directories = "Directory keys"
+let doc_build_directories =
+  "These keys inform the build system about directories."
+
+let build_directories_key = key ~docs:docs_build_directories
+
+let root_dir =
+  let doc = "Absolute path to the project directory." in
+  let get_cwd () = As_path.(to_abs (of_string (Sys.getcwd ()))) in
+  let get_cwd = const get_cwd $ const () in
+  build_directories_key "root-dir" path get_cwd ~doc ~docv:"PATH"
+
+let build_dir =
+  let doc = "Path to the build directory expressed relative the root \
+             directory (see $(b,--root-dir))."
+  in
+  let build_dir = const (As_path.dir "_build") in
+  build_directories_key "build-dir" rel_path build_dir ~doc ~docv:"PATH"
+
+let product_dir =
+  build_directories_key "product-dir" rel_path ~public:false (value build_dir)
 
 (* Project keys *)
 
 let project_key = key ~docs:docs_project
 let project_version =
   let doc = "Version of the project." in
-  let v = const "TODO" in
-  project_key "project-version" string v ~doc ~docv:"VERSION"
+  let vcs_info root =
+    As_cmd.on_error ~use:"unknown" @@
+    As_cmd.(Vcs.find root >>= function
+      | None ->
+          As_log.info "No VCS found to derive project version";
+          As_cmd.ret "unknown"
+      | Some vcs ->
+          As_cmd.Vcs.describe root vcs)
+  in
+  let vcs = const vcs_info $ (value root_dir) in
+  project_key "project-version" string vcs ~doc ~docv:"VERSION"
+
+(* Builtin configuration keys *)
+
+let utility_key ~docs bin_str =
+  let doc = str "The %s utility." bin_str in
+  key bin_str string (const bin_str) ~doc ~docv:"BIN" ~docs
 
 (* Build property keys *)
 
@@ -324,36 +357,11 @@ let jobs =
     | "Win32" -> int_of_string (Sys.getenv "NUMBER_OF_PROCESSORS")
     | _ ->
         As_cmd.on_error ~use:1 @@
-        As_cmd.(input "getconf" [ "_NPROCESSORS_ONLN" ] >>| String.trim >>|
-                int_of_string)
+        As_cmd.(input "getconf" [ "_NPROCESSORS_ONLN" ] >>| int_of_string)
     with Not_found | Failure _ -> 1
   in
   let get_jobs = const get_jobs $ const () in
   build_properties_key "jobs" int get_jobs ~doc ~docv:"COUNT"
-
-(* Build directories keys *)
-
-let docs_build_directories = "Directory keys"
-let doc_build_directories =
-  "These keys inform the build system about directories."
-
-let build_directories_key = key ~docs:docs_build_directories
-
-let root_dir =
-  let doc = "Absolute path to the project directory." in
-  let get_cwd () = As_path.(to_abs (of_string (Sys.getcwd ()))) in
-  let get_cwd = const get_cwd $ const () in
-  build_directories_key "root-dir" path get_cwd ~doc ~docv:"PATH"
-
-let build_dir =
-  let doc = "Path to the build directory expressed relative the root \
-             directory (see $(b,--root-dir))."
-  in
-  let build_dir = const (As_path.dir "_build") in
-  build_directories_key "build-dir" rel_path build_dir ~doc ~docv:"PATH"
-
-let product_dir =
-  build_directories_key "product-dir" rel_path ~public:false (value build_dir)
 
 (* OCaml system keys *)
 
@@ -429,7 +437,7 @@ let ocaml_version =
   in
   let get_version tool =
     As_cmd.on_error ~use:(0, 0, 0, Some "unknown") @@
-    As_cmd.(input tool [ "-version" ] >>| String.trim >>= (fst version))
+    As_cmd.(input tool [ "-version" ] >>= (fst version))
   in
   let get_version = const get_version $ tool in
   ocaml_system_key "ocaml-version" version get_version ~doc ~docv:"VERSION"
@@ -462,7 +470,7 @@ let host_os =
   let doc = "The host machine operating system name." in
   let get_os uname =
     As_cmd.on_error ~use:"unknown" @@
-    As_cmd.(input uname [ "-s" ] >>| String.trim >>| String.lowercase)
+    As_cmd.(input uname [ "-s" ] >>| String.lowercase)
   in
   let get_os = const get_os $ value uname in
   machine_info_key "host-os" string get_os ~doc ~docv:"STRING"
@@ -471,7 +479,7 @@ let host_arch =
   let doc = "The host machine hardware architecture." in
   let get_arch uname =
     As_cmd.on_error ~use:"unknown" @@
-    As_cmd.(input uname [ "-m" ] >>| String.trim >>| String.lowercase)
+    As_cmd.(input uname [ "-m" ] >>| String.lowercase)
   in
   let get_arch = const get_arch $ value uname in
   machine_info_key "host-arch" string get_arch ~doc ~docv:"STRING"

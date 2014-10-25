@@ -35,7 +35,7 @@ module Infix : sig
   val ( >>| ) : 'a result -> ('a -> 'b) -> 'b result
 end
 
-(** {1 Working with files and directories} *)
+(** {1 Working with files, directories and version control systems} *)
 
 module File : sig
   val exists : As_path.t -> bool result
@@ -63,11 +63,24 @@ module Dir : sig
     'a -> string list -> 'a result
 end
 
+module Vcs : sig
+  type t = [ `Git | `Hg ]
+
+  val set_override : t option -> unit
+  val set_override_exec : string option -> unit
+
+  val exists : As_path.t -> t -> bool result
+  val find : As_path.t -> t option result
+  val get : As_path.t -> t result
+  val head : ?dirty:bool -> As_path.t -> t -> string result
+  val describe : ?dirty:bool -> As_path.t -> t -> string result
+end
+
 (** {1 Executing commands} *)
 
 val exists : string -> bool result
 val exec_ret : string -> string list -> int result
 val exec : string -> string list -> unit result
-val input : string -> string list -> string result
+val input : ?trim:bool -> string -> string list -> string result
 val input_lines : string -> string list -> string list result
 val output : string -> string list -> As_path.t -> unit result

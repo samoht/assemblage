@@ -91,7 +91,7 @@ module File = struct
   let output_lines file lines = output file (String.concat "\n" lines)
 
   let output_subst vars file contents =
-    let output_subst oc contents =
+    let output_subst oc contents =                     (* man that's ugly. *)
       let s = contents in
       let start = ref 0 in
       let last = ref 0 in
@@ -180,6 +180,8 @@ module Dir = struct
     aux f acc (dirs :: [])
 end
 
+(* Commands *)
+
 let exists cmd =
   let null = As_path.to_string File.null in
   let test = match Sys.os_type with "Win32" -> "where" | _ -> "type" in
@@ -208,15 +210,127 @@ let handle_ret cmd = match Sys.command cmd with
 | c -> error (str "invocation `%s' exited with code %d" cmd c)
 
 let exec cmd args = handle_ret (mk_cmd cmd args)
-let input cmd args =
+let input ?(trim = true) cmd args =
   let cmd = mk_cmd cmd args in
   File.temp "input"
   >>= fun file -> handle_ret (str "%s > %s" cmd (As_path.to_string file))
   >>= fun () -> File.input file
-  >>= fun v -> ret v
+  >>= fun v -> ret (if trim then As_string.trim v else v)
 
 let input_lines cmd args = input cmd args >>| As_string.split ~sep:"\n"
 
 let output cmd args file =
   let cmd = mk_cmd cmd args in
   handle_ret (str "%s > %s" cmd (As_path.to_string file))
+
+(* Working with version control systems *)
+
+module Vcs = struct
+  type t = [ `Git | `Hg ]
+
+  let dirtify id = id ^ "-dirty"
+
+  (* VCS detection and executable override *)
+
+  let override = ref None
+  let override_exec = ref None
+  let set_override v = override := v
+  let set_override_exec exec = override_exec := exec
+
+  (* Git *)
+
+  let git_dir = ".git"
+  let git_exists root = match !override with
+  | Some `Git -> ret true
+  | Some _ | None -> Dir.exists As_path.(root / git_dir)
+
+  let git root args =
+    let git = match !override_exec with
+    | Some exec when !override = Some `Git -> exec
+    | _ -> "git"
+    in
+    let dir = As_path.(to_string (root / git_dir)) in
+    input git ("--git-dir" :: dir :: args)
+
+  let git_head mark_dirty root =
+    git root [ "show-ref"; "HEAD"; "--hash" ] >>= fun hash ->
+    if not mark_dirty then ret hash else
+    git root [ "status"; "--porcelain" ] >>= function
+    | "" -> ret hash
+    | _ -> ret (dirtify hash)
+
+  let git_describe mark_dirty root =
+    let opt = if mark_dirty then [ "--dirty" ] else [] in
+    git root ([ "describe"; "--always"; ] @ opt)
+
+  (* Hg *)
+
+  let hg_dir = ".hg"
+  let hg_exists root = match !override with
+  | Some `Hg -> ret true
+  | Some _ | None  -> Dir.exists As_path.(root / hg_dir)
+
+  let hg root args =
+    let hg = match !override_exec with
+    | Some exec when !override = Some `Hg -> exec
+    | _ -> "hg"
+    in
+    let dir = As_path.to_string root in
+    input hg ("--repository" :: dir :: args)
+
+  let hg_id root =
+    hg root [ "id"; "-i" ] >>= fun id ->
+    let is_dirty = String.length id > 0 && id.[String.length id - 1] = '+' in
+    let id = if is_dirty then As_string.slice ~stop:(-1) id else id in
+    ret (id, is_dirty)
+
+  let hg_head mark_dirty root =
+    hg_id root >>= fun (id, is_dirty) ->
+    ret @@ if is_dirty && mark_dirty then dirtify id else id
+
+  let hg_describe mark_dirty root =
+    let get_distance s = try ret (int_of_string s) with
+    | Failure _ -> error "could not parse hg tag distance"
+    in
+    let hg_parent template = hg root [ "parent"; "--template"; template ] in
+    hg_parent "\"{latesttagdistance}\"" >>= get_distance
+    >>= begin function
+    | 1 -> hg_parent "\"{latesttag}\""
+    | n -> hg_parent "\"{latesttag}-{latesttagdistance}-{node|short}\""
+    end
+    >>= fun descr ->
+    if not mark_dirty then ret descr else
+    hg_id root >>= fun (_, is_dirty) ->
+    ret @@ if is_dirty then dirtify descr else descr
+
+  (* VCS detection *)
+
+  let exists root = function
+  | `Git -> git_exists root
+  | `Hg -> hg_exists root
+
+  let find root = match !override with
+  | Some override -> ret (Some override)
+  | None ->
+      git_exists root >>= function
+      | true -> ret (Some `Git)
+      | false ->
+          hg_exists root >>= function
+          | true -> ret (Some `Hg)
+          | false -> ret None
+
+  let get root =
+    find root >>= function
+    | Some vcs -> ret vcs
+    | None -> error "No VCS found"
+
+  (* VCS commands *)
+
+  let head ?(dirty = true) root = function
+  | `Git -> git_head dirty root
+  | `Hg -> hg_head dirty root
+
+  let describe ?(dirty = true) root = function
+  | `Git -> git_head dirty root
+  | `Hg -> hg_head dirty root
+end

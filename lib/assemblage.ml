@@ -83,6 +83,7 @@ type project = Project.t
 let assemble = Project.assemble
 
 module Private = struct
+  module Cmd = As_cmd
   module Project = As_project
   module Conf = As_conf
 end

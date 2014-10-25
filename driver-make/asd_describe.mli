@@ -17,5 +17,4 @@
 
 (** Describe a project. *)
 
-val describe : version:string -> Assemblage.project ->
-  Assemblage_env.t -> [> `Ok of unit ]
+val describe : Assemblage.project -> Assemblage_env.t -> [> `Ok of unit ]
