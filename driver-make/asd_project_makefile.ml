@@ -23,15 +23,12 @@ open Assemblage
 let str = Printf.sprintf
 
 let ocaml_pp dumpast =
-  let warn () =
-    Log.warn "@[%a@]" Fmt.pp_text
-      "ocaml-dumpast is not installed. Use `assemblage setup --dumpast=false` \
-       to setup your project without it."
-  in
   if not dumpast then None else
   begin
-    if Asd_shell.has_cmd "ocaml-dumpast" then warn ();
-    Some "$(DUMPAST) camlp4o"
+    Cmd.on_error ~use:None @@
+    Cmd.(exists "ocaml-dumpast" >>= function
+      | true -> ret (Some "$(DUMPAST) camlp4o")
+      | false -> error "ocaml-dumpast is not installed")
   end
 
 let env dumpast =

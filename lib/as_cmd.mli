@@ -78,6 +78,8 @@ end
 
 (** {1 Executing commands} *)
 
+val set_trace : bool -> unit
+
 val exists : string -> bool result
 val exec_ret : string -> string list -> int result
 val exec : string -> string list -> unit result

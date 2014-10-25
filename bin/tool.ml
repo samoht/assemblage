@@ -25,6 +25,7 @@
 
 open Assemblage
 open Assemblage.Private
+open Assemblage.Cmd.Infix
 
 let str = Printf.sprintf
 let err_no_file file = `Error (str "missing %s." file)
@@ -51,8 +52,9 @@ let show_run_start file auto_load =
 
 (* TODO allow override ocamlfind through env variable *)
 let auto_includes () =
-  if not (Asd_shell.has_cmd "ocamlfind") then err_no_ocamlfind else
-  `Ok (Asd_shell.exec_output "ocamlfind query -r assemblage")
+  Cmd.exists "ocamlfind" >>= function
+  | true -> Cmd.input_lines "ocamlfind" ["query"; "-r"; "assemblage" ]
+  | false -> err_no_ocamlfind
 
 let error setup_env status =
   let setup_env = { setup_env with Assemblage_env.exec_status = status } in

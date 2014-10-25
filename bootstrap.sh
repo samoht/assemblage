@@ -13,9 +13,9 @@ LIB_UNITS="as_string as_path as_fmt as_log as_cmd as_conf as_cond \
            as_project assemblage assemblage_cli"
 
 DRIVER_MAKE_UNITS="asd_cstubs asd_merlin asd_ocaml_incl asd_ocaml \
-                   asd_setup_env asd_shell asd_git asd_pkg_config \
+                   asd_setup_env asd_shell asd_pkg_config \
                    asd_opam asd_ocamlfind asd_makefile asd_project_makefile \
-                   assemblage_env asd_setup asd_describe asd_project_version \
+                   assemblage_env asd_setup asd_describe \
                    assemblage_cmd"
 
 CMOS=""

@@ -44,9 +44,6 @@ val query :
 val pkgs_args : mode:mode -> string list -> Assemblage.args
 (** [pkgs_args mode pkgs] returns the args for packages [pkgs]. *)
 
-val available : unit -> bool
-(** [available ()] checks if [ocamlfind] is available. *)
-
 (** Generate META files. *)
 module META: sig
 

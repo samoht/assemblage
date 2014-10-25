@@ -40,26 +40,29 @@ let query_args ?predicates ?format ?(uniq = false) ?(recursive = false) pkgs =
   in
   let recursive = if recursive then "-r " else "" in
   let uniq = if uniq then [" | uniq"] else [] in
-  ["ocamlfind"; "query"; recursive; predicates; format ] @ pkgs @ uniq
+  "ocamlfind", (["query"; recursive; predicates; format ] @ pkgs @ uniq)
 
 let query_static =
   let cache = Hashtbl.create 124 in
-  let run cmd = try Hashtbl.find cache cmd with
+  let run (cmd, args as l) = try Hashtbl.find cache l with
   | Not_found ->
-      let r = Asd_shell.exec_output "%s" cmd in
-      Hashtbl.add cache cmd r;
+      let r = Cmd.(on_error ~use:[] @@ input_lines cmd args) in
+      Hashtbl.add cache l r;
       r
   in
   fun ?predicates ?format ?(uniq=false) ?(recursive=false) pkgs ->
-    let cmd = query_args ?predicates ?format ~uniq ~recursive pkgs in
-    run (String.concat " " cmd)
+    run (query_args ?predicates ?format ~uniq ~recursive pkgs)
 
 let query_makefile ?predicates ?format ?uniq:_ ?(recursive=false) pkgs =
-  [ "$(shell" ] @ query_args ?predicates ?format ~recursive:true pkgs @ [ ")" ]
+  let cmd, args = query_args ?predicates ?format ~recursive:true pkgs in
+  [ "$(shell" ] @  (cmd :: args) @ [ ")" ]
 
 let query ~mode = match mode with
   | `Static -> query_static
-  | `Dynamic `Shell -> query_args
+  | `Dynamic `Shell ->
+      fun ?predicates ?format ?uniq ?recursive pkgs ->
+        let cmd, args = query_args ?predicates ?format ?uniq ?recursive pkgs in
+        cmd :: args
   | `Dynamic `Makefile -> query_makefile
 
 let includes ~mode ~recursive ~predicates pkgs =
@@ -95,8 +98,6 @@ let pkgs_args ~mode = function
         Args.create (`Compile `Native) (comp_native ~mode pkgs);
         Args.create (`Link `Byte) (link_byte ~mode pkgs);
         Args.create (`Link `Native) (link_native ~mode pkgs) ]
-
-let available () = Asd_shell.has_cmd "ocamlfind"
 
 module META = struct
   type t = string

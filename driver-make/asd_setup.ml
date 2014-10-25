@@ -28,15 +28,15 @@ let log_project env version p =
     Fmt.pp_rarrow () (Fmt.pp_styled_str `Bold) (Project.name p) version post
 
 let check t =
+(*
   let parts = Project.parts t in
   let check_dumpast () = (* check we have dumpast if there are pp. *)
     let pkg_pp = [] in
-(*
       TODO create a dumb env and query Part.args and get (`Pp `Byte)
       As_args.get (`Pp `byte) (Part.(keep_map Pkg.ocaml) parts
       in
-*)
     let lib_pp = Part.(keep_map Lib.ocaml_pp) parts in
+
     if (pkg_pp <> [] || lib_pp <> []) && not (Asd_shell.has_cmd "ocaml-dumpast")
     then
       Log.warn "%a" Fmt.pp_text
@@ -67,6 +67,7 @@ let check t =
   in
   check_ocaml_pkgs ();
   check_dumpast ();
+*)
   ()
 
 let setup p env `Make ~merlin =

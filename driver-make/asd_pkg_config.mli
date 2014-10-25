@@ -30,6 +30,3 @@ type mode = [ `Static | `Dynamic of syntax ]
 
 val pkgs_args : mode:mode -> string list -> Assemblage.args
 (** [pkgs_args mode pkgs] returns the args for packages [pkgs]. *)
-
-val available : unit -> bool
-(** [available ()] checks if [pkg-config] is available. *)

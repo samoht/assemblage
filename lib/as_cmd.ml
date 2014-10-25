@@ -182,6 +182,9 @@ end
 
 (* Commands *)
 
+let trace = ref false (* FIXME refine *)
+let set_trace b = trace := b
+
 let exists cmd =
   let null = As_path.to_string File.null in
   let test = match Sys.os_type with "Win32" -> "where" | _ -> "type" in
@@ -203,9 +206,15 @@ let exists cmd =
    3. Should we treat exit code 127 specially, see if it's the
       case on windows. *)
 
+let trace cmd =
+  if not !trace then () else
+  As_log.show "%a @[%a@]" (As_fmt.pp_styled_str `Blue) "[EXEC]"
+    As_fmt.pp_text cmd
+
 let mk_cmd cmd args = String.concat " " (cmd :: args)
-let exec_ret cmd args = ret (Sys.command (mk_cmd cmd args))
-let handle_ret cmd = match Sys.command cmd with
+let execute cmd = trace cmd; Sys.command cmd
+let exec_ret cmd args = ret (execute (mk_cmd cmd args))
+let handle_ret cmd = match execute cmd with
 | 0 -> ret ()
 | c -> error (str "invocation `%s' exited with code %d" cmd c)
 

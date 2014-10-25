@@ -16,6 +16,7 @@
  *)
 
 open Assemblage
+open Assemblage.Private
 
 (* Environment variables *)
 
@@ -121,7 +122,7 @@ let parse_setup () =
   let env = parse env args in
   let color = get_color_tri_state var_color ~default:!color in
   Fmt.set_style_tags (fmt_style_tags_of_color color);
-  Asd_shell.verbose_default := get_bool var_verbose ~default:!verbose;
+  Cmd.set_trace (get_bool var_verbose ~default:!verbose);
   setup := Some env;
   env
 
@@ -140,7 +141,7 @@ let create setup verbose color =
   let utf8_msgs = get_bool var_utf8_msgs ~default:false in
   created := true;
   Fmt.set_style_tags (fmt_style_tags_of_color color);
-  Asd_shell.verbose_default := verbose;
+  Cmd.set_trace verbose;
   { setup; verbose; color; utf8_msgs; }
 
 let created () = !created

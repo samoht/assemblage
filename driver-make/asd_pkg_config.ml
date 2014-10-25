@@ -22,26 +22,30 @@ type mode = [ `Static | `Dynamic of [`Shell | `Makefile] ]
 
 let query_args ?wrap ~opts pkgs =
   (* FIXME support wrap *)
-  [ "pkg-config" ] @ opts @ pkgs
+  "pkg-config", opts @ pkgs
 
 let query_static =
   let cache = Hashtbl.create 124 in
-  let run cmd = try Hashtbl.find cache cmd with
+  let run (cmd, args as l) = try Hashtbl.find cache l with
   | Not_found ->
-      let r = Asd_shell.exec_output "%s" cmd in
-      Hashtbl.add cache cmd r;
+      let r = Cmd.(on_error ~use:[] @@ input_lines cmd args) in
+      Hashtbl.add cache l r;
       r
   in
   fun ?wrap ~opts pkgs ->
     let cmd = query_args ?wrap ~opts pkgs in
-    run (String.concat " " cmd)
+    run cmd
 
 let query_makefile ?wrap ~opts pkgs =
-  [ str "$(shell %s)" (String.concat " " (query_args ?wrap ~opts pkgs)) ]
+  let cmd, args = query_args ?wrap ~opts pkgs in
+  [ str "$(shell %s %s)" cmd (String.concat " " args) ]
 
 let query ~mode = match mode with
 | `Static -> query_static
-| `Dynamic `Shell -> query_args
+| `Dynamic `Shell ->
+    fun ?wrap ~opts pkgs ->
+      let (cmd, args) = query_args ?wrap ~opts pkgs in
+      [String.concat " " (cmd :: args)]
 | `Dynamic `Makefile -> query_makefile
 
 let cflags ?wrap ~mode pkgs = query ~mode ?wrap ~opts:["--cflags"] pkgs
@@ -79,5 +83,3 @@ let pkgs_args ~mode = function
       Args.create (`Archive `Byte) (ocaml_clink_flags);
       Args.create (`Archive `Native) (ocaml_clink_flags);
       Args.create (`Archive `Shared) (ocaml_clink_flags); ]
-
-let available () = Asd_shell.has_cmd "pkg-config"

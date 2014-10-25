@@ -34,14 +34,16 @@ let parts t = t.parts
 let conf t = (* TODO *)
   let ( + ) = As_conf.add in
   let open As_conf in
-  empty + debug + profile + test + doc + jobs +
+  let o = key ~public:true ~docs:"BLA" "ocamlc" string (const "u") in
+  empty + o + debug + profile + test + doc + jobs +
   root_dir + build_dir + product_dir
   + ocaml_native_tools + ocaml_byte + ocaml_native +
   ocaml_native_dynlink + ocaml_js + ocaml_annot + warn_error +
-  ocaml_pp + ocamlc + ocamlopt + js_of_ocaml + ocamldep + ocamlmklib +
+  ocaml_build_ast + ocaml_dumpast +
+  ocamlc + ocamlopt + js_of_ocaml + ocamldep + ocamlmklib +
   ocamldoc + ocamllex + ocamlyacc + ocaml + ocamlrun + ocamldebug + ocamlprof +
   ocamlfind + ocaml_version + echo + ln + cp + mkdir + cat + make + cc +
-  pkg_config + uname + os + arch + opam + opam_installer + opam_admin
+  pkg_config + uname + host_os + host_arch + target_os + target_arch + opam + opam_installer + opam_admin + project_version
 
 let projects = ref []
 let assemble p = projects := p :: !projects

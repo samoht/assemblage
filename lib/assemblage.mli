@@ -1817,6 +1817,9 @@ module Private : sig
     end
 
     include module type of Cmd with module Vcs := Vcs
+
+    val set_trace : bool -> unit
+    (** [set_trace true] traces all command executions. *)
   end
 
 
