@@ -18,7 +18,7 @@
 
 type level = Show | Marker | Error | Warning | Info | Debug
 
-let level = ref (Some Info)
+let level = ref (Some Warning)
 let set_level l = level := l
 let level () = !level
 

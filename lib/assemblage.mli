@@ -31,7 +31,7 @@
 
 (** {1 Preliminaries} *)
 
-(** String module with convenient additions and sets of strings. *)
+(** String module with a few additions and string sets. *)
 module String : sig
 
   (** {1 String} *)
@@ -39,9 +39,9 @@ module String : sig
   include module type of String
 
   val split : sep:string -> string -> string list
-  (** [split sep s] is the list of all (possibly empty)
-      substrings of [s] that are delimited by matches of the non empty
-      separator string [sep].
+  (** [split sep s] is the list of all (possibly empty) substrings of
+      [s] that are delimited by matches of the non empty separator
+      string [sep].
 
       Matching separators in [s] starts from the beginning of [s] and once
       one is found, the separator is skipped and matching starts again
@@ -77,7 +77,7 @@ module String : sig
       [String.length s]. This means that [-1] denotes the last
       character of the string. *)
 
-  (** {1 Sets of strings} *)
+  (** {1 String sets} *)
 
   module Set : sig
     include Set.S with type elt = string
@@ -142,15 +142,11 @@ module Fmt : sig
   (** [pp_lines] formats lines by replacing newlines in the string
       with calls to {!Format.pp_force_newline}. *)
 
-  (** {1:styled Styled formatting} *)
+  (** {1:styled Styled formatting}
 
-  type style_tags = [ `Ansi | `None ]
-  (** The type for style tags.
-      {ul
-      {- [`Ansi], tags the text with
-      {{:http://www.ecma-international.org/publications/standards/Ecma-048.htm}
-      ANSI escape sequences}.}
-      {- [`None], text remains untagged.}} *)
+      {b Note.} Text output using these functions may still appear
+      unformatted as style application is left to the discretion of
+      drivers. *)
 
   type style =
     [ `Bold
@@ -165,13 +161,6 @@ module Fmt : sig
     | `White ]
   (** The type for styles. *)
 
-  val style_tags : unit -> style_tags
-  (** [style_tags ()] is the current tag style used by {!pp_styled}.
-      Initial value is [`None]. *)
-
-  val set_style_tags : style_tags -> unit
-  (** [set_style_tags s] sets the current tag style used by {!pp_style}. *)
-
   val pp_styled : style -> 'a formatter -> 'a formatter
   (** [pp_styled style pp] formats according to [pp] but styled with [style]. *)
 
@@ -182,26 +171,10 @@ end
 (** Assemblage log. *)
 module Log : sig
 
-  (** {1 Log level and output} *)
+  (** {1 Log} *)
 
   (** The type for log levels. *)
   type level = Show | Marker | Error | Warning | Info | Debug
-
-  val level : unit -> level option
-  (** [level ()] is the log level (if any). If the log level is [(Some l)]
-      any message whose level is [<= l] is logged. If level is [None]
-      no message is ever logged. At startup the level is [(Some Info)]. *)
-
-  val set_level : level option -> unit
-  (** [set_level l] sets the log level to [l]. See {!level}. *)
-
-  val set_formatter : [`All | `Level of level ] -> Format.formatter -> unit
-  (** [set_formatter spec ppf] sets the formatter for a given level or
-      for all the levels according to [spec]. At startup the formatter
-      of level [Show] is {!Format.std_formatter} and all the other level
-      formatters are {!Format.err_formatter}. *)
-
-  (** {1 Logging} *)
 
   val msg : level -> ('a, Format.formatter, unit, unit) format4 -> 'a
   (** [msg l fmt ...] logs a message with level [l]. *)
@@ -229,13 +202,6 @@ module Log : sig
   val debug : ('a, Format.formatter, unit, unit) format4 -> 'a
   (** [debug info ...] logs a message with level [Debug]. *)
 
-  (** {1 Log monitoring} *)
-
-  val err_count : unit -> int
-  (** [err_count ()] is the number of messages logged with level [Error]. *)
-
-  val warn_count : unit -> int
-  (** [warn_count ()] is the number of messages logged with level [Warning]. *)
 end
 
 (** File paths.
@@ -1794,8 +1760,70 @@ module Private : sig
 
   (** {1 Private} *)
 
-  (** {1 Command} *)
+  (** Formatters. *)
+  module Fmt : sig
+
+    (** {1 Formatters} *)
+
+    include module type of Fmt
+
+    (** {1 Styled formatting control} *)
+
+    type style_tags = [ `Ansi | `None ]
+    (** The type for style tags.
+        {ul
+        {- [`Ansi], tags the text with
+      {{:http://www.ecma-international.org/publications/standards/Ecma-048.htm}
+           ANSI escape sequences}.}
+        {- [`None], text remains untagged.}} *)
+
+    val style_tags : unit -> style_tags
+    (** [style_tags ()] is the current tag style used by {!Fmt.pp_styled}.
+        Initial value is [`None]. *)
+
+    val set_style_tags : style_tags -> unit
+    (** [set_style_tags s] sets the current tag style used by
+        {!Fmt.pp_style}. *)
+  end
+
+  (** Log. *)
+  module Log : sig
+
+    (** {1 Log} *)
+
+    include module type of Log with type level = Log.level
+
+    (** {1 Log level and output} *)
+
+    val level : unit -> level option
+    (** [level ()] is the log level (if any). If the log level is [(Some l)]
+        any message whose level is [<= l] is logged. If level is [None]
+        no message is ever logged. Initially the level is [(Some Warning)]. *)
+
+    val set_level : level option -> unit
+    (** [set_level l] sets the log level to [l]. See {!level}. *)
+
+    val set_formatter : [`All | `Level of level ] -> Format.formatter -> unit
+    (** [set_formatter spec ppf] sets the formatter for a given level or
+        for all the levels according to [spec]. Initially the formatter
+        of level [Show] is {!Format.std_formatter} and all the other level
+        formatters are {!Format.err_formatter}. *)
+
+    (** {1 Log monitoring} *)
+
+    val err_count : unit -> int
+    (** [err_count ()] is the number of messages logged with level [Error]. *)
+
+    val warn_count : unit -> int
+    (** [warn_count ()] is the number of messages logged with level
+        [Warning]. *)
+  end
+
+
+  (** Command. *)
   module Cmd : sig
+
+  (** {1 Command} *)
 
     (** Version control systems *)
     module Vcs : sig
@@ -1804,11 +1832,18 @@ module Private : sig
 
       include module type of Cmd.Vcs
 
+      val override : unit -> t option
+      (** [override ()] is the current VCS override value.
+          See {!set_override}. *)
+
       val set_override : t option -> unit
       (** [set_override (Some vcs)] has the effect of bypassing VCS discovery.
           [vcs] will always {!Cmd.Vcs.exists}, {!Cmd.Vcs.find} and
-          {!Cmd.Vcs.get} will always
-          always return this [vcs]. *)
+          {!Cmd.Vcs.get} will always always return this [vcs]. *)
+
+      val override_exec : unit -> string option
+      (** [override_exec] is the current VCS executable override.
+          See {!set_override_exec}. *)
 
       val set_override_exec : string option -> unit
       (** [set_override_exec (Some vcs_exec)] uses [vcs_exec] as the VCS
@@ -1818,10 +1853,13 @@ module Private : sig
 
     include module type of Cmd with module Vcs := Vcs
 
-    val set_trace : bool -> unit
-    (** [set_trace true] traces all command executions. *)
-  end
+    val trace : unit -> bool
+    (** [trace ()] is [true] if command executions are traced on
+        the assemblage {{!Log}log}. Initially [false]. *)
 
+    val set_trace : bool -> unit
+    (** [set_trace b] sets tracing to [b], see {!trace}. *)
+  end
 
   (** Build configuration. *)
   module Conf : sig

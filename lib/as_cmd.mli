@@ -66,7 +66,9 @@ end
 module Vcs : sig
   type t = [ `Git | `Hg ]
 
+  val override : unit -> t option
   val set_override : t option -> unit
+  val override_exec : unit -> string option
   val set_override_exec : string option -> unit
 
   val exists : As_path.t -> t -> bool result
@@ -78,6 +80,7 @@ end
 
 (** {1 Executing commands} *)
 
+val trace : unit -> bool
 val set_trace : bool -> unit
 
 val exists : string -> bool result

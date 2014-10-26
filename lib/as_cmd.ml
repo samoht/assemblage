@@ -182,8 +182,10 @@ end
 
 (* Commands *)
 
-let trace = ref false (* FIXME refine *)
+let trace = ref false
 let set_trace b = trace := b
+let trace () = !trace
+
 
 let exists cmd =
   let null = As_path.to_string File.null in
@@ -206,13 +208,13 @@ let exists cmd =
    3. Should we treat exit code 127 specially, see if it's the
       case on windows. *)
 
-let trace cmd =
-  if not !trace then () else
+let do_trace cmd =
+  if not (trace ()) then () else
   As_log.show "%a @[%a@]" (As_fmt.pp_styled_str `Blue) "[EXEC]"
     As_fmt.pp_text cmd
 
 let mk_cmd cmd args = String.concat " " (cmd :: args)
-let execute cmd = trace cmd; Sys.command cmd
+let execute cmd = do_trace cmd; Sys.command cmd
 let exec_ret cmd args = ret (execute (mk_cmd cmd args))
 let handle_ret cmd = match execute cmd with
 | 0 -> ret ()
@@ -245,17 +247,19 @@ module Vcs = struct
   let override_exec = ref None
   let set_override v = override := v
   let set_override_exec exec = override_exec := exec
+  let override () = !override
+  let override_exec () = !override_exec
 
   (* Git *)
 
   let git_dir = ".git"
-  let git_exists root = match !override with
+  let git_exists root = match override () with
   | Some `Git -> ret true
   | Some _ | None -> Dir.exists As_path.(root / git_dir)
 
   let git root args =
-    let git = match !override_exec with
-    | Some exec when !override = Some `Git -> exec
+    let git = match override_exec () with
+    | Some exec when override () = Some `Git -> exec
     | _ -> "git"
     in
     let dir = As_path.(to_string (root / git_dir)) in
@@ -275,13 +279,13 @@ module Vcs = struct
   (* Hg *)
 
   let hg_dir = ".hg"
-  let hg_exists root = match !override with
+  let hg_exists root = match override () with
   | Some `Hg -> ret true
   | Some _ | None  -> Dir.exists As_path.(root / hg_dir)
 
   let hg root args =
-    let hg = match !override_exec with
-    | Some exec when !override = Some `Hg -> exec
+    let hg = match override_exec () with
+    | Some exec when override () = Some `Hg -> exec
     | _ -> "hg"
     in
     let dir = As_path.to_string root in
@@ -318,7 +322,7 @@ module Vcs = struct
   | `Git -> git_exists root
   | `Hg -> hg_exists root
 
-  let find root = match !override with
+  let find root = match override () with
   | Some override -> ret (Some override)
   | None ->
       git_exists root >>= function
