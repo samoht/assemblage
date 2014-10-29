@@ -1,5 +1,4 @@
 (*
- * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
  * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -15,22 +14,32 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Build rule contexts
+(** Build actions.
 
-    For documentation see {!Assemblage.Context}. *)
+    See {!Assemblage.Action}. *)
 
-(** {1 Contexts} *)
+(** {1 Build commands} *)
 
-type t =
-  [ `Prepare
-  | `Dep
-  | `Pp of [`Byte | `Native | `Js | `C ]
-  | `Compile of [`Intf | `Byte | `Native | `Js | `C ]
-  | `Archive of [`Byte | `Native | `Shared | `C | `C_shared]
-  | `Link of [`Byte | `Native | `Js | `C]
-  | `Run of [`Byte | `Native | `Js | `C]
-  | `Test
-  | `Doc
-  | `Other of string ]
+type cmd
+val cmd : string As_conf.key -> string list As_conf.value -> cmd
+val seq : cmd -> cmd -> cmd
+val ( <*> ) : cmd -> cmd -> cmd
 
-val to_string : t -> string
+(** {1 Actions} *)
+
+type t
+
+val create :
+  ?cond:bool As_conf.value ->
+  ?ctx:As_ctx.t ->
+  ?args:As_args.t ->
+  inputs:As_product.t list As_conf.value ->
+  outputs:As_product.t list As_conf.value ->
+  cmd -> t
+
+val cond : t -> bool As_conf.value
+val ctx : t -> As_ctx.t
+val args : t -> As_args.t
+val inputs : t -> As_product.t list As_conf.value
+val outputs : t -> As_product.t list As_conf.value
+val cmd : t -> cmd

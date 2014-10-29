@@ -79,7 +79,7 @@ let assemble_assemble =
   bin "assemble" [u] ~deps:[lib_assemblage; lib_driver_make]
 
 (* Tests & examples *)
-
+(*
 let mk_test ?(example = false) name =
   let dir = [(if example then "examples" else "test"); name] in
   let args cmd env _ =
@@ -93,8 +93,9 @@ let mk_test ?(example = false) name =
     Rule.cmd ["make distclean"]; ]
 
 let mk_example = mk_test ~example:true
-
-let tests =
+*)
+let tests = []
+(*
   [ mk_example "hello";
     mk_example "camlp4";
     mk_example "multi-libs";
@@ -103,7 +104,7 @@ let tests =
     mk_example "threads";
     mk_example "threads-lib";
     mk_example "ctypes-libffi"; ]
-
+*)
 (* Docs *)
 
 let dev_doc = doc ~keep:Part.Doc.dev "dev" [lib_assemblage]

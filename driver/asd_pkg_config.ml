@@ -61,7 +61,8 @@ let libs_other ?wrap ~mode pkgs =
 
 let pkgs_args ~mode = function
 | [] -> Args.empty
-| pkgs ->
+| pkgs -> Args.empty
+(*
     let ocaml_clink_flags =
       (libs_l ~wrap:"-cclib" ~mode pkgs) @
       (libs_L ~wrap:"-ccopt" ~mode pkgs) @
@@ -73,13 +74,14 @@ let pkgs_args ~mode = function
       (libs_other ~wrap:"-ldopt" ~mode pkgs)
     in
     Args.concat [
-      Args.create (`Pp `C) (cflags ~mode pkgs);
-      Args.create (`Compile `C) (cflags ~wrap:"-ccopt" ~mode pkgs);
-      Args.create (`Link `C) (ocaml_clink_flags);
-      Args.create (`Archive `C) (ocamlmklib_flags);
-      Args.create (`Archive `C_shared) (ocamlmklib_flags);
-      Args.create (`Link `Byte) (ocaml_clink_flags);
-      Args.create (`Link `Native) (ocaml_clink_flags);
-      Args.create (`Archive `Byte) (ocaml_clink_flags);
-      Args.create (`Archive `Native) (ocaml_clink_flags);
-      Args.create (`Archive `Shared) (ocaml_clink_flags); ]
+      Args.v (Ctx.v [`C; `Pp]) (cflags ~mode pkgs);
+      Args.v (`Compile `C) (cflags ~wrap:"-ccopt" ~mode pkgs);
+      Args.v (`Link `C) (ocaml_clink_flags);
+      Args.v (`Archive `C) (ocamlmklib_flags);
+      Args.v (`Archive `C_shared) (ocamlmklib_flags);
+      Args.v (`Link `Byte) (ocaml_clink_flags);
+      Args.v (`Link `Native) (ocaml_clink_flags);
+      Args.v (`Archive `Byte) (ocaml_clink_flags);
+      Args.v (`Archive `Native) (ocaml_clink_flags);
+      Args.v (`Archive `Shared) (ocaml_clink_flags); ]
+*)

@@ -9,7 +9,7 @@ LIBDIR="lib"
 PKGS="-package cmdliner"
 
 LIB="as_string as_path as_fmt as_log as_cmd as_conf \
-     as_context as_args as_product as_env as_rule as_part \
+     as_ctx as_args as_product as_action as_part \
      as_project assemblage"
 
 LIB_CMDLINER="assemblage_cmdliner"

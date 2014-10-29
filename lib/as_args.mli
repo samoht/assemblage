@@ -15,30 +15,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Build command arguments
+(** Build argument bundles
 
     For documentation see {!Assemblage.Args}. *)
 
-(** {1 Arguments} *)
+(** {1 Arguments with conditions} *)
 
-type raw_args = string list
+type cargs
+val cond : cargs -> bool As_conf.value
+val args : cargs -> string list As_conf.value
+
+(** {1 Argument bundles} *)
+
 type t
-
-val create : ?cond:bool As_conf.value -> As_context.t -> raw_args -> t
+val v : ?cond:bool As_conf.value -> As_ctx.t -> string list As_conf.value -> t
+val vc : ?cond:bool As_conf.value -> As_ctx.t -> string list -> t
+val empty : t
+val is_empty : t -> bool
 val append : t -> t -> t
 val ( @@@ ) : t -> t -> t
 val concat : t list -> t
-val get : As_context.t -> t -> (bool As_conf.value * raw_args) list
+val bindings : t -> (As_ctx.t * cargs list) list
+val for_ctx : t -> As_ctx.t -> cargs list
 
-(** {1 Built-in arguments} *)
+(** {1 Built-in argument bundles} *)
 
-val empty : t
-val debug : t
-val annot : t
-val warn_error : t
 val linkall : t
 val thread : t
 val vmthread : t
 val cclib : string list -> t
 val ccopt : string list -> t
 val stub : string -> t
+val debug : t
+val annot : t
+val warn_error : t

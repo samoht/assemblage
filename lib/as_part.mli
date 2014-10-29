@@ -40,13 +40,14 @@ val coerce_if : ([< kind] as 'b) -> 'a t -> 'b t option
 val name : 'a t -> string
 val kind : 'a t -> kind
 val cond : 'a t -> bool As_conf.value
-val args : As_env.t -> 'a t -> As_args.t
+val args : 'a t -> As_args.t
 val deps : 'a t -> kind t list
-val rules : As_env.t -> 'a t -> As_rule.t list
+val actions : 'a t -> As_action.t list
 
 (** {1 Derived fields} *)
 
-val products : As_env.t -> 'a t -> As_product.t list
+val products : 'a t -> As_product.t list As_conf.value
+(* TODO val active : 'a t -> bool As_conf.value  *)
 
 (** {1 Comparing} *)
 
@@ -66,9 +67,9 @@ val to_set : 'a t list -> 'a t list
 
 module Base : sig
   val create :
-    ?cond:bool As_conf.value -> ?args:(As_env.t -> kind t -> As_args.t) ->
+    ?cond:bool As_conf.value -> ?args:(kind t -> As_args.t) ->
     ?deps:'a t list -> string ->
-    (As_env.t -> kind t -> As_rule.t list) -> [> `Base] t
+    (kind t -> As_action.t list) -> [> `Base] t
 end
 
 module Unit : sig
@@ -79,15 +80,15 @@ module Unit : sig
   type kind = [ `OCaml of ocaml_unit * ocaml_interface | `C of c_unit | `Js ]
 
   val kind : [< `Unit] t -> kind
-  val src_dir : As_env.t -> [< `Unit] t -> As_path.rel
+  val src_dir : [< `Unit] t -> As_path.rel
 
   val create :
     ?cond:bool As_conf.value -> ?args:As_args.t -> ?deps:'a t list ->
-    ?src_dir:(As_env.t -> As_path.rel) -> string -> kind -> [> `Unit] t
+    ?src_dir:(As_path.rel) -> string -> kind -> [> `Unit] t
 
   val check_set : 'a t list -> 'a t list
 
-  val of_base : src_dir:(As_env.t -> As_path.rel) -> kind -> [`Base] t ->
+  val of_base : src_dir:(As_path.rel) -> kind -> [`Base] t ->
     [> `Unit] t
 
   val ocaml : 'a t -> [> `Unit] t option
@@ -135,8 +136,10 @@ module Bin : sig
   val of_base : ?byte:bool -> ?native:bool -> ?js:bool -> kind ->
     [< `Base] t -> [> `Bin] t
 
+(*
   val cmd : ?args:As_args.t -> ?kind:[`Byte | `Native] -> [< `Bin] t ->
-    (string list -> string list) -> As_rule.cmd
+    (string list -> string list) -> As_action.cmd
+*)
 
   val ocaml : 'a t -> [> `Bin] t option
   val ocaml_toplevel : 'a t -> [> `Bin] t option
@@ -169,7 +172,7 @@ module Run : sig
     ?args:As_args.t ->
     ?deps:'a t list ->
     ?run_dir:As_path.t ->
-    string -> (As_env.t -> As_rule.action) -> [> `Run] t
+    string -> As_action.t -> [> `Run] t
 
   val of_base : ?run_dir:As_path.t -> [< `Base] t -> [> `Run] t
 end
@@ -182,13 +185,13 @@ module Doc : sig
     ?cond:bool As_conf.value ->
     ?args:As_args.t ->
     ?deps:'a t list ->
-    ?keep:(As_env.t -> [< `Unit] t -> bool) ->
+    ?keep:([< `Unit] t -> bool) ->
     ?kind:kind -> string -> 'a t list -> [> `Doc] t
 
   val of_base : ?kind:kind -> [< `Base] t -> [> `Doc ] t
 
-  val default : As_env.t -> [< `Unit] t -> bool
-  val dev : As_env.t -> [< `Unit] t -> bool
+  val default : [< `Unit] t -> bool
+  val dev : [< `Unit] t -> bool
 end
 
 module Dir : sig
@@ -202,12 +205,12 @@ module Dir : sig
     ?cond:bool As_conf.value ->
     ?args:As_args.t ->
     ?deps: 'a t list ->
-    ?keep:(As_env.t -> 'a t -> (As_path.t * As_product.t) list) ->
+    ?keep:('a t -> (As_path.t * As_product.t) list) ->
     ?install:bool -> kind -> 'a t list -> [> `Dir ] t
 
   val of_base : ?install:bool -> [> `Base] t -> [> `Dir] t
 
-  val default : As_env.t -> 'a t -> (As_path.t * As_product.t) list
+  val default : 'a t -> (As_path.t * As_product.t) list
 end
 
 module Silo : sig

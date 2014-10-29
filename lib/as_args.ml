@@ -17,97 +17,113 @@
 
 let str = Printf.sprintf
 
-(* Arguments *)
+(* Arguments with conditions *)
 
-type raw_args = string list
-type arg = { cond : bool As_conf.value; context : As_context.t;
-             raw_args : raw_args; }
+type cargs = { cond : bool As_conf.value; args : string list As_conf.value }
+let cond ca = ca.cond
+let args ca = ca.args
 
-type t = arg list
+(* Argument bundles *)
 
-let create ?(cond = As_conf.true_) context raw_args =
-  [{ cond; context; raw_args }]
+module Cmap = Map.Make (As_ctx)
 
-let empty = []
-let append a a' = a @ a'
+type t = cargs list Cmap.t
+
+let v ?(cond = As_conf.true_) ctx args = Cmap.singleton ctx [{ cond; args }]
+let vc ?cond ctx args = v ?cond ctx (As_conf.const args)
+let empty = Cmap.empty
+let is_empty = Cmap.is_empty
+let append a0 a1 =
+  let merge _ v v' = match v, v' with
+  | Some cl, Some cl' -> Some (List.rev_append (List.rev cl) cl')
+  | (Some _ as cl), None | None, (Some _ as cl) -> cl
+  | None, None -> assert false
+  in
+  Cmap.merge merge a0 a1
+
 let ( @@@ ) = append
 let concat al = List.fold_left append empty al
-let get ctx args =
-  let add acc arg =
-    if arg.context <> ctx then acc else
-    (arg.cond, arg.raw_args) :: acc
+let bindings = Cmap.bindings
+
+let for_ctx a ctx =
+  let add bctx cargs_list acc =
+    if not (As_ctx.matches bctx ctx) then acc else
+    List.rev_append cargs_list acc
   in
-  List.rev (List.fold_left add [] args)
+  List.rev (Cmap.fold add a [])
 
-(* Built-in arguments *)
-
-let debug =
-  let f = ["-g"] in
-  let create = create ~cond:As_conf.(value debug) in
-  concat
-    [ create (`Compile `Byte) f;
-      create (`Compile `Native) f;
-      create (`Compile `Js) [ "-pretty"; "-debuginfo"; "-sourcemap"];
-      create (`Compile `C) f;
-      create (`Link `Byte) f;
-      create (`Link `Native) f; ]
-
-let annot =
-  let f = ["-bin-annot"] in
-  let create = create ~cond:As_conf.(value ocaml_annot) in
-  concat
-    [ create (`Compile `Byte) f;
-      create (`Compile `Native) f; ]
-
-let warn_error =
-  let f = ["-warn-error A-44-4-48 -w A-44-4-48"] in
-  let create = create ~cond:As_conf.(value warn_error) in
-  concat
-    [ create (`Compile `Byte) f;
-      create (`Compile `Native) f; ]
+(* Built-in argument bundles *)
 
 let linkall =
-  let f = ["-linkall"] in
+  let f = As_conf.const ["-linkall"] in
   concat
-    [ create (`Archive `Shared) f;
-      create (`Link `Byte) f;
-      create (`Link `Native) f;
-      create (`Link `Js) f; ]
+    [ v (As_ctx.v [`OCaml; `Archive; `Shared]) f;
+      v (As_ctx.v [`OCaml; `Link; `Byte]) f;
+      v (As_ctx.v [`OCaml; `Link; `Native]) f;
+      v (As_ctx.v [`OCaml; `Link; `Js]) f; ]
 
 let thread =
-  let f = ["-thread"] in
+  let f = As_conf.const ["-thread"] in
   concat
-    [ create (`Compile `Byte) f;
-      create (`Compile `Native) f;
-      create (`Link `Byte) f;
-      create (`Link `Native) f; ]
+    [ v (As_ctx.v [`OCaml; `Compile; `Byte]) f;
+      v (As_ctx.v [`OCaml; `Compile; `Native]) f;
+      v (As_ctx.v [`OCaml; `Link; `Byte]) f;
+      v (As_ctx.v [`OCaml; `Link; `Native]) f; ]
 
 let vmthread =
-  let f = ["-vmthread"] in
+  let f = As_conf.const ["-vmthread"] in
   concat
-    [ create (`Compile `Byte) f;
-      create (`Link `Byte) f; ]
+    [ v (As_ctx.v [`OCaml; `Compile; `Byte]) f;
+      v (As_ctx.v [`OCaml; `Link; `Byte]) f; ]
 
 (* FIXME: which phase? *)
 let cclib args =
-  let f = List.map (str "-cclib %s") args in
+  let f = As_conf.const (List.map (str "-cclib %s") args) in
   concat
-    [ create (`Compile `C) args;
-      create (`Link `Byte) f;
-      create (`Link `Byte) f; ]
+    [ v (As_ctx.v [`OCaml; `Compile; `C]) (As_conf.const args);
+      v (As_ctx.v [`OCaml; `Link; `Byte]) f;
+      v (As_ctx.v [`OCaml; `Link; `Byte]) f; ]
 
 (* FIXME: which phase? *)
 let ccopt args =
-  let f = List.map (str "-ccopt %s") args in
+  let f = As_conf.const (List.map (str "-ccopt %s") args) in
   concat
-    [ create (`Compile `Byte) f;
-      create (`Compile `Native) f;
-      create (`Compile `C) args;
-      create (`Link `Byte) f;
-      create (`Link `Native) f; ]
+    [ v (As_ctx.v [`OCaml; `Compile; `Byte]) f;
+      v (As_ctx.v [`OCaml; `Compile; `Native]) f;
+      v (As_ctx.v [`C; `Compile]) (As_conf.const args);
+      v (As_ctx.v [`OCaml; `Link; `Byte]) f;
+      v (As_ctx.v [`OCaml; `Link; `Native]) f; ]
 
 (* FIXME: which phase? *)
 let stub s =
   concat
-    [ create (`Link `Byte) [str "-cclib -l%s -dllib -l%s" s s];
-      create (`Link `Native) [str "-cclib -l%s" s]; ]
+    [ v (As_ctx.v [`OCaml; `Link; `Byte])
+        (As_conf.const [str "-cclib -l%s -dllib -l%s" s s]);
+      v (As_ctx.v [`OCaml; `Link; `Native])
+        (As_conf.const [str "-cclib -l%s" s]); ]
+
+let debug =
+  let f = As_conf.const ["-g"] in
+  let v = v ~cond:As_conf.(value debug) in
+  concat
+    [ v (As_ctx.v [`OCaml; `Compile; `Byte]) f;
+      v (As_ctx.v [`OCaml; `Compile; `Native]) f;
+      v (As_ctx.v [`OCaml; `Compile; `Js])
+           (As_conf.const [ "-pretty"; "-debuginfo"; "-sourcemap"]);
+      v (As_ctx.v [`C; `Compile]) f;
+      v (As_ctx.v [`OCaml; `Link; `Byte]) f;
+      v (As_ctx.v [`OCaml; `Link; `Native]) f; ]
+
+let annot =
+  let f = As_conf.const ["-bin-annot"] in
+  let v = v ~cond:As_conf.(value ocaml_annot) in
+  concat
+    [ v (As_ctx.v [`OCaml; `Compile; `Byte]) f;
+      v (As_ctx.v [`OCaml; `Compile; `Native]) f; ]
+
+let warn_error =
+  let f = As_conf.const ["-warn-error A-44-4-48 -w A-44-4-48"] in
+  let v = v ~cond:As_conf.(value warn_error) in
+  concat
+    [ v (As_ctx.v [`OCaml; `Compile; `Byte]) f;
+      v (As_ctx.v [`OCaml; `Compile; `Native]) f; ]

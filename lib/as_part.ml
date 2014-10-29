@@ -43,7 +43,7 @@ type unit_kind =
   | `Js ]
 type unit_meta =
   { unit_kind : unit_kind;
-    unit_src_dir : As_env.t -> As_path.rel }
+    unit_src_dir : As_path.rel }
 
 type lib_kind = [ `OCaml | `OCaml_pp | `C ]
 type lib_meta =
@@ -87,8 +87,8 @@ type +'a t =
     p_name : string;
     p_cond : bool As_conf.value;
     p_deps : kind t list;
-    p_args : As_env.t -> kind t -> As_args.t;
-    p_rules : As_env.t -> kind t -> As_rule.t list;
+    p_args : kind t -> As_args.t;
+    p_actions : kind t -> As_action.t list;
     p_meta : meta; }
 constraint 'a = [< kind ]
 
@@ -107,13 +107,17 @@ let name p = p.p_name
 let kind p = p.p_kind
 let cond p = p.p_cond
 let deps p = p.p_deps
-let args env p = p.p_args env (p :> kind t)   (* FIXME memoize *)
-let rules env p = p.p_rules env (p :> kind t) (* FIXME memoize *)
+let args p = p.p_args (p :> kind t)   (* FIXME memoize *)
+let actions p = p.p_actions (p :> kind t) (* FIXME memoize *)
 let meta p = p.p_meta
 
 (* Derived fields *)
 
-let products env p = List.flatten (List.map As_rule.outputs (rules env p))
+let products p =
+  let outputs = List.map As_action.outputs (actions p) in
+  let add acc outputs = As_conf.(const List.rev_append $ outputs $ acc) in
+  let rev_outputs = List.fold_left add (As_conf.const []) outputs in
+  As_conf.(const List.rev $ rev_outputs)
 
 (* Comparing *)
 
@@ -146,20 +150,20 @@ let to_set l =
 
 (* Part constructor *)
 
-let create ?(cond = As_conf.true_) ?(args = fun _ _ -> As_args.empty)
-    ?(deps = []) ?(rules = fun _ _ -> []) name kind meta =
+let create ?(cond = As_conf.true_) ?(args = fun _ -> As_args.empty)
+    ?(deps = []) ?(actions = fun _  -> []) name kind meta =
   let deps = to_set deps in
   { p_kind = (kind :> kind);
     p_name = name;
     p_cond = cond;
     p_deps = (deps :> kind t list);
-    p_rules = (rules :> As_env.t -> kind t -> As_rule.t list);
+    p_actions = (actions :> kind t -> As_action.t list);
     p_args = args;
     p_meta = meta }
 
 let add_deps_args deps args u = (* N.B. this slows downs things a lot. *)
   let p_deps = to_set (u.p_deps @ deps) in
-  let p_args env _ = As_args.(@@@) (u.p_args env (u :> kind t)) args in
+  let p_args _ = As_args.(@@@) (u.p_args (u :> kind t)) args in
   { u with p_deps; p_args }
 
 (* Meta data accessors and part filters *)
@@ -171,7 +175,7 @@ let part_filter kind get_part_subkind part_subkind p =
 
 let unit_get_meta p = match p.p_meta with Unit m -> m | _ -> assert false
 let unit_kind p = (unit_get_meta p).unit_kind
-let unit_src_dir env p = (unit_get_meta p).unit_src_dir env
+let unit_src_dir p = (unit_get_meta p).unit_src_dir
 let unit_js p = part_filter `Unit unit_kind `Js p
 let unit_ocaml p = match coerce_if `Unit p with
 | None -> None
@@ -226,8 +230,8 @@ let custom_data p = (custom_get_meta p).custom_data
 (* Specific parts. *)
 
 module Base = struct
-  let create ?cond ?args ?deps name rules =
-    create ?cond ?args ?deps ~rules name `Base (Base ())
+  let create ?cond ?args ?deps name actions =
+    create ?cond ?args ?deps ~actions name `Base (Base ())
 end
 
 module Unit = struct
@@ -246,16 +250,17 @@ module Unit = struct
 
   (* Rules *)
 
+(*
   let unit_file fext env u =
     As_path.(as_rel (As_env.build_dir env // (file (name u)) + fext))
 
-  let unit_args env u =
+  let unit_args u =
     let pkgs = keep_kind `Pkg (deps u) in
-    let pkgs_args = As_args.concat (List.map (args env) pkgs) in
+    let pkgs_args = As_args.concat (List.map args pkgs) in
     let libs = keep_kind `Lib (deps u) in
     let lib_args lib =
-      let cma = List.filter (As_product.has_ext `Cma) (products env lib) in
-      let cmxa = List.filter (As_product.has_ext `Cmxa) (products env lib) in
+      let cma = List.filter (As_product.has_ext `Cma) (products lib) in
+      let cmxa = List.filter (As_product.has_ext `Cmxa) (products lib) in
       match lib_kind lib with
       | `OCaml ->
           let inc ctxs a = As_product.dirname_to_args ~pre:["-I"] ctxs a in
@@ -277,7 +282,7 @@ module Unit = struct
     let cond = cond u in
     let dst = unit_file fext env u in
     let src = As_path.(as_rel (src_dir env u / (basename dst))) in
-    As_rule.link ~cond env ~src ~dst
+    As_action.link ~cond env ~src ~dst
 
   let js_rules u env = [ link_src `Js u env ]
   let js_args u env = As_args.empty
@@ -291,7 +296,7 @@ module Unit = struct
     let outputs = [ product o ] in
     let compile args = As_env.ocamlc env :: args @ [ As_path.basename c ] in
     let action = [ unit_args env u, compile ] in
-    As_rule.create ~context ~inputs ~outputs ~action
+    As_action.create ~context ~inputs ~outputs ~action
 
   let rec c_rules c_unit env u = match c_unit with
   | `H -> [ link_src `H env u ]
@@ -307,7 +312,7 @@ module Unit = struct
     let src = unit_file (fext :> As_path.ext) env u in
     let src_pped = unit_file (ocamlpp_ext fext ctx) env u in
     match As_env.ocaml_pp env with
-    | None -> As_rule.link ~cond:(cond u) env ~src ~dst:src_pped
+    | None -> As_action.link ~cond:(cond u) env ~src ~dst:src_pped
     | Some pp ->
         let context = (`Pp ctx :> As_context.t) in
         let product p = `File p, cond u in
@@ -318,7 +323,7 @@ module Unit = struct
           [ As_path.to_string src; ">"; As_path.to_string src_pped ]
         in
         let action = [ unit_args env u, pp ] in
-        As_rule.create ~context ~inputs ~outputs ~action
+        As_action.create ~context ~inputs ~outputs ~action
 
   let ocaml_compile_mli env u =
     let context = `Compile `Intf in
@@ -332,7 +337,7 @@ module Unit = struct
       As_env.ocamlc env :: args @ [ "-c"; "-intf"; (As_path.to_string cmli); ]
     in
     let action = [ unit_args env u, compile ] in
-    As_rule.create ~context ~inputs ~outputs ~action
+    As_action.create ~context ~inputs ~outputs ~action
 
   let ocaml_compile_ml_byte env u =
     let context = `Compile `Byte in
@@ -350,7 +355,7 @@ module Unit = struct
       As_env.ocamlc env :: args @ [ "-c"; "-impl"; (As_path.to_string cml) ]
     in
     let action = [ unit_args env u, compile ] in
-    As_rule.create ~context ~inputs ~outputs ~action
+    As_action.create ~context ~inputs ~outputs ~action
 
   let ocaml_compile_ml_native env u =
     let context = `Compile `Native in
@@ -368,7 +373,7 @@ module Unit = struct
       As_env.ocamlopt env :: args @ [ "-c"; "-impl"; (As_path.to_string cml); ]
     in
     let action = [ unit_args env u, compile ] in
-    As_rule.create ~context ~inputs ~outputs ~action
+    As_action.create ~context ~inputs ~outputs ~action
 
   let rec ocaml_rules unit env u = match unit with
   | `Mli ->
@@ -383,21 +388,23 @@ module Unit = struct
         ocaml_compile_ml_native env u; ]
   | `Both ->
       ocaml_rules `Mli env u @ ocaml_rules `Ml env u
-
-  let rules env p =
+*)
+  let actions p = []
+(*
     let u = coerce `Unit p in
     match kind u with
     | `Js -> js_rules env u
     | `C unit -> c_rules unit env u
     | `OCaml (unit, _) -> ocaml_rules unit env u
+*)
 
   (* Create *)
 
   let create ?cond ?(args = As_args.empty) ?deps
-      ?(src_dir = fun _ -> As_path.current) name kind =
+      ?(src_dir = As_path.current) name kind =
     let meta = meta kind src_dir in
-    let args _ _ = args in
-    create ?cond ~args ?deps ~rules name `Unit meta
+    let args _ = args in
+    create ?cond ~args ?deps ~actions name `Unit meta
 
   let of_base ~src_dir kind p =
     { p with p_kind = `Unit;
@@ -430,18 +437,19 @@ module Lib = struct
 
   (* Rules *)
 
-  let lib_file fext env l =
+(*
+  let lib_file fext l =
     As_path.(as_rel (As_env.build_dir env // (file (name l)) + fext))
 
-  let lib_args env l =
+  let lib_args l =
     let pkgs = keep_kind `Pkg (deps l) in
-    let pkgs_args = As_args.concat (List.map (args env) pkgs) in
+    let pkgs_args = As_args.concat (List.map args pkgs) in
     As_args.(args env l @@@ pkgs_args)
 
-  let c_archive_shared units env l =
+  let c_archive_shared units l =
     let context = `Archive `C_shared in (* FIXME this is also `Archive `C *)
     let product p = `File p, cond l in
-    let units_prods = List.(flatten (map (products env) units)) in
+    let units_prods = List.(flatten (map producs units)) in
     let units_o = List.(filter (As_product.has_ext `O) units_prods) in
     let a = lib_file `A env l in
     let so = lib_file `So env l in
@@ -453,7 +461,7 @@ module Lib = struct
       [ "-o"; As_path.(basename (chop_ext so));] @ units_o
     in
     let action = [ lib_args env l, archive ] in
-    As_rule.create ~context ~inputs ~outputs ~action
+    As_action.create ~context ~inputs ~outputs ~action
 
   let c_rules units env l = [ c_archive_shared units env l ]
 
@@ -471,7 +479,7 @@ module Lib = struct
       [ "-a"; "-o"; As_path.to_string cma ] @ units_cmo
     in
     let action = [ lib_args env l, archive ] in
-    As_rule.create ~context ~inputs ~outputs ~action
+    As_action.create ~context ~inputs ~outputs ~action
 
   let ocaml_archive_native units env l =
     let context = `Archive `Native in
@@ -487,7 +495,7 @@ module Lib = struct
       [ "-a"; "-o"; As_path.to_string cmxa ] @ units_cmx
     in
     let action = [ lib_args env l, archive ] in
-    As_rule.create ~context ~inputs ~outputs ~action
+    As_action.create ~context ~inputs ~outputs ~action
 
   let ocaml_archive_shared units env l =
     let context = `Archive `Native in
@@ -503,7 +511,7 @@ module Lib = struct
       [ "-shared"; "-o"; As_path.to_string cmxs ] @ units_cmx
     in
     let action = [ lib_args env l, archive ] in
-    As_rule.create ~context ~inputs ~outputs ~action
+    As_action.create ~context ~inputs ~outputs ~action
 
   let ocaml_rules units env l =
     (*  FIXME: check if there are C units and use directly ocamlmklib *)
@@ -515,17 +523,19 @@ module Lib = struct
     List.concat [ byte; nat; dyn; ]
 
   let ocaml_pp_rules units env l = [ ocaml_archive_byte units env l ]
-
-  let rules units env p =
+*)
+  let actions units p = []
+(*
     let l = coerce `Lib p in
     let build_dir = As_path.dir (kind_to_string `Lib ^ "-" ^ (name l)) in
     let env = As_env.push_build_dir env build_dir in
-    let units_rules = List.(flatten (map (rules env) units)) in
-    let mkdir_rule = As_rule.mkdir env ~dir:(As_env.build_dir env) in
+    let units_rules = List.(flatten (map (actions env) units)) in
+    let mkdir_rule = As_action.mkdir env ~dir:(As_env.build_dir env) in
     match kind l with
     | `C -> mkdir_rule :: units_rules @ c_rules units env p
     | `OCaml -> mkdir_rule :: units_rules @ ocaml_rules units env p
     | `OCaml_pp -> mkdir_rule :: units_rules @ ocaml_pp_rules units env p
+*)
 
   (* Create *)
 
@@ -534,9 +544,9 @@ module Lib = struct
     let meta = meta ?byte ?native ?native_dynlink kind in
     let units = List.map (add_deps_args ds args) units in
     let deps = List.flatten (List.map deps units) in
-    let args _ _ = args in
-    let rules = rules units in
-    create ?cond ~args ~deps ~rules name `Lib meta
+    let args _  = args in
+    let actions = actions units in
+    create ?cond ~args ~deps ~actions name `Lib meta
 
   let of_base ?byte ?native ?native_dynlink kind p =
     let meta = meta ?byte ?native ?native_dynlink kind in
@@ -575,16 +585,18 @@ module Bin = struct
   let native p = (get_meta p).bin_native
   let js p = (get_meta p).bin_js
 
-  (* Rules *)
+  (* Actions *)
 
-  let ocaml_rules units env p = []
+  let ocaml_actions units p = []
 
-  let rules units env p =
+  let actions units p = []
+(*
     let b = coerce `Bin p in
     let build_dir = As_path.dir (kind_to_string `Bin ^ "-" ^ (name b)) in
     let env = As_env.push_build_dir env build_dir in
-    let units_rules = List.(flatten (map (rules env) units)) in
-    units_rules @ ocaml_rules units env p
+    let units_actions = List.(flatten (map actions units)) in
+    units_actions @ ocaml_actions units p
+*)
 
   (* Create *)
 
@@ -593,9 +605,9 @@ module Bin = struct
     let meta = meta ?byte ?native ?js kind in
     let deps = ds @ List.flatten (List.map deps units) in
     let units = List.map (add_deps_args deps args) units in
-    let args _ _ = args in
-    let rules = rules units in
-    create ?cond ~args ~deps ~rules name `Bin meta
+    let args _ = args in
+    let actions = actions units in
+    create ?cond ~args ~deps ~actions name `Bin meta
 
   let of_base ?byte ?native ?js kind p =
     let meta = meta ?byte ?native ?js kind in
@@ -603,8 +615,10 @@ module Bin = struct
 
   (* As build commands *)
 
+(*
   let cmd ?(args = As_args.empty) ?kind bin args' =
     args, fun args -> "TODO EXEC NAME" :: (args' args)
+*)
 
   (* Package filters *)
 
@@ -629,11 +643,15 @@ module Pkg = struct
   type c_lookup = [ `Pkg_config ]
   type spec = [ `C of c_lookup | `OCaml of ocaml_lookup ]
 
-  let ocamlfind_lookup name args env _  =
+  let ocamlfind_lookup name args _  = args
+(*
     As_args.(As_env.ocamlfind_pkgs env [name] @@@ args)
+*)
 
-  let pkg_config_lookup name args env _ =
+  let pkg_config_lookup name args _ = args
+(*
     As_args.(As_env.pkg_config env [name] @@@ args)
+*)
 
   let create ?cond ?(args = As_args.empty) name spec =
     let kind, args = match spec with
@@ -665,7 +683,7 @@ module Run = struct
 
   let create ?cond ?(args = As_args.empty) ?deps ?run_dir name cmds =
     let meta = meta ?run_dir () in
-    let args _ _ = args in
+    let args _ = args in
     create ?cond ~args ?deps name `Run meta
 
   let of_base ?run_dir p =
@@ -687,7 +705,7 @@ module Doc = struct
 
   let create ?cond ?(args = As_args.empty) ?deps ?keep ?kind name ps =
     let meta = meta ?kind () in
-    let args _ _ = args in
+    let args _ = args in
     create ?cond ~args ?deps name `Doc meta
 
   let of_base ?kind p =
@@ -696,8 +714,8 @@ module Doc = struct
 
   (* Documentation filters *)
 
-  let default _ _ = failwith "TODO"
-  let dev _ _ = failwith "TODO"
+  let default _ = failwith "TODO"
+  let dev _ = failwith "TODO"
 end
 
 module Dir = struct
@@ -723,7 +741,7 @@ module Dir = struct
 
   let create ?cond ?(args = As_args.empty) ?deps ?keep ?install kind ps =
     let meta = meta ?install () in
-    let args _ _ = args in
+    let args _ = args in
     create ?cond ~args ?deps (name_of_kind kind) `Dir meta
 
   let of_base ?install p =
@@ -732,7 +750,7 @@ module Dir = struct
 
   (* Product filters *)
 
-  let default _ _ = failwith "TODO"
+  let default _ = failwith "TODO"
 end
 
 module Silo = struct
@@ -746,7 +764,7 @@ module Silo = struct
 
   let create ?cond ?(args = As_args.empty) ?deps name ps =
     let meta = meta () in
-    let args _ _ = args in
+    let args _ = args in
     create ?cond ~args ?deps name `Silo meta
 
   let of_base p =

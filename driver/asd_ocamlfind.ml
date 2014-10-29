@@ -90,7 +90,8 @@ let pp_byte ~mode pkgs =
 
 let pkgs_args ~mode = function
 | [] -> Args.empty
-| pkgs ->
+| pkgs -> Args.empty
+(*
     Args.concat
       [ Args.create (`Pp `Byte) (pp_byte ~mode pkgs);
         Args.create (`Pp `Native) (pp_byte ~mode pkgs);
@@ -98,6 +99,7 @@ let pkgs_args ~mode = function
         Args.create (`Compile `Native) (comp_native ~mode pkgs);
         Args.create (`Link `Byte) (link_byte ~mode pkgs);
         Args.create (`Link `Native) (link_native ~mode pkgs) ]
+*)
 
 module META = struct
   type t = string

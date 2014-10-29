@@ -26,17 +26,12 @@ module Cmd = As_cmd
 (* Building *)
 
 module Conf = As_conf
-module Context = As_context
-module Args = As_args
-module Env = As_env
-module Product = As_product
-module Rule = As_rule
-
-type cond = bool As_conf.value
-type context = As_context.t
+module Ctx = As_ctx
 type args = As_args.t
-type env = As_env.t
-type rule = As_rule.t
+module Args = As_args
+module Product = As_product
+module Action = As_action
+
 
 (* Parts *)
 
@@ -49,7 +44,7 @@ type part_kind = As_part.kind
 type +'a part = 'a As_part.t
 
 let unit ?cond ?args ?deps ?(kind = `OCaml (`Both, `Normal)) ?(dir = []) name =
-  let src_dir = fun _ -> As_path.rel_of_segs dir in
+  let src_dir = As_path.rel_of_segs dir in
   As_part.Unit.create ?cond ?args ?deps name kind ~src_dir
 
 let lib ?cond ?args ?deps ?byte ?native ?native_dynlink ?(kind = `OCaml) name

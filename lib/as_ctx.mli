@@ -15,36 +15,31 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type t =
-  [ `Prepare
-  | `Dep
-  | `Pp of [ `Byte | `Native | `Js | `C]
-  | `Compile of [ `Intf | `Byte | `Native | `Js | `C]
-  | `Archive of [ `Byte | `Native | `Shared | `C | `C_shared]
-  | `Link of [ `Byte | `Native | `Js | `C]
-  | `Run of [ `Byte | `Native | `Js | `C]
-  | `Test
-  | `Doc
-  | `Other of string ]
+(** Command contexts
 
-let string_of_mode = function
-| `Byte -> "byte"
-| `Native -> "native"
-| `Shared -> "shared"
-| `C -> "c"
-| `C_shared -> "c-shared"
-| `Js -> "js"
-| `Camlp4o -> "camlp4o"
-| `Intf -> "intf"
+    For documentation see {!Assemblage.Ctx}. *)
 
-let to_string = function
-| `Prepare -> "prepare"
-| `Dep -> "dep"
-| `Pp m -> "pp-" ^ string_of_mode m
-| `Compile m -> "compile-" ^ string_of_mode m
-| `Archive m -> "archive-" ^ string_of_mode m
-| `Link m -> "link-" ^ string_of_mode m
-| `Run m -> "run-" ^ string_of_mode m
-| `Test -> "test"
-| `Doc -> "odoc"
-| `Other s -> s
+(** {1 Context elements} *)
+
+type build_phase =
+  [ `Prepare | `Gen | `Dep | `Pp | `Compile | `Archive | `Link | `Doc ]
+
+type language = [ `OCaml | `C | `Js ]
+type ocaml_product = [ `Intf | `Byte | `Native | `Js ]
+type archive_product = [ `Shared ]
+type command = [ `Cmd of string As_conf.key ]
+type tag = [ `Tag of string ]
+type elt =
+  [ build_phase | language | ocaml_product | archive_product | command | tag ]
+
+val pp_elt : Format.formatter -> elt -> unit
+
+(** {1 Contexts} *)
+
+type t
+val v : elt list -> t
+include Set.S with type elt := elt
+               and type t := t
+
+val pp : Format.formatter -> t -> unit
+val matches : t -> t -> bool
