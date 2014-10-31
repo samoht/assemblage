@@ -27,8 +27,10 @@ val app : ('a -> 'b) value -> 'a value -> 'b value
 val ( $ ) : ('a -> 'b) value -> 'a value -> 'b value
 val true_ : bool value
 val false_ : bool value
+val neg : bool value -> bool value
 val ( &&& ) : bool value -> bool value -> bool value
 val ( ||| ) : bool value -> bool value -> bool value
+val pick_if : bool value -> 'a value -> 'a value -> 'a value
 
 (** {1 Configuration keys} *)
 

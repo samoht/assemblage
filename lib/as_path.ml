@@ -99,20 +99,22 @@ let is_file p =
 (* File extensions *)
 
 type ext =
-  [ `Ml_dep | `Mli_dep | `Ml | `Mli | `C | `H | `Js | `Cmi | `Cmo | `Cmx | `O
-  | `Cmt | `Cmti | `Cma | `Cmxa | `Cmxs | `A | `So | `Byte | `Native
-  | `Ext of string ]
+  [ `Ml_dep | `Mli_dep | `Ml | `Mli | `Ml_pp | `Mli_pp | `C | `H | `Js | `Cmi
+  | `Cmo | `Cmx | `O | `Cmt | `Cmti | `Cma | `Cmxa | `Cmxs | `A | `So | `Byte
+  | `Native | `Ext of string ]
 
 let ext_to_string = function
-| `Ml_dep -> "mldep" | `Mli_dep -> "mlidep" | `Ml -> "ml" | `Mli -> "mli"
-| `C -> "c" | `H -> "h" | `Js -> "js" | `Cmi -> "cmi" | `Cmo -> "cmo"
+| `Ml_dep -> "ml-dep" | `Mli_dep -> "mli-dep" | `Ml -> "ml" | `Mli -> "mli"
+| `Ml_pp -> "ml-pp" | `Mli_pp -> "mli-pp" | `C -> "c" | `H -> "h"
+| `Js -> "js" | `Cmi -> "cmi" | `Cmo -> "cmo"
 | `Cmx -> "cmx" | `O -> "o" | `Cmt -> "cmt" | `Cmti -> "cmti" | `Cma -> "cma"
 | `Cmxa -> "cmxa" | `Cmxs -> "cmxs" | `A -> "a" | `So -> "so"
 | `Byte -> "byte" | `Native -> "native" | `Ext ext -> ext
 
 let ext_of_string = function
-| "mldep" -> `Ml_dep  | "mlidep" -> `Mli_dep | "ml" -> `Ml | "mli" -> `Mli
-| "c" -> `C | "h" -> `H | "js" -> `Js | "cmi" -> `Cmi | "cmo" -> `Cmo
+| "ml-dep" -> `Ml_dep  | "mli-dep" -> `Mli_dep | "ml" -> `Ml | "mli" -> `Mli
+| "ml-pp" -> `Ml_pp | "mli-pp" -> `Mli_pp | "c" -> `C | "h" -> `H
+| "js" -> `Js | "cmi" -> `Cmi | "cmo" -> `Cmo
 | "cmx" -> `Cmx | "o" -> `O | "cmt" -> `Cmt | "cmti" -> `Cmti | "cma" -> `Cma
 | "cmxa" -> `Cmxa | "cmxs" -> `Cmxs | "a" -> `A | "so" -> `So
 | "byte" -> `Byte | "native" -> `Native | ext -> `Ext ext
@@ -154,4 +156,6 @@ let add_ext p e =
   in
   map add_ext p
 
+let change_ext p e = add_ext (chop_ext p) e
 let ( + ) = add_ext
+let ( -+ ) = change_ext

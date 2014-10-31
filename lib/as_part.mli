@@ -46,7 +46,7 @@ val actions : 'a t -> As_action.t list
 
 (** {1 Derived fields} *)
 
-val products : 'a t -> As_product.t list As_conf.value
+val products : 'a t -> As_path.rel list As_conf.value
 (* TODO val active : 'a t -> bool As_conf.value  *)
 
 (** {1 Comparing} *)
@@ -205,12 +205,12 @@ module Dir : sig
     ?cond:bool As_conf.value ->
     ?args:As_args.t ->
     ?deps: 'a t list ->
-    ?keep:('a t -> (As_path.t * As_product.t) list) ->
+    ?keep:('a t -> As_path.t list) ->
     ?install:bool -> kind -> 'a t list -> [> `Dir ] t
 
   val of_base : ?install:bool -> [> `Base] t -> [> `Dir] t
 
-  val default : 'a t -> (As_path.t * As_product.t) list
+  val default : 'a t -> As_path.t list
 end
 
 module Silo : sig

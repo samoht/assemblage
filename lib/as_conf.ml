@@ -93,8 +93,10 @@ let ( $ ) = app
 
 let true_ = const true
 let false_ = const false
+let neg a = const (fun v -> not v) $ a
 let ( ||| ) a b = const ( || ) $ a $ b
 let ( &&& ) a b = const ( && ) $ a $ b
+let pick_if c a b = const (fun c a b -> if c then a else b) $ c $ a $ b
 
 (* Configuration keys *)
 
@@ -431,10 +433,7 @@ let ocaml_version =
   let doc = "The OCaml compiler version. Default inferred by invoking
              an OCaml compiler with `-version'."
   in
-  let tool nat ocamlopt ocamlc = if nat then ocamlopt else ocamlc in
-  let tool =
-    const tool $ value ocaml_native_tools $ value ocamlopt $ value ocamlc
-  in
+  let tool = pick_if (value ocaml_native) (value ocamlopt) (value ocamlc) in
   let get_version tool =
     As_cmd.on_error ~use:(0, 0, 0, Some "unknown") @@
     As_cmd.(input tool [ "-version" ] >>= (fst version))

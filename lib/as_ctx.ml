@@ -23,14 +23,15 @@ type build_phase =
   [ `Prepare | `Gen | `Dep | `Pp | `Compile | `Archive | `Link | `Doc ]
 
 type language = [ `OCaml | `C | `Js ]
-type ocaml_product = [ `Intf | `Byte | `Native | `Js ]
+type ocaml_source = [ `Ml | `Mli ]
+type ocaml_target = [ `Byte | `Native | `Js ]
 type archive_product = [ `Shared ]
 type command = [ `Cmd of string As_conf.key ]
 type tag = [ `Tag of string ]
 
 module Elt = struct
-  type t = [ build_phase | language | ocaml_product | archive_product
-           | command | tag ]
+  type t = [ build_phase | language | ocaml_source | ocaml_target
+           | archive_product | command | tag ]
 
   let compare (e : t) (e' : t) = match e, e' with
   | `Cmd k0, `Cmd k1 -> As_conf.Key.(compare (V k0) (V k1))
@@ -50,7 +51,8 @@ module Elt = struct
   | `OCaml -> As_fmt.pp_str ppf "ocaml"
   | `C -> As_fmt.pp_str ppf "c"
   | `Js -> As_fmt.pp_str ppf "js"
-  | `Intf -> As_fmt.pp_str ppf "intf"
+  | `Ml -> As_fmt.pp_str ppf "ml"
+  | `Mli -> As_fmt.pp_str ppf "mli"
   | `Byte -> As_fmt.pp_str ppf "byte"
   | `Native -> As_fmt.pp_str ppf "native"
   | `Shared -> As_fmt.pp_str ppf "shared"

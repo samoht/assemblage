@@ -59,9 +59,9 @@ val is_dir : [< t ] -> bool
 (** {1 File extensions} *)
 
 type ext =
-  [ `Ml_dep | `Mli_dep | `Ml | `Mli | `C | `H | `Js | `Cmi | `Cmo | `Cmx | `O
-  | `Cmt | `Cmti | `Cma | `Cmxa | `Cmxs | `A | `So | `Byte | `Native
-  | `Ext of string ]
+  [ `Ml_dep | `Mli_dep | `Ml | `Mli | `Ml_pp | `Mli_pp | `C | `H | `Js | `Cmi
+  | `Cmo | `Cmx | `O | `Cmt | `Cmti | `Cma | `Cmxa | `Cmxs | `A | `So | `Byte
+  | `Native | `Ext of string ]
 
 val ext_to_string : ext -> string
 val ext_of_string : string -> ext
@@ -70,4 +70,6 @@ val ext : [< t ] -> ext option
 val get_ext : [< t ] -> ext
 val add_ext : [< t ] -> ext -> t
 val chop_ext : [< t ] -> t
+val change_ext : [< t ] -> ext -> t
 val ( + ) : [< t ] -> ext -> t
+val ( -+ ) : [< t ] -> ext -> t

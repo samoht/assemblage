@@ -18,28 +18,62 @@
 
     See {!Assemblage.Action}. *)
 
+(** {1 Products} *)
+
+type product = As_path.rel As_conf.value
+type products = As_path.rel list As_conf.value
+
 (** {1 Build commands} *)
 
-type cmd
-val cmd : string As_conf.key -> string list As_conf.value -> cmd
-val seq : cmd -> cmd -> cmd
-val ( <*> ) : cmd -> cmd -> cmd
+type cmds
+
+val cmd : ?stdin:product -> ?stdout:product -> ?stderr:product ->
+  string As_conf.key -> string list As_conf.value -> cmds
+
+val seq : cmds -> cmds -> cmds
+val ( <*> ) : cmds -> cmds -> cmds
 
 (** {1 Actions} *)
 
 type t
 
-val create :
+val v :
   ?cond:bool As_conf.value ->
-  ?ctx:As_ctx.t ->
-  ?args:As_args.t ->
-  inputs:As_product.t list As_conf.value ->
-  outputs:As_product.t list As_conf.value ->
-  cmd -> t
+  ctx:As_ctx.t ->
+  inputs:products ->
+  outputs:products ->
+  cmds -> t
 
 val cond : t -> bool As_conf.value
 val ctx : t -> As_ctx.t
-val args : t -> As_args.t
-val inputs : t -> As_product.t list As_conf.value
-val outputs : t -> As_product.t list As_conf.value
-val cmd : t -> cmd
+val inputs : t -> products
+val outputs : t -> products
+val cmds : t -> cmds
+
+module Spec : sig
+
+  (* List configuration values *)
+
+  type 'a list_v = 'a list As_conf.value
+
+  val atom : 'a -> 'a list_v
+  val atoms : 'a list ->  'a list_v
+  val add : 'a list_v -> 'a list_v -> 'a list_v
+  val add_if : bool As_conf.value -> 'a list_v -> 'a list_v -> 'a list_v
+  val add_if_key : bool As_conf.key -> 'a list_v -> 'a list_v -> 'a list_v
+
+  (* Paths and products *)
+
+  val path : product -> ext:As_path.ext -> product
+  val path_base : product -> string As_conf.value
+  val path_dir : As_path.rel As_conf.value -> As_path.rel As_conf.value
+  val path_arg : ?opt:string -> As_path.rel As_conf.value -> string list_v
+  val paths_args : ?opt:string -> As_path.rel list As_conf.value ->
+    string list_v
+
+  val product : ?ext:As_path.ext -> product -> products
+
+  (* Commands *)
+
+  val ( <*> ) : cmds -> cmds -> cmds
+end

@@ -287,17 +287,6 @@ module Unit = struct
   let js_rules u env = [ link_src `Js u env ]
   let js_args u env = As_args.empty
 
-  let c_compile env u =
-    let context = `Compile `C in
-    let product p = `File p, cond u in
-    let c = unit_file `C env u in
-    let o = unit_file `O env u in
-    let inputs = [ product c ] in
-    let outputs = [ product o ] in
-    let compile args = As_env.ocamlc env :: args @ [ As_path.basename c ] in
-    let action = [ unit_args env u, compile ] in
-    As_action.create ~context ~inputs ~outputs ~action
-
   let rec c_rules c_unit env u = match c_unit with
   | `H -> [ link_src `H env u ]
   | `C -> [ link_src `C env u; c_compile env u; ]
@@ -307,73 +296,6 @@ module Unit = struct
     let kind = match fext with `Ml -> "cml" | `Mli -> "cmli" in
     let ctx = match ctx with `Byte -> "byte" | `Native -> "native" in
     `Ext (str "%s-%s" kind ctx)
-
-  let ocaml_pp fext ctx env u =
-    let src = unit_file (fext :> As_path.ext) env u in
-    let src_pped = unit_file (ocamlpp_ext fext ctx) env u in
-    match As_env.ocaml_pp env with
-    | None -> As_action.link ~cond:(cond u) env ~src ~dst:src_pped
-    | Some pp ->
-        let context = (`Pp ctx :> As_context.t) in
-        let product p = `File p, cond u in
-        let inputs = [ product src ] in
-        let outputs = [ product src_pped ] in
-        let pp args =
-          pp :: args @
-          [ As_path.to_string src; ">"; As_path.to_string src_pped ]
-        in
-        let action = [ unit_args env u, pp ] in
-        As_action.create ~context ~inputs ~outputs ~action
-
-  let ocaml_compile_mli env u =
-    let context = `Compile `Intf in
-    let product p = `File p, cond u in
-    let cmli = unit_file (ocamlpp_ext `Mli `Byte) env u in
-(*    let mli_dep = unit_file `Mli_dep env u in (* defined by parent *) TODO *)
-    let cmi = unit_file `Cmi env u in
-    let inputs = [ product cmli; (* product mli_dep *) ] in
-    let outputs = [ product cmi ] in
-    let compile args =
-      As_env.ocamlc env :: args @ [ "-c"; "-intf"; (As_path.to_string cmli); ]
-    in
-    let action = [ unit_args env u, compile ] in
-    As_action.create ~context ~inputs ~outputs ~action
-
-  let ocaml_compile_ml_byte env u =
-    let context = `Compile `Byte in
-    let product p = `File p, As_conf.(cond u &&& value ocaml_byte) in
-    let has_mli = match kind u with `OCaml (`Both, _) -> true | _ -> false in
-    let ml_dep = unit_file `Ml_dep env u in
-    let cml = unit_file (ocamlpp_ext `Ml `Byte) env u in
-    let cmi = unit_file `Cmi env u in
-    let cmo = unit_file `Cmo env u in
-    let inputs = [ product cml; product ml_dep ] in
-    let inputs = if not has_mli then inputs else (product cmi) :: inputs in
-    let outputs = [ product cmo ] in
-    let outputs = if has_mli then outputs else (product cmi) :: outputs in
-    let compile args =
-      As_env.ocamlc env :: args @ [ "-c"; "-impl"; (As_path.to_string cml) ]
-    in
-    let action = [ unit_args env u, compile ] in
-    As_action.create ~context ~inputs ~outputs ~action
-
-  let ocaml_compile_ml_native env u =
-    let context = `Compile `Native in
-    let product p = `File p, As_conf.(cond u &&& value ocaml_native) in
-    let has_mli = match kind u with `OCaml (`Both, _) -> true | _ -> false in
-    let cml = unit_file (ocamlpp_ext `Ml `Native) env u in
-    let cmi = unit_file `Cmi env u in
-    let ml_dep = unit_file `Ml_dep env u in
-    let cmx = unit_file `Cmx env u in
-    let inputs = [ product cml; product ml_dep ] in
-    let inputs = if not has_mli then inputs else (product cmi) :: inputs in
-    let outputs = [ product cmx ] in
-    let outputs = if has_mli then outputs else (product cmi) :: outputs in
-    let compile args =
-      As_env.ocamlopt env :: args @ [ "-c"; "-impl"; (As_path.to_string cml); ]
-    in
-    let action = [ unit_args env u, compile ] in
-    As_action.create ~context ~inputs ~outputs ~action
 
   let rec ocaml_rules unit env u = match unit with
   | `Mli ->
@@ -390,6 +312,10 @@ module Unit = struct
       ocaml_rules `Mli env u @ ocaml_rules `Ml env u
 *)
   let actions p = []
+
+
+
+
 (*
     let u = coerce `Unit p in
     match kind u with
@@ -445,73 +371,6 @@ module Lib = struct
     let pkgs = keep_kind `Pkg (deps l) in
     let pkgs_args = As_args.concat (List.map args pkgs) in
     As_args.(args env l @@@ pkgs_args)
-
-  let c_archive_shared units l =
-    let context = `Archive `C_shared in (* FIXME this is also `Archive `C *)
-    let product p = `File p, cond l in
-    let units_prods = List.(flatten (map producs units)) in
-    let units_o = List.(filter (As_product.has_ext `O) units_prods) in
-    let a = lib_file `A env l in
-    let so = lib_file `So env l in
-    let inputs = units_o in
-    let outputs = [ product a; product so ] in
-    let units_o = List.map As_product.raw_path units_o in
-    let archive args =
-      As_env.ocamlmklib env :: args @
-      [ "-o"; As_path.(basename (chop_ext so));] @ units_o
-    in
-    let action = [ lib_args env l, archive ] in
-    As_action.create ~context ~inputs ~outputs ~action
-
-  let c_rules units env l = [ c_archive_shared units env l ]
-
-  let ocaml_archive_byte units env l =
-    let context = `Archive `Byte in
-    let product p = `File p, As_conf.(cond l &&& value ocaml_byte) in
-    let units_prods = List.(flatten (map (products env) units)) in
-    let units_cmo = List.(filter (As_product.has_ext `Cmo) units_prods) in
-    let cma = lib_file `Cma env l in
-    let inputs = units_cmo in
-    let outputs = [ product cma ] in
-    let units_cmo = List.map As_product.raw_path units_cmo in
-    let archive args =
-      As_env.ocamlc env :: args @
-      [ "-a"; "-o"; As_path.to_string cma ] @ units_cmo
-    in
-    let action = [ lib_args env l, archive ] in
-    As_action.create ~context ~inputs ~outputs ~action
-
-  let ocaml_archive_native units env l =
-    let context = `Archive `Native in
-    let product p = `File p, As_conf.(cond l &&& value ocaml_native) in
-    let units_prods = List.(flatten (map (products env) units)) in
-    let units_cmx = List.(filter (As_product.has_ext `Cmx) units_prods) in
-    let cmxa = lib_file `Cmxa env l in
-    let inputs = units_cmx in
-    let outputs = [ product cmxa ] in
-    let units_cmx = List.map As_product.raw_path units_cmx in
-    let archive args =
-      As_env.ocamlopt env :: args @
-      [ "-a"; "-o"; As_path.to_string cmxa ] @ units_cmx
-    in
-    let action = [ lib_args env l, archive ] in
-    As_action.create ~context ~inputs ~outputs ~action
-
-  let ocaml_archive_shared units env l =
-    let context = `Archive `Native in
-    let product p = `File p, As_conf.(cond l &&& value ocaml_native_dynlink) in
-    let units_prods = List.(flatten (map (products env) units)) in
-    let units_cmx = List.(filter (As_product.has_ext `Cmx) units_prods) in
-    let cmxs = lib_file `Cmxs env l in
-    let inputs = units_cmx in
-    let outputs = [ product cmxs ] in
-    let units_cmx = List.map As_product.raw_path units_cmx in
-    let archive args =
-      As_env.ocamlopt env :: args @
-      [ "-shared"; "-o"; As_path.to_string cmxs ] @ units_cmx
-    in
-    let action = [ lib_args env l, archive ] in
-    As_action.create ~context ~inputs ~outputs ~action
 
   let ocaml_rules units env l =
     (*  FIXME: check if there are C units and use directly ocamlmklib *)

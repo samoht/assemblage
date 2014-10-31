@@ -323,9 +323,9 @@ module Path : sig
   (** {1 File extensions} *)
 
   type ext =
-    [ `Ml_dep | `Mli_dep | `Ml | `Mli | `C | `H | `Js | `Cmi | `Cmo | `Cmx | `O
-    | `Cmt | `Cmti | `Cma | `Cmxa | `Cmxs | `A | `So | `Byte | `Native
-    | `Ext of string ]
+    [ `Ml_dep | `Mli_dep | `Ml | `Mli | `Ml_pp | `Mli_pp | `C | `H | `Js
+    | `Cmi | `Cmo | `Cmx | `O | `Cmt | `Cmti | `Cma | `Cmxa | `Cmxs | `A
+    | `So | `Byte | `Native | `Ext of string ]
   (** The type for file extensions. *)
 
   val ext_to_string : ext -> string
@@ -352,6 +352,9 @@ module Path : sig
   val add_ext : [< t ] -> ext -> t
   (** [add_ext p ext] is [p] with [ext] concatenated to the {!basename}
       of [p]. *)
+
+  val change_ext : [< t ] -> ext -> t
+  (** [change_ext p e] is [add_ext (chop_ext p)]. *)
 
   val ( + ) : [< t ] -> ext -> t
   (** [p + ext] is [add_ext p e]. Left associative. *)
@@ -561,20 +564,21 @@ end
 
 (** Build configuration.
 
-    TODO reword
+    TODO reword, say what a configuration is (map from keys to value)
+    TODO add configuration schemes.
 
-    Assemblage keeps tracks of the configuration keys needed to
-    define a project and its build system through configuration
-    values. A configuration value denotes a concrete value of a
-    certain type and remembers the configuration keys it may need to
-    define this value.
+    Assemblage keeps tracks of the configuration keys needed to define
+    a project and its build system through configuration values. A
+    configuration value denotes a concrete OCaml value of a certain
+    type and remembers the configuration keys it needs to define its value
+    in a given configuration.
 
     Configuration keys are named configuration value and they are
     meant to be redefined by the end user of the build system
     (e.g. from the command line). A configuration key can be used to
     determine a configuration value or other configuration keys.
 
-    Before defining your own keys you should prefer the
+    Before {{!key}defining} your own keys you should prefer the
     {{!builtin}built-in ones}. *)
 module Conf : sig
 
@@ -599,11 +603,18 @@ module Conf : sig
   val false_ : bool value
   (** [false_] is [const false]. *)
 
+  val neg : bool value -> bool value
+  (** [neg a] is [const ( not ) $ a]. *)
+
   val ( &&& ) : bool value -> bool value -> bool value
   (** [a &&& b] is [const ( && ) $ a $ b]. *)
 
   val ( ||| ) : bool value -> bool value -> bool value
   (** [a &&& b] is [const ( || ) $ a $ b]. *)
+
+  val pick_if : bool value -> 'a value -> 'a value -> 'a value
+  (** [pick_if c a b] is [a] if [c] evaluates to [true] and [b]
+      otherwise. *)
 
   (** {1 Configuration keys} *)
 
@@ -678,7 +689,9 @@ module Conf : sig
   val project_version : string key
   (** [project_version] is the version number of the project (defaults
       is inferred from the VCS). FIXME what to do on distrib setup ?
-      read from a file ? *)
+      read from a file ? Best would be that the distrib procedure
+      sets the version field of the opam file in the tarball and
+      that we read from there. *)
 
   val docs_project : string
   (** [docs_project] is the name of the documentation section
@@ -962,16 +975,21 @@ module Ctx : sig
       {- [`Doc] documentation is being generated. FIXME}} *)
 
   type language = [ `OCaml | `C | `Js ]
-  (** The type for informing about the broad type of input products.
+  (** The type for informing about the broad type of input build products.
       {ul
-      {- [`OCaml] working on OCaml sources or build products.}
-      {- [`C] working on C sources or build products.}
-      {- [`Js] working on JavaScript sources or build products.}} *)
+      {- [`OCaml] working on OCaml related build products.}
+      {- [`C] working on C releated build products.}
+      {- [`Js] working on JavaScript related build products.}} *)
 
-  type ocaml_product = [ `Intf | `Byte | `Native | `Js ]
-  (** The type for informing about OCaml build products.
+  type ocaml_source = [ `Ml | `Mli ]
+  (** The type for informing about OCaml source products.
       {ul
-      {- [`Intf] working on [cmi] file generation.}
+      {- [`Ml] working on ml sources.}
+      {- [`Mli] workong on mli sources.}} *)
+
+  type ocaml_target = [ `Byte | `Native | `Js ]
+  (** The type for informing about OCaml build targets.
+      {ul
       {- [`Byte] working on byte code generation.}
       {- [`Native] working on native code generation.}
       {- [`Js] working on JavaScript code generation.}} *)
@@ -989,8 +1007,8 @@ module Ctx : sig
   type tag = [ `Tag of string ]
   (** The type for user defined tags. TODO part tags ? *)
 
-  type elt = [ build_phase | language | ocaml_product | archive_product
-             | command | tag ]
+  type elt = [ build_phase | language | ocaml_source | ocaml_target
+             | archive_product | command | tag ]
   (** The type for context elements. *)
 
   val pp_elt : Format.formatter -> elt -> unit
@@ -1020,7 +1038,7 @@ type args
 (** Build argument bundles.
 
     Argument bundles are conditional bindings from {{!Ctx}build contexts}
-    to ordered lists of command arguments. See {{!basics}argument
+    to ordered lists of build command arguments. See {{!basics}argument
     bundle basics} for more details.  *)
 module Args : sig
 
@@ -1077,22 +1095,6 @@ module Args : sig
       linking options and {i -cclib -l[s]} to the native linking
       options. FIXME *)
 
-  (** {b Note.} The following arguments are used internally by parts,
-      there's no need to specify them. You may want to use them
-      if you define your own actions. *)
-
-  val debug : args
-  (** [debug] is the debug flag in the right contexts, active
-      when {!Conf.debug} evaluates to [true]. *)
-
-  val annot : args
-  (** [annot] is the [-bin-annot] flag in the right [`OCaml] contexts,
-      active when {!Conf.ocaml_annot} evaluates to [true]. *)
-
-  val warn_error : args
-  (** [warn_error] is the [-warn-error] flag in the right contexts,
-      active when {!Conf.warn_error} evaluates to [true]. FIXME C. *)
-
   (** {1:basics Argument bundles basics}
 
     Argument bundles allow to tweak build actions by prepending additional
@@ -1106,8 +1108,10 @@ let ocaml_debug =
 ]}
     when used with an action will, whenever the configuration value of
     {!Conf.debug} denotes [true], prepend the option [-g] to any
-    command of the action that operates in a context that contains
-    the [`OCaml] and [`Compile] elements.
+    command of the action that operates in a context that contains the
+    [`OCaml] and [`Compile] elements (note you don't need to do that,
+    assemblage's OCaml built-in actions know how to handle the
+    {!Conf.debug} key for you.)
 
     The general mechanism when an action is executed with a given
     bundle is for each command to look up every binding in the
@@ -1116,165 +1120,208 @@ let ocaml_debug =
     the arguments of the binding are prepended to the command invocation.
 
     {b Warning.} Do not rely on the order of context matches for your
-    command lines to be valid. The argument bundle mechanism is a rough
-    build action tweaking mechanism that is mostly useful for
-    injecting command line {e options}, not {e positional}
+    command lines to be valid. The argument bundle mechanism is a
+    rough end user build action tweaking mechanism that is mostly
+    useful for injecting command line {e options}, not {e positional}
     arguments. The final bundle given to actions is the concatenation
     of many bundle sources (project, parts, action implementation)
-    that may be applied in arbitrary order. FIXME this is not
-    exactly true we need to say something about {!append} and e.g. libs
-    order.
-*)
-
-end
-
-(** Build products.
-
-    Build products are the inputs and outputs of {{!Action}build
-    actions}.  *)
-module Product : sig
-
-  (** {1:products Build products} *)
-
-  type t = [ `File of Path.rel | `Effect of Path.rel ]
-  (** The type for build products.
-      {ul
-      {- [`File f] produces the {e file} file [f] expressed
-         relative to {!Conf.root_dir}.}
-      {- [`Effect f] produces an unknown effect
-         that is witnessed by the creation of file [f] expressed relative
-         to {!Conf.root_dir}}} *)
-
-  val path : t -> As_path.rel
-  (** [path p] is the path to the product. *)
-
-  val raw_path : t -> string
-  (** [raw_path p] is [Path.to_string (path p)]. *)
-
-  val basename : t -> string
-  (** [basename p] is [Path.basename (path p)]. *)
-
-  val dirname : t -> As_path.rel
-  (** [dirname p] is [Path.dirname (path p)]. *)
-
-  (** {1 Predicates} *)
-
-  val is_file : t -> bool
-  (** [is_file p] is [true] iff [p] is a file product. *)
-
-  val is_effect : t -> bool
-  (** [is_effect p] is [true] iff [p] is an effect product. *)
-
-  val has_ext : Path.ext -> t -> bool
-  (** [has_ext ext p] is [true] iff [p] is a file product and has
-      extension [ext]. *)
-
-  val keep_ext : Path.ext -> t -> ([`File of Path.rel ]) option
-  (** [keep_ext ext p] is [Some p] iff [has_ext ext p] is [true]. *)
-
-(*
-  (** {1:args Converting to arguments} *)
-
-  val target_to_args : ?pre:string list -> Ctx.t list -> t -> Args.t
-  (** [target_to_args pre ctxs p] is [target p] prefixed by [pre]
-      (defaults to [[]]) in contexts [ctxs] for product [p]. [p]'s
-      condition is propagated in the arguments. *)
-
-  val dirname_to_args : ?pre:string list -> Ctx.t list -> t ->
-    Args.t
-  (** [dirname_to_args pre ctxs p] is [dirname p] prefixed by [pre]
-      (defaults to [[]]) in contexts [ctxs]. [p]'s condition is
-      propagated in the arguments. *)
-*)
+    that may be applied in arbitrary order. FIXME this is not exactly
+    true we need to say something about {!append} and e.g. libs order,
+    FIX the FIXME, bundles should not be used for libs order. *)
 end
 
 (** Build action.
 
-    A build action determines how to output a list of
-    {{!Product}products} from a list of input products with a sequence
-    of command line invocations. *)
+    A {e build product} is any existing file in the {!Conf.root_dir}
+    hierarchy. A {e root} build product is a product for which there
+    exists no build action to create it; typically the source code you
+    write.
+
+    Given a list of existing products, a {e build action} determines
+    how to create a list of products using a sequence of build commands. *)
 module Action : sig
+
+  (** {1 Products} *)
+
+  type product = Path.rel Conf.value
+  (** The type for build products. A configuration value holding
+      a file path. *)
+
+  type products = Path.rel list Conf.value
+  (** The type for lists of build products. A configuration value holding
+      a list of file paths. *)
+
 
   (** {1 Build commands} *)
 
-  type cmd
-  val cmd : string As_conf.key -> string list As_conf.value -> cmd
-  val seq : cmd -> cmd -> cmd
-  val ( <*> ) : cmd -> cmd -> cmd
+  type cmds
+  (** The type for sequences of build commands. *)
+
+  val cmd : ?stdin:product -> ?stdout:product ->
+    ?stderr:product -> string Conf.key ->
+    string list Conf.value -> cmds
+  (** [cmd exec args] is the sequence that executes [exec] with
+      argument [args]. The optional [stdin], [stdout], and [stderr]
+      arguments allow to redirect the standard file descriptors of the
+      execution to files. *)
+
+  val seq : cmds -> cmds -> cmds
+  (** [seq cmds cmds'] is the sequence of build commands made of [cmds]
+      followed by [cmds']. *)
+
+  val ( <*> ) : cmds -> cmds -> cmds
+  (** [cmds <*> cmds'] is [seq cmds cmds']. *)
 
   (** {1 Build actions} *)
 
   type t
   (** The type for build actions. *)
 
-  val create :
-    ?cond:bool As_conf.value ->
-    ?ctx:As_ctx.t ->
-    ?args:As_args.t ->
-    inputs:As_product.t list As_conf.value ->
-    outputs:As_product.t list As_conf.value ->
-    cmd -> t
+  val v :
+    ?cond:bool Conf.value ->
+    ctx:Ctx.t ->
+    inputs:products  ->
+    outputs:products ->
+    cmds -> t
+   (** [v cond ctx inputs outputs cmds] is the action that given the
+       existence of [inputs] creates the products [outputs] using the
+       sequence of command [cmds].  The action is only available if
+       [cond] evaluates to [true].
 
-  val cond : t -> bool As_conf.value
-  val ctx : t -> As_ctx.t
-  val args : t -> As_args.t
-  val inputs : t -> As_product.t list As_conf.value
-  val outputs : t -> As_product.t list As_conf.value
-  val cmd : t -> cmd
+       {b Warning.} To ensure determinism and parallelism correctness [cmds]
+       must ensure that it only reads from the [inputs] and solely writes to
+       [outputs]. *)
 
-(*
-  val create :
-    context:Ctx.t ->
-    inputs:Product.t list ->
-    outputs:Product.t list ->
-    cmd list Conf.value -> t
-  (** [create context inputs outputs cmds] is the action that given
-      the products [inputs] creates the products [outputs] using
-      the action [action].
+  (** Combinators to define build actions.
 
-      The {{!Product.cond}conditions} of the input products are
-      added to each output product.
+      Open this module {e locally} to define your action. *)
+  module Spec : sig
 
-      See {!type:cmd} to understand how the actual command lines of
-      the action are determined at build time.
+    (** {1 List configuration values} *)
 
-      {b Warning.} To ensure determinism and parallelism correctness [action]
-      must ensure that it only reads from the [inputs] and writes to
-      [outputs].
+    type 'a list_v = 'a list Conf.value
+    (** The type for list configuration values. *)
 
-      {b Important.} TODO For [`File] build products, build systems backends
-      are in charge or producing the intermediate directories to the file. *)
+    val atom : 'a -> 'a list_v
+    (** [atom v] is [Conf.const [v]]. *)
 
-  val context : t -> Ctx.t
-  (** [context a] is [a]'s context. *)
+    val atoms : 'a list ->  'a list_v
+    (** [atoms l] is [Conf.const l]. *)
 
-  val inputs : t -> Product.t list
-  (** [inputs a] is the list of products input by [a]'s action. *)
+    val add : 'a list_v -> 'a list_v -> 'a list_v
+    (** [add l l'] is [Conf.const ( @ ) l l'] but tail recursive. *)
 
-  val outputs : t -> Product.t list
-  (** [outputs a] is the list of products output by [a]'s action. *)
+    val add_if : bool Conf.value -> 'a list_v -> 'a list_v -> 'a list_v
+    (** [add_if c l l'] is [add l l'] if [c] evaluates to [true] and [l']
+        otherwise. *)
 
-  val cmds : t -> cmd list Conf.value
-  (** [cmds a] is [a]'s commands to generate outputs from the inputs. *)
-*)
+    val add_if_key : bool Conf.key -> 'a list_v -> 'a list_v -> 'a list_v
+    (** [add_if_key k l l'] is [add_if (Conf.value k) l l']. *)
 
-(*
-  (** {1 Built-in rules} *)
+    (** {1 Paths and products} *)
 
-  val link : ?cond:bool Conf.value -> ?args:args -> env -> src:Path.rel -> dst:Path.rel ->
-    t
-  (** [link cond args env ~src ~dst] is a rule with context [`Other
-      "link"] that links the product [(`File src, cond)] to the
-      product [(`File dst, cond)]. [src] and [dst] are expressed
-      relative to {!Env.root_dir}[ env]. [cond] defaults to
-      {!Cond.true_} and [args] to {!Args.empty}. *)
+    val path : product -> ext:Path.ext -> Path.rel Conf.value
+    (** [path p ~ext] is [p] with its extension (if any)
+        {{!Path.change_ext}changed} to [ext]. *)
 
-  val mkdir : ?cond:bool Conf.value -> ?args:args -> env -> dir:Path.rel -> t
-  (** [mkdir env ~dir] is a rule with context [`Other "mkdir"] that creates
-      the product [(`File dir, cond)]. [dir] is expressed realtive to
-      {!Env.root_dir}[ env]. [cond] defaults to
-      {!Cond.true_} and [args] to {!Args.empty}. *)
-*)
+    val path_base : product -> string Conf.value
+    (** [path_base p] is the {{!Path.basename}basename} of [p]. *)
+
+    val path_dir : product -> Path.rel Conf.value
+    (** [path_dir p] is the {{!Path.dirname}dirname} of [p]. *)
+
+    val path_arg : ?opt:string -> Path.rel Conf.value -> string list_v
+    (** [path_arg p] is the list made of [p] {{!Path.to_string}converted}
+        to a string. If [opt] is present it is added in front of the list. *)
+
+    val paths_args : ?opt:string -> Path.rel list Conf.value ->
+      string list_v
+    (** [paths_args p] is  like {!path_arg} but for a list of paths.
+        If [opt] is present it is added in front of each path list element. *)
+
+    val product : ?ext:As_path.ext -> product -> products
+    (** [product p] is the list made of [p]. If [ext] is present the suffix
+        of [p] is {{!Path.change_ext}changed} to [ext]. *)
+
+    (** {1 Commands} *)
+
+    val ( <*> ) : cmds -> cmds -> cmds
+    (** ( <*> ) is {!Action.( <*> )}. *)
+  end
+
+  (** {1 Built-in actions} *)
+
+  (** Actions for handling OCaml products.
+
+      All the actions have appropriate support for the {!Conf.debug},
+      {!Conf.profile}, {!Conf.warn_error}, {!Conf.ocaml_annot}
+      configuration keys.
+
+      FIXME should we document contexts ? This is anyways going
+      to be hidden behind parts. *)
+  module OCaml : sig
+
+    (** {1 Types} *)
+
+    type includes = Path.rel list Conf.value
+    (** The type for lists of include directories. A configuration value
+        holding a list of directory paths. *)
+
+    type name = Path.rel Conf.value
+    (** The type for product names. A product names defines a build
+        location through its {{!Path.dirname}dirname} and a name through its
+        {e suffix-less} {{!Path.basename}basename}. *)
+
+    (** {1 Preprocessing} *)
+
+    val compile_src_ast : [`Ml | `Mli ] -> src:product -> t
+    (** [compile_src_ast kind src] treats [src] of the given [ml] type
+        and builds its AST. FIXME needs arguments for
+        applying pp on the way ? *)
+
+    (** {1 Compiling} *)
+
+    val compile_mli : incs:includes -> src:product -> t
+    (** [compile_mli ~incs ~src] compiles the mli file [src] (which can
+        be an AST, see {!compile_src_ast}) with includes [incs]. *)
+
+    val compile_ml_byte : has_mli:bool As_conf.value -> incs:includes ->
+      src:product -> t
+    (** [compile_ml_byte ~has_mli ~incs ~src] compiles to byte code the ml
+        file [src] (which can be an AST, see {!compile_src_ast}) with
+        includes [incs]. [has_mli] indicates whether the source has a
+        corresponding mli file. *)
+
+    val compile_ml_native : has_mli:bool As_conf.value ->
+      incs:includes -> src:product -> t
+    (** [compile_ml_native ~has_mli ~incs ~src] is like {!compile_ml_byte}
+        but compiles to native code. *)
+
+    val compile_c : src:product -> t
+    (** [compile_c src] compiles the C [src] to native code through
+        the OCaml compiler. *)
+
+    (** {1 Archiving} *)
+
+    val archive_byte : cmos:products -> name:name -> t
+    (** [archive_byte cmos name] archives the byte code files [cmos]
+        to a byte code archive (cma) named by [name]. *)
+
+    val archive_native : cmx_s:products -> name:name -> t
+    (** [archive_native cmx_s name] archives the native code files [cmx_s]
+        to a native code archive (cmxa) named by [name]. *)
+
+    val archive_shared : cmx_s:products -> name:name -> t
+    (** [archive_shared cmx_s name] archives the native code files [cmx_s]
+        to a native code shared archive (cmxs) named by [name]. *)
+
+    val archive_c : objs:products -> name:name -> t
+    (** [archive_c cmx_s name] archives the C object files [objs]
+        to a C archive and shared archived (a, so) named by [name]. *)
+
+    (** {1 Linking} *)
+
+  end
 end
 
 (** {1:parts Parts} *)
@@ -1343,7 +1390,7 @@ module Part : sig
 
   (** {1 Derived fields} *)
 
-  val products : 'a t -> Product.t list Conf.value
+  val products : 'a t -> Path.rel list Conf.value
   (** [products p] are the products of part [p] in the environment
       [env]. This is derived from {!rules}. *)
 
@@ -1639,14 +1686,14 @@ module Part : sig
       ?cond:bool Conf.value ->
       ?args:args ->
       ?deps: 'a t list ->
-      ?keep:('a t -> (Path.t * Product.t) list) ->
+      ?keep:('a t -> Path.t list) ->
       ?install:bool -> kind -> 'a t list -> [> `Dir ] t
 
     val of_base : ?install:bool -> [> `Base] t -> [> `Dir] t
 
     (** {1 Product filters} *)
 
-    val default : 'a t -> (Path.t * Product.t) list
+    val default : 'a t -> Path.t list
   end
 
   (** Parts for build silos. *)
@@ -1715,7 +1762,7 @@ val doc : ?cond:bool Conf.value -> ?args:args -> ?deps:'a part list ->
   ?kind:Part.Doc.kind -> string -> 'a part list -> [> `Doc] part
 
 val dir : ?cond:bool Conf.value -> ?args:args -> ?deps:'a part list ->
-  ?keep:('a part -> (Path.t * Product.t) list) ->
+  ?keep:('a part -> Path.t list) ->
   ?install:bool -> Part.Dir.kind -> 'a part list -> [> `Dir ] part
 
 val silo : ?cond:bool Conf.value -> ?args:args -> ?deps:'a part list ->
@@ -1757,12 +1804,16 @@ end
 val assemble : project -> unit
 (** [assemble p] registers [p] for assembling by an assemblage driver. *)
 
+
+(** {1 Private API}
+
+    {b Warning.} Assemblage users must not use the definitions of the
+    [Private] module to describe their projects. *)
+
 (** Private functions and types for implementing drivers.
 
-    Open the module after {!Assemblage} to use it.
-
-    {b Warning.} Assemblage users should not use these definitions to
-    describe their project. *)
+    Open the module after {!Assemblage} to use it. It extends
+    Assemblage's module with private definitions. *)
 module Private : sig
 
   (** {1 Private} *)
@@ -1989,6 +2040,31 @@ module Private : sig
     val doc_c_system : string
     val doc_machine_information : string
     val doc_system_utilities : string
+  end
+
+  (** Actions.
+
+      {b Important.} Actions commands produce {e file} paths. Build system
+      backends are in charge for making sure the {{!Path.dirname} directory
+      name} of these paths exist before invoking the action. *)
+  module Action : sig
+
+    (** {1 Actions} *)
+
+    include module type of Action with type t = Action.t
+                                   and type cmds = Action.cmds
+
+    val ctx : t -> Ctx.t
+    (** [ctx a] is [a]'s context. *)
+
+    val inputs : t -> Path.rel list Conf.value
+    (** [inputs a] is the list of products input by [a]'s action. *)
+
+    val outputs : t -> Path.rel list Conf.value
+    (** [outputs a] is the list of products output by [a]'s action. *)
+
+    val cmds : t -> cmds
+    (** [cmds a] is [a]'s commands to generate outputs from the inputs. *)
   end
 
   (** Projects. *)

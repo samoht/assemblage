@@ -101,29 +101,3 @@ let stub s =
         (As_conf.const [str "-cclib -l%s -dllib -l%s" s s]);
       v (As_ctx.v [`OCaml; `Link; `Native])
         (As_conf.const [str "-cclib -l%s" s]); ]
-
-let debug =
-  let f = As_conf.const ["-g"] in
-  let v = v ~cond:As_conf.(value debug) in
-  concat
-    [ v (As_ctx.v [`OCaml; `Compile; `Byte]) f;
-      v (As_ctx.v [`OCaml; `Compile; `Native]) f;
-      v (As_ctx.v [`OCaml; `Compile; `Js])
-           (As_conf.const [ "-pretty"; "-debuginfo"; "-sourcemap"]);
-      v (As_ctx.v [`C; `Compile]) f;
-      v (As_ctx.v [`OCaml; `Link; `Byte]) f;
-      v (As_ctx.v [`OCaml; `Link; `Native]) f; ]
-
-let annot =
-  let f = As_conf.const ["-bin-annot"] in
-  let v = v ~cond:As_conf.(value ocaml_annot) in
-  concat
-    [ v (As_ctx.v [`OCaml; `Compile; `Byte]) f;
-      v (As_ctx.v [`OCaml; `Compile; `Native]) f; ]
-
-let warn_error =
-  let f = As_conf.const ["-warn-error A-44-4-48 -w A-44-4-48"] in
-  let v = v ~cond:As_conf.(value warn_error) in
-  concat
-    [ v (As_ctx.v [`OCaml; `Compile; `Byte]) f;
-      v (As_ctx.v [`OCaml; `Compile; `Native]) f; ]

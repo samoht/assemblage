@@ -14,32 +14,91 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type cmd_atom = [ `Cmd of string As_conf.key ] * string * string list
-type cmd = cmd_atom list As_conf.value
+(* Products *)
 
-let cmd exec args =
-  let ctx_elt = [ `Cmd exec ] in
-  let cmd ctx_elt exec args = [ctx_elt, exec, args] in
-  As_conf.(const cmd $ const ctx_elt $ value exec $ args)
+type product = As_path.rel As_conf.value
+type products = As_path.rel list As_conf.value
 
-let seq cmd0 cmd1 =  As_conf.(const ( @ ) $ cmd0 $ cmd1)
+(* Build commands *)
+
+type cmd =
+  { exec : string As_conf.key;
+    args : string list As_conf.value;
+    stdin : As_path.rel As_conf.value option;
+    stdout : As_path.rel As_conf.value option;
+    stderr : As_path.rel As_conf.value option; }
+
+type cmds = cmd list
+
+let cmd ?stdin ?stdout ?stderr exec args =
+  [{ exec; args; stdin; stdout; stderr }]
+
+let seq cmds cmds' =  List.rev_append (List.rev cmds) cmds'
 let (<*>) = seq
+
+(* Actions *)
 
 type t =
   { cond : bool As_conf.value;
     ctx : As_ctx.t;
-    args : As_args.t;
-    inputs : As_product.t list As_conf.value;
-    outputs : As_product.t list As_conf.value;
-    cmd : cmd; }
+    inputs : As_path.rel list As_conf.value;
+    outputs : As_path.rel list As_conf.value;
+    cmds : cmds; }
 
-let create ?(cond = As_conf.true_) ?(ctx = As_ctx.empty) ?(args = As_args.empty)
-    ~inputs ~outputs cmd =
-  { cond; ctx; args; inputs; outputs; cmd }
+let v ?(cond = As_conf.true_) ~ctx ~inputs ~outputs cmds =
+  { cond; ctx; inputs; outputs; cmds }
 
 let cond r = r.cond
 let ctx r = r.ctx
-let args r = r.args
 let inputs r = r.inputs
 let outputs r = r.outputs
-let cmd r = r.cmd
+let cmds r = r.cmds
+
+module Spec = struct
+
+  (* List configuration values *)
+
+  type 'a list_v = 'a list As_conf.value
+
+  let atom v = As_conf.(const [v])
+  let atoms v = As_conf.(const v)
+
+  let addl l l' = List.rev_append (List.rev l) l'
+  let addl_if c l l' = if c then addl l l' else l'
+
+  let add l l' = As_conf.(const addl $ l $ l')
+  let add_if c l l' = As_conf.(const addl_if $ c $ l $ l')
+  let add_if_key c l l' = add_if (As_conf.value c) l l'
+
+  (* Path and products *)
+
+  let path p ~ext:e =
+    let change_ext p = As_path.(as_rel (change_ext p e)) in
+    As_conf.(const change_ext $ p)
+
+  let path_base p = As_conf.(const As_path.basename $ p)
+  let path_dir p = As_conf.(const (fun p -> As_path.(as_rel (dirname p))) $ p)
+  let path_arg ?opt p =
+    let make_arg p =
+      let p = As_path.to_string p in
+      match opt with None -> [p] | Some opt -> [opt; p]
+    in
+    As_conf.(const make_arg $ p)
+
+  let paths_args ?opt ps =
+    let make_args ps =
+      let add = match opt with
+      | None -> fun acc p -> As_path.to_string p :: acc
+      | Some opt -> fun acc p -> As_path.to_string p :: opt :: acc
+      in
+      List.rev (List.fold_left add [] ps)
+    in
+    As_conf.(const make_args $ ps)
+
+  let product ?ext p =
+    let p = match ext with None -> p | Some ext -> path p ~ext in
+    As_conf.(const (fun p -> [p]) $ p)
+
+  (* Commands *)
+  let ( <*> ) = ( <*> )
+end

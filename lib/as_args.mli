@@ -46,6 +46,3 @@ val vmthread : t
 val cclib : string list -> t
 val ccopt : string list -> t
 val stub : string -> t
-val debug : t
-val annot : t
-val warn_error : t
