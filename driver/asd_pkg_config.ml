@@ -28,7 +28,7 @@ let query_static =
   let cache = Hashtbl.create 124 in
   let run (cmd, args as l) = try Hashtbl.find cache l with
   | Not_found ->
-      let r = Cmd.(on_error ~use:[] @@ input_lines cmd args) in
+      let r = Cmd.(on_error ~use:[] @@ read_lines cmd args) in
       Hashtbl.add cache l r;
       r
   in

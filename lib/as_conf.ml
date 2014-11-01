@@ -22,6 +22,9 @@ type 'a parser = string -> [ `Error of string | `Ok of 'a ]
 type 'a printer = Format.formatter -> 'a -> unit
 type 'a converter = 'a parser * 'a printer
 
+let parser (p, _) = p
+let printer (_, p) = p
+
 (* Universal type, see http://mlton.org/UniversalType *)
 
 module Univ : sig
@@ -134,13 +137,11 @@ let pp_key_dup ppf (Key.V k) = As_fmt.pp ppf
      This@ may@ lead@ to@ unexpected@ driver@ behaviour." (Key.name k)
 
 let pp_miss_key ppf (Key.V k) = As_fmt.pp ppf
-    "Key@ `%s'@ not@ found@ in@ configuration@ (driver@ error).@ \
+    "Key@ `%s'@ not@ found@ in@ configuration.@ \
      The@ key's@ default@ value@ will@ be@ used." (Key.name k)
 
-let docs_project = "Project keys"
-let doc_project =
-  "These keys inform the build system about properties specific to
-   this project."
+
+let docs_project = "Project keys" (* defined here for [key], see below *)
 
 let key_id =
   let count = ref (-1) in
@@ -158,7 +159,9 @@ let value k =
   let deps, _ = Key.default k in
   let deps = Kset.add (Key.V k) deps in
   let v c = match try Some (Kmap.find (Key.V k) c) with Not_found -> None with
-  | None -> As_log.warn "%a" pp_miss_key (Key.V k); (snd (Key.default k)) c
+  | None ->
+      As_log.msg_driver_fault As_log.Warning  "%a" pp_miss_key (Key.V k);
+      (snd (Key.default k)) c
   | Some u ->
       match Key.of_univ k u with
       | Some (_, v) -> v c
@@ -202,6 +205,17 @@ let of_keys s =
     Kmap.add k u acc
   in
   Kset.fold add s Kmap.empty
+
+let pp ppf c =
+  let cmp (Key.V k0, _) (Key.V k1, _) = compare (Key.name k0) (Key.name k1) in
+  let defs = List.sort cmp (Kmap.bindings c) in
+  let pp_binding ppf (Key.V k, v) =
+    let v = match Key.of_univ k v with None -> assert false | Some v -> v in
+    let v = eval c v in
+    As_fmt.pp ppf "@[%s@ = @[%a@]@]"
+      (Key.name k) (printer (Key.converter k)) v
+  in
+  As_fmt.pp ppf "@[<v>%a@]" (As_fmt.pp_list pp_binding) defs
 
 (* Bultin configuration value converters
    FIXME remove Cmdliner dep *)
@@ -266,7 +280,7 @@ let version : (int * int * int * string option) converter =
       `Ok (maj, min, patch, info)
     with Exit ->
       let err = str "invalid value `%s', expected a version number of the \
-                     form [v|V]major.minor[.patch][(+|-)info]." s
+                     form [v|V]majoAr.minor[.patch][(+|-)info]." s
       in
       `Error err
   in
@@ -275,6 +289,12 @@ let version : (int * int * int * string option) converter =
     Format.fprintf ppf "%d.%d.%d%s" maj min patch info
   in
   parser, printer
+
+(* Built-in configuration keys *)
+
+open As_cmd.Infix
+
+let err_det this = str "Could not determine %s." this
 
 (* Build directories keys *)
 
@@ -286,7 +306,10 @@ let build_directories_key = key ~docs:docs_build_directories
 
 let root_dir =
   let doc = "Absolute path to the project directory." in
-  let get_cwd () = As_path.(to_abs (of_string (Sys.getcwd ()))) in
+  let get_cwd () =
+    As_cmd.on_error ~use:As_path.root @@
+    As_cmd.Dir.getcwd ()
+  in
   let get_cwd = const get_cwd $ const () in
   build_directories_key "root-dir" path get_cwd ~doc ~docv:"PATH"
 
@@ -302,26 +325,101 @@ let product_dir =
 
 (* Project keys *)
 
-let project_key = key ~docs:docs_project
+let doc_project =
+  "These keys inform the build system about properties specific to
+   this project."
+
+let project_key = key ~docs:docs_project (* defined above, [key] ~docs def. *)
 let project_version =
   let doc = "Version of the project." in
   let vcs_info root =
-    As_cmd.on_error ~use:"unknown" @@
-    As_cmd.(Vcs.find root >>= function
-      | None ->
-          As_log.info "No VCS found to derive project version";
-          As_cmd.ret "unknown"
-      | Some vcs ->
-          As_cmd.Vcs.describe root vcs)
+    begin As_cmd.Vcs.find root >>= function
+    | None ->
+        As_log.warn "No VCS found to derive project version.";
+        As_cmd.ret "unknown"
+    | Some vcs ->
+        As_cmd.Vcs.describe root vcs
+    end
+    |> As_cmd.reword_error (err_det "project version")
+    |> As_cmd.on_error ~use:"unknown"
   in
   let vcs = const vcs_info $ (value root_dir) in
   project_key "project-version" string vcs ~doc ~docv:"VERSION"
 
 (* Builtin configuration keys *)
 
-let utility_key ~docs bin_str =
-  let doc = str "The %s utility." bin_str in
-  key bin_str string (const bin_str) ~doc ~docv:"BIN" ~docs
+let utility_key ?exec ~docs name =
+  let exec = match exec with None -> const name | Some e -> e in
+  let doc = str "The %s utility." name in
+  key name string exec ~doc ~docv:"BIN" ~docs
+
+(* Machine information keys *)
+
+let docs_machine_information = "Machine information keys"
+let doc_machine_information =
+  "These keys inform the build system about the host and target machines."
+
+let machine_info_key = key ~docs:docs_machine_information
+let machine_info_utility ?exec =
+  utility_key ?exec ~docs:docs_machine_information
+
+let uname = machine_info_utility "uname"
+let host_os =
+  let doc = "The host machine operating system name. Defaults to `Win32' if
+             the driver is running on native Windows otherwise it is the
+             lowercased result of invoking the key $(b,uname) with `-s'."
+  in
+  let get_os uname = match Sys.os_type with
+  | "Win32" -> "Win32"
+  | _ ->
+      As_cmd.read uname [ "-s" ] >>| String.lowercase
+      |> As_cmd.reword_error (err_det "host machine operating system name")
+      |> As_cmd.on_error ~use:"unknown"
+  in
+  let get_os = const get_os $ value uname in
+  machine_info_key "host-os" string get_os ~doc ~docv:"STRING"
+
+let host_arch =
+  let doc = "The host machine hardware architecture. Defaults to the value of
+             the driver's $(i,PROCESSOR_ARCHITECTURE) environment variable
+             if it is running on native Windows otherwise it the lowercased
+             result of invoking the key $(b,uname) with `-m'."
+  in
+  let get_arch uname =
+    begin match Sys.os_type with
+    | "Win32" -> As_cmd.get_env "PROCESSOR_ARCHITECTURE"
+    | _ -> As_cmd.read uname [ "-m" ] >>| String.lowercase
+    end
+    |> As_cmd.reword_error (err_det "host machine hardware architecture")
+    |> As_cmd.on_error ~use:"unknown"
+  in
+  let get_arch = const get_arch $ value uname in
+  machine_info_key "host-arch" string get_arch ~doc ~docv:"STRING"
+
+let host_word_size =
+  let doc = "The host machine word size in bits. Defaults to the word size of
+             the driver."
+  in
+  machine_info_key "host-word-size" int (const Sys.word_size) ~doc ~docv:"INT"
+
+let target_os =
+  let doc = "The target machine operating system name. Defaults to the host
+             machine operating system name."
+  in
+  machine_info_key "target-os" string (value host_os) ~doc ~docv:"STRING"
+
+let target_arch =
+  let doc = "The target machine hardware architecture. Defaults to the host
+             machine hardware architecture."
+  in
+  machine_info_key "target-arch" string (value host_arch) ~doc ~docv:"STRING"
+
+let target_word_size =
+  let doc = "The target machine word size in bits. Default to the host machine
+             word size."
+  in
+  let docv = "INT" in
+  machine_info_key "target-word-size" int (value host_word_size) ~doc ~docv
 
 (* Build property keys *)
 
@@ -351,16 +449,19 @@ let doc =
   let doc = "Build documentation." in
   build_properties_key "doc" bool (const false) ~doc ~docv:"BOOL"
 
-let jobs =
-  let doc = "Number of jobs to run for building."
-  in
+let jobs = (* FIXME not really sure that belongs here. This would
+              give a jobs values for being used to defined a build
+              system, but it's when we invoke it that we want to
+              give such a value (e.g. on `assemblage build`). Still
+              this is a portable way of finding out such a value. *)
+  let doc = "Number of jobs to run for building." in
   let get_jobs () =
-    try match Sys.os_type with
-    | "Win32" -> int_of_string (Sys.getenv "NUMBER_OF_PROCESSORS")
-    | _ ->
-        As_cmd.on_error ~use:1 @@
-        As_cmd.(input "getconf" [ "_NPROCESSORS_ONLN" ] >>| int_of_string)
-    with Not_found | Failure _ -> 1
+    begin match Sys.os_type with
+    | "Win32" -> As_cmd.get_env "NUMBER_OF_PROCESSORS" >>= (parser int)
+    | _ -> As_cmd.read "getconf" [ "_NPROCESSORS_ONLN" ] >>= (parser int)
+    end
+    |> As_cmd.reword_error (err_det "the number of host processors")
+    |> As_cmd.on_error ~level:As_log.Warning (* or Info ? *) ~use:1
   in
   let get_jobs = const get_jobs $ const () in
   build_properties_key "jobs" int get_jobs ~doc ~docv:"COUNT"
@@ -373,7 +474,7 @@ let doc_ocaml_system =
    desired compilation outcomes."
 
 let ocaml_system_key = key ~docs:docs_ocaml_system
-let ocaml_system_utility = utility_key ~docs:docs_ocaml_system
+let ocaml_system_utility ?exec = utility_key ?exec ~docs:docs_ocaml_system
 
 let ocaml_byte =
   let doc = "true if OCaml byte code compilation is requested." in
@@ -405,11 +506,11 @@ let ocaml_native_tools =
   let doc = "true to use the native compiled (.opt) OCaml tools." in
   ocaml_system_key "ocaml-native-tools" bool (const true) ~doc ~docv:"BOOL"
 
-let ocaml_system_utility_maybe_opt bin_str =
-  let doc = str "The %s utility." bin_str in
-  let bin native = if native then str "%s.opt" bin_str else bin_str in
+let ocaml_system_utility_maybe_opt exec =
+  let doc = str "The %s utility." exec in
+  let bin native = if native then str "%s.opt" exec else exec in
   let bin = const bin $ value ocaml_native_tools in
-  ocaml_system_key bin_str string bin ~doc ~docv:"BIN"
+  ocaml_system_key exec string bin ~doc ~docv:"BIN"
 
 let ocaml_dumpast = ocaml_system_utility "ocaml_dumpast"
 let ocamlc = ocaml_system_utility_maybe_opt "ocamlc"
@@ -435,8 +536,9 @@ let ocaml_version =
   in
   let tool = pick_if (value ocaml_native) (value ocamlopt) (value ocamlc) in
   let get_version tool =
-    As_cmd.on_error ~use:(0, 0, 0, Some "unknown") @@
-    As_cmd.(input tool [ "-version" ] >>= (fst version))
+    As_cmd.read tool [ "-version" ] >>= (parser version)
+    |> As_cmd.reword_error (err_det "OCaml compiler version")
+    |> As_cmd.on_error ~level:As_log.Warning ~use:(0, 0, 0, Some "-unknown")
   in
   let get_version = const get_version $ tool in
   ocaml_system_key "ocaml-version" version get_version ~doc ~docv:"VERSION"
@@ -448,61 +550,35 @@ let doc_c_system =
   "These keys inform the build system about the C system."
 
 let c_system_key = key ~docs:docs_c_system
-let c_system_utility = utility_key ~docs:docs_c_system
+let c_system_utility ?exec = utility_key ?exec ~docs:docs_c_system
 
 let cc = c_system_utility "cc"
 let pkg_config = c_system_utility "pkg-config"
 
-(* Machine information keys *)
+(* System utility keys
 
-let docs_machine_information = "Machine information keys"
-let doc_machine_information =
-  "These keys inform the build system about the host and target machines. The
-   defaults for the host machine are inferred by invoking the $(b,uname) key.
-   The defaults for the target machine equate those of the host."
-
-let machine_info_key = key ~docs:docs_machine_information
-let machine_info_utility = utility_key ~docs:docs_machine_information
-
-let uname = machine_info_utility "uname"
-let host_os =
-  let doc = "The host machine operating system name." in
-  let get_os uname =
-    As_cmd.on_error ~use:"unknown" @@
-    As_cmd.(input uname [ "-s" ] >>| String.lowercase)
-  in
-  let get_os = const get_os $ value uname in
-  machine_info_key "host-os" string get_os ~doc ~docv:"STRING"
-
-let host_arch =
-  let doc = "The host machine hardware architecture." in
-  let get_arch uname =
-    As_cmd.on_error ~use:"unknown" @@
-    As_cmd.(input uname [ "-m" ] >>| String.lowercase)
-  in
-  let get_arch = const get_arch $ value uname in
-  machine_info_key "host-arch" string get_arch ~doc ~docv:"STRING"
-
-let target_os =
-  let doc = "The target machine operating system name." in
-  machine_info_key "target-os" string (value host_os) ~doc ~docv:"STRING"
-
-let target_arch =
-  let doc = "The target machine hardware architecture." in
-  machine_info_key "target-arch" string (value host_arch) ~doc ~docv:"STRING"
-
-(* System utility keys *)
+   Win32, see http://www.covingtoninnovations.com/mc/winforunix.html *)
 
 let docs_system_utilities = "System utility keys"
 let doc_system_utilities =
   "These keys inform the build system about the system utilities to use."
 
 let system_utilities_key = key ~docs:docs_system_utilities
-let system_utilities_utility = utility_key ~docs:docs_system_utilities
+let system_utilities_utility ?win32 name =
+  let exec = match win32 with
+  | None -> None
+  | Some win32 ->
+      let exec = function "Win32" -> win32 | _ -> name in
+      Some (const exec $ (value host_os))
+  in
+  utility_key ~docs:docs_system_utilities ?exec name
 
-let echo = system_utilities_utility "echo"
-let ln = system_utilities_utility "ln"
-let cp = system_utilities_utility "cp"
+let ln = system_utilities_utility "ln" (* FIXME windows *)
+let cp = system_utilities_utility "cp" ~win32:"copy"
+let mv = system_utilities_utility "mv" ~win32:"move"
+let cd = system_utilities_utility "cd"
+let rm = system_utilities_utility "rm" ~win32:"del"
+let rmdir = system_utilities_utility "rmdir"
 let mkdir = system_utilities_utility "mkdir"
-let cat = system_utilities_utility "cat"
+let cat = system_utilities_utility "cat" ~win32:"type"
 let make = system_utilities_utility "make"

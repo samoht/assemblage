@@ -19,8 +19,8 @@
 
 module String = As_string
 module Fmt = As_fmt
-module Log = As_log
 module Path = As_path
+module Log = As_log
 module Cmd = As_cmd
 
 (* Building *)
@@ -29,15 +29,18 @@ module Conf = As_conf
 module Ctx = As_ctx
 type args = As_args.t
 module Args = As_args
+
 module Action = struct
   include As_action
   module OCaml = As_action_ocaml
 end
 
-
 (* Parts *)
 
-module Part = As_part
+module Part = struct
+  include As_part
+  module Unit = As_part_unit
+end
 
 type path = string list
 let ( / ) segs seg = List.rev (seg :: List.rev segs)
@@ -47,7 +50,7 @@ type +'a part = 'a As_part.t
 
 let unit ?cond ?args ?deps ?(kind = `OCaml (`Both, `Normal)) ?(dir = []) name =
   let src_dir = As_path.rel_of_segs dir in
-  As_part.Unit.create ?cond ?args ?deps name kind ~src_dir
+  Part.Unit.create ?cond ?args ?deps name kind ~src_dir
 
 let lib ?cond ?args ?deps ?byte ?native ?native_dynlink ?(kind = `OCaml) name
     units =

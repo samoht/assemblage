@@ -72,30 +72,6 @@ module Base : sig
     (kind t -> As_action.t list) -> [> `Base] t
 end
 
-module Unit : sig
-  type ocaml_interface = [ `Normal | `Opaque | `Hidden ]
-  type ocaml_unit = [ `Ml | `Mli | `Both ]
-  type c_unit = [ `C | `H | `Both ]
-
-  type kind = [ `OCaml of ocaml_unit * ocaml_interface | `C of c_unit | `Js ]
-
-  val kind : [< `Unit] t -> kind
-  val src_dir : [< `Unit] t -> As_path.rel
-
-  val create :
-    ?cond:bool As_conf.value -> ?args:As_args.t -> ?deps:'a t list ->
-    ?src_dir:(As_path.rel) -> string -> kind -> [> `Unit] t
-
-  val check_set : 'a t list -> 'a t list
-
-  val of_base : src_dir:(As_path.rel) -> kind -> [`Base] t ->
-    [> `Unit] t
-
-  val ocaml : 'a t -> [> `Unit] t option
-  val c : 'a t -> [> `Unit] t option
-  val js : 'a t -> [> `Unit] t option
-end
-
 module Lib : sig
   type kind = [ `OCaml | `OCaml_pp | `C ]
 

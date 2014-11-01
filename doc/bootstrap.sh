@@ -14,7 +14,7 @@ rm -rf $BDIR
 mkdir -p $BDIR
 
 # Gather .mli and compile their cmis.
-for f in `ls lib/*.mli libs-driver/*.mli driver/*.mli`; do
+for f in `ls lib/*.mli lib-driver/*.mli driver/*.mli`; do
     ln -s "../../$f" $BDIR/`basename $f`
 done
 

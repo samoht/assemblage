@@ -16,7 +16,7 @@
 
 (* Log level and output *)
 
-type level = Show | Marker | Error | Warning | Info | Debug
+type level = Show | Error | Warning | Info | Debug
 
 let level = ref (Some Warning)
 let set_level l = level := l
@@ -26,7 +26,6 @@ let should_log l = match level () with
 | None -> false | Some l' -> l <= l'
 
 let show_ppf = ref Format.std_formatter
-let marker_ppf = ref Format.err_formatter
 let err_ppf = ref Format.err_formatter
 let warn_ppf = ref Format.err_formatter
 let info_ppf = ref Format.err_formatter
@@ -34,14 +33,13 @@ let debug_ppf = ref Format.err_formatter
 
 let set_formatter spec ppf = match spec with
 | `Level Show -> show_ppf := ppf
-| `Level Marker -> marker_ppf := ppf
 | `Level Error -> err_ppf := ppf
 | `Level Warning -> warn_ppf := ppf
 | `Level Info -> info_ppf := ppf
 | `Level Debug -> debug_ppf := ppf
 | `All ->
-    show_ppf := ppf; marker_ppf := ppf; err_ppf := ppf; warn_ppf := ppf;
-    info_ppf := ppf; debug_ppf := ppf
+    show_ppf := ppf; err_ppf := ppf; warn_ppf := ppf; info_ppf := ppf;
+    debug_ppf := ppf
 
 (* Logging *)
 
@@ -49,28 +47,38 @@ let dumb = Format.err_formatter (* any will do *)
 let err_count = ref 0
 let warn_count = ref 0
 
-let kmsg k l fmt =
+let kmsg ?header k l fmt =
+  let default d = match header with None -> d | Some h -> h in
   let k _ = k () in
   if not (should_log l) then Format.ikfprintf k dumb fmt else
   let pp_msg ppf style label fmt =
     Format.kfprintf k ppf
-      ("[%a] @[" ^^ fmt ^^ "@]@.") (As_fmt.(pp_styled style pp_str)) label
+      ("[%a] @[" ^^ fmt ^^ "@]@.") (As_fmt.pp_styled_str style) label
   in
   match l with
-  | Show -> Format.kfprintf k !show_ppf ("@[" ^^ fmt ^^ "@]@.")
-  | Marker -> Format.kfprintf k !marker_ppf ("@[" ^^ fmt ^^ "@]@.")
-  | Error -> incr err_count; pp_msg !err_ppf `Red "ERROR" fmt
-  | Warning -> incr warn_count; pp_msg !warn_ppf `Yellow "WARNING" fmt
-  | Info -> pp_msg !info_ppf `Blue "INFO" fmt
-  | Debug -> pp_msg !debug_ppf `Green "DEBUG" fmt
+  | Show ->
+      begin match header with
+      | None -> Format.kfprintf k !show_ppf ("@[" ^^ fmt ^^ "@]@.")
+      | Some h -> pp_msg !show_ppf `Bold h fmt
+      end
+  | Error ->
+      incr err_count; pp_msg !err_ppf `Red (default "ERROR") fmt
+  | Warning ->
+      incr warn_count; pp_msg !warn_ppf `Yellow (default "WARNING") fmt
+  | Info ->
+      pp_msg !info_ppf `Blue (default "INFO") fmt
+  | Debug ->
+      pp_msg !debug_ppf `Green (default "DEBUG") fmt
 
-let msg l fmt = kmsg (fun () -> ()) l fmt
-let show fmt = msg Show fmt
-let mark fmt = msg Marker fmt
-let err fmt = msg Error fmt
-let warn fmt = msg Warning fmt
-let info fmt = msg Info fmt
-let debug fmt = msg Debug fmt
+let msg ?header l fmt = kmsg ?header (fun () -> ()) l fmt
+let msg_driver_fault ?header l fmt =
+  msg ?header l ("[%a] " ^^ fmt) (As_fmt.pp_styled_str `Red) "DRIVER FAULT"
+
+let show ?header fmt = msg ?header Show fmt
+let err ?header fmt = msg ?header Error fmt
+let warn ?header fmt = msg ?header Warning fmt
+let info ?header fmt = msg ?header Info fmt
+let debug ?header fmt = msg ?header Debug fmt
 
 (* Log monitoring *)
 

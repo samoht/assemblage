@@ -16,22 +16,18 @@
  *)
 
 open Assemblage
+open Assemblage.Private
 
-let (|>) x f = f x
+let str = Printf.sprintf
 
-let log_project env version p =
-  let post =
-    if not env.Assemblage_env.utf8_msgs then "" else
-    " \xF0\x9F\x8D\xB7" (* UTF-8 <U+1F377, U+0020, U+0020> *)
-  in
-  Log.show "%a %a %s%s\n"
-    (Fmt.pp_styled `Black Fmt.pp_rarrow) ()
-    (Fmt.pp_styled_str `Bold) (Project.name p) version post
+let describe p =
+  Log.show "%a" Project.pp_signature p;
+  Log.show "%a" Conf.pp (Project.conf p);
+  `Ok ()
 
-let describe p env =
+(*
   let version = "FIXME" in
   let open Printf in
-(*
   let print_deps x = (* TODO *) ()
     let bold_name pkg = As_shell.color `Bold (As_part.name pkg) in
     let pkgs = As_part.(keep_kind `Pkg x) in
@@ -65,19 +61,33 @@ let describe p env =
     let n = List.length units - 1 in
     List.iteri (fun i u -> aux i n u) units in
   in
-*)
   let print cs = ()
     (* TODO *)
-(*
+
     let aux c =
       let open As_component in
       printf "└─┬─ %s\n%s"
         (As_shell.color `Magenta (id c)) (print_deps (deps c));
         print_units (filter_map unit (contents c)) in
     List.iter aux cs in
-*)
+
   in
   let parts = Part.keep_kinds [`Lib; `Bin] (Project.parts p) in
   log_project env version p;
   print parts;
-  `Ok ()
+*)
+
+
+(* Command line interface *)
+
+open Cmdliner
+
+let cmd =
+  let doc = "describe an OCaml project" in
+  let man =
+    [ `S "DESCRIPTION";
+      `P "The $(b,describe) command outputs various descriptions of a
+          configured project." ]
+  in
+  let describe = Term.(pure describe) in
+  Cmd_base.cmd_with_project "describe" describe ~doc ~man ~see_also:["setup"]

@@ -46,7 +46,7 @@ let query_static =
   let cache = Hashtbl.create 124 in
   let run (cmd, args as l) = try Hashtbl.find cache l with
   | Not_found ->
-      let r = Cmd.(on_error ~use:[] @@ input_lines cmd args) in
+      let r = Cmd.(on_error ~use:[] @@ read_lines cmd args) in
       Hashtbl.add cache l r;
       r
   in
@@ -100,51 +100,3 @@ let pkgs_args ~mode = function
         Args.create (`Link `Byte) (link_byte ~mode pkgs);
         Args.create (`Link `Native) (link_native ~mode pkgs) ]
 *)
-
-module META = struct
-  type t = string
-
-  let of_project ~version t =
-    let libs = Part.(keep_map Lib.ocaml) (Project.parts t) in
-    let buf = Buffer.create 1024 in
-    let one lib =
-      let requires =
-        conmap
-          Part.deps ([lib])
-        |> Part.(keep_map Pkg.ocaml)
-        |> List.map Part.name
-        |> String.concat " "
-      in
-      let name = Part.name lib in
-      Printf.bprintf buf "version  = \"%s\"\n" version;
-      Printf.bprintf buf "requires = \"%s\"\n" requires;
-      Printf.bprintf buf "archive(byte) = \"%s.cma\"\n" name;
-      Printf.bprintf buf "archive(byte, plugin) = \"%s.cma\"\n" name;
-      Printf.bprintf buf "archive(native) = \"%s.cmxa\"\n" name;
-      Printf.bprintf buf "archive(native, plugin) = \"%s.cmxs\"\n" name;
-      Printf.bprintf buf "exist_if = \"%s.cma\"\n" name
-    in
-    List.iteri (fun i lib ->
-        if i = 0 then one lib
-        else (
-          Printf.bprintf buf "package \"%s\" (" (Part.name lib);
-          one lib;
-          Printf.bprintf buf ")\n"
-        )
-      ) libs;
-    Buffer.contents buf
-
-  let write ?dir t =
-    let file = match dir with
-    | None   -> "META"
-    | Some d -> Filename.concat d "META"
-    in
-    match t with
-    | "" ->
-        Log.show "%a@ skip@ %s" Fmt.(pp_styled `Yellow pp_rarrow) () file
-    | _  ->
-        Log.show "%a@ write@ %s" Fmt.(pp_styled `Green pp_rarrow) () file;
-        let oc = open_out file in
-        output_string oc t;
-        close_out oc
-end

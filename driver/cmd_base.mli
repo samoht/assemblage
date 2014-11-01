@@ -15,23 +15,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* The assemblage command line tool. *)
+(** Base functions for assemblage's cli. *)
 
 open Cmdliner
 open Assemblage
 open Assemblage.Private
 
-let main () =
-  let cmd = if Array.length Sys.argv < 2 then None else Some Sys.argv.(1) in
-  match cmd with
-  | Some ("b" | "bu" | "bui" | "buil" | "build") -> Cmd_build.main ()
-  | _ ->
-      let cmds = [ Cmd_setup.cmd; Cmd_describe.cmd ] in
-      let cmds = Cmd_base.terms cmds in
-      match Term.eval_choice (List.hd cmds) (List.tl cmds) with
-      | `Error _ -> exit 1
-      | `Ok () | `Version | `Help ->
-          if Log.err_count () <> 0 then exit 1 else exit 0
+type 'a cmd
 
+val cmd : string -> 'a Term.ret Term.t -> doc:string ->
+  man:Manpage.block list -> see_also:string list -> 'a cmd
 
-let () = main ()
+val cmd_with_project : ?config:bool -> string ->
+  (Project.t -> 'a Term.ret) Term.t -> doc:string ->
+  man:Manpage.block list -> see_also:string list -> 'a cmd
+
+val terms : unit cmd list -> (unit Term.t * Term.info) list

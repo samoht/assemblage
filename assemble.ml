@@ -113,7 +113,7 @@ let api_doc = doc "api" [lib_assemblage]
 (* The project *)
 
 let p =
-  Project.create "assemblage" @@
+  Project.v "assemblage" @@
   [ lib_assemblage;
     assemblage_tool; assemble_assemble; ctypes_gen; dev_doc; api_doc ] @
   tests

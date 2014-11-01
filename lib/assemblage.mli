@@ -31,12 +31,14 @@
 
 (** {1 Preliminaries} *)
 
-(** String module with a few additions and string sets. *)
+(** Extended [String] module, string sets and maps. *)
 module String : sig
 
   (** {1 String} *)
 
   include module type of String
+
+  (** These are sorely missing from the standard library. *)
 
   val split : sep:string -> string -> string list
   (** [split sep s] is the list of all (possibly empty) substrings of
@@ -50,6 +52,12 @@ module String : sig
 
       The invariants [String.concat sep (String.split sep s) = s] and
       [String.split sep s <> []] always hold.
+
+      @raise Invalid_argument if [sep] is the empty string. *)
+
+  val rsplit : sep:string -> string -> string list
+  (** [rsplit sep s] is like {!split} but the matching is
+      done backwards, starting from the end of [s].
 
       @raise Invalid_argument if [sep] is the empty string. *)
 
@@ -77,12 +85,20 @@ module String : sig
       [String.length s]. This means that [-1] denotes the last
       character of the string. *)
 
-  (** {1 String sets} *)
+  val tokens : string -> string list
+  (** [tokens s] is the list of non empty strings made of characters
+      that are not separated by [' '], ['\t'], ['\n'], ['\r'] characters in
+      [s], the order of character appearance in the list is the same as
+      in [s]. *)
+
+  (** {1 String sets and maps} *)
 
   module Set : sig
     include Set.S with type elt = string
     val of_list : string list -> t
   end
+
+  module Map : Map.S with type key = string
 end
 
 (** Formatters. *)
@@ -142,10 +158,20 @@ module Fmt : sig
   (** [pp_lines] formats lines by replacing newlines in the string
       with calls to {!Format.pp_force_newline}. *)
 
+  (** {1:utf8_cond Conditional UTF-8 formatting}
+
+      {b Note.} Since {!Format} is not UTF-8 aware using UTF-8 output
+      may derail the pretty printing process. The decision of allowing
+      UTF-8 is left to the discretion of the drivers. *)
+
+  val pp_if_utf8 : 'a formatter -> 'a formatter -> 'a formatter
+  (** [pp_if_utf8 pp_u pp] is a formatter that will use [pp_u] if UTF-8
+      output is enabled by the driver and [pp] otherwise. *)
+
   (** {1:styled Styled formatting}
 
       {b Note.} Text output using these functions may still appear
-      unformatted as style application is left to the discretion of
+      unformatted, style application is left to the discretion of
       drivers. *)
 
   type style =
@@ -158,7 +184,8 @@ module Fmt : sig
     | `Blue
     | `Magenta
     | `Cyan
-    | `White ]
+    | `White
+    | `None ]
   (** The type for styles. *)
 
   val pp_styled : style -> 'a formatter -> 'a formatter
@@ -168,48 +195,12 @@ module Fmt : sig
   (** [pp_styled_str style] is [pp_styled_str style pp_str]. *)
 end
 
-(** Assemblage log. *)
-module Log : sig
-
-  (** {1 Log} *)
-
-  (** The type for log levels. *)
-  type level = Show | Marker | Error | Warning | Info | Debug
-
-  val msg : level -> ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [msg l fmt ...] logs a message with level [l]. *)
-
-  val kmsg :
-    (unit -> 'a) -> level -> ('b, Format.formatter, unit, 'a) format4 -> 'b
-  (** [kmsg k l fmt ...] is like [msg l fmt] but calls [k ()] before
-      returning. *)
-
-  val show : ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [show fmt ...] logs a message with level [Show]. *)
-
-  val mark : ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [mark fmt ...] logs  a message with level [Marker]. *)
-
-  val err : ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [err fmt ...] logs a message with level [Error]. *)
-
-  val warn : ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [warn fmt ...] logs a message with level [Warning]. *)
-
-  val info : ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [info fmt ...] logs a message with level [Info]. *)
-
-  val debug : ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [debug info ...] logs a message with level [Debug]. *)
-
-end
-
-(** File paths.
+(** File system paths, path sets and maps.
 
     {b Note.} Don't use {!Filename.current_dir_name} and
-    {!Filename.parent_dir_name} in path segments. TODO
-    should we raise [Invalid_argument] we could also normalize
-    via the constructors. *)
+    {!Filename.parent_dir_name} in path segments. FIXME/TODO should we
+    raise [Invalid_argument] ? We could also normalize via the constructors.
+    Cli interaction ? Path.of,to_string Path.quote define guidelines *)
 module Path : sig
 
   (** {1:filepaths File paths} *)
@@ -221,21 +212,24 @@ module Path : sig
   (** The type for lists of path segments. *)
 
   type rel = [`Rel of segs]
-  (** The type for relative file paths. The empty list denotes the current
-      directory. *)
+  (** The type for relative file paths. The empty list of segments denotes
+      the current directory. *)
 
   type abs = [`Abs of segs]
-  (** The type for absolute file paths. The empty list denotes the root
-      directory. *)
+  (** The type for absolute file paths. The empty list of segments denotes
+      the root directory. *)
 
   type t = [ abs | rel ]
-  (** The type for file paths. Either relative or absolute paths. *)
+  (** The type for paths. Either relative or absolute paths. *)
 
   val current : [> rel]
   (** [current] is the current directory for relative paths. *)
 
   val root : [> abs]
   (** [root] is the root directory for absolute paths. *)
+
+  val dash : [> rel]
+  (** [dash] is {!file}[ "-"]. *)
 
   val is_current : [> rel] -> bool
   (** [is_current p] is true iff [p] is {!current}. *)
@@ -248,6 +242,9 @@ module Path : sig
 
   val is_abs : [> abs] -> bool
   (** [is_abs p] is [true] iff [p] is an absolute path. *)
+
+  val is_dash : [> rel] -> bool
+  (** [is_dash] is [true] iff [p] is {!dash}. *)
 
   val as_rel : t -> rel
   (** [as_rel p] is [p] as a relative path.
@@ -301,31 +298,36 @@ module Path : sig
   (** [to_abs rel_base p] is [p] if [p] is absolute and [rel_base // p] if
       [p] is relative. [rel_base] defaults to {!root}. *)
 
+  val equal : t -> t -> bool
+  (** [equal p p'] is [p = p']. *)
+
+  val compare : t -> t -> int
+  (** [compare p p'] is [Pervasives.compare p p']. *)
+
+  val quote : [< t ] -> string
+  (** [quote p] is the path [p] as a string, quoted according
+      to the driver's platform conventions with {!Filename.quote}. *)
+
   val to_string : [< t ] -> string
-  (** [to_string p] is the path [p] as a string. *)
+  (** [to_string p] is the path [p] as a string according to
+      the driver's platform convention with {!Filename.dir_sep}. *)
 
   val of_string : string -> t
-  (** [of_string s] is the string [s] as a path. *)
+  (** [of_string s] is the string [s] as a path. [s] is splitted
+      according to the driver's platform convention with {!Filename.dir_sep}. *)
 
-  (** {1 File system queries} *)
-
-  val exists : [< t ] -> bool
-  (** [exists p] is [true] iff file path [p] exists in the file system. *)
-
-  val is_file : [< t ] -> bool
-  (** [is_file p] is [true] iff [exists p] is [true] and is a file
-      (vs a directory). *)
-
-  val is_dir : [< t ] -> bool
-  (** [is_dir p] is [true] iff [exists p] is [true] and
-      if a directory (vs a file). *)
+  val pp : Format.formatter -> t -> unit
+  (** [pp ppf p] prints path on [ppf] using {!to_string}. *)
 
   (** {1 File extensions} *)
 
   type ext =
-    [ `Ml_dep | `Mli_dep | `Ml | `Mli | `Ml_pp | `Mli_pp | `C | `H | `Js
-    | `Cmi | `Cmo | `Cmx | `O | `Cmt | `Cmti | `Cma | `Cmxa | `Cmxs | `A
-    | `So | `Byte | `Native | `Ext of string ]
+  [ `A | `Byte | `C | `Cma | `Cmi | `Cmo | `Cmt | `Cmti | `Cmx | `Cmxa
+  | `Cmxs | `Css | `Dll | `Exe | `Gif | `H | `Html | `Install | `Img
+  | `Jpeg | `Js | `Json | `Lib | `Md | `Ml | `Ml_dep | `Ml_pp | `Mli
+  | `Mli_dep | `Mli_pp | `Native | `O | `Opt | `Png | `Sh | `So | `Tar
+  | `Tbz | `Xml | `Zip
+  | `Ext of string ]
   (** The type for file extensions. *)
 
   val ext_to_string : ext -> string
@@ -346,27 +348,80 @@ module Path : sig
 
       @raise Invalid_argument if [p]'s last segment has no file extension. *)
 
-  val chop_ext : [< t ] -> t
-  (** [chop_ext p] removes the extension of [p] (if any). *)
-
   val add_ext : [< t ] -> ext -> t
   (** [add_ext p ext] is [p] with [ext] concatenated to the {!basename}
       of [p]. *)
 
+  val rem_ext : [< t ] -> t
+  (** [rem_ext p] is [p] with [ext] removed from the {!basename} of
+      [p] (if it has an extension). *)
+
   val change_ext : [< t ] -> ext -> t
-  (** [change_ext p e] is [add_ext (chop_ext p)]. *)
+  (** [change_ext p e] is [add_ext (rem_ext p)]. *)
 
   val ( + ) : [< t ] -> ext -> t
   (** [p + ext] is [add_ext p e]. Left associative. *)
+
+  val ( -+ ) : [< t ] -> ext -> t
+  (** [p -+ ext] is [change_ext p e]. Left associative. *)
+
+  (** {1 Path sets and maps} *)
+
+  module Set : sig
+    include Set.S with type elt = t
+    val of_list : [ abs | rel ] list -> t
+  end
+
+  module Map : Map.S with type key = t
 end
 
-(** Executing {e non build} commands and IO operations. *)
+(** Assemblage log. *)
+module Log : sig
+
+  (** {1 Log} *)
+
+  (** The type for log levels. *)
+  type level = Show | Error | Warning | Info | Debug
+
+  val msg : ?header:string -> level ->
+    ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** [msg header l fmt ...] logs a message with level [l]. [header] is
+      the message header, default depends on [l]. *)
+
+  val kmsg : ?header:string ->
+    (unit -> 'a) -> level -> ('b, Format.formatter, unit, 'a) format4 -> 'b
+  (** [kmsg header k l fmt ...] is like [msg header l fmt] but calls [k ()]
+      before returning. *)
+
+  val show : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** [show fmt ...] logs a message with level [Show]. [header] defaults
+      to [None]. *)
+
+  val err : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** [err fmt ...] logs a message with level [Error]. [header] defaults
+      to ["ERROR"]. *)
+
+  val warn : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** [warn fmt ...] logs a message with level [Warning]. [header] defaults
+      to ["WARNING"]. *)
+
+  val info : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** [info fmt ...] logs a message with level [Info]. [header] defaults
+      to ["INFO"]. *)
+
+  val debug : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** [debug info ...] logs a message with level [Debug]. [header] defaults
+      to ["DEBUG"]. *)
+
+end
+
+(** Executing {e non-build} commands and IO operations. *)
 module Cmd : sig
 
-  (** {1:command_results Command results} *)
+  (** {1:command_results Command and IO results} *)
 
   type 'a result = [ `Ok of 'a | `Error of string ]
-  (** The type for command results. *)
+  (** The type for command and IO results. *)
 
   val ret : 'a -> 'a result
   (** [ret v] is [`Ok v]. *)
@@ -374,22 +429,34 @@ module Cmd : sig
   val error : string -> 'a result
   (** [error e] is [`Error e]. *)
 
+  val bind : 'a result -> ('a -> 'b result) -> 'b result
+  (** [bind r f] is [f v] if [r = `Ok v] and [r] if [r = `Error _]. *)
+
+  val map : 'a result -> ('a -> 'b) -> 'b result
+  (** [map r f] is [bind r (fun v -> ret (f v))]. *)
+
+  val get : 'a result -> 'a
+  (** [get r] is [v] if [r = `Ok v] and @raise Invalid_argument otherwise. *)
+
   val on_error : ?level:Log.level -> use:'a -> 'a result -> 'a
   (** [on_error ~level ~use r] is:
       {ul
       {- [v] if [r = `Ok v]}
       {- [use] if [r = `Error msg]. As a side effect [msg] is
        {{!Log}logged} with level [level] (defaults to
-       [Log.Error])}} *)
+       {!Log.Error})}} *)
 
-  val bind : 'a result -> ('a -> 'b result) -> 'b result
-  (** [bind r f] is:
-      {ul
-      {- [f v] if [r = `Ok v].}
-      {- [r] if [r = `Error _].}} *)
+  val ignore_error : use:'a -> 'a result -> 'a
+  (** [ignore_error ~use r] is like {!on_error} but the error
+      is not logged. *)
 
-  val map : 'a result -> ('a -> 'b) -> 'b result
-  (** [map r f] is [bind r (fun v -> ret (f v))]. *)
+  val reword_error : ?replace:bool -> string -> 'a result -> 'a result
+  (** [reword_error msg r] uses [msg] for the error message in case of
+      [`Error]. If replace is [false] (default), [msg] is stacked on
+      top of the old message. *)
+
+  val exn_error : ?msg:(Printexc.raw_backtrace -> exn -> 'a -> string) ->
+    (('a -> 'b) -> ('a -> 'b result))
 
   val ( >>= ) : 'a result -> ('a -> 'b result) -> 'b result
   (** [r >>= f] is [bind r f]. *)
@@ -405,86 +472,119 @@ module Cmd : sig
     (** {1 Infix operators} *)
 
     val ( >>= ) : 'a result -> ('a -> 'b result) -> 'b result
-    (** Same as {!Cmd.( >>= )}. *)
+    (** [(>>=)] is {!Cmd.( >>= )}. *)
 
     val ( >>| ) : 'a result -> ('a -> 'b) -> 'b result
-    (** Same as {!Cmd.( >>| )}. *)
+    (** [(>>|)] is {!Cmd.( >>| )}. *)
   end
 
-  (** {1:files_dirs_vcs Working with files, directories and version control
-      systems} *)
+  (** {1:io IO and file system operations} *)
 
-  (** Files. *)
+  type path = Path.t
+
+  (** Path operations. *)
+  module Path : sig
+
+    (** {1:pathops Path operations} *)
+
+    val exists : path -> bool result
+    (** [exists path] is [true] iff [path] exists. *)
+
+    val move : ?force:bool -> path -> path -> unit result
+    (** [move ~force src dst] moves path [src] to [dst]. If [force] is
+        [false] (default) the operation fails if [dst] exists. *)
+  end
+
+  (** File operations. *)
   module File : sig
 
-    (** {1 Files}
+    (** {1:fileops File operations}
 
         {b Note.} When paths are {{!Path.rel}relative} they are expressed
         relative to the {{!Dir.getcwd}current working directory}. *)
 
-    val exists : Path.t -> bool result
+    val exists : path -> bool result
     (** [exists file] is [true] iff [file] exists and is not a directory. *)
 
-    val null : Path.t
-    (** [null] represents a file that discard all writes. *)
+    val dev_null : path
+    (** [dev_null] represents a file that discards all writes.
 
-    val with_inf : (in_channel -> 'a -> 'b result) -> Path.t -> 'a ->
+        {b Warning.} Do not use this value to define build actions,
+        use {!Action.dev_null}. *)
+
+    val delete : ?maybe:bool -> path -> unit result
+    (** [delete ~maybe file] deletes file [file]. If [maybe] is [false]
+        (default) no error is returned if the file doesn't exit. *)
+
+    val temp : string -> path result
+    (** [temp suffix] creates a temporary file with suffix [suffix] and returns
+        its name. The file is destroyed at the end of program execution. *)
+
+    (** {1:input Input} *)
+
+    val with_inf : (in_channel -> 'a -> 'b result) -> path -> 'a ->
       'b result
     (** [with_inf f inf v] opens [inf] as a channel [ic] and returns [f
         ic v] if no error occurs. In case of error the channel is closed
-        and the error is returned. If [inf] is [""], [ic] is
+        and the error is returned. If [inf] is {!Path.dash}, [ic] is
         {!Pervasives.stdin} and not closed. *)
 
-    val with_outf : (out_channel -> 'a -> 'b result) -> Path.t -> 'a ->
+    val read : path -> string result
+    (** [read file] is [file]'s content. If [file] is {!Path.dash} reads
+        from {!Pervasives.stdin}. *)
+
+    val read_lines : path -> string list result
+    (** [read_lines file] is [file]'s content splitted at ['\n']. If
+        [file] is {!Path.dash} reads from {!Pervasives.stdin}. *)
+
+    (** {1:output Output} *)
+
+    val with_outf : (out_channel -> 'a -> 'b result) -> path -> 'a ->
       'b result
     (** [with_inf f outf v] opens [outf] as a channel [oc] and returns
         [f oc v] if no error occurs. In case of error the channel is
-        closed and the error is returned. If [outf] is [""], [oc] is
+        closed and the error is returned. If [outf] is {!Path.dash}, [oc] is
         {!Pervasives.stdout} and not closed. *)
 
-    val input : Path.t -> string result
-    (** [input file] is [file]'s content. *)
+    val write : path -> string -> unit result
+    (** [write file content] outputs [content] to [file]. If [file]
+        is {!Path.dash}, writes to {!Pervasives.stdout}. If an error is
+        returned [file] is left untouched except if {!Pervasives.stdout}
+        is written.*)
 
-    val input_lines : Path.t -> string list result
-    (** [read_lines file] is [files]'s content splitted at ['\n']. *)
+    val write_lines : path -> string list -> unit result
+    (** [write_lines file lines] outputs [lines] separated by ['\n'] to
+        [file]. If [file] is {!Path.dash}, writes to {!Pervasives.stdout}.
+        If an error is returned [file] is left untouched except if
+        {!Pervasives.stdout} is written.*)
 
-    val output : Path.t -> string -> unit result
-    (** [output file content] outputs [content] to [file]. *)
-
-    val output_lines : Path.t -> string list -> unit result
-    (** [output_lines file lines] outputs [lines] separated by ['\n'] to
-        [file]. *)
-
-    val output_subst : (string * string) list -> Path.t -> string ->
-    unit result
-    (** [output_subst vars file content] outputs [content] to [file]. In
+    val write_subst : (string * string) list -> path -> string ->
+      unit result
+    (** [write_subst vars file content] outputs [content] to [file]. In
         [content] patterns of the form ["%%ID%%"] are replaced by the value
-        of [List.assoc "ID" vars] (if any). *)
+        of [List.assoc "ID" vars] (if any). If [file] is {!Path.dash}, writes
+        to {!Pervasives.stdout}. If an error is returned [file] is left
+        untouched except if {!Pervasives.stdout} is written.
 
-    val delete : ?maybe:bool -> Path.t -> unit result
-    (** [delete ~maybe file] deletes file [file]. If [maybe] is [true]
-        (defaults to [false]) no error is reported if the file doesn't exit. *)
-
-    val temp : string -> Path.t result
-    (** [temp suffix] creates a temporary file with suffix [suffix] and returns
-        its name. The file is destroyed at the end of program execution. *)
+        FIXME: add optional argument [delim] that defaults to [%%],
+        the latter may appear in programs. *)
   end
 
-  (** Directories. *)
+  (** Directory operations. *)
   module Dir : sig
 
-    (** {1 Directories}
+    (** {1:dirops Directory operations}
 
         {b Note.} When paths are {{!Path.rel}relative} they are expressed
         relative to the {{!Dir.getcwd}current working directory}. *)
 
-    val exists : Path.t -> bool result
+    val exists : path -> bool result
     (** [exists dir] is [true] if directory [dir] exists. *)
 
-    val getcwd : unit -> Path.t result
+    val getcwd : unit -> path result
     (** [getcwd ()] is the current working directory. *)
 
-    val chdir : Path.t -> unit result
+    val chdir : path -> unit result
     (** [chdir dir] changes the current working directory to [dir]. *)
 
     val fold_files_rec : ?skip:string list -> (string -> 'a -> 'a result) ->
@@ -494,71 +594,80 @@ module Cmd : sig
         element of [skip] are skipped. *)
   end
 
-  (** Version control systems.
+  (** Version control system operations.
 
       {b Note.} To remain VCS agnostic use the result of
       {!find} or {!get} rather than explicitely mentioning your VCS. *)
   module Vcs : sig
 
-    (** {1 Version control systems} *)
+    (** {1:vcsops Version control system operations} *)
 
     type t = [ `Git | `Hg ]
     (** The type for version control systems. *)
 
-    val exists : Path.t -> t -> bool result
-    (** [exists root vcs] is [true] if the VCS [vcs] is detected in directory
-        [root]. *)
+    val exists : path -> t -> bool result
+    (** [exists d vcs] is [true] if the VCS [vcs] is detected in
+        directory [d]. *)
 
-    val find : Path.t -> t option result
-    (** [find root] looks for an arbitrary VCS in directory [root]. *)
+    val find : path -> t option result
+    (** [find d] looks for an arbitrary VCS in directory [d]. *)
 
-    val get : Path.t -> t result
-    (** [get root] is like {!exists} but returns an error if no VCS
+    val get : path -> t result
+    (** [get d] is like {!exists} but returns an error if no VCS
         was found. *)
 
-    val head : ?dirty:bool -> Path.t -> t -> string result
-    (** [head dirty root vcs] is the HEAD commit identifier of the VCS
-        [vcs] in in directory [root]. If [dirty] is [true] (default)
+    val head : ?dirty:bool -> path -> t -> string result
+    (** [head dirty d vcs] is the HEAD commit identifier of the VCS
+        [vcs] in in directory [d]. If [dirty] is [true] (default)
         an indicator is appended to the identifier if the working tree
         is dirty. *)
 
-    val describe : ?dirty:bool -> Path.t -> t -> string result
-    (** [describe dirty root vcs] identifies the HEAD commit using
-        tags from the VCS [vcs] in directory [root]. If [dirty] is
+    val describe : ?dirty:bool -> path -> t -> string result
+    (** [describe dirty d vcs] identifies the HEAD commit using
+        tags from the VCS [vcs] in directory [d]. If [dirty] is
         [true] (default) an indicator is appended to the identifier if
         the working tree is dirty. *)
   end
+
+  (** {1:env_lookup Environment variables lookup} *)
+
+  val env : string -> string option
+  (** [env var] is the value if the environment variable [var], if
+      defined. *)
+
+  val get_env : string -> string result
+  (** [get_env var] is like {!env} but returns an error if [var] is
+      undefined. *)
 
   (** {1:executing_commands Executing commands} *)
 
   val exists : string -> bool result
   (** [exists cmd] is [true] if [cmd] exists and can be invoked. *)
 
-  val exec_ret : string -> string list -> int result
+  val exec_ret : string -> string list -> int
   (** [exec_ret cmd args] executes [cmd] with arguments [args] and
-      always returns [`Ok] with the exit code of the invocation. *)
+      returns the exit code of the invocation. *)
 
   val exec : string -> string list -> unit result
   (** [exec cmd args] executes [cmd] with arguments [args]. On exit
       code [0] returns [`Ok ()]. Otherwise an error message with
       the failed invocation and its exit code is returned in [`Error]. *)
 
-  val input : ?trim:bool -> string -> string list -> string result
-  (** [input cmd args] execute [cmd] with arguments [args]. On exit code
-      [0] returns the contents of the invocation's [stdout] with [`Ok].
-      Otherwise an error message with the failed invocation and its exit
-      code is returned in [`Error]. If [trim] is [true] the contents
-      is passed to {!String.trim} before being returned. *)
+  val read : ?trim:bool -> string -> string list -> string result
+  (** [read cmd args] execute [cmd] with arguments [args] and returns
+      its standard output. If [cmd]'s return code is non zero returns
+      an error message. If [trim] is [true] (default) the contents is
+      passed to {!String.trim} before being returned. *)
 
-  val input_lines : string -> string list -> string list result
+  val read_lines : string -> string list -> string list result
   (** [input_lines cmd args] is like [input ~trim:false cmd args] but
       the input is splitted at ['\n']. *)
 
-  val output : string -> string list -> Path.t -> unit result
-  (** [output cmd args file] execute [cmd] with arguments [args] and writes
-      the invocation's [stdout] to [file]. *)
+  val write : string -> string list -> path -> unit result
+  (** [write cmd args file] execute [cmd] with arguments [args] and writes
+      the invocation's [stdout] to [file]. In [cmd]'s return code is non
+      zero returns an error message and [file] is left intact. *)
 end
-
 
 (** {1:building Building} *)
 
@@ -579,7 +688,7 @@ end
     determine a configuration value or other configuration keys.
 
     Before {{!key}defining} your own keys you should prefer the
-    {{!builtin}built-in ones}. *)
+    {{!builtin_keys}built-in ones}. *)
 module Conf : sig
 
   (** {1 Configuration values} *)
@@ -616,7 +725,11 @@ module Conf : sig
   (** [pick_if c a b] is [a] if [c] evaluates to [true] and [b]
       otherwise. *)
 
-  (** {1 Configuration keys} *)
+  (** {1 Configuration value converters}
+
+      A configuration value converter transforms a string value
+      to an OCaml value. There are a few
+      {{!builtin_converters}built-in converters}. *)
 
   type 'a parser = string -> [ `Error of string | `Ok of 'a ]
   (** The type for configuration value parsers. *)
@@ -626,6 +739,14 @@ module Conf : sig
 
   type 'a converter = 'a parser * 'a printer
   (** The type for configuration value converters. *)
+
+  val parser : 'a converter -> 'a parser
+  (** [parser c] is [c]'s parser. *)
+
+  val printer : 'a converter -> 'a printer
+  (** [converter c] is [c]'s printer. *)
+
+  (** {1 Configuration keys} *)
 
   type 'a key
   (** The type for configuration keys. *)
@@ -649,42 +770,16 @@ module Conf : sig
       {b Warning.} No two public keys should share the same [name] as
       this may lead to difficulties in certain assemblage drivers
       (like the inability to define the key on the command line).  In
-      particular do not reuse the {!builtin} names (they have the same
-      name as the key variables with underscores replaced by
-      dashes). *)
+      particular do not reuse the {{!builtin_keys}built-in names}
+      (they have the same name as the key variables with underscores
+      replaced by dashes). *)
 
   val value : 'a key -> 'a value
   (** [value k] is [k]'s value. *)
 
-  (** {2 Built-in value converters}  *)
+  (** {1:builtin_keys Built-in configuration keys} *)
 
-  val bool : bool converter
-  (** [bool] converts values with [bool_of_string].  *)
-
-  val int : int converter
-  (** [int] converts values with [int_of_string]. *)
-
-  val string : string converter
-  (** [string] converts values with the indentity function. *)
-
-  val path : Path.t converter
-  (** [path] converts value with {!Path.of_string}. *)
-
-  val abs_path : Path.abs converter
-  (** [path] converts value with {!Path.of_string}. *)
-
-  val rel_path : Path.rel converter
-  (** [path] converts value with {!Path.of_string}. *)
-
-  val enum : (string * 'a) list -> 'a converter
-  (** [enum l] converts values such that string names in l map to
-      the corresponding value of type ['a]. *)
-
-  val version : (int * int * int * string option) converter
-  (** [version] converts values of the form
-      [[v|V]major.minor[.patch][(-|+).*]]. *)
-
-  (** {1:builtin Built-in configuration keys} *)
+  (** {2:project_keys Project keys} *)
 
   val project_version : string key
   (** [project_version] is the version number of the project (defaults
@@ -894,40 +989,72 @@ module Conf : sig
 
   val host_os : string key
   (** [host_os] is the operating system name of the host machine (defaults
-      is the lowercased result of {!uname} invoked with [-s]). *)
+      is ["Win32"] if the driver's {!Sys.os_type} is ["Win32"]
+      otherwise it is the lowercased result of {!uname} invoked with [-s]). *)
 
   val host_arch : string key
-  (** [host_arch] is the hardware architecture of the host machine (defaults
-      is the lowercased result of {!uname} invoked with [-m]). *)
+  (** [host_arch] is the hardware architecture of the host machine
+      (defaults to the value of the driver's
+      ["PROCESSOR_ARCHITECTURE"] environment variable if the driver
+      {!Sys.os_type} is ["Win32"] otherwise it is the lowercased
+      result of {!uname} invoked with [-m]) *)
+
+  val host_word_size : int key
+  (** [host_word_size] is the host machine word bit size (defaults to
+      the driver's {!Sys.word_size}). *)
 
   val target_os : string key
-  (** [target_os] is the operating system name of the host machine (defaults
-      to the value of {!host_arch}). *)
+  (** [target_os] is the operating system name of the target machine (defaults
+      to the value of {!host_os}). *)
 
   val target_arch : string key
-  (** [target_arch] is the hardware architecture of the host machine (defaults
-      to the value of {!target_arch}. *)
+  (** [target_arch] is the hardware architecture of the target machine (defaults
+      to the value of {!host_arch}). *)
+
+  val target_word_size : int key
+  (** [target_word_size] is the target machine word bit size (defaults to
+      the value of {!host_word_size}). *)
 
   val docs_machine_information : string
   (** [docs_machine_utilities] is the name of the documentation section
       in which machine information keys are described. *)
 
-  (** {2:system_utility_keys System utility keys} *)
+  (** {2:system_utility_keys System utility keys}
 
-  val echo : string key
-  (** [echo] is the
-      the {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/echo.html}
-      echo} utility (defaults to ["echo"]). *)
+      {b Note.} Build actions should not use these utilities directly
+      but use {{!Action.portable_invocations}portable
+      system utility invocations}. *)
 
   val ln : string key
   (** [ln] is the
       {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/ln.html}ln}
-      utility (defaults to ["ln"]). *)
+      utility (defaults to ["ln"]). FIXME windows. *)
 
   val cp : string key
   (** [cp] is the
       {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/cp.html}[cp]}
-      utility (defaults to ["cp"]). *)
+      utility (defaults to ["cp"] on Unix and ["copy"] on Windows). *)
+
+  val mv : string key
+  (** [mv] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/mv.html}[mv]}
+      utility (defaults to ["mv"] on Unix and ["move"] on Windows). *)
+
+  val cd : string key
+  (** [cd] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/cd.html}[cd]}
+      utility (defaults to ["cd"]). *)
+
+  val rm : string key
+  (** [rm] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/rm.html}[rm]}
+      utility (defaults to ["rm"] on Unix and ["del"] on Windows). *)
+
+  val rmdir : string key
+  (** [rmdir] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/rmdir.html}
+      [rmdir]}
+      utility (defaults to ["rmdir"]). *)
 
   val mkdir : string key
   (** [mkdir] is the
@@ -937,7 +1064,7 @@ module Conf : sig
   val cat : string key
   (** [cat] is the
       {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/cat.html}
-      [cat]} (defaults to ["cat"]). *)
+      [cat]} (defaults to ["cat"] on Unix and ["type"] on Windows). *)
 
   val make : string key
   (** [make] is the
@@ -947,6 +1074,35 @@ module Conf : sig
   val docs_system_utilities : string
   (** [docs_system_utilities] is the name of the documentation section
       in which system utility keys are described. *)
+
+  (** {1:builtin_converters Built-in value converters}  *)
+
+  val bool : bool converter
+  (** [bool] converts values with [bool_of_string].  *)
+
+  val int : int converter
+  (** [int] converts values with [int_of_string]. *)
+
+  val string : string converter
+  (** [string] converts values with the indentity function. *)
+
+  val path : Path.t converter
+  (** [path] converts value with {!Path.of_string}. *)
+
+  val abs_path : Path.abs converter
+  (** [path] converts value with {!Path.of_string}. *)
+
+  val rel_path : Path.rel converter
+  (** [path] converts value with {!Path.of_string}. *)
+
+  val enum : (string * 'a) list -> 'a converter
+  (** [enum l] converts values such that string names in l map to
+      the corresponding value of type ['a]. *)
+
+  val version : (int * int * int * string option) converter
+  (** [version] converts values of the form
+      [[v|V]major.minor[.patch][(-|+).*]]. *)
+
 end
 
 (** Build contexts.
@@ -955,7 +1111,7 @@ end
     inject {{!Args}arguments} on the command lines of build
     {{!Action}Actions}. The concrete build context associated to an
     action's command depends on the the end-user (through parts TODO), the
-    action designer (the [context] argument of {!Action.create}), and
+    action designer (the [context] argument of {!Action.v}), and
     the {{!Action.cmd}key name} of the command being executed. *)
 module Ctx : sig
 
@@ -999,7 +1155,7 @@ module Ctx : sig
       {ul
       {- [`Shared], working on generating a shared archive.}} *)
 
-  type command = [ `Cmd of string As_conf.key ]
+  type command = [ `Cmd of string Conf.key ]
   (** The type for informing about the command being executed.
       {ul
       {- [`Cmd k], the command [k] is being executed.}} *)
@@ -1151,7 +1307,6 @@ module Action : sig
   (** The type for lists of build products. A configuration value holding
       a list of file paths. *)
 
-
   (** {1 Build commands} *)
 
   type cmds
@@ -1171,6 +1326,42 @@ module Action : sig
 
   val ( <*> ) : cmds -> cmds -> cmds
   (** [cmds <*> cmds'] is [seq cmds cmds']. *)
+
+  (** {2:portable_invocations Portable system utility invocations}
+
+      Rather than using {{!Conf.system_utility_keys}system utility
+      configuration keys} directly you should use the following functions,
+      they will enforce portable behaviour. *)
+
+  val dev_null : Path.t Conf.value
+  (** [dev_null] is a file that discards all writes. *)
+
+  val cp : ?stdout:product -> ?stderr:product -> src:Path.t Conf.value ->
+    dst:Path.t Conf.value -> cmds
+  (** [cp ~src ~dst] copies file [src] to [dst]. *)
+
+  val mv : ?stdout:product -> ?stderr:product -> src:Path.t Conf.value ->
+    dst:Path.t Conf.value -> cmds
+  (** [mv ~src ~dst] moves path [src] to [dst]. *)
+
+  val rm_files : ?stdout:product -> ?stderr:product ->
+    ?f:bool Conf.value -> Path.t list Conf.value -> cmds
+  (** [rm_files ~f paths] removes the {e file} paths [paths].
+      If [f] is [true] files are removed regardless of permissions
+      (defaults to [false]). [paths] elements must be files, for
+      directories, see {!rm_dirs}. *)
+
+  val rm_dirs : ?stdout:product -> ?stderr:product -> ?f:bool Conf.value ->
+    ?r:bool Conf.value -> Path.t list Conf.value -> cmds
+  (** [rm_dirs ~f ~r paths] removes the {e directory} paths [paths].
+      If [f] is [true] directories are removed regardless of permissions
+      (defaults to [false]). If [r] is [true] removes the file hierarchies
+      rooted at the elements of [paths]. Note that [paths] must be
+      directories, for removing files, see {!rm_files}. *)
+
+  val mkdir : ?stdout:product -> ?stderr:product -> Path.t Conf.value -> cmds
+  (** [mkdir p] creates the directory [p]. Intermediate directories
+      are created as required ([mkdir -p] in Unix parlance). *)
 
   (** {1 Build actions} *)
 
@@ -1231,7 +1422,7 @@ module Action : sig
     (** [path_dir p] is the {{!Path.dirname}dirname} of [p]. *)
 
     val path_arg : ?opt:string -> Path.rel Conf.value -> string list_v
-    (** [path_arg p] is the list made of [p] {{!Path.to_string}converted}
+    (** [path_arg p] is the list made of [p] {{!Path.quote}converted}
         to a string. If [opt] is present it is added in front of the list. *)
 
     val paths_args : ?opt:string -> Path.rel list Conf.value ->
@@ -1239,7 +1430,7 @@ module Action : sig
     (** [paths_args p] is  like {!path_arg} but for a list of paths.
         If [opt] is present it is added in front of each path list element. *)
 
-    val product : ?ext:As_path.ext -> product -> products
+    val product : ?ext:Path.ext -> product -> products
     (** [product p] is the list made of [p]. If [ext] is present the suffix
         of [p] is {{!Path.change_ext}changed} to [ext]. *)
 
@@ -1285,14 +1476,14 @@ module Action : sig
     (** [compile_mli ~incs ~src] compiles the mli file [src] (which can
         be an AST, see {!compile_src_ast}) with includes [incs]. *)
 
-    val compile_ml_byte : has_mli:bool As_conf.value -> incs:includes ->
+    val compile_ml_byte : has_mli:bool Conf.value -> incs:includes ->
       src:product -> t
     (** [compile_ml_byte ~has_mli ~incs ~src] compiles to byte code the ml
         file [src] (which can be an AST, see {!compile_src_ast}) with
         includes [incs]. [has_mli] indicates whether the source has a
         corresponding mli file. *)
 
-    val compile_ml_native : has_mli:bool As_conf.value ->
+    val compile_ml_native : has_mli:bool Conf.value ->
       incs:includes -> src:product -> t
     (** [compile_ml_native ~has_mli ~incs ~src] is like {!compile_ml_byte}
         but compiles to native code. *)
@@ -1781,39 +1972,32 @@ module Project : sig
   type t = project
   (** The type for describing projects. *)
 
-  val create : ?cond:bool Conf.value -> ?args:args -> string ->
-    'a part list -> project
-  (** [create cond args cs n] is the project named [n] with components [cs].
+  val v : ?cond:bool Conf.value -> ?args:args -> ?actions:Action.t list ->
+    string -> 'a part list -> project
+  (** [v cond args cs n] is the project named [n] with components [cs].
       [cond] determines if the project can exist in a build configuration.
 
       FIXME [args]. *)
 
   val name : project -> string
   (** [name p] is the [p]'s name. *)
-
-  val parts : project -> part_kind part list
-  (** [parts p] is [p]'s parts. *)
-
-  val args : project -> args
-  (** [args p] is [p]'s args. *)
-
-  val cond : project -> bool Conf.value
-  (** [cond p] is [p]'s cond. *)
 end
 
 val assemble : project -> unit
 (** [assemble p] registers [p] for assembling by an assemblage driver. *)
 
 
-(** {1 Private API}
-
-    {b Warning.} Assemblage users must not use the definitions of the
-    [Private] module to describe their projects. *)
+(** {1 Private API} *)
 
 (** Private functions and types for implementing drivers.
 
     Open the module after {!Assemblage} to use it. It extends
-    Assemblage's module with private definitions. *)
+    Assemblage's module with private definitions.
+
+    {b Warning.} Assemblage users must not use these definitions to
+    describe their projects. They can hamper driver functionality and
+    are subject to change even between minor versions of [Assemblage].
+ *)
 module Private : sig
 
   (** {1 Private} *)
@@ -1824,6 +2008,14 @@ module Private : sig
     (** {1 Formatters} *)
 
     include module type of Fmt
+
+    (** {1:utf8_cond Conditional UTF-8 formatting control} *)
+
+    val utf8_enabled : unit -> bool
+    (** [utf8_enabled ()] is [true] if UTF-8 pretty-printing is enabled. *)
+
+    val set_utf8_enabled : bool -> unit
+    (** [set_utf8_enabled b] sets UTF-8 pretty-printing to [b]. *)
 
     (** {1 Styled formatting control} *)
 
@@ -1841,7 +2033,7 @@ module Private : sig
 
     val set_style_tags : style_tags -> unit
     (** [set_style_tags s] sets the current tag style used by
-        {!Fmt.pp_style}. *)
+        {!Fmt.pp_styled}. *)
   end
 
   (** Log. *)
@@ -1890,33 +2082,27 @@ module Private : sig
 
       include module type of Cmd.Vcs
 
-      val override : unit -> t option
-      (** [override ()] is the current VCS override value.
-          See {!set_override}. *)
+      val override_kind : unit -> t option
+      (** [override_kind ()] is the current VCS kind override value.
+          See {!set_override_kind}. *)
 
-      val set_override : t option -> unit
-      (** [set_override (Some vcs)] has the effect of bypassing VCS discovery.
-          [vcs] will always {!Cmd.Vcs.exists}, {!Cmd.Vcs.find} and
-          {!Cmd.Vcs.get} will always always return this [vcs]. *)
+      val set_override_kind : t option -> unit
+      (** [set_override_kind (Some vcs)] has the effect of bypassing
+          VCS discovery. [vcs] will always {!Cmd.Vcs.exists},
+          {!Cmd.Vcs.find} and {!Cmd.Vcs.get} will always always return
+          this [vcs]. *)
 
       val override_exec : unit -> string option
-      (** [override_exec] is the current VCS executable override.
-          See {!set_override_exec}. *)
+      (** [override_bin] is the current VCS executable
+          override. See {!set_override_exec}. *)
 
       val set_override_exec : string option -> unit
-      (** [set_override_exec (Some vcs_exec)] uses [vcs_exec] as the VCS
-          executable, use in conjunction with {!set_override} otherwise
-          it has no effect. *)
+      (** [set_override_exec (Some vcs_exec)] uses [vcs_exec] as the
+          VCS executable, use in conjunction with {!set_override_kind}
+          otherwise it has no effect. *)
     end
 
     include module type of Cmd with module Vcs := Vcs
-
-    val trace : unit -> bool
-    (** [trace ()] is [true] if command executions are traced on
-        the assemblage {{!Log}log}. Initially [false]. *)
-
-    val set_trace : bool -> unit
-    (** [set_trace b] sets tracing to [b], see {!trace}. *)
   end
 
   (** Build configuration. *)
@@ -2007,6 +2193,9 @@ module Private : sig
 
         @raise Invalid_argument if [k] is not in [c]. *)
 
+    val pp : Format.formatter -> t -> unit
+    (** [pp ppf c] prints an unspecified representation of [c] on [ppf]. *)
+
     val of_keys : Key.Set.t -> t
     (** [of_keys ks] is a configuration where each key of [ks] maps to
         its default value. *)
@@ -2067,15 +2256,70 @@ module Private : sig
     (** [cmds a] is [a]'s commands to generate outputs from the inputs. *)
   end
 
-  (** Projects. *)
+  (** Projects.
+
+      {b Important.} Project values may depend on the configuration
+      it is the driver's responsability to set a project's configuration
+      with {!with_conf} otherwise warnings are reported on configuration
+      use. *)
   module Project : sig
 
     (** {1 Project} *)
 
     include module type of Project with type t = Project.t
 
+    (** {1 Static attributes} *)
+
+    val cond : project -> bool Conf.value
+    (** [cond p] is [p]'s cond. *)
+
+    val args : project -> args
+    (** [args p] is [p]'s args. *)
+
+    val parts : project -> part_kind part list
+    (** [parts p] is [p]'s parts. *)
+
+    val actions : project -> Action.t list
+
+    (** {1 Configuration} *)
+
+    val default_conf : project -> Conf.t
+    (** [default_conf p] is the configuration needed to define [p] as
+        derived from the project's definition. *)
+
     val conf : project -> Conf.t
-    (** [conf p] is the configuration needed to define [p]. *)
+    (** [conf p] is the project's configuration. *)
+
+    val with_conf : project -> Conf.t -> project
+    (** [with_conf p c] is [p] with configuration [c]. *)
+
+    val eval : project -> 'a Conf.value -> 'a
+    (** [eval p v] is [Conf.eval [conf p] v]. *)
+
+    val eval_key : project -> 'a Conf.key -> 'a
+    (** [eval_key p k] is [eval p (Conf.value k)]. *)
+
+    (** {1 Configuration dependent values} *)
+
+    val version : project -> string
+    (** [version p] evaluates {!Conf.project_version} *)
+
+    val products : ?root:bool -> project -> Path.Set.t
+    (** [products p] is the set of build products. If [root]
+        is [true] (default) includes root build products. *)
+
+    val watermark_string : ?suffix:string -> t -> string
+    (** [watermark_string suffix p] is a watermark that can be used in
+        the comments of generated files for the project. It consists
+        of the project {!name} followed by the project {!version}
+        followed by [suffix] (defaults says it was generated by
+        assemblage). *)
+
+    val pp_signature : Format.formatter -> t -> unit
+    (** [pp_signature ppf p] prints an unspecified signature for [p]
+        on [ppf], includes the project name and version. *)
+
+    (** {1 Assembled projects} *)
 
     val list : unit -> project list
     (** [list] is the list of projects that were {!assemble}d by
@@ -2087,23 +2331,21 @@ end
 
     An assemblage {{!project}project} is made of {{!parts}parts}.
 
-    Describing a project eventually leads to describe its build
-    artifacts. The exact mapping betweem project elements and those
-    build artifacts depends on the presence or absence of
-    {{!Features}features}. Examples of such features are weather to
-    compile and run the tests (user-defined feature), the presence of
-    the native compiler (system-dependant feature), compiling a
-    library using [async] or [lwt] as a backend (environment-dependant
-    feature), ...
 
-    Finally, generating build artifacts means refining the project
-    description into concrete {{!Args}command line arguments} to pass
-    to the different compilers ([ocamlc], [ocamlopt]) on the different
-    compilation and linking phases.
+    {1:dont Don't}
 
-    {1 Examples}
+    Make the project depend on direct conditions. E.g.
+{[
+    if Sys.file_exists file then Some (unit "src")  else None
+]}
 
-    {ul
-    {- Show how to create a package from Base that hooks into pcre-config}
-    {- Show how to create a package from Base that runs a discover.ml}}
+    That's the way of doing it:
+{[
+    let cond = Conf.(const Cmd.File.exists $ const (Path.file file)) in
+     unit ~cond "src"
+]}
+
+    TODO the rule to hammer in people's mind is the following:
+    don't do anything that doesn't make the set of configuration
+    keys constant on *every* run of the [assemble.ml] file.
 *)

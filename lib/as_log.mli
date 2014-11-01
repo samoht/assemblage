@@ -20,7 +20,7 @@
 
 (** {1 Log level and output} *)
 
-type level = Show | Marker | Error | Warning | Info | Debug
+type level = Show | Error | Warning | Info | Debug
 
 val level : unit -> level option
 val set_level : level option -> unit
@@ -28,16 +28,20 @@ val set_formatter : [`All | `Level of level ] -> Format.formatter -> unit
 
 (** {1 Logging} *)
 
-val msg : level -> ('a, Format.formatter, unit, unit) format4 -> 'a
-val kmsg :
+val msg : ?header:string -> level ->
+  ('a, Format.formatter, unit, unit) format4 -> 'a
+
+val msg_driver_fault : ?header:string -> level ->
+  ('a, Format.formatter, unit, unit) format4 -> 'a
+
+val kmsg : ?header:string ->
   (unit -> 'a) -> level -> ('b, Format.formatter, unit, 'a) format4 -> 'b
 
-val show : ('a, Format.formatter, unit, unit) format4 -> 'a
-val mark : ('a, Format.formatter, unit, unit) format4 -> 'a
-val err : ('a, Format.formatter, unit, unit) format4 -> 'a
-val warn : ('a, Format.formatter, unit, unit) format4 -> 'a
-val info : ('a, Format.formatter, unit, unit) format4 -> 'a
-val debug : ('a, Format.formatter, unit, unit) format4 -> 'a
+val show : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
+val err : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
+val warn : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
+val info : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
+val debug : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
 
 (** {1 Log monitoring} *)
 

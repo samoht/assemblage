@@ -1,6 +1,5 @@
 (*
  * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
- * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -15,23 +14,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* The assemblage command line tool. *)
+(** Findlib META support.
 
-open Cmdliner
-open Assemblage
-open Assemblage.Private
+    See {!Assemblage_tools.Meta}. *)
 
-let main () =
-  let cmd = if Array.length Sys.argv < 2 then None else Some Sys.argv.(1) in
-  match cmd with
-  | Some ("b" | "bu" | "bui" | "buil" | "build") -> Cmd_build.main ()
-  | _ ->
-      let cmds = [ Cmd_setup.cmd; Cmd_describe.cmd ] in
-      let cmds = Cmd_base.terms cmds in
-      match Term.eval_choice (List.hd cmds) (List.tl cmds) with
-      | `Error _ -> exit 1
-      | `Ok () | `Version | `Help ->
-          if Log.err_count () <> 0 then exit 1 else exit 0
+(** {1 META files} *)
 
+type t
 
-let () = main ()
+val of_project : Assemblage.project -> t
+val to_string : t -> string

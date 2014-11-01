@@ -35,6 +35,12 @@ val split : sep:string -> string -> string list
 
     @raise Invalid_argument if [sep] is the empty string. *)
 
+val rsplit : sep:string -> string -> string list
+(** [rsplit sep s] is like {!split} but the matching is
+    done backwards, starting from the end of [s].
+
+    @raise Invalid_argument if [sep] is the empty string. *)
+
 val cut : sep:string -> string -> (string * string) option
 (** [cut sep s] is either the pair [Some (l,r)] of the two
     (possibly empty) substrings of [s] that are delimited by the first
@@ -59,9 +65,17 @@ val slice : ?start:int -> ?stop:int -> string -> string
     [String.length s]. This means that [-1] denotes the last
     character of the string. *)
 
+val tokens : string -> string list
+(** [tokens s] is the list of non empty strings made of characters
+    that are not separated by [' '], ['\t'], ['\n'], ['\r'] characters in
+    [s], the order of character appearance in the list is the same as
+    in [s]. *)
+
 (** {1 Sets of strings} *)
 
 module Set : sig
   include Set.S with type elt = string
   val of_list : string list -> t
 end
+
+module Map : Map.S with type key = string

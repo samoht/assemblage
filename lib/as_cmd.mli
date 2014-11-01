@@ -24,9 +24,15 @@ type 'a result = [ `Ok of 'a | `Error of string ]
 
 val ret : 'a -> 'a result
 val error : string -> 'a result
-val on_error : ?level:As_log.level -> use:'a -> 'a result -> 'a
 val bind : 'a result -> ('a -> 'b result) -> 'b result
 val map : 'a result -> ('a -> 'b) -> 'b result
+val get : 'a result -> 'a
+val on_error : ?level:As_log.level -> use:'a -> 'a result -> 'a
+val ignore_error : use:'a -> 'a result -> 'a
+val reword_error : ?replace:bool -> string -> 'a result -> 'a result
+val exn_error : ?msg:(Printexc.raw_backtrace -> exn -> 'a -> string) ->
+  (('a -> 'b) -> ('a -> 'b result))
+
 val ( >>= ) : 'a result -> ('a -> 'b result) -> 'b result
 val ( >>| ) : 'a result -> ('a -> 'b) -> 'b result
 
@@ -35,24 +41,29 @@ module Infix : sig
   val ( >>| ) : 'a result -> ('a -> 'b) -> 'b result
 end
 
-(** {1 Working with files, directories and version control systems} *)
+(** {1 Path, files, directories and version control systems} *)
+
+type path = As_path.t (* to avoid assemblage.mli confusion *)
+
+module Path : sig
+  val exists : As_path.t -> bool result
+  val move : ?force:bool -> As_path.t -> As_path.t -> unit result
+end
 
 module File : sig
+  val dev_null : As_path.t
   val exists : As_path.t -> bool result
-  val null : As_path.t
-  val with_inf : (in_channel -> 'a -> 'b result) -> As_path.t -> 'a -> 'b result
-  val with_outf : (out_channel -> 'a -> 'b result) -> As_path.t -> 'a ->
-    'b result
-
-  val input : As_path.t -> string result
-  val input_lines : As_path.t -> string list result
-  val output : As_path.t -> string -> unit result
-  val output_lines : As_path.t -> string list -> unit result
-  val output_subst : (string * string) list -> As_path.t -> string ->
-    unit result
-
   val delete : ?maybe:bool -> As_path.t -> unit result
   val temp : string -> As_path.t result
+  val with_inf : (in_channel -> 'a -> 'b result) -> As_path.t -> 'a -> 'b result
+  val read : As_path.t -> string result
+  val read_lines : As_path.t -> string list result
+
+  val with_outf : (out_channel -> 'a -> 'b result) -> As_path.t -> 'a ->
+    'b result
+  val write : As_path.t -> string -> unit result
+  val write_lines : As_path.t -> string list -> unit result
+  val write_subst : (string * string) list -> As_path.t -> string -> unit result
 end
 
 module Dir : sig
@@ -66,8 +77,8 @@ end
 module Vcs : sig
   type t = [ `Git | `Hg ]
 
-  val override : unit -> t option
-  val set_override : t option -> unit
+  val override_kind : unit -> t option
+  val set_override_kind : t option -> unit
   val override_exec : unit -> string option
   val set_override_exec : string option -> unit
 
@@ -78,14 +89,16 @@ module Vcs : sig
   val describe : ?dirty:bool -> As_path.t -> t -> string result
 end
 
+(** {1 Environment variable lookup} *)
+
+val env : string -> string option
+val get_env : string -> string result
+
 (** {1 Executing commands} *)
 
-val trace : unit -> bool
-val set_trace : bool -> unit
-
 val exists : string -> bool result
-val exec_ret : string -> string list -> int result
+val exec_ret : string -> string list -> int
 val exec : string -> string list -> unit result
-val input : ?trim:bool -> string -> string list -> string result
-val input_lines : string -> string list -> string list result
-val output : string -> string list -> As_path.t -> unit result
+val read : ?trim:bool -> string -> string list -> string result
+val read_lines : string -> string list -> string list result
+val write : string -> string list -> As_path.t -> unit result

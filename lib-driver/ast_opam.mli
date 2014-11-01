@@ -15,23 +15,32 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* The assemblage command line tool. *)
+(** OPAM support.
 
-open Cmdliner
-open Assemblage
-open Assemblage.Private
+    See {!Assemblage_tools.Opam}. *)
 
-let main () =
-  let cmd = if Array.length Sys.argv < 2 then None else Some Sys.argv.(1) in
-  match cmd with
-  | Some ("b" | "bu" | "bui" | "buil" | "build") -> Cmd_build.main ()
-  | _ ->
-      let cmds = [ Cmd_setup.cmd; Cmd_describe.cmd ] in
-      let cmds = Cmd_base.terms cmds in
-      match Term.eval_choice (List.hd cmds) (List.tl cmds) with
-      | `Error _ -> exit 1
-      | `Ok () | `Version | `Help ->
-          if Log.err_count () <> 0 then exit 1 else exit 0
+(** {1 Metadata synchronization} *)
 
+module Sync : sig
 
-let () = main ()
+end
+
+(** {1 Install file} *)
+
+module Install : sig
+
+  (** {1 Install file} *)
+
+  type move
+  val move : ?maybe:bool -> ?dst:string -> string -> move
+
+  type field_elt =
+    [ `Bin of move | `Doc of move | `Etc of move | `Lib of move | `Man of move
+    | `Misc of move | `Sbin of move | `Share of move | `Share_root of move
+    | `Stublibs of move | `Toplevel of move ]
+
+  type t = [`Header of string option ] * field_elt list
+
+  val to_string : t -> string
+  val of_project : ?add:field_elt list -> Assemblage.project -> t
+end

@@ -15,7 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** OCamlfind invocations and META files. *)
+(** OCamlfind invocations *)
 
 type syntax = [ `Shell | `Makefile ]
 (** The type for invocation syntax. [`Shell] returns a [sh] command
@@ -43,15 +43,3 @@ val query :
 
 val pkgs_args : mode:mode -> string list -> Assemblage.args
 (** [pkgs_args mode pkgs] returns the args for packages [pkgs]. *)
-
-(** Generate META files. *)
-module META: sig
-
-  type t
-
-  val of_project : version:string -> Assemblage.project -> t
-  (** Create a META file. *)
-
-  val write : ?dir:string -> t -> unit
-  (** Write a META file. *)
-end

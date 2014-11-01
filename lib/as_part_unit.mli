@@ -15,23 +15,28 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* The assemblage command line tool. *)
+(** Part for compilation units.
 
-open Cmdliner
-open Assemblage
-open Assemblage.Private
+    See {!Assemblage.Part.Unit}. *)
 
-let main () =
-  let cmd = if Array.length Sys.argv < 2 then None else Some Sys.argv.(1) in
-  match cmd with
-  | Some ("b" | "bu" | "bui" | "buil" | "build") -> Cmd_build.main ()
-  | _ ->
-      let cmds = [ Cmd_setup.cmd; Cmd_describe.cmd ] in
-      let cmds = Cmd_base.terms cmds in
-      match Term.eval_choice (List.hd cmds) (List.tl cmds) with
-      | `Error _ -> exit 1
-      | `Ok () | `Version | `Help ->
-          if Log.err_count () <> 0 then exit 1 else exit 0
+type ocaml_interface = [ `Normal | `Opaque | `Hidden ]
+type ocaml_unit = [ `Ml | `Mli | `Both ]
+type c_unit = [ `C | `H | `Both ]
 
+type kind = [ `OCaml of ocaml_unit * ocaml_interface | `C of c_unit | `Js ]
 
-let () = main ()
+val kind : [< `Unit] As_part.t -> kind
+val src_dir : [< `Unit] As_part.t -> As_path.rel
+
+val create :
+  ?cond:bool As_conf.value -> ?args:As_args.t -> ?deps:'a As_part.t list ->
+  ?src_dir:(As_path.rel) -> string -> kind -> [> `Unit] As_part.t
+
+val of_base : src_dir:(As_path.rel) -> kind -> [`Base] As_part.t ->
+  [> `Unit] As_part.t
+
+(*
+val ocaml : 'a As_part.t -> [> `Unit] As_part.t option
+val c : 'a As_part.t -> [> `Unit] As_part.t option
+val js : 'a As_part.t -> [> `Unit] As_part.t option
+*)

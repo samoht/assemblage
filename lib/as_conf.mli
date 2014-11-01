@@ -32,11 +32,17 @@ val ( &&& ) : bool value -> bool value -> bool value
 val ( ||| ) : bool value -> bool value -> bool value
 val pick_if : bool value -> 'a value -> 'a value -> 'a value
 
-(** {1 Configuration keys} *)
+(** {1 Configuration value converters} *)
 
 type 'a parser = string -> [ `Error of string | `Ok of 'a ]
 type 'a printer = Format.formatter -> 'a -> unit
 type 'a converter = 'a parser * 'a printer
+
+val parser : 'a converter -> 'a parser
+val printer : 'a converter -> 'a printer
+
+(** {1 Configuration keys} *)
+
 type 'a key
 
 module Key : sig
@@ -87,12 +93,32 @@ val domain : t -> Key.Set.t
 val of_keys : Key.Set.t -> t
 val eval : t -> 'a value -> 'a
 val deps : 'a value -> Key.Set.t
+val pp : Format.formatter -> t -> unit
 
 (** {1 Configuration error messages} *)
 
 val pp_key_dup : Format.formatter -> Key.t -> unit
 
 (** {1 Built-in configuration keys} *)
+
+(** {1 Project keys} *)
+
+val project_version : string key
+val docs_project : string
+val doc_project : string
+
+(** {2 Machine information keys} *)
+
+val docs_machine_information : string
+val doc_machine_information : string
+
+val uname : string key
+val host_os : string key
+val host_arch : string key
+val host_word_size : int key
+val target_os : string key
+val target_arch : string key
+val target_word_size : int key
 
 (** {2 Build directory keys} *)
 
@@ -102,12 +128,6 @@ val doc_build_directories : string
 val root_dir : As_path.t key
 val build_dir : As_path.rel key
 val product_dir : As_path.rel key
-
-(** {1 Project keys} *)
-
-val project_version : string key
-val docs_project : string
-val doc_project : string
 
 (** {2 Build property keys} *)
 
@@ -160,25 +180,17 @@ val doc_c_system : string
 val cc : string key
 val pkg_config : string key
 
-(** {2 Machine information keys} *)
-
-val docs_machine_information : string
-val doc_machine_information : string
-
-val uname : string key
-val host_os : string key
-val host_arch : string key
-val target_os : string key
-val target_arch : string key
-
 (** {2 System utility keys} *)
 
 val docs_system_utilities : string
 val doc_system_utilities : string
 
-val echo : string key
 val ln : string key
 val cp : string key
+val mv : string key
+val cd : string key
+val rm : string key
+val rmdir : string key
 val mkdir : string key
 val cat : string key
 val make : string key

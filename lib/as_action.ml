@@ -36,6 +36,66 @@ let cmd ?stdin ?stdout ?stderr exec args =
 let seq cmds cmds' =  List.rev_append (List.rev cmds) cmds'
 let (<*>) = seq
 
+(* Portable system utility invocations *)
+
+let add v acc = v :: acc
+let add_if b v acc = if b then v :: acc else acc
+let path_arg p = As_path.to_string p
+let paths_args_rev ps = List.rev_map As_path.to_string ps
+let paths_args ps = List.rev (paths_args_rev ps)
+
+(* FIXME IMPORTANT copy and move on Win don't support multiple files, except if
+   they are wildcards. For this reason ~src is not ~srcs. If we transform
+   the type cmds to a value we can generate a sequence of commands for
+   the moves. *)
+
+let dev_null =
+  let dev_null = function
+  | "Win32" -> As_path.file "NUL"
+  | _ -> As_path.(root / "dev" / "null")
+  in
+  As_conf.(const dev_null $ value host_os)
+
+let cp ?stdout ?stderr ~src ~dst =
+  let args os src dst = match os with
+  | "Win32" -> [ "/Y"; path_arg src; path_arg dst; ]
+  | _ -> [ path_arg src; path_arg dst; ]
+  in
+  let args = As_conf.(const args $ (value host_os) $ src $ dst) in
+  cmd As_conf.cp args ?stdout ?stderr
+
+let mv ?stdout ?stderr ~src ~dst =
+  let args os src dst = match os with
+  | "Win32" -> [ "/Y"; path_arg src; path_arg dst; ]
+  | _ -> [ path_arg src; path_arg dst; ]
+  in
+  let args = As_conf.(const args $ (value host_os) $ src $ dst) in
+  cmd As_conf.cp args ?stdout ?stderr
+
+let rm_files ?stdout ?stderr ?(f = As_conf.false_) paths =
+  let args os f paths = match os with
+  | "Win32" -> add_if f "/F" @@ add "/Q" @@ paths_args paths
+  | _ -> add_if f "-f" @@ paths_args paths
+  in
+  let args = As_conf.(const args $ (value host_os) $ f $ paths) in
+  cmd As_conf.rm args ?stdout ?stderr
+
+let rm_dirs ?stdout ?stderr ?(f = As_conf.false_) ?(r = As_conf.false_) paths =
+  let args os f r paths = match os with
+  | "Win32" -> add_if f "/F" @@ add_if r "/S" @@ add "/Q" @@ paths_args paths
+  | _ -> add_if f "-f" @@ add_if r "-r" @@ paths_args paths
+  in
+  let args = As_conf.(const args $ (value host_os) $ f $ r $ paths) in
+  cmd As_conf.rmdir args ?stdout ?stderr
+
+let mkdir ?stdout ?stderr dir =
+  let args os dir = match os with
+  | "Win32" -> [ path_arg dir ]
+  | _ -> [ "-p"; path_arg dir ]
+  in
+  let args = As_conf.(const args $ (value host_os) $ dir) in
+  cmd As_conf.mkdir args ?stdout ?stderr
+
 (* Actions *)
 
 type t =

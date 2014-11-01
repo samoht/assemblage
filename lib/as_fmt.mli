@@ -41,12 +41,18 @@ val pp_list : ?pp_sep:unit formatter -> 'a formatter -> 'a list formatter
 val pp_text : string formatter
 val pp_lines : string formatter
 
+(** {1 Conditional UTF-8 formatting} *)
+
+val utf8_enabled : unit -> bool
+val set_utf8_enabled : bool -> unit
+val pp_if_utf8 : 'a formatter -> 'a formatter -> 'a formatter
+
 (** {1 Styled formatting} *)
 
 type style_tags = [ `Ansi | `None ]
 type style =
   [ `Bold | `Underline | `Black | `Red | `Green | `Yellow | `Blue | `Magenta
-  | `Cyan | `White ]
+  | `Cyan | `White | `None ]
 
 val style_tags : unit -> style_tags
 val set_style_tags : style_tags -> unit

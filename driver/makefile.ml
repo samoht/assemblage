@@ -17,10 +17,28 @@
 
 let str = Printf.sprintf
 
+(* Variables *)
+
 type var =
   { name : string;
     op : string;
     def : string list; }
+
+let ( === ) name def = `Var { name; op = "="; def }
+let ( =:= ) name def = `Var { name; op = ":="; def }
+let ( =::= ) name def = `Var { name; op = "::="; def }
+let ( =+= ) name def = `Var { name; op = "+="; def }
+let ( =?= ) name def = `Var { name; op = "?="; def }
+
+module Infix = struct
+  let ( === ) = ( === )
+  let ( =:= ) = ( =:= )
+  let ( =::= ) = ( =::= )
+  let ( =+= ) = ( =+= )
+  let ( =?= ) = ( =?= )
+end
+
+(* Rules *)
 
 type rule =
   { ext : bool;
@@ -29,31 +47,17 @@ type rule =
     order_only_prereqs : string list;
     recipe : string list list; }
 
+let rule ?(ext = false) ?(order_only_prereqs = []) ~targets ~prereqs ~recipe
+    () =
+  `Rule { ext; targets; prereqs; order_only_prereqs; recipe; }
+
+(* Makefiles *)
+
 type statement =
   [ `Var of var
   | `Rule of rule ]
 
 type t = [ statement | `Comment of string | `Blank ] list
-
-let rule ?(ext = false) ?(order_only_prereqs = []) ~targets ~prereqs ~recipe
-    () =
-  `Rule { ext; targets; prereqs; order_only_prereqs; recipe; }
-
-let ( === ) name def = `Var { name; op = "="; def }
-let ( =:= ) name def = `Var { name; op = ":="; def }
-let ( =::= ) name def = `Var { name; op = "::="; def }
-let ( =+= ) name def = `Var { name; op = "+="; def }
-let ( =?= ) name def = `Var { name; op = "?="; def }
-
-module Op = struct
-  let ( === ) = ( === )
-  let ( =:= ) = ( =:= )
-  let ( =::= ) = ( =::= )
-  let ( =+= ) = ( =+= )
-  let ( =?= ) = ( =?= )
-end
-
-(* Output *)
 
 let buf_add_strings ?(max = 76) ?(nl = "\\\n") ?(indent = "    ") b count ss =
   let indent_len = String.length indent in
@@ -106,20 +110,11 @@ let buf_add_comment b c =
 
 let to_string mk =
   let b = Buffer.create 8192 in
-  let rec loop = function
-  | `Blank :: mk -> Buffer.add_char b '\n'; loop mk
-  | `Var v :: mk -> buf_add_var b v; loop mk
-  | `Rule r :: mk -> buf_add_rule b r; loop mk
-  | `Comment c :: mk -> buf_add_comment b c; loop mk
-  | [] -> Buffer.contents b
+  let add = function
+  | `Blank -> Buffer.add_char b '\n'
+  | `Var v -> buf_add_var b v
+  | `Rule r -> buf_add_rule b r
+  | `Comment c -> buf_add_comment b c
   in
-  loop mk
-
-let write_file f mk =
-  try
-    let oc = open_out f in
-    try
-      output_string oc (to_string mk);
-      close_out oc
-    with e -> close_out oc; raise e
-  with Sys_error e -> Assemblage.Log.err "%s: %s" f e
+  List.iter add mk;
+  Buffer.contents b

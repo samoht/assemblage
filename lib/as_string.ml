@@ -48,9 +48,38 @@ let split ~sep s =
   done;
   List.rev (String.sub s !sub_start (s_max - !sub_start + 1) :: !acc)
 
+let rsplit ~sep s =
+  let sep_max = length sep - 1 in
+  if sep_max < 0 then invalid_arg "As_string.rsplit: empty separator" else
+  let s_max = length s - 1 in
+  if s_max < 0 then [""] else
+  let acc = ref [] in
+  let sub_end = ref s_max in
+  let k = ref 0 in
+  let i = ref s_max in
+  while (!i >= sep_max) do
+    if unsafe_get s !i <> unsafe_get sep sep_max then decr i else begin
+      (* Check remaining [sep] chars match, access to unsafe_get
+           s (sep_start + !k) is guaranteed by loop invariant. *)
+      let sep_start = !i - sep_max in
+      k := sep_max - 1;
+      while (!k >= 0 && unsafe_get s (sep_start + !k) = unsafe_get sep !k)
+      do decr k done;
+      if !k >= 0 then (* no match *) decr i else begin
+        let new_sub_end = sep_start - 1 in
+        let sub_start = !i + 1 in
+        let sub_len = !sub_end - sub_start + 1 in
+        acc := sub s sub_start sub_len :: !acc;
+        sub_end := new_sub_end;
+        i := new_sub_end;
+      end
+    end
+  done;
+  sub s 0 (!sub_end + 1) :: !acc
+
 let cut ~sep s =
   let sep_max = String.length sep - 1 in
-  if sep_max < 0 then invalid_arg "String.cut: empty separator" else
+  if sep_max < 0 then invalid_arg "As_string.cut: empty separator" else
   let s_max = String.length s - 1 in
   if s_max < 0 then None else
   let k = ref 0 in
@@ -78,7 +107,7 @@ let cut ~sep s =
 
 let rcut ~sep s =
   let sep_max = String.length sep - 1 in
-  if sep_max < 0 then invalid_arg "String.rcut: empty separator" else
+  if sep_max < 0 then invalid_arg "As_string.rcut: empty separator" else
   let s_max = String.length s - 1 in
   if s_max < 0 then None else
   let k = ref 0 in
@@ -115,9 +144,24 @@ let slice ?(start = 0) ?stop s =
   if start >= stop then "" else
   String.sub s start (stop - start)
 
-(* String sets *)
+let tokens s =
+  let acc = ref [] in
+  let start = ref 0 in
+  let max = String.length s - 1 in
+  for i = 0 to max do match s.[i] with
+  | ' ' | '\n' | '\r' | '\t' ->
+      if !start = i then (incr start) else
+      (acc := String.sub s !start (i - !start) :: !acc; start := (i + 1))
+  | _ -> ()
+  done;
+  if !start > max then (List.rev !acc) else
+  List.rev (String.sub s !start (max - !start + 1) :: !acc)
+
+(* String sets and maps *)
 
 module Set = struct
   include Set.Make (String)
   let of_list = List.fold_left (fun acc s -> add s acc) empty
 end
+
+module Map = Map.Make (String)

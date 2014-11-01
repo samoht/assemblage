@@ -28,10 +28,12 @@ type t = [ abs | rel ]
 
 val current : [> rel]
 val root : [> abs]
+val dash : [> rel]
 val is_current : [> rel] -> bool
 val is_root : [> abs] -> bool
 val is_rel : [> rel] -> bool
 val is_abs : [> abs] -> bool
+val is_dash : [> rel] -> bool
 val as_rel : t -> rel
 val as_abs : t -> abs
 val as_path : [< t ] -> t
@@ -47,21 +49,21 @@ val dir : string -> [> rel]
 val rel_of_segs : string list -> [> rel]
 val abs_of_segs : string list -> [> abs]
 val to_abs : ?rel_base:abs -> [< t ] -> [> abs]
-val to_string : [< t ] -> string
+val equal : t -> t -> bool
+val compare : t -> t -> int
 val of_string : string -> t
-
-(** {1 File system queries} *)
-
-val exists : [< t ] -> bool
-val is_file : [< t ] -> bool
-val is_dir : [< t ] -> bool
-
+val to_string : [< t ] -> string
+val quote : [< t ] -> string
+val pp : Format.formatter -> t -> unit
 (** {1 File extensions} *)
 
 type ext =
-  [ `Ml_dep | `Mli_dep | `Ml | `Mli | `Ml_pp | `Mli_pp | `C | `H | `Js | `Cmi
-  | `Cmo | `Cmx | `O | `Cmt | `Cmti | `Cma | `Cmxa | `Cmxs | `A | `So | `Byte
-  | `Native | `Ext of string ]
+  [ `A | `Byte | `C | `Cma | `Cmi | `Cmo | `Cmt | `Cmti | `Cmx | `Cmxa
+  | `Cmxs | `Css | `Dll | `Exe | `Gif | `H | `Html | `Install | `Img
+  | `Jpeg | `Js | `Json | `Lib | `Md | `Ml | `Ml_dep | `Ml_pp | `Mli
+  | `Mli_dep | `Mli_pp | `Native | `O | `Opt | `Png | `Sh | `So | `Tar
+  | `Tbz | `Xml | `Zip
+  | `Ext of string ]
 
 val ext_to_string : ext -> string
 val ext_of_string : string -> ext
@@ -69,7 +71,16 @@ val has_ext : ext -> [< t ] -> bool
 val ext : [< t ] -> ext option
 val get_ext : [< t ] -> ext
 val add_ext : [< t ] -> ext -> t
-val chop_ext : [< t ] -> t
+val rem_ext : [< t ] -> t
 val change_ext : [< t ] -> ext -> t
 val ( + ) : [< t ] -> ext -> t
 val ( -+ ) : [< t ] -> ext -> t
+
+(** {1 Path sets and maps} *)
+
+module Set : sig
+  include Set.S with type elt = t
+  val of_list : elt list -> t
+end
+
+module Map : Map.S with type key = t

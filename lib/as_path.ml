@@ -25,7 +25,13 @@ type filename = string
 type segs = string list
 type rel = [ `Rel of segs ]
 type abs = [ `Abs of segs ]
-type t = [ abs | rel ]
+
+module Path = struct
+  type t = [ abs | rel ]
+  let compare = compare
+end
+
+type t = Path.t
 
 let segs = function `Abs segs | `Rel segs -> segs
 let map f = function
@@ -34,10 +40,12 @@ let map f = function
 
 let current = `Rel []
 let root = `Abs []
+let dash = `Rel ["-"]
 let is_current = function `Rel [] -> true | _ -> false
 let is_root = function `Abs [] -> true | _ -> false
 let is_rel = function `Rel _ -> true | _ -> false
 let is_abs = function `Abs _ -> true | _ -> false
+let is_dash = function `Rel [ "-" ] -> true | _ -> false
 let as_rel = function `Rel _ as v -> v | _ -> invalid_arg err_not_relative
 let as_abs = function `Abs _ as v -> v | _ -> invalid_arg err_not_absolute
 let as_path p = (p :> t)
@@ -72,52 +80,61 @@ let to_abs ?(rel_base = root) p = match p with
 | `Rel ss -> `Abs List.(rev_append (rev (segs rel_base)) ss)
 | `Abs _ as p -> p
 
-let to_string = function
-| `Rel segs -> String.concat Filename.dir_sep segs
-| `Abs segs -> "/" ^ String.concat Filename.dir_sep segs
+let equal p p' = p = p'
+let compare = Path.compare
+
+(* FIXME `{to,of}_string,quote` are we doing the right things ?  *)
 
 let of_string s =                                (* N.B. collapses // to / *)
-  (* FIXME use String.split *)
-  let rec split sep acc j =
-    let i = try String.rindex_from s j sep with Not_found -> -1 in
-    if (i = -1) then (String.sub s 0 (j + 1)) :: acc else
-    let p = String.sub s (i + 1) (j - i) in
-    let acc' = if p <> "" then p :: acc else acc in
-    split sep acc' (i - 1)
-  in
-  match split Filename.dir_sep.[0] [] (String.length s - 1) with
-  | "" :: segs -> `Abs segs
-  | segs -> `Rel segs
+  (* FIXME unquote ? *)
+  match As_string.split ~sep:Filename.dir_sep s with
+  | "" :: segs -> abs_of_segs segs   (* FIXME windows ?? *)
+  | segs -> rel_of_segs segs
 
-(* File system queries *)
+let to_string = function
+| `Rel segs -> String.concat Filename.dir_sep segs
+(* FIXME windows what's the root ? *)
+| `Abs segs -> (Filename.dir_sep ^ String.concat Filename.dir_sep segs)
 
-let exists p = try Sys.file_exists (to_string p) with Sys_error _ -> false
-let is_dir p = try Sys.is_directory (to_string p) with Sys_error _ -> false
-let is_file p =
-  try not (Sys.is_directory (to_string p)) with Sys_error _ -> false
+let quote p = Filename.quote (to_string p)
+
+let pp ppf p = As_fmt.pp_str ppf (to_string p)
 
 (* File extensions *)
 
 type ext =
-  [ `Ml_dep | `Mli_dep | `Ml | `Mli | `Ml_pp | `Mli_pp | `C | `H | `Js | `Cmi
-  | `Cmo | `Cmx | `O | `Cmt | `Cmti | `Cma | `Cmxa | `Cmxs | `A | `So | `Byte
-  | `Native | `Ext of string ]
+  [ `A | `Byte | `C | `Cma | `Cmi | `Cmo | `Cmt | `Cmti | `Cmx | `Cmxa
+  | `Cmxs | `Css | `Dll | `Exe | `Gif | `H | `Html | `Install | `Img
+  | `Jpeg | `Js | `Json | `Lib | `Md | `Ml | `Ml_dep | `Ml_pp | `Mli
+  | `Mli_dep | `Mli_pp | `Native | `O | `Opt | `Png | `Sh | `So | `Tar
+  | `Tbz | `Xml | `Zip
+  | `Ext of string ]
 
 let ext_to_string = function
-| `Ml_dep -> "ml-dep" | `Mli_dep -> "mli-dep" | `Ml -> "ml" | `Mli -> "mli"
-| `Ml_pp -> "ml-pp" | `Mli_pp -> "mli-pp" | `C -> "c" | `H -> "h"
-| `Js -> "js" | `Cmi -> "cmi" | `Cmo -> "cmo"
-| `Cmx -> "cmx" | `O -> "o" | `Cmt -> "cmt" | `Cmti -> "cmti" | `Cma -> "cma"
-| `Cmxa -> "cmxa" | `Cmxs -> "cmxs" | `A -> "a" | `So -> "so"
-| `Byte -> "byte" | `Native -> "native" | `Ext ext -> ext
+| `A -> "a" | `Byte -> "byte" | `C -> "c" | `Cma -> "cma" | `Cmi -> "cmi"
+| `Cmo -> "cmo" | `Cmt -> "cmt" | `Cmti -> "cmti" | `Cmx -> "cmx"
+| `Cmxa -> "cmxa" | `Cmxs -> "cmxs" | `Css -> "css" | `Dll -> "dll"
+| `Exe -> "exe" | `Gif -> "gif" | `H -> "h" | `Html -> "html"
+| `Install -> "install" | `Img -> "img" | `Jpeg -> "jpeg" | `Js -> "js"
+| `Json -> "json" | `Lib -> "lib" | `Md -> "md" | `Ml -> "ml"
+| `Ml_dep -> "ml-dep" | `Ml_pp -> "ml-pp" | `Mli -> "mli"
+| `Mli_dep -> "mli-dep" | `Mli_pp -> "mli-pp" | `Native -> "native"
+| `O -> "o" | `Opt -> "opt" | `Png -> "png" | `Sh -> "sh" | `So -> "so"
+| `Tar -> "tar" | `Tbz -> "tbz" | `Xml -> "xml" | `Zip -> "zip"
+| `Ext ext -> ext
 
 let ext_of_string = function
-| "ml-dep" -> `Ml_dep  | "mli-dep" -> `Mli_dep | "ml" -> `Ml | "mli" -> `Mli
-| "ml-pp" -> `Ml_pp | "mli-pp" -> `Mli_pp | "c" -> `C | "h" -> `H
-| "js" -> `Js | "cmi" -> `Cmi | "cmo" -> `Cmo
-| "cmx" -> `Cmx | "o" -> `O | "cmt" -> `Cmt | "cmti" -> `Cmti | "cma" -> `Cma
-| "cmxa" -> `Cmxa | "cmxs" -> `Cmxs | "a" -> `A | "so" -> `So
-| "byte" -> `Byte | "native" -> `Native | ext -> `Ext ext
+| "a" -> `A | "byte" -> `Byte | "c" -> `C | "cma" -> `Cma | "cmi" -> `Cmi
+| "cmo" -> `Cmo | "cmt" -> `Cmt | "cmti" -> `Cmti | "cmx" -> `Cmx
+| "cmxa" -> `Cmxa | "cmxs" -> `Cmxs | "css" -> `Css | "dll" -> `Dll
+| "exe" -> `Exe | "gif" -> `Gif | "h" -> `H | "html" -> `Html
+| "install" -> `Install | "img" -> `Img | "jpeg" -> `Jpeg | "js" -> `Js
+| "json" -> `Json | "lib" -> `Lib | "md" -> `Md | "ml" -> `Ml
+| "ml-dep" -> `Ml_dep | "ml-pp" -> `Ml_pp | "mli" -> `Mli
+| "mli-dep" -> `Mli_dep | "mli-pp" -> `Mli_pp | "native" -> `Native
+| "o" -> `O | "opt" -> `Opt | "png" -> `Png | "sh" -> `Sh | "so" -> `So
+| "tar" -> `Tar | "tbz"  -> `Tbz | "xml" -> `Xml | "zip" -> `Zip
+| ext -> `Ext ext
 
 let ext p = match List.rev (segs p) with
 | [] -> None
@@ -136,8 +153,16 @@ let get_ext p = match ext p with
 
 let has_ext e p = match ext p with None -> false | Some e' -> e = e'
 
-let chop_ext p =
-  let chop segs = match List.rev segs with
+let add_ext p e =
+  let suff = "." ^ ext_to_string e in
+  let add_ext segs = match List.rev segs with
+  | [] -> [str ".%s" suff]
+  | seg :: rsegs -> List.rev (str "%s.%s" seg suff :: rsegs)
+  in
+  map add_ext p
+
+let rem_ext p =
+  let rem segs = match List.rev segs with
   | [] -> []
   | seg :: segs' ->
       try
@@ -146,16 +171,17 @@ let chop_ext p =
         List.rev (name :: segs')
       with Not_found -> segs
   in
-  map chop p
+  map rem p
 
-let add_ext p e =
-  let suff = "." ^ ext_to_string e in
-  let add_ext segs = match List.rev segs with
-  | [] -> [suff]
-  | seg :: rsegs -> List.rev ((seg ^ suff) :: rsegs)
-  in
-  map add_ext p
-
-let change_ext p e = add_ext (chop_ext p) e
+let change_ext p e = add_ext (rem_ext p) e
 let ( + ) = add_ext
 let ( -+ ) = change_ext
+
+(* Path sets and maps *)
+
+module Set = struct
+  include Set.Make (Path)
+  let of_list = List.fold_left (fun acc s -> add s acc) empty
+end
+
+module Map = Map.Make (Path)

@@ -15,7 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Assemblage's command line interface. *)
+(** Default driver makefile generation. *)
 
-val assemble : Assemblage.project -> unit
-val assemble_no_project : Assemblage_env.setup -> unit
+open Assemblage
+
+val of_project : setup_files:Path.t list -> Assemblage.project -> Makefile.t

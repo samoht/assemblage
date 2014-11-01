@@ -15,6 +15,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Describe a project. *)
-
-val describe : Assemblage.project -> Assemblage_env.t -> [> `Ok of unit ]
+let has_config () = true
+let main () = ()
+(*
+  (* We could execv to native here *)
+  if not has_config () then Driver_cli.non_main () else
+  match Term.eval_choice build_cmd [build_cmd] with
+  | `Ok () | `Version | `Help -> exit 0
+  | `Error _ -> exit 1
+*)

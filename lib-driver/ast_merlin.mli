@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2014 David Sheets <sheets@alum.mit.edu>
  * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -15,14 +15,17 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Project makefile generation. *)
+(** Merlin support.
 
-val of_project :
-  ?buildir:string ->
-  ?makefile:string ->
-  ?clean_files:string list ->
-  version:string -> Assemblage.project -> Asd_makefile.t
-(** Generate a Makefile from a project description. The optional build
-    environment is used to set default values of variables. These
-    default values can then be easily overwriten in the generated
-    Makefile. *)
+    See {!Assemblage_tools.Merlin}. *)
+
+(** {1 Merlin project file} *)
+
+type directive =
+  [ `REC | `S of string | `B of string | `PKG of string
+  | `FLG of string list | `EXT of string list ]
+
+type t = [ `Comment of string | `Blank | directive ] list
+
+val to_string : t -> string
+val of_project : Assemblage.project -> t

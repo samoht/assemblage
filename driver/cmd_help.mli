@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,16 +15,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Manage OPAM files. *)
+(** Assemblage's help command. *)
 
-module Install: sig
-
-  (** OPAM install files. *)
-  type t
-
-  val of_project : ?meta:bool -> build_dir:string -> Assemblage.project -> t
-  (** Create an `.install` file. *)
-
-  val write : ?dir:string -> t -> unit
-  (** Write an `.install` file. *)
-end
+val cmd : unit Cmd_base.cmd

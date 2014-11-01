@@ -15,21 +15,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* FIXME: make that tail-recursive *)
-
-open Asd_makefile.Op
+open Makefile.Infix
 open Assemblage
 
 let str = Printf.sprintf
-
-let ocaml_pp dumpast =
-  if not dumpast then None else
-  begin
-    Cmd.on_error ~use:None @@
-    Cmd.(exists "ocaml-dumpast" >>= function
-      | true -> ret (Some "$(DUMPAST) camlp4o")
-      | false -> error "ocaml-dumpast is not installed")
-  end
 
 let env dumpast = ()
 (*
@@ -110,8 +99,7 @@ let mk_part env p = match Part.rules env p with
       `Blank; ] @
     List.concat (List.rev_map mk_rule rules)
 *)
-let of_project ?(buildir = "_build") ?(makefile = "Makefile")
-    ?(clean_files = []) ~version p = []
+let of_project ~setup_files p = []
 (*
   let env = env false in
   header version p @ dirs buildir @ tools () @

@@ -33,6 +33,26 @@ val cmd : ?stdin:product -> ?stdout:product -> ?stderr:product ->
 val seq : cmds -> cmds -> cmds
 val ( <*> ) : cmds -> cmds -> cmds
 
+
+(** {2 Portable system utility invocations} *)
+
+val dev_null : As_path.t As_conf.value
+
+val cp : ?stdout:product -> ?stderr:product -> src:As_path.t As_conf.value ->
+  dst:As_path.t As_conf.value -> cmds
+
+val mv : ?stdout:product -> ?stderr:product -> src:As_path.t As_conf.value ->
+  dst:As_path.t As_conf.value -> cmds
+
+val rm_files : ?stdout:product -> ?stderr:product -> ?f:bool As_conf.value ->
+  As_path.t list As_conf.value -> cmds
+
+val rm_dirs : ?stdout:product -> ?stderr:product -> ?f:bool As_conf.value ->
+  ?r:bool As_conf.value -> As_path.t list As_conf.value -> cmds
+
+val mkdir : ?stdout:product -> ?stderr:product -> As_path.t As_conf.value ->
+  cmds
+
 (** {1 Actions} *)
 
 type t

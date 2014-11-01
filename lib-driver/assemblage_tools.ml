@@ -1,5 +1,4 @@
 (*
- * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
  * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
@@ -15,7 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Setup a project. *)
+(** Driver project tools. *)
 
-val setup : Assemblage.project -> Assemblage_env.t ->
-  [`Make] -> merlin:bool -> [> `Ok of unit ]
+open Assemblage
+open Assemblage.Private
+
+module Opam = Ast_opam
+module Meta = Ast_meta
+module Merlin = Ast_merlin
