@@ -17,51 +17,38 @@
 
 let str = Printf.sprintf
 
-type unit_ocaml_interface = [ `Normal | `Opaque | `Hidden ]
-type unit_ocaml_unit = [ `Mli | `Ml | `Both ]
-type unit_c_unit = [ `C | `H | `Both ]
-type unit_kind =
-  [ `OCaml of unit_ocaml_unit * unit_ocaml_interface
-  | `C of unit_c_unit
+type ocaml_interface = [ `Normal | `Opaque | `Hidden ]
+type ocaml_unit = [ `Mli | `Ml | `Both ]
+type c_unit = [ `C | `H | `Both ]
+
+type kind =
+  [ `OCaml of ocaml_unit * ocaml_interface
+  | `C of c_unit
   | `Js ]
-type unit_meta =
-  { unit_kind : unit_kind;
-    unit_src_dir : As_path.rel }
 
-(*
-let unit_get_meta p = match p.p_meta with Unit m -> m | _ -> assert false
-let unit_kind p = (unit_get_meta p).unit_kind
-let unit_src_dir p = (unit_get_meta p).unit_src_dir
-let unit_js p = part_filter `Unit unit_kind `Js p
-let unit_ocaml p = match coerce_if `Unit p with
+type meta =
+  { kind : kind;
+    src_dir : As_path.rel }
+
+let inj, proj = As_part.meta_key ()
+let get_meta p = As_part.get_meta proj p
+let meta kind src_dir = inj { kind; src_dir }
+
+let kind p = (get_meta p).kind
+let src_dir p = (get_meta p).src_dir
+
+let is_kind k p = match As_part.coerce_if `Unit p with
 | None -> None
-| Some part as p -> match unit_kind part with `OCaml _ -> p | _ -> None
+| Some p as r ->
+  match kind p with
+  | `OCaml _ when k = `OCaml -> r
+  | `C _ when k = `C -> r
+  | `Js when k = `Js -> r
+  | _ -> None
 
-let unit_c p = match coerce_if `Unit p with
-| None -> None
-| Some part as p -> match unit_kind part with `C _ -> p | _ -> None
-
-*)
-
-(* Metadata *)
-
-type ocaml_interface = unit_ocaml_interface
-type ocaml_unit = unit_ocaml_unit
-type c_unit = unit_c_unit
-type kind = unit_kind
-
-let meta kind src_dir = failwith "TODO"
-let get_meta m = failwith "TODO"
-let kind u = failwith "TODO"
-let src_dir u = failwith "TODO"
-
-
-(*
-let meta kind src_dir = Unit { unit_kind = kind; unit_src_dir = src_dir }
-let get_meta = unit_get_meta
-let kind = unit_kind
-let src_dir = unit_src_dir
-*)
+let ocaml = is_kind `OCaml
+let js = is_kind `Js
+let c = is_kind `C
 
 (* Rules *)
 
@@ -128,9 +115,6 @@ let src_dir = unit_src_dir
 *)
   let actions p = []
 
-
-
-
 (*
     let u = coerce `Unit p in
     match kind u with
@@ -143,24 +127,10 @@ let src_dir = unit_src_dir
 
 let create ?cond ?(args = As_args.empty) ?deps
     ?(src_dir = As_path.current) name kind =
-(*  let meta = meta kind src_dir in *)
+  let meta = meta kind src_dir in
   let args _ = args in
-  (Obj.magic (As_part.Base.create ?cond ~args ?deps name (fun _ -> [])))
+  As_part.create ?cond ~args ?deps name `Unit meta
 
-(*
-  create ?cond ~args ?deps ~actions name `Unit meta
-*)
-let of_base ~src_dir kind p = failwith "TODO"
-(*
-  { p with p_kind = `Unit;
-           p_meta = meta kind src_dir }
-*)
-let check_set s = s (* TODO *)
-
-(* Part filters *)
-
-(*
-let ocaml = unit_ocaml
-let c = unit_c
-let js = unit_js
-*)
+let of_base ~src_dir kind p =
+  let meta = meta kind src_dir in
+  { p with As_part.kind = `Unit; meta }

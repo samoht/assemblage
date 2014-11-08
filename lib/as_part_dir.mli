@@ -15,25 +15,18 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Part for compilation units.
 
-    See {!Assemblage.Part.Unit}. *)
+type kind = [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root
+            | `Etc | `Doc | `Misc | `Stublibs | `Man | `Other of string ]
 
-type ocaml_interface = [ `Normal | `Opaque | `Hidden ]
-type ocaml_unit = [ `Ml | `Mli | `Both ]
-type c_unit = [ `C | `H | `Both ]
-
-type kind = [ `OCaml of ocaml_unit * ocaml_interface | `C of c_unit | `Js ]
-val kind : [< `Unit] As_part.t -> kind
-val src_dir : [< `Unit] As_part.t -> As_path.rel
-
-val ocaml : 'a As_part.t -> [> `Unit] As_part.t option
-val c : 'a As_part.t -> [> `Unit] As_part.t option
-val js : 'a As_part.t -> [> `Unit] As_part.t option
+val kind : [< `Dir] As_part.t -> kind
+val install : [< `Dir] As_part.t -> bool
 
 val create :
-  ?cond:bool As_conf.value -> ?args:As_args.t -> ?deps:'a As_part.t list ->
-  ?src_dir:As_path.rel -> string -> kind -> [> `Unit] As_part.t
+  ?cond:bool As_conf.value ->
+  ?keep:('a As_part.t -> As_path.t list) -> (* FIXME As_path.t -> bool ? *)
+  ?install:bool -> kind -> 'a As_part.t list -> [> `Dir ] As_part.t
 
-val of_base : src_dir:(As_path.rel) -> kind -> [`Base] As_part.t ->
-  [> `Unit] As_part.t
+val of_base : ?install:bool -> [> `Base] As_part.t -> [> `Dir] As_part.t
+
+val default : 'a As_part.t -> As_path.t list

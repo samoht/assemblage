@@ -1607,13 +1607,14 @@ module Part : sig
   (** {1 Specific parts} *)
 
   (** Parts for arbitrary products. *)
+(*
   module Base : sig
     val create :
       ?cond:bool Conf.value -> ?args:(kind t -> args) ->
       ?deps:'a t list -> string ->
       (kind t -> Action.t list) -> [> `Base] t
   end
-
+*)
   (** Parts for compilation units.
 
       Encapsulates rules to compile a compilation unit in a build
@@ -1819,7 +1820,7 @@ module Part : sig
 
     (** {1 Metadata} *)
 
-    val run_dir : [< `Run] t -> Path.t
+    val dir : [< `Run] t -> Path.t
 
     (** {1 Create} *)
 
@@ -1827,10 +1828,10 @@ module Part : sig
       ?cond:bool Conf.value ->
       ?args:args ->
       ?deps:'a t list ->
-      ?run_dir:Path.t ->
+      ?dir:Path.t ->
       string -> (Action.t) -> [> `Run] t
 
-    val of_base : ?run_dir:Path.t -> [< `Base] t -> [> `Run] t
+    val of_base : ?dir:Path.t -> [< `Base] t -> [> `Run] t
   end
 
   (** Parts for documentation. *)
@@ -1846,7 +1847,6 @@ module Part : sig
     val create :
       ?cond:bool Conf.value ->
       ?args:args ->
-      ?deps:'a t list ->
       ?keep:([< `Unit] t -> bool) ->
       ?kind:kind -> string -> 'a t list -> [> `Doc] t
 
@@ -1875,8 +1875,6 @@ module Part : sig
 
     val create :
       ?cond:bool Conf.value ->
-      ?args:args ->
-      ?deps: 'a t list ->
       ?keep:('a t -> Path.t list) ->
       ?install:bool -> kind -> 'a t list -> [> `Dir ] t
 
@@ -1895,7 +1893,6 @@ module Part : sig
     val create :
       ?cond:bool Conf.value ->
       ?args:args ->
-      ?deps:'a t list ->
       string -> 'a t list -> [> `Silo] t
 
     val of_base : [< `Base] t -> [> `Silo] t
@@ -1948,16 +1945,15 @@ val pkg : ?cond:bool Conf.value -> ?args:args -> ?kind:Part.Pkg.spec -> string -
 val run : ?cond:bool Conf.value -> ?args:args -> ?deps:'a part list ->
   ?dir:path -> string -> (Action.t) -> [> `Run] part
 
-val doc : ?cond:bool Conf.value -> ?args:args -> ?deps:'a part list ->
+val doc : ?cond:bool Conf.value -> ?args:args ->
   ?keep:([< `Unit] part -> bool) ->
   ?kind:Part.Doc.kind -> string -> 'a part list -> [> `Doc] part
 
-val dir : ?cond:bool Conf.value -> ?args:args -> ?deps:'a part list ->
-  ?keep:('a part -> Path.t list) ->
+val dir : ?cond:bool Conf.value -> ?keep:('a part -> Path.t list) ->
   ?install:bool -> Part.Dir.kind -> 'a part list -> [> `Dir ] part
 
-val silo : ?cond:bool Conf.value -> ?args:args -> ?deps:'a part list ->
-  string -> 'a part list -> [> `Silo] part
+val silo : ?cond:bool Conf.value -> ?args:args -> string -> 'a part list ->
+  [> `Silo] part
 
 (** {1:projects Projects} *)
 

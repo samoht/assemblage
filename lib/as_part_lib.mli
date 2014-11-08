@@ -15,25 +15,25 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Part for compilation units.
+(** A part for libraries. *)
 
-    See {!Assemblage.Part.Unit}. *)
+type kind = [ `OCaml | `OCaml_pp | `C ]
 
-type ocaml_interface = [ `Normal | `Opaque | `Hidden ]
-type ocaml_unit = [ `Ml | `Mli | `Both ]
-type c_unit = [ `C | `H | `Both ]
-
-type kind = [ `OCaml of ocaml_unit * ocaml_interface | `C of c_unit | `Js ]
-val kind : [< `Unit] As_part.t -> kind
-val src_dir : [< `Unit] As_part.t -> As_path.rel
-
-val ocaml : 'a As_part.t -> [> `Unit] As_part.t option
-val c : 'a As_part.t -> [> `Unit] As_part.t option
-val js : 'a As_part.t -> [> `Unit] As_part.t option
+val kind : [< `Lib] As_part.t -> kind
+val byte : [< `Lib] As_part.t -> bool
+val native : [< `Lib] As_part.t -> bool
+val native_dynlink : [< `Lib] As_part.t -> bool
 
 val create :
-  ?cond:bool As_conf.value -> ?args:As_args.t -> ?deps:'a As_part.t list ->
-  ?src_dir:As_path.rel -> string -> kind -> [> `Unit] As_part.t
+  ?cond:bool As_conf.value -> ?args:As_args.t ->
+  ?deps:As_part.kind As_part.t list ->
+  ?byte:bool -> ?native:bool -> ?native_dynlink:bool ->
+  string -> kind -> [< `Unit] As_part.t list -> [> `Lib] As_part.t
 
-val of_base : src_dir:(As_path.rel) -> kind -> [`Base] As_part.t ->
-  [> `Unit] As_part.t
+val of_base :
+  ?byte:bool -> ?native:bool -> ?native_dynlink:bool -> kind ->
+  [`Base] As_part.t -> [> `Lib] As_part.t
+
+val ocaml : 'a As_part.t -> [> `Lib] As_part.t option
+val ocaml_pp : 'a As_part.t -> [> `Lib] As_part.t option
+val c : 'a As_part.t -> [> `Lib] As_part.t option

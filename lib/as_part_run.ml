@@ -15,25 +15,19 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Part for compilation units.
+type meta = { dir : As_path.t }
 
-    See {!Assemblage.Part.Unit}. *)
+let inj, proj = As_part.meta_key ()
+let get_meta p = As_part.get_meta proj p
+let meta ?(dir = As_path.current) () = inj { dir }
 
-type ocaml_interface = [ `Normal | `Opaque | `Hidden ]
-type ocaml_unit = [ `Ml | `Mli | `Both ]
-type c_unit = [ `C | `H | `Both ]
+let dir p = (get_meta p).dir
 
-type kind = [ `OCaml of ocaml_unit * ocaml_interface | `C of c_unit | `Js ]
-val kind : [< `Unit] As_part.t -> kind
-val src_dir : [< `Unit] As_part.t -> As_path.rel
+let create ?cond ?(args = As_args.empty) ?deps ?dir name cmds =
+  let meta = meta ?dir () in
+  let args _ = args in
+  As_part.create ?cond ~args ?deps name `Run meta
 
-val ocaml : 'a As_part.t -> [> `Unit] As_part.t option
-val c : 'a As_part.t -> [> `Unit] As_part.t option
-val js : 'a As_part.t -> [> `Unit] As_part.t option
-
-val create :
-  ?cond:bool As_conf.value -> ?args:As_args.t -> ?deps:'a As_part.t list ->
-  ?src_dir:As_path.rel -> string -> kind -> [> `Unit] As_part.t
-
-val of_base : src_dir:(As_path.rel) -> kind -> [`Base] As_part.t ->
-  [> `Unit] As_part.t
+let of_base ?dir p =
+  let meta = meta ?dir () in
+  { p with As_part.kind = `Run; meta }

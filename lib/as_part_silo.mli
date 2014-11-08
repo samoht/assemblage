@@ -15,25 +15,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Part for compilation units.
-
-    See {!Assemblage.Part.Unit}. *)
-
-type ocaml_interface = [ `Normal | `Opaque | `Hidden ]
-type ocaml_unit = [ `Ml | `Mli | `Both ]
-type c_unit = [ `C | `H | `Both ]
-
-type kind = [ `OCaml of ocaml_unit * ocaml_interface | `C of c_unit | `Js ]
-val kind : [< `Unit] As_part.t -> kind
-val src_dir : [< `Unit] As_part.t -> As_path.rel
-
-val ocaml : 'a As_part.t -> [> `Unit] As_part.t option
-val c : 'a As_part.t -> [> `Unit] As_part.t option
-val js : 'a As_part.t -> [> `Unit] As_part.t option
-
 val create :
-  ?cond:bool As_conf.value -> ?args:As_args.t -> ?deps:'a As_part.t list ->
-  ?src_dir:As_path.rel -> string -> kind -> [> `Unit] As_part.t
+  ?cond:bool As_conf.value ->
+  ?args:As_args.t ->
+  string -> 'a As_part.t list -> [> `Silo] As_part.t
 
-val of_base : src_dir:(As_path.rel) -> kind -> [`Base] As_part.t ->
-  [> `Unit] As_part.t
+val of_base : [< `Base] As_part.t -> [> `Silo] As_part.t

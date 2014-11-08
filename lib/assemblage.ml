@@ -39,6 +39,15 @@ end
 
 module Part = struct
   include As_part
+  type part_kind = kind
+  module Bin = As_part_bin
+  module Custom = As_part_custom
+  module Dir = As_part_dir
+  module Doc = As_part_doc
+  module Lib = As_part_lib
+  module Pkg = As_part_pkg
+  module Run = As_part_run
+  module Silo = As_part_silo
   module Unit = As_part_unit
 end
 
@@ -54,27 +63,27 @@ let unit ?cond ?args ?deps ?(kind = `OCaml (`Both, `Normal)) ?(dir = []) name =
 
 let lib ?cond ?args ?deps ?byte ?native ?native_dynlink ?(kind = `OCaml) name
     units =
-  As_part.Lib.create ?cond ?args ?deps ?byte ?native ?native_dynlink
+  As_part_lib.create ?cond ?args ?deps ?byte ?native ?native_dynlink
     name kind units
 
 let bin ?cond ?args ?deps ?byte ?native ?js ?(kind = `OCaml) name units =
-  As_part.Bin.create ?cond ?args ?deps ?byte ?native ?js name kind units
+  As_part_bin.create ?cond ?args ?deps ?byte ?native ?js name kind units
 
 let pkg ?cond ?args ?(kind = `OCaml `OCamlfind) name =
-  As_part.Pkg.create ?cond ?args name kind
+  As_part_pkg.create ?cond ?args name kind
 
 let run ?cond ?args ?deps ?(dir = []) name cmds =
-  let run_dir = As_path.rel_of_segs dir in
-  As_part.Run.create ?cond ?args ?deps ~run_dir name cmds
+  let dir = As_path.rel_of_segs dir in
+  As_part_run.create ?cond ?args ?deps ~dir name cmds
 
-let doc ?cond ?args ?deps ?keep ?kind name parts =
-  As_part.Doc.create ?cond ?args ?deps ?keep ?kind name parts
+let doc ?cond ?args ?keep ?kind name parts =
+  As_part_doc.create ?cond ?args ?keep ?kind name parts
 
-let dir ?cond ?args ?deps ?keep ?install kind =
-  As_part.Dir.create ?cond ?args ?deps ?keep ?install kind
+let dir ?cond ?keep ?install kind =
+  As_part_dir.create ?cond ?keep ?install kind
 
-let silo ?cond ?args ?deps name parts =
-  As_part.Silo.create ?cond ?args ?deps name parts
+let silo ?cond ?args name parts =
+  As_part_silo.create ?cond ?args name parts
 
 (* Projects *)
 

@@ -15,25 +15,27 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Part for compilation units.
 
-    See {!Assemblage.Part.Unit}. *)
+type kind = [ `OCamldoc ]
+type meta = { kind : kind }
 
-type ocaml_interface = [ `Normal | `Opaque | `Hidden ]
-type ocaml_unit = [ `Ml | `Mli | `Both ]
-type c_unit = [ `C | `H | `Both ]
+let inj, proj = As_part.meta_key ()
+let get_meta p = As_part.get_meta proj p
+let meta ?(kind = `OCamldoc) () = inj { kind }
+let kind p = (get_meta p).kind
 
-type kind = [ `OCaml of ocaml_unit * ocaml_interface | `C of c_unit | `Js ]
-val kind : [< `Unit] As_part.t -> kind
-val src_dir : [< `Unit] As_part.t -> As_path.rel
+  (* Create *)
 
-val ocaml : 'a As_part.t -> [> `Unit] As_part.t option
-val c : 'a As_part.t -> [> `Unit] As_part.t option
-val js : 'a As_part.t -> [> `Unit] As_part.t option
+let create ?cond ?(args = As_args.empty) ?keep ?kind name ps =
+  let meta = meta ?kind () in
+  let args _ = args in
+  As_part.create ?cond ~args name `Doc meta
 
-val create :
-  ?cond:bool As_conf.value -> ?args:As_args.t -> ?deps:'a As_part.t list ->
-  ?src_dir:As_path.rel -> string -> kind -> [> `Unit] As_part.t
+  let of_base ?kind p =
+    let meta = meta ?kind () in
+    { p with As_part.kind = `Doc; meta }
 
-val of_base : src_dir:(As_path.rel) -> kind -> [`Base] As_part.t ->
-  [> `Unit] As_part.t
+  (* Documentation filters *)
+
+  let default _ = failwith "TODO"
+  let dev _ = failwith "TODO"

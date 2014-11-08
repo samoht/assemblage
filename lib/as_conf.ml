@@ -25,25 +25,13 @@ type 'a converter = 'a parser * 'a printer
 let parser (p, _) = p
 let printer (_, p) = p
 
-(* Universal type, see http://mlton.org/UniversalType *)
-
-module Univ : sig
-  type t
-  val create : unit -> (('a -> t) * (t -> 'a option))
-end = struct
-  type t = exn
-  let create (type s) () =
-    let module M = struct exception E of s option end in
-    (fun x -> M.E (Some x)), (function M.E x -> x | _ -> None)
-end
-
 (* Typed keys and values are related through existential key maps to
    universal types. We try to make that recursive definition as
    compact and simple as possible here.  *)
 
 module rec Def : sig
 
-  type conf = Univ.t Kmap.t
+  type conf = As_univ.t Kmap.t
   (* A configuration maps existential keys to their concrete value. *)
 
   type 'a value = Kset.t * (conf -> 'a)
@@ -60,8 +48,8 @@ module rec Def : sig
       public : bool;        (* true if value can be defined by the end user. *)
       converter : 'a converter;     (* value type parser and pretty printer. *)
       default : 'a value;                      (* default value for the key. *)
-      to_univ : 'a value -> Univ.t;             (* injection to a univ type. *)
-      of_univ : Univ.t -> 'a value option;   (* projection from a univ type. *)
+      to_univ : 'a value -> As_univ.t;          (* injection to a univ type. *)
+      of_univ : As_univ.t -> 'a value option;(* projection from a univ type. *)
       doc : string option;                                    (* doc string. *)
       docv : string option;          (* doc meta-variable for the key value. *)
       docs : string option; }                    (* doc section for the key. *)
@@ -69,12 +57,12 @@ module rec Def : sig
   type t = V : 'a key -> t         (* Existential to hide the key parameter. *)
   val compare : t -> t -> int
 end = struct
-  type conf = Univ.t Kmap.t
+  type conf = As_univ.t Kmap.t
   type 'a value = Kset.t * (conf -> 'a)
   type 'a key =
     { id : int; name : string; public : bool;
       converter : 'a converter; default : 'a value;
-      to_univ : 'a value -> Univ.t; of_univ : Univ.t -> 'a value option;
+      to_univ : 'a value -> As_univ.t; of_univ : As_univ.t -> 'a value option;
       doc : string option; docv : string option; docs : string option; }
 
   type t = V : 'a key -> t
@@ -151,7 +139,7 @@ let key ?(public = true) ?(docs = docs_project) ?docv ?doc name
     converter default
   =
   let id = key_id () in
-  let to_univ, of_univ = Univ.create () in
+  let to_univ, of_univ = As_univ.create () in
   { Def.id; name; public; converter; default; doc; docv; docs = Some docs;
     to_univ; of_univ }
 
