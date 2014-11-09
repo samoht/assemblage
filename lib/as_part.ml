@@ -105,6 +105,9 @@ let actions p = p.actions (p :> kind t) (* FIXME memoize *)
 let check p = p.check (p :> kind t)
 
 let products p =
+  (* FIXME As_action doesn't thread condition, so this is not
+     accurate according to config and we should maybe also
+     directly thread p.cond *)
   let outputs = List.map As_action.outputs (actions p) in
   let add acc outputs = As_conf.(const List.rev_append $ outputs $ acc) in
   let rev_outputs = List.fold_left add (As_conf.const []) outputs in

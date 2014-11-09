@@ -84,8 +84,10 @@ val version : (int * int * int * string option) converter
 type t
 val empty : t
 val is_empty : t -> bool
+val mem : t -> 'a key -> bool
 val add : t -> 'a key -> t
 val set : t -> 'a key -> 'a value -> t
+val rem : t -> 'a key -> t
 val merge : t -> t -> t
 val find : t -> 'a key -> 'a value option
 val get : t -> 'a key -> 'a value

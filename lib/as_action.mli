@@ -69,6 +69,15 @@ val inputs : t -> products
 val outputs : t -> products
 val cmds : t -> cmds
 
+type cmd =
+  { exec : string;
+    args : string list;
+    stdin : As_path.rel option;
+    stdout : As_path.rel option;
+    stderr : As_path.rel option; }
+
+val eval_cmds : As_conf.t -> t -> As_args.t -> cmd list
+
 (** Combinators to define build actions.
 
     See {!Assemblage.Action.Spec}. *)

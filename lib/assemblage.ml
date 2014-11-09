@@ -94,6 +94,7 @@ module Private = struct
   module Log = As_log
   module Cmd = As_cmd
   module Conf = As_conf
+  module Args = As_args
   module Action = struct
     include As_action
     module OCaml = As_action_ocaml

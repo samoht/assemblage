@@ -21,17 +21,21 @@ type products = As_path.rel list As_conf.value
 
 (* Build commands *)
 
-type cmd =
-  { exec : string As_conf.key;
-    args : string list As_conf.value;
-    stdin : As_path.rel As_conf.value option;
-    stdout : As_path.rel As_conf.value option;
-    stderr : As_path.rel As_conf.value option; }
+type cmd_spec =
+  { exec_spec : string As_conf.key;
+    args_spec : string list As_conf.value;
+    stdin_spec : As_path.rel As_conf.value option;
+    stdout_spec : As_path.rel As_conf.value option;
+    stderr_spec : As_path.rel As_conf.value option; }
 
-type cmds = cmd list
+type cmds = cmd_spec list
 
 let cmd ?stdin ?stdout ?stderr exec args =
-  [{ exec; args; stdin; stdout; stderr }]
+  [{ exec_spec = exec;
+     args_spec = args;
+     stdin_spec = stdin;
+     stdout_spec = stdout;
+     stderr_spec = stderr; }]
 
 let seq cmds cmds' =  List.rev_append (List.rev cmds) cmds'
 let (<*>) = seq
@@ -108,11 +112,36 @@ type t =
 let v ?(cond = As_conf.true_) ~ctx ~inputs ~outputs cmds =
   { cond; ctx; inputs; outputs; cmds }
 
-let cond r = r.cond
-let ctx r = r.ctx
-let inputs r = r.inputs
-let outputs r = r.outputs
-let cmds r = r.cmds
+let cond a = a.cond
+let ctx a = a.ctx
+let inputs a = a.inputs   (* FIXME should we thread r.cond here ? *)
+let outputs a = a.outputs (* FIXME should we thread r.cond here ? *)
+let cmds a = a.cmds
+
+type cmd =
+  { exec : string;
+    args : string list;
+    stdin : As_path.rel option;
+    stdout : As_path.rel option;
+    stderr : As_path.rel option; }
+
+let eval_cmds conf a args =
+  let eval_opt_fd fd = match fd with
+  | None -> None
+  | Some v -> Some (As_conf.eval conf v)
+  in
+  let add_cmd acc cmd =
+    let ctx = As_ctx.add (`Cmd cmd.exec_spec) a.ctx in
+    let exec = As_conf.eval conf (As_conf.value cmd.exec_spec) in
+    let injected = As_args.eval_for_ctx conf args ctx in
+    let args = injected @ (As_conf.eval conf cmd.args_spec) in
+    let stdin = eval_opt_fd cmd.stdin_spec in
+    let stdout = eval_opt_fd cmd.stdout_spec in
+    let stderr = eval_opt_fd cmd.stderr_spec in
+    { exec; args; stdin; stdout; stderr } :: acc
+  in
+  List.rev (List.fold_left add_cmd [] a.cmds)
+
 
 module Spec = struct
 

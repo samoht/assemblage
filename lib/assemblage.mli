@@ -2408,11 +2408,17 @@ module Private : sig
     val is_empty : t -> bool
     (** [is_empty c] is [true] iff [c] is empty. *)
 
+    val mem : t -> 'a key -> bool
+    (** [mem c k] is [true] iff [k] is in [c]. *)
+
     val add : t -> 'a key -> t
-    (** [add c k] adds key [k] to configuration [c]. *)
+    (** [add c k] is [c] with [k] bindings to its default value. *)
 
     val set : t -> 'a key -> 'a value -> t
-    (** [set c k v] sets the key [k] to [v] in [c]. *)
+    (** [set c k v] is [c] with [k] binding to [v]. *)
+
+    val rem : t -> 'a key -> t
+    (** [rem c k] is [c] without [k]'s binding. *)
 
     val merge : t -> t -> t
     (** [merge c c'] merge the configuration [c] and [c']. If a key is
@@ -2420,10 +2426,10 @@ module Private : sig
         over. *)
 
     val find : t -> 'a key -> 'a value option
-    (** [find c k] is the value of [k] in [c] (if any). *)
+    (** [find c k] is the binding of [k] in [c] (if any). *)
 
     val get : t -> 'a key -> 'a value
-    (** [get c k] is the value of [k] in [c].
+    (** [get c k] is the binding of [k] in [c].
 
         @raise Invalid_argument if [k] is not in [c]. *)
 
@@ -2431,7 +2437,7 @@ module Private : sig
     (** [pp ppf c] prints an unspecified representation of [c] on [ppf]. *)
 
     val of_keys : Key.Set.t -> t
-    (** [of_keys ks] is a configuration where each key of [ks] maps to
+    (** [of_keys ks] is a configuration where each key in [ks] binds to
         its default value. *)
 
     val domain : t -> Key.Set.t
@@ -2465,7 +2471,39 @@ module Private : sig
     val doc_system_utilities : string
   end
 
-  (** Actions.
+  (** Build argument bundles. *)
+  module Args : sig
+
+    (** {1 Argument bundles} *)
+
+    include module type of Args with type t = Args.t
+
+    (** {1 Conditonalized arguments} *)
+
+    type cargs
+    (** The type for conditionalized arguments. *)
+
+    val cond : cargs -> bool Conf.value
+    (** [cond args] is [args]'s condition. *)
+
+    val args : cargs -> string list Conf.value
+    (** [args cargs] is [args]'s arguments. *)
+
+    (** {1 Argument lookup} *)
+
+    val bindings : t -> (Ctx.t * cargs list) list
+    (** [bindings args] is the list of bindings in [args]. *)
+
+    val for_ctx : t -> Ctx.t -> cargs list
+    (** [for_ctx args ctx] is the list of conditionalized arguments
+        in [args] for context [ctx]. *)
+
+    val eval_for_ctx : Conf.t -> t -> Ctx.t -> string list
+    (** [eval_for_ctx conf args ctx] is the arguments in [args] for
+        context [ctx] in configuration [conf]. *)
+  end
+
+  (** Build actions.
 
       {b Important.} Actions commands produce {e file} paths. Build system
       backends are in charge for making sure the {{!Path.dirname} directory
@@ -2476,6 +2514,9 @@ module Private : sig
 
     include module type of Action with type t = Action.t
                                    and type cmds = Action.cmds
+
+    val cond : t -> bool Conf.value
+    (** [cond a] is [a]'s condition. *)
 
     val ctx : t -> Ctx.t
     (** [ctx a] is [a]'s context. *)
@@ -2488,6 +2529,19 @@ module Private : sig
 
     val cmds : t -> cmds
     (** [cmds a] is [a]'s commands to generate outputs from the inputs. *)
+
+    (** {1 Concrete commands} *)
+
+    type cmd =
+      { exec : string;
+        args : string list;
+        stdin : Path.rel option;
+        stdout : Path.rel option;
+        stderr : Path.rel option; }
+
+    val eval_cmds : Conf.t -> t -> Args.t -> cmd list
+    (** [eval_cmds conf a args] is [a]'s command sequence in
+        configuration [conf] and with argument bundle [args]. *)
   end
 
   (** Projects.

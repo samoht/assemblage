@@ -19,6 +19,9 @@ let str = Printf.sprintf
 
 (* Arguments with conditions *)
 
+(* FIXME here again it's unclear whether we should prefer to
+   thread the condition in the evaluation of args. *)
+
 type cargs = { cond : bool As_conf.value; args : string list As_conf.value }
 let cond ca = ca.cond
 let args ca = ca.args
@@ -51,6 +54,15 @@ let for_ctx a ctx =
     List.rev_append cargs_list acc
   in
   List.rev (Cmap.fold add a [])
+
+let eval_for_ctx conf a ctx =
+  let cargs = for_ctx a ctx in
+  let add acc cargs =
+    if not (As_conf.eval conf cargs.cond) then acc else
+    let args = As_conf.eval conf cargs.args in
+    List.rev_append args acc
+  in
+  List.rev (List.fold_left add [] cargs)
 
 (* Built-in argument bundles *)
 

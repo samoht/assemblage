@@ -37,6 +37,7 @@ val ( @@@ ) : t -> t -> t
 val concat : t list -> t
 val bindings : t -> (As_ctx.t * cargs list) list
 val for_ctx : t -> As_ctx.t -> cargs list
+val eval_for_ctx : As_conf.t -> t -> As_ctx.t -> string list
 
 (** {1 Built-in argument bundles} *)
 

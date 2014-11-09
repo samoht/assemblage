@@ -162,8 +162,10 @@ type t = Def.conf
 
 let empty = Kmap.empty
 let is_empty = Kmap.is_empty
+let mem c k = Kmap.mem (Key.V k) c
 let add c k = Kmap.add (Key.V k) Key.(to_univ k (default k)) c
 let set c k v = Kmap.add (Key.V k) (Key.to_univ k v) c
+let rem c k = Kmap.remove (Key.V k) c
 let merge =
   let choose _ l r = match l, r with
   | (Some _ as v), None | None, (Some _ as v) -> v

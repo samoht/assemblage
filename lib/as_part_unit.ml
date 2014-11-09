@@ -119,14 +119,14 @@ let c = is_kind `C
   | `Both ->
       ocaml_rules `Mli env u @ ocaml_rules `Ml env u
 *)
-  let actions p = []
 
+let actions p = []
 (*
-    let u = coerce `Unit p in
-    match kind u with
-    | `Js -> js_rules env u
-    | `C unit -> c_rules unit env u
-    | `OCaml (unit, _) -> ocaml_rules unit env u
+  let u = coerce `Unit p in
+  match kind u with
+  | `Js -> js_actions u
+  | `C unit -> c_actions unit u
+  | `OCaml (unit, _) -> ocaml_action unit u
 *)
 
 (* Create *)
