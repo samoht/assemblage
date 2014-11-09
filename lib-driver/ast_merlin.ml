@@ -44,10 +44,21 @@ let to_string m =
   List.iter add m;
   Buffer.contents b
 
+(* From assemblage project *)
+
+let project_ocamlfind_pkgs proj =
+  let add pkgs p = match Part.coerce_if `Pkg p with
+  | None -> pkgs
+  | Some p ->
+      match Pkg.kind p with
+      | `OCaml `OCamlfind -> String.Set.add (Part.name p) pkgs
+      | _ -> pkgs
+  in
+  Part.fold_rec add (String.Set.singleton "assemblage") (Project.parts proj)
+
 let of_project p : t =
   let add v acc = v :: acc in
-(*  let add_if b v acc = if b then v :: acc else acc in *)
-  let pkgs = String.Set.singleton "assemblage" (* TODO *) in
+  let pkgs = project_ocamlfind_pkgs p in
   let rev_pkgs = String.Set.fold (fun pkg acc -> `PKG pkg :: acc) pkgs [] in
   let products = Project.products p in
   let ss, bs =

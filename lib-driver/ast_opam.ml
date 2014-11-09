@@ -74,7 +74,38 @@ module Install = struct
     if last <> "" then (* close last field *) pr " ]\n";
     Buffer.contents b
 
-  let of_project ?(add = []) p =
-    let header = `Header (Some (Project.watermark_string p)) in
-    header, add (* TODO *)
+  (* For an assemblage project *)
+
+  let of_project ?(add = []) proj =
+    let init = add in
+    let add_products ?prefix elt d acc =
+      let add_product acc p =
+        (* FIXME handle dst correctly: we should respect the hierarchy that
+           the products give us up to the the Dir build root. *)
+        let dst = match prefix with
+        | None -> Path.(basename p)
+        | Some other -> Path.(to_string (other / (basename p)))
+        in
+        elt (move (Path.to_string p) ~dst) :: acc
+      in
+      List.fold_left add_product acc (Project.eval proj (Part.products d))
+    in
+    let add_dir acc d =
+      if not (Dir.install d) && Project.eval proj (Part.cond d) then acc else
+      match Dir.kind d with
+      | `Bin -> add_products (fun m -> `Bin m) d acc
+      | `Doc -> add_products (fun m -> `Doc m) d acc
+      | `Etc -> add_products (fun m -> `Etc m) d acc
+      | `Lib -> add_products (fun m -> `Lib m) d acc
+      | `Man -> add_products (fun m -> `Man m) d acc
+      | `Other o -> add_products ~prefix:o (fun m -> `Misc m) d acc
+      | `Sbin -> add_products (fun m -> `Sbin m) d acc
+      | `Share -> add_products (fun m -> `Share m) d acc
+      | `Share_root -> add_products (fun m -> `Share_root m) d acc
+      | `Stublibs -> add_products (fun m -> `Stublibs m) d acc
+      | `Toplevel -> add_products (fun m -> `Toplevel m) d acc
+    in
+    let header = `Header (Some (Project.watermark_string proj)) in
+    let dirs = Part.keep_kind `Dir (Project.parts proj) in
+    header, List.fold_left add_dir init dirs
 end

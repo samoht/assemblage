@@ -15,18 +15,27 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** API documentation part.
+
+    See {!Assemblage.Doc}. *)
+
+(** {1 Metadata} *)
 
 type kind = [ `OCamldoc ]
-
+val pp_kind : Format.formatter -> kind -> unit
 val kind : [< `Doc] As_part.t -> [`OCamldoc ]
+val ocamldoc : 'a As_part.t -> [> `Doc ] As_part.t option
 
-val create :
-  ?cond:bool As_conf.value ->
-  ?args:As_args.t ->
-  ?keep:([< `Unit] As_part.t -> bool) ->
-  ?kind:kind -> string -> 'a As_part.t list -> [> `Doc] As_part.t
-
-val of_base : ?kind:kind -> [< `Base] As_part.t -> [> `Doc ] As_part.t
+(** {1 Unit filters} *)
 
 val default : [< `Unit] As_part.t -> bool
 val dev : [< `Unit] As_part.t -> bool
+
+(** {1 Doc} *)
+
+val v : ?usage:As_part.usage -> ?cond:bool As_conf.value ->
+  ?args:As_args.t -> ?keep:([< `Unit] As_part.t -> bool) ->
+  string -> kind -> [< `Lib | `Unit | `Bin | `Pkg ] As_part.t list ->
+  [> `Doc] As_part.t
+
+val of_base : kind -> [< `Base] As_part.t -> [> `Doc ] As_part.t

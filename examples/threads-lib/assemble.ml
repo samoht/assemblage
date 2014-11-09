@@ -1,11 +1,8 @@
 open Assemblage
 
 let units = [ unit "tlib" ]
-
-let posix =
-  lib "tlib-posix" ~flags:Flags.thread units
-
+let posix = lib "tlib-posix" ~args:Args.thread units
 let vm =
-  lib "tlib-vm" ~native:false ~native_dynlink:false ~flags:Flags.vmthread units
+  lib "tlib-vm" ~native:false ~native_dynlink:false ~args:Args.vmthread units
 
-let () = assemble (project "threads-lib" [posix; vm])
+let () = assemble (Project.v "threads-lib" [posix; vm])

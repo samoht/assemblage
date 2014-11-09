@@ -33,7 +33,6 @@ val cmd : ?stdin:product -> ?stdout:product -> ?stderr:product ->
 val seq : cmds -> cmds -> cmds
 val ( <*> ) : cmds -> cmds -> cmds
 
-
 (** {2 Portable system utility invocations} *)
 
 val dev_null : As_path.t As_conf.value
@@ -70,6 +69,9 @@ val inputs : t -> products
 val outputs : t -> products
 val cmds : t -> cmds
 
+(** Combinators to define build actions.
+
+    See {!Assemblage.Action.Spec}. *)
 module Spec : sig
 
   (* List configuration values *)

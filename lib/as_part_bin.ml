@@ -15,7 +15,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(* Metadata *)
+
 type kind = [ `OCaml | `OCaml_toplevel | `C ]
+type bla = Blu
+let pp_kind ppf k = As_fmt.pp_str ppf begin match k with
+  | `OCaml -> "OCaml" | `OCaml_toplevel -> "OCaml_toplevel" | `C -> "C"
+  end
+
 type meta =
   { kind : kind;
     native : bool;
@@ -24,7 +31,15 @@ type meta =
 
 let inj, proj = As_part.meta_key ()
 let get_meta p = As_part.get_meta proj p
-let meta ?(byte = true) ?(native = true) ?(js = true) kind =
+let meta ?byte ?native ?js kind =
+  let def_byte, def_nat, def_js = match kind with
+  | `OCaml -> true, true, false
+  | `OCaml_toplevel -> true, false, false
+  | `C -> false, true, false
+  in
+  let byte = match byte with None -> def_byte | Some b -> b in
+  let native = match native with None -> def_nat | Some b -> b in
+  let js = match js with None -> def_js | Some b -> b in
   inj { kind; byte; native; js }
 
 let kind p = (get_meta p).kind
@@ -43,7 +58,6 @@ let ocaml_toplevel = is_kind `OCaml_toplevel
 (* Actions *)
 
 let ocaml_actions units p = []
-
 let actions units p = []
 (*
     let b = coerce `Bin p in
@@ -53,24 +67,14 @@ let actions units p = []
     units_actions @ ocaml_actions units p
 *)
 
-(* Create *)
+(* Part *)
 
-let create ?cond ?(args = As_args.empty) ?deps:(ds = []) ?byte ?native
-    ?js name kind units =
+let v ?usage ?cond ?(args = As_args.empty) ?byte ?native ?js name kind needs =
   let meta = meta ?byte ?native ?js kind in
-  let deps = ds (* @ List.flatten (List.map deps units) *) in
-  let units = (* List.map (add_deps_args deps args) *) units in
   let args _ = args in
-  let actions = actions units in
-  As_part.create ?cond ~args ~deps ~actions name `Bin meta
+  let actions = actions needs in
+  As_part.v_kind ?usage ?cond ~meta ~args ~needs ~actions name `Bin
 
 let of_base ?byte ?native ?js kind p =
   let meta = meta ?byte ?native ?js kind in
-  { p with As_part.kind = `Bin; meta }
-
-(* As build commands *)
-
-(*
-  let cmd ?(args = As_args.empty) ?kind bin args' =
-    args, fun args -> "TODO EXEC NAME" :: (args' args)
-*)
+  As_part.with_kind_meta `Bin meta p

@@ -55,6 +55,7 @@ val of_string : string -> t
 val to_string : [< t ] -> string
 val quote : [< t ] -> string
 val pp : Format.formatter -> t -> unit
+
 (** {1 File extensions} *)
 
 type ext =

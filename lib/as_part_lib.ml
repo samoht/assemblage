@@ -15,7 +15,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(* Metadata *)
+
 type kind = [ `OCaml | `OCaml_pp | `C ]
+
+let pp_kind ppf k = As_fmt.pp_str ppf begin match k with
+  | `OCaml -> "OCaml" | `OCaml_pp -> "OCaml_pp" | `C -> "C"
+  end
+
 type meta =
   { kind : kind;
     byte : bool;
@@ -24,7 +31,17 @@ type meta =
 
 let inj, proj = As_part.meta_key ()
 let get_meta p = As_part.get_meta proj p
-let meta ?(byte = true) ?(native = true) ?(native_dynlink = true) kind =
+let meta ?byte ?native ?native_dynlink kind =
+  let def_byte, def_nat, def_nat_dynlink = match kind with
+  | `OCaml -> true, true, true
+  | `OCaml_pp -> true, false, false
+  | `C -> false, true, true
+  in
+  let byte = match byte with None -> def_byte | Some b -> b in
+  let native = match native with None -> def_nat | Some b -> b in
+  let native_dynlink = match native_dynlink with
+  | None -> def_nat_dynlink | Some b -> b
+  in
   inj { kind; byte; native; native_dynlink }
 
 let kind p = (get_meta p).kind
@@ -40,7 +57,16 @@ let ocaml = is_kind `OCaml
 let ocaml_pp = is_kind `OCaml_pp
 let c = is_kind `C
 
-(* Rules *)
+let find_unit u p =
+  let is_u p = match As_part.coerce_if `Unit p with
+  | Some p when As_part.name p = u -> Some p
+  | _ -> None
+  in
+  match As_part.keep_map is_u (As_part.needs p) with
+  | [] -> None
+  | ps -> Some (List.hd ps)
+
+(* Actions *)
 
 (*
   let lib_file fext l =
@@ -75,19 +101,14 @@ let c = is_kind `C
     | `OCaml_pp -> mkdir_rule :: units_rules @ ocaml_pp_rules units env p
 *)
 
-  (* Create *)
+(* Lib *)
 
-let create ?cond ?(args = As_args.empty) ?deps:(ds = []) ?byte ?native
-    ?native_dynlink name kind (units : [< `Unit] As_part.t list)  =
+let v ?usage ?cond ?(args = As_args.empty) ?byte ?native
+    ?native_dynlink name kind needs  =
   let meta = meta ?byte ?native ?native_dynlink kind in
-  let units = (* List.map (add_deps_args ds args) *) units in
-  let deps = [] (* List.flatten (List.map deps units) *) in
   let args _  = args in
-  let actions = actions units in
-  As_part.create ?cond ~args ~deps ~actions name `Lib meta
+  As_part.v_kind ?usage ?cond ~meta ~args ~needs name `Lib
 
 let of_base ?byte ?native ?native_dynlink kind p =
   let meta = meta ?byte ?native ?native_dynlink kind in
-  { p with As_part.kind = `Lib; meta }
-
-(* Part filters *)
+  As_part.with_kind_meta `Lib meta p

@@ -15,9 +15,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-val create :
-  ?cond:bool As_conf.value ->
-  ?args:As_args.t ->
-  string -> 'a As_part.t list -> [> `Silo] As_part.t
+(** Silo parts.
+
+    See {!Assemblage.Silo}. *)
+
+(** {1 Silos} *)
+
+val v : ?usage:As_part.usage -> ?cond:bool As_conf.value ->
+  ?args:As_args.t -> string -> 'a As_part.t list -> [> `Silo] As_part.t
 
 val of_base : [< `Base] As_part.t -> [> `Silo] As_part.t

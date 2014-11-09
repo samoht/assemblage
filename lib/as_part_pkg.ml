@@ -15,42 +15,54 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type kind = [ `OCaml | `C ]
-type meta = { kind : kind; }
+let str = Printf.sprintf
+
+(* Metadata *)
+
+type other = [ `Other of string * As_args.t ]
+type kind = [ `OCaml of [`OCamlfind | other ]
+              | `C of [ `Pkg_config | other ]]
+
+let pp_kind ppf = function
+| `OCaml `OCamlfind -> As_fmt.pp_str ppf "OCaml (ocamlfind)"
+| `OCaml (`Other (n, _)) -> As_fmt.pp ppf "OCaml (%s)" n
+| `C `Pkg_config -> As_fmt.pp_str ppf "C (pkg-config)"
+| `C (`Other (n, _)) -> As_fmt.pp ppf "C (%s)" n
+
+type meta = { kind : kind; lookup : As_args.t; }
 let inj, proj = As_part.meta_key ()
 let get_meta p = As_part.get_meta proj p
-let meta kind = inj { kind; }
+let meta kind lookup = inj { kind; lookup }
 
 let kind p = (get_meta p).kind
+let lookup p = (get_meta p).lookup
+
 let is_kind k p = match As_part.coerce_if `Pkg p with
 | None -> None
-| Some p as r -> if kind p = k then r else None
+| Some p as r ->
+    match kind p with
+    | `OCaml _ when k = `OCaml -> r
+    | `C _ when k = `C -> r
+    | _ -> None
 
 let ocaml = is_kind `OCaml
 let c = is_kind `C
 
-type ocaml_lookup = [ `OCamlfind ]
-type c_lookup = [ `Pkg_config ]
-type spec = [ `C of c_lookup | `OCaml of ocaml_lookup ]
+(* Packages *)
 
-let ocamlfind_lookup name args _  = args
-(*
-    As_args.(As_env.ocamlfind_pkgs env [name] @@@ args)
-*)
+let lookup_args = function
+| `OCaml (`Other (_, args)) -> args
+| `C (`Other (_, args)) -> args
+| `OCaml `OCamlfind -> As_args.empty (* TODO *)
+| `C `Pkg_config -> As_args.empty (* TODO *)
 
-let pkg_config_lookup name args _ = args
-(*
-    As_args.(As_env.pkg_config env [name] @@@ args)
-*)
-
-let create ?cond ?(args = As_args.empty) name spec =
-  let kind, args = match spec with
-  | `OCaml `OCamlfind -> `OCaml, ocamlfind_lookup name args
-  | `C `Pkg_config -> `C, pkg_config_lookup name args
-  in
-  let meta = meta kind in
-  As_part.create ?cond ~args name `Pkg meta
+let v ?usage ?cond ?(args = As_args.empty) name kind =
+  let lookup = lookup_args kind in
+  let args _ = args in
+  let meta = meta kind lookup in
+  As_part.v_kind ?usage ?cond ~meta ~args name `Pkg
 
 let of_base kind p =
-  let meta = meta kind in
-  { p with As_part.kind = `Pkg; meta }
+  let lookup = lookup_args kind in
+  let meta = meta kind lookup in
+  As_part.with_kind_meta `Pkg meta p

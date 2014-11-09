@@ -15,25 +15,34 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** A part for libraries. *)
+(** Library part.
+
+    See {!Assemblage.Part}. *)
+
+(** {1 Metadata} *)
 
 type kind = [ `OCaml | `OCaml_pp | `C ]
-
+val pp_kind : Format.formatter -> kind -> unit
 val kind : [< `Lib] As_part.t -> kind
 val byte : [< `Lib] As_part.t -> bool
 val native : [< `Lib] As_part.t -> bool
 val native_dynlink : [< `Lib] As_part.t -> bool
+val ocaml : 'a As_part.t -> [> `Lib] As_part.t option
+val ocaml_pp : 'a As_part.t -> [> `Lib] As_part.t option
+val c : 'a As_part.t -> [> `Lib] As_part.t option
 
-val create :
-  ?cond:bool As_conf.value -> ?args:As_args.t ->
-  ?deps:As_part.kind As_part.t list ->
+val find_unit : string -> 'a As_part.t -> [> `Unit] As_part.t option
+
+(** {1 Lib} *)
+
+val v :
+  ?usage:As_part.usage ->
+  ?cond:bool As_conf.value ->
+  ?args:As_args.t ->
   ?byte:bool -> ?native:bool -> ?native_dynlink:bool ->
-  string -> kind -> [< `Unit] As_part.t list -> [> `Lib] As_part.t
+  string -> kind -> [< `Unit | `Pkg | `Lib] As_part.t list ->
+  [> `Lib] As_part.t
 
 val of_base :
   ?byte:bool -> ?native:bool -> ?native_dynlink:bool -> kind ->
   [`Base] As_part.t -> [> `Lib] As_part.t
-
-val ocaml : 'a As_part.t -> [> `Lib] As_part.t option
-val ocaml_pp : 'a As_part.t -> [> `Lib] As_part.t option
-val c : 'a As_part.t -> [> `Lib] As_part.t option

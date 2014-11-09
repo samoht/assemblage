@@ -2,95 +2,110 @@ open Assemblage
 
 (* OCamlfind packages *)
 
-let cmdliner = pkg "cmdliner"
-let bytecomp = pkg "compiler-libs.bytecomp"
-let toplevel = pkg "compiler-libs.toplevel"
+let pkg_cmdliner = pkg "cmdliner"
+let pkg_bytecomp = pkg "compiler-libs.bytecomp"
+let pkg_toplevel = pkg "compiler-libs.toplevel"
 
-(* Library *)
-
-let ocaml_version =
-  try
-    let i = String.index Sys.ocaml_version '.' in
-    let j = String.index_from Sys.ocaml_version (i+1) '.' in
-    let major = String.sub Sys.ocaml_version 0 i in
-    let minor = String.sub Sys.ocaml_version (i+1) (j-i-1) in
-    int_of_string major, int_of_string minor
-  with _ ->
-    Printf.eprintf "Unknown OCaml version: %s\n%!" Sys.ocaml_version;
-    exit 1
+(* Libraries *)
 
 let lib_assemblage =
+  let dir = root / "lib" in
   let kind = `OCaml (`Both, `Hidden) in
-  let unit ?deps ?(kind = kind) name = unit ?deps ~kind name ~dir:["lib"] in
+  let unit ?needs ?(kind = kind) name = unit ?needs ~kind name ~dir in
   lib "assemblage"
-    [ unit "as_string";
-      unit "as_path";
-      unit "as_cond";
-      unit "as_context";
+    [ unit "as_action";
+      unit "as_action_ocaml";
       unit "as_args";
-      unit "as_env";
-      unit "as_product";
-      unit "as_rule";
+      unit "as_cmd";
+      unit "as_conf" ~needs:[pkg_cmdliner]; (* FIXME remove dep *)
+      unit "as_ctx";
+      unit "as_fmt";
+      unit "as_log";
       unit "as_part";
-      unit "as_git";
+      unit "as_part_bin";
+      unit "as_part_custom";
+      unit "as_part_dir";
+      unit "as_part_doc";
+      unit "as_part_lib";
+      unit "as_part_pkg";
+      unit "as_part_run";
+      unit "as_part_silo";
+      unit "as_part_unit";
+      unit "as_path";
       unit "as_project";
-      unit "as_describe";
+      unit "as_string";
+      unit "as_univ";
       unit "assemblage" ~kind:(`OCaml (`Both, `Normal)); ]
 
-let lib_driver_make =
+let lib_assemblage_tools =
+  let dir = root / "lib-driver" in
   let kind = `OCaml (`Both, `Hidden) in
-  let as_ocaml_incl =
-    let dir = [ "lib" ] / (if ocaml_version < (4,2) then "401" else "402") in
-    unit "as_ocaml_incl" ~deps:[bytecomp] ~kind ~dir
-  in
-  let dir = ["driver-make"] in
-  let unit ?deps ?(kind = kind) name = unit ?deps ~kind name ~dir in
-  lib "assemblage_driver_make" ~deps:[cmdliner]
-    [ unit "as_shell";
-      unit "as_makefile";
-      unit "as_cstubs";
-      unit "as_ocamlfind";
-      unit "as_pkg_config";
-      unit "as_makefile";
-      unit "as_project_makefile";
-      as_ocaml_incl;
-      unit "as_ocaml" ~deps:[bytecomp];
-      unit "as_opam";
-      unit "as_merlin";
-      unit "assemblage_env";
-      unit "as_setup_env";
-      unit "as_setup";
-      unit "as_tool";
-      unit "assemblage_cmd";
-      unit "assemblage" ~kind:(`OCaml (`Both, `Normal)); ]
+  let unit ?needs ?(kind = kind) name = unit ?needs ~kind name ~dir in
+  lib "assemblage_tools"
+    [ unit "ast_merlin";
+      unit "ast_meta";
+      unit "ast_opam";
+      unit "assemblage_tools" ~kind:(`OCaml (`Both, `Normal)); ]
 
-let assemblage_tool =
-  let u = unit "tool" ~dir:["bin"] ~deps:[toplevel] in
-  bin "assemblage" [u] ~deps:[lib_assemblage; lib_driver_make]
-    ~args:Args.linkall ~native:false
+let lib_assemblage_driver =
+  let dir = root / "lib-driver" in
+  lib "assemblage_driver"
+    [ pkg_cmdliner;
+      pkg_toplevel;
+      unit ~dir "assemblage_driver"; ]
 
-let ctypes_gen =
-  let u = unit "ctypes_gen" ~dir:["bin"] in
-  bin "ctypes-gen" [u] ~deps:[lib_assemblage] ~native:false
+(* Binaries *)
+
+let bin_assemblage =
+  let dir = root / "driver" in
+  let unit ?needs ?kind name = unit ?needs ?kind name ~dir in
+  bin "assemblage" ~native:false ~args:Args.linkall
+    [ pkg_cmdliner;
+      lib_assemblage;
+      lib_assemblage_tools;
+      lib_assemblage_driver;
+      unit "builder_makefile";
+      unit "cmd_base";
+      unit "cmd_build";
+      unit "cmd_describe";
+      unit "cmd_help";
+      unit "cmd_setup";
+      unit "main" ~kind:(`OCaml (`Ml, `Normal));
+      unit "makefile"; ]
 
 let assemble_assemble =
-  (* Sanity check, can we compile assemble.ml to native code ? *)
-  let u = unit "assemble" in
-  bin "assemble" [u] ~deps:[lib_assemblage; lib_driver_make]
+  (* Sanity check, can we compile assemble.ml ? *)
+  bin "assemble" [lib_assemblage; unit "assemble" ~dir:root ]
 
 (* Tests & examples *)
+
 (*
+
 let mk_test ?(example = false) name =
-  let dir = [(if example then "examples" else "test"); name] in
-  let args cmd env _ =
-    let libdir = Product.dirname (List.hd (Part.products env lib_assemblage)) in
-    [ cmd; "--auto-load=false"; "-I"; Path.to_string libdir; ]
+  let open Action.Spec in
+  let dir = root / (if example then "examples" else "test") / name in
+  let lib_dir =
+    let get_dir prods = Path.dirname (List.hd prods) in
+    Conf.(const get_dir $ Part.products lib_assemblage)
   in
-  run ~cond:Conf.(value test) name ~dir @@ fun env ->
-  [ Part.Bin.cmd assemblage_tool (args "describe" env);
-    Part.Bin.cmd assemblage_tool (args "setup" env);
-    Rule.cmd ["make"];
-    Rule.cmd ["make distclean"]; ]
+  let assemblage_cmd = Bin.cmd bin_assemblage in
+  let assemblage cmd args =
+    let args = add (atom cmd) :: add (atom "--auto-lib=false") ::
+               path_arg ~opt:"-I" lib_dir :: args
+    in
+    Action.cmd assemblage_cmd args
+  in
+  let cmds =
+    Action.(assemblage "describe" <*>
+            assemblage "setup" <*>
+            cmd Conf.make (atom []) <*>
+            cmd Conf.make (atom "distclean"))
+  in
+  let action = Action.v ~ctx:Ctx.empty ~inputs:(Conf.value assemblage_cmd)
+      cmds
+  in
+  run ~usage:`Test ~cond action
+
 
 let mk_example = mk_test ~example:true
 *)
@@ -105,17 +120,22 @@ let tests = []
     mk_example "threads-lib";
     mk_example "ctypes-libffi"; ]
 *)
+
 (* Docs *)
 
-let dev_doc = doc ~keep:Part.Doc.dev "dev" [lib_assemblage]
+let dev_doc = doc ~usage:`Dev "dev" [lib_assemblage]
 let api_doc = doc "api" [lib_assemblage]
+
+let install =
+  [ dir `Lib [ lib_assemblage; lib_assemblage_tools; lib_assemblage_driver; ];
+    dir `Bin [ bin_assemblage ] ;
+(* FIXME   dir `Doc [ root_file "CHANGES.md"; root_file "README.md" ] *) ]
 
 (* The project *)
 
 let p =
   Project.v "assemblage" @@
-  [ lib_assemblage;
-    assemblage_tool; assemble_assemble; ctypes_gen; dev_doc; api_doc ] @
-  tests
+  [ lib_assemblage; lib_assemblage_tools; lib_assemblage_driver;
+    bin_assemblage; dev_doc; api_doc ] @ install @ tests
 
 let () = assemble p

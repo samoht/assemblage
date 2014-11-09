@@ -15,19 +15,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type meta = { dir : As_path.t }
+(* Metadata *)
 
+type meta = { dir : As_path.t As_conf.value }
 let inj, proj = As_part.meta_key ()
 let get_meta p = As_part.get_meta proj p
-let meta ?(dir = As_path.current) () = inj { dir }
-
+let meta ?(dir = As_conf.(value root_dir)) () = inj { dir }
 let dir p = (get_meta p).dir
 
-let create ?cond ?(args = As_args.empty) ?deps ?dir name cmds =
+(* Run *)
+
+let v ?usage ?cond ?(args = As_args.empty) ?dir name cmds =
   let meta = meta ?dir () in
   let args _ = args in
-  As_part.create ?cond ~args ?deps name `Run meta
+  As_part.v_kind ?usage ?cond ~meta ~args name `Run
+
+
+let of_bin ?usage ?cond ?args ?dir bin cmds = failwith "TODO"
 
 let of_base ?dir p =
   let meta = meta ?dir () in
-  { p with As_part.kind = `Run; meta }
+  As_part.with_kind_meta `Run meta p

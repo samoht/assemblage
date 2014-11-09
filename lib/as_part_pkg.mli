@@ -15,20 +15,26 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Package part.
 
+    See {!Assemblage.Pkg} *)
 
-type kind = [ `OCaml | `C ]
+(** {1 Metadata} *)
 
+type other = [ `Other of string * As_args.t ]
+type kind = [ `OCaml of [`OCamlfind | other ]
+              | `C of [ `Pkg_config | other ]]
+
+val pp_kind : Format.formatter -> kind -> unit
 val kind : [< `Pkg] As_part.t -> kind
-
-type ocaml_lookup = [ `OCamlfind ]
-type c_lookup = [ `Pkg_config ]
-type spec = [ `C of c_lookup | `OCaml of ocaml_lookup ]
-
-val create :
-  ?cond:bool As_conf.value -> ?args:As_args.t -> string -> spec -> [> `Pkg] As_part.t
-
-val of_base : kind -> [< `Base] As_part.t -> [> `Pkg] As_part.t
-
+val lookup : [< `Pkg] As_part.t -> As_args.t
 val ocaml : 'a As_part.t -> [> `Pkg] As_part.t option
 val c : 'a As_part.t -> [> `Pkg] As_part.t option
+
+(** {1 Packages} *)
+
+val v :
+  ?usage:As_part.usage -> ?cond:bool As_conf.value -> ?args:As_args.t ->
+  string -> kind -> [> `Pkg] As_part.t
+
+val of_base : kind -> [< `Base] As_part.t -> [> `Pkg] As_part.t

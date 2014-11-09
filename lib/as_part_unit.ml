@@ -17,6 +17,8 @@
 
 let str = Printf.sprintf
 
+(* Metadata *)
+
 type ocaml_interface = [ `Normal | `Opaque | `Hidden ]
 type ocaml_unit = [ `Mli | `Ml | `Both ]
 type c_unit = [ `C | `H | `Both ]
@@ -26,16 +28,20 @@ type kind =
   | `C of c_unit
   | `Js ]
 
+let pp_kind ppf k = As_fmt.pp_str ppf begin match k with
+  | `OCaml _ -> "OCaml" | `C _ -> "C" | `Js -> "JavaScript"
+  end
+
 type meta =
   { kind : kind;
-    src_dir : As_path.rel }
+    dir : As_path.t As_conf.value }
 
 let inj, proj = As_part.meta_key ()
 let get_meta p = As_part.get_meta proj p
-let meta kind src_dir = inj { kind; src_dir }
+let meta ?(dir = As_conf.(value root_dir)) kind = inj { kind; dir }
 
 let kind p = (get_meta p).kind
-let src_dir p = (get_meta p).src_dir
+let dir p = (get_meta p).dir
 
 let is_kind k p = match As_part.coerce_if `Unit p with
 | None -> None
@@ -50,7 +56,7 @@ let ocaml = is_kind `OCaml
 let js = is_kind `Js
 let c = is_kind `C
 
-(* Rules *)
+(* Actions *)
 
 (*
   let unit_file fext env u =
@@ -125,12 +131,11 @@ let c = is_kind `C
 
 (* Create *)
 
-let create ?cond ?(args = As_args.empty) ?deps
-    ?(src_dir = As_path.current) name kind =
-  let meta = meta kind src_dir in
+let v ?usage ?cond ?(args = As_args.empty) ?needs ?dir name kind =
+  let meta = meta ?dir kind in
   let args _ = args in
-  As_part.create ?cond ~args ?deps name `Unit meta
+  As_part.v_kind ?usage ?cond ~meta ~args ?needs name `Unit
 
-let of_base ~src_dir kind p =
-  let meta = meta kind src_dir in
-  { p with As_part.kind = `Unit; meta }
+let of_base ?dir kind p =
+  let meta = meta ?dir kind in
+  As_part.with_kind_meta `Unit meta p

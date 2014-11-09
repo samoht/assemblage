@@ -18,65 +18,91 @@
 let str = Printf.sprintf
 let err_coerce k exp = str "part has kind %s not %s" k exp
 
-type meta = As_univ.t
-let meta_key = As_univ.create
+(* Part kinds *)
 
 type kind =
-  [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo | `Custom ]
+  [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo ]
 
-let kind_to_string = function
-| `Base -> "base" | `Unit -> "unit" | `Lib -> "lib" | `Bin -> "bin"
-| `Pkg -> "pkg" | `Run -> "run" | `Doc -> "doc" | `Silo -> "silo"
-| `Dir -> "dir" | `Custom -> "custom"
+let pp_kind ppf k = As_fmt.pp_str ppf begin match k with
+  | `Base -> "base" | `Unit -> "unit" | `Lib -> "lib" | `Bin -> "bin"
+  | `Pkg -> "pkg" | `Run -> "run" | `Doc -> "doc" | `Silo -> "silo"
+  | `Dir -> "dir"
+  end
+
+let str_of_kind = Format.asprintf "%a" pp_kind
+
+(* Usage *)
+
+type usage = [ `Dev | `Test | `Build | `Doc | `Outcome | `Other of string ]
+
+let pp_usage ppf u = As_fmt.pp_str ppf begin match u with
+  | `Dev -> "dev" | `Test -> "test" | `Build -> "build" | `Doc -> "doc"
+  | `Outcome -> "outcome" | `Other s -> s
+  end
+
+(* Metadata *)
+
+type meta = As_univ.t
+let meta_key = As_univ.create
+let meta_nil = fst (meta_key ()) ()
+
+(* Part *)
 
 type +'a t =
-  { kind : kind;
+  { id : int;
+    kind : kind;
     name : string;
+    usage : usage;
     cond : bool As_conf.value;
-    deps : kind t list;
+    meta : meta;
+    needs : kind t list; (* N.B. parts unique but ordered. *)
     args : kind t -> As_args.t;
     actions : kind t -> As_action.t list;
-    meta : meta; }
-constraint 'a = [< kind ]
+    check : kind t -> bool; }
+  constraint 'a = [< kind ]
 
-(* Comparing *)
+let part_id =
+  let count = ref (-1) in
+  fun () -> incr count; !count
 
-let id p = kind_to_string p.kind ^ p.name
-let equal p p' = id p = id p'
-let compare p p' = Pervasives.compare (id p) (id p')
-
-let to_set l =
-  let rec add seen acc = function
-  | [] -> List.rev acc
-  | p :: ps ->
-      let name = id p in
-      if As_string.Set.mem name seen then add seen acc ps else
-      add (As_string.Set.add name seen) (p :: acc) ps
+let uniq ps =                     (* uniquify part list while keeping order. *)
+  let module Int = struct
+    type t = int
+    let compare : int -> int -> int = compare
+  end in
+  let module Set = Set.Make (Int) in
+  let add (seen, ps as acc) p =
+    if Set.mem p.id seen then acc else (Set.add p.id seen), (p :: ps)
   in
-  add As_string.Set.empty [] l
+  List.rev (snd (List.fold_left add (Set.empty, []) ps))
 
-let create ?(cond = As_conf.true_) ?(args = fun _ -> As_args.empty)
-    ?(deps = []) ?(actions = fun _  -> []) name kind meta =
-  let deps = to_set deps in
-  { kind = (kind :> kind);
-    name = name;
-    cond = cond;
-    deps = (deps :> kind t list);
+let v_kind ?(usage = `Outcome) ?(cond = As_conf.true_) ?(meta = meta_nil)
+    ?(needs = []) ?(args = fun _ -> As_args.empty)
+    ?(actions = fun _ -> []) ?(check = fun _ -> true) name kind =
+  let needs = uniq needs in
+  { id = part_id ();
+    kind = (kind :> kind);
+    name; usage; cond; meta;
+    needs = (needs :> kind t list);
+    args;
     actions = (actions :> kind t -> As_action.t list);
-    args = args;
-    meta = meta }
+    check = (check :> kind t -> bool); }
 
-(* Basic fields *)
+let v ?usage ?cond ?meta ?needs ?args ?actions ?check name =
+  v_kind ?usage ?cond ?meta ?needs ?args ?actions ?check name `Base
 
-let name p = p.name
 let kind p = p.kind
+let name p = p.name
+let usage p = p.usage
 let cond p = p.cond
-let args p = p.args (p :> kind t)   (* FIXME memoize *)
-let deps p = p.deps
-let actions p = p.actions (p :> kind t) (* FIXME memoize *)
 let meta p = p.meta
 let get_meta proj p =  match proj p.meta with
 | None -> assert false | Some m -> m
+
+let needs p = p.needs
+let args p = p.args (p :> kind t)   (* FIXME memoize *)
+let actions p = p.actions (p :> kind t) (* FIXME memoize *)
+let check p = p.check (p :> kind t)
 
 let products p =
   let outputs = List.map As_action.outputs (actions p) in
@@ -84,15 +110,22 @@ let products p =
   let rev_outputs = List.fold_left add (As_conf.const []) outputs in
   As_conf.(const List.rev $ rev_outputs)
 
+let id p = p.id
+let sid p = Format.asprintf "%a-%s" pp_kind p.kind p.name
+let equal p p' = p.id = p'.id
+let compare p p' = (compare : int -> int -> int) p.id p'.id
+let with_kind_meta (#kind as k) meta p = { p with kind = k; meta; }
+
 (* Coercing *)
 
 let coerce (#kind as k) ({kind} as p) =
   if p.kind = k then p else
-  invalid_arg (err_coerce (kind_to_string p.kind) (kind_to_string k))
+  invalid_arg (err_coerce (str_of_kind p.kind) (str_of_kind k))
 
-let coerce_if (#kind as k) ({kind} as p) = if p.kind = k then Some p else None
+let coerce_if (#kind as k) ({kind} as p) =
+  if p.kind = k then Some p else None
 
-(* Component list operations *)
+(* Part lists *)
 
 let keep pred ps =
   let keep acc p = if pred p then p :: acc else acc in
@@ -105,8 +138,30 @@ let keep_map fn ps =
 let keep_kind kind ps = keep_map (coerce_if kind) ps
 let keep_kinds kinds ps = keep (fun p -> List.mem (kind p) kinds) ps
 
+(* Part sets and maps *)
 
-let add_deps_args deps args u = (* N.B. this slows downs things a lot. *)
-  let deps = to_set (u.deps @ deps) in
-  let args _ = As_args.(@@@) (u.args (u :> kind t)) args in
-  { u with deps; args }
+module Part = struct
+  type part = kind t
+  type t = part
+  let compare = compare
+end
+
+module Set = struct
+  include Set.Make (Part)
+  let of_list = List.fold_left (fun acc s -> add s acc) empty
+end
+
+module Map = Map.Make (Part)
+
+(* Fold *)
+
+let fold_rec f acc l =
+  let rec loop (seen, r as acc) = function
+  | (next :: todo) :: todo' ->
+      if Set.mem next seen then loop acc (todo :: todo') else
+      loop (Set.add next seen, f r next) ((needs next) :: todo :: todo')
+  | [] :: [] -> r
+  | [] :: todo -> loop acc todo
+  | [] -> assert false
+  in
+  loop (Set.empty, acc) [l]

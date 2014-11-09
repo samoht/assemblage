@@ -15,27 +15,49 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(* Metadata *)
 
 type kind = [ `OCamldoc ]
+
+let pp_kind ppf k = As_fmt.pp_str ppf begin match k with
+  | `OCamldoc -> "ocamldoc"
+  end
+
 type meta = { kind : kind }
 
 let inj, proj = As_part.meta_key ()
 let get_meta p = As_part.get_meta proj p
-let meta ?(kind = `OCamldoc) () = inj { kind }
+let meta kind = inj { kind }
 let kind p = (get_meta p).kind
 
-  (* Create *)
+let is_kind k p = match As_part.coerce_if `Doc p with
+| None -> None
+| Some p as r -> if kind p = k then r else None
 
-let create ?cond ?(args = As_args.empty) ?keep ?kind name ps =
-  let meta = meta ?kind () in
+let ocamldoc p = is_kind `OCamldoc p
+
+(* Unit filters *)
+
+let default p = match As_part_unit.kind p with
+| `OCaml (_, `Hidden) -> false
+| `OCaml _ -> true
+| _ -> false
+
+let dev p = match As_part_unit.kind p with `OCaml _ -> true | _ -> false
+
+(* Actions *)
+
+(* Doc *)
+
+let v ?usage ?cond ?(args = As_args.empty) ?keep name kind needs =
+  let _keep = match keep with
+  | Some k -> k
+  | None -> if usage = Some `Dev then dev else default
+  in
+  let meta = meta kind in
   let args _ = args in
-  As_part.create ?cond ~args name `Doc meta
+  As_part.v_kind ?usage ?cond ~meta ~needs ~args name `Doc
 
-  let of_base ?kind p =
-    let meta = meta ?kind () in
-    { p with As_part.kind = `Doc; meta }
-
-  (* Documentation filters *)
-
-  let default _ = failwith "TODO"
-  let dev _ = failwith "TODO"
+let of_base kind p =
+  let meta = meta kind in
+  As_part.with_kind_meta `Doc meta p

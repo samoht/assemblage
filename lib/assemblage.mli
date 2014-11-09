@@ -673,19 +673,18 @@ end
 
 (** Build configuration.
 
-    TODO reword, say what a configuration is (map from keys to value)
-    TODO add configuration schemes.
-
     Assemblage keeps tracks of the configuration keys needed to define
     a project and its build system through configuration values. A
     configuration value denotes a concrete OCaml value of a certain
-    type and remembers the configuration keys it needs to define its value
-    in a given configuration.
+    type.
 
-    Configuration keys are named configuration value and they are
+    Configuration keys are named configuration value that are
     meant to be redefined by the end user of the build system
     (e.g. from the command line). A configuration key can be used to
     determine a configuration value or other configuration keys.
+
+    TODO say what a configuration is (map from keys to value)
+    TODO add configuration schemes.
 
     Before {{!key}defining} your own keys you should prefer the
     {{!builtin_keys}built-in ones}. *)
@@ -860,8 +859,8 @@ module Conf : sig
       requested (defaults to [true]). *)
 
   val ocaml_native_dynlink : bool key
-  (** [ocaml_native_dynlink] is [true] iff OCaml native code dynamic linking is
-      requested (defaults to [true]). *)
+  (** [ocaml_native_dynlink] is [true] iff OCaml native code dynamic linking
+      compilation is requested (defaults to [true]). *)
 
   val ocaml_js : bool key
   (** [ocaml_js] is [true] iff OCaml JavaScript compilation is requested
@@ -880,7 +879,7 @@ module Conf : sig
   val ocaml_dumpast : string key
   (** [ocaml_dumpast] is the
       {{:https://github.com/samoht/ocaml-dumpast}[ocaml-dumpast]} utility
-      (defaults to ["ocaml-dumpast"].) *)
+      (defaults to ["ocaml-dumpast"]). *)
 
   val ocamlc : string key
   (** [ocamlc] is the
@@ -968,6 +967,15 @@ module Conf : sig
       in which OCaml system keys are described. *)
 
   (** {2:c_system_keys C system keys} *)
+
+  val c_dynlink : bool key
+  (** [c_dynlink] is [true] iff C dynamic linking compilation is
+      requested (default to [true]). *)
+
+  val c_js : bool key
+  (** [c_js] is [true] iff C JavaScript compilation is request (defaults
+      to [false]). FIXME through e.g. emscripten should we support that ?
+      Well it's just a few actions after all. *)
 
   val cc : string key
   (** [cc] is the C compiler (defaults to ["cc"]) *)
@@ -1189,8 +1197,6 @@ module Ctx : sig
                  and type t := t
 end
 
-type args
-
 (** Build argument bundles.
 
     Argument bundles are conditional bindings from {{!Ctx}build contexts}
@@ -1200,50 +1206,50 @@ module Args : sig
 
   (** {1:argument_bundles Argument bundles} *)
 
-  type t = args
+  type t
   (** The type for argument bundles. *)
 
-  val v : ?cond:bool Conf.value -> Ctx.t -> string list Conf.value -> args
+  val v : ?cond:bool Conf.value -> Ctx.t -> string list Conf.value -> t
   (** [v ~cond ctx args] is the bundle that binds [ctx] to [args]
       whenever [cond] evaluates to [true] (defaults to {!Conf.true_}). *)
 
-  val vc : ?cond:bool Conf.value -> Ctx.t -> string list -> args
+  val vc : ?cond:bool Conf.value -> Ctx.t -> string list -> t
   (** [vc ~active ctx args] is [v ~active ctx (Conf.const args)]. *)
 
-  val empty : args
+  val empty : t
   (** [empty] is the empty bundle. *)
 
-  val is_empty : args -> bool
+  val is_empty : t -> bool
   (** [is_empty a] is [true] if [a] is empty. *)
 
-  val append : args -> args -> args
+  val append : t -> t -> t
   (** [append a a'] is the bundle that has the bindings of [a] and [a'].
       If both [a] and [a'] have bindings for the same context, they
       are preserved each with their condition and it is guaranteed
       that the binding arguments of [a] will appear before those of
       [a'] on the command line. *)
 
-  val (@@@) : args -> args -> args
+  val (@@@) : t -> t -> t
   (** [a @@@ a'] is [append a a']. *)
 
-  val concat : args list -> args
+  val concat : t list -> t
   (** [concat args] is [List.fold_left append empty args] *)
 
   (** {1:built_in Built-in argument bundles} *)
 
-  val linkall : args
+  val linkall : t
   (** [linkall] is the [-linkall] flag in the right [`OCaml] contexts. *)
 
-  val thread : args
+  val thread : t
   (** [thread] is the [-thread] flag in the right [`OCaml] contexts. *)
 
-  val vmthread : args
+  val vmthread : t
   (** [vmthread] is the [-vmthread] flag in the right [`OCaml] contexts. *)
 
-  val cclib : string list -> args
+  val cclib : string list -> t
   (** The [-cclib x] args. FIXME *)
 
-  val ccopt : string list -> args
+  val ccopt : string list -> t
   (** The [-ccopt x] args. FIXME *)
 
   val stub : string -> t
@@ -1368,12 +1374,8 @@ module Action : sig
   type t
   (** The type for build actions. *)
 
-  val v :
-    ?cond:bool Conf.value ->
-    ctx:Ctx.t ->
-    inputs:products  ->
-    outputs:products ->
-    cmds -> t
+  val v : ?cond:bool Conf.value -> ctx:Ctx.t -> inputs:products  ->
+    outputs:products -> cmds -> t
    (** [v cond ctx inputs outputs cmds] is the action that given the
        existence of [inputs] creates the products [outputs] using the
        sequence of command [cmds].  The action is only available if
@@ -1515,445 +1517,683 @@ module Action : sig
   end
 end
 
-(** {1:parts Parts} *)
+(** {1:parts Parts}
+
+    Parts describe logical and higher-level build units using metadata
+    and other parts. Using this information a part defines a set of
+    build products and actions to build them. Use the {{!spec}combinators}
+    to specify your parts. *)
 
 type part_kind =
-  [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo | `Custom ]
+  [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo ]
 (** The type for part kinds. *)
 
 type +'a part constraint 'a = [< part_kind ]
 (** The type for project parts. *)
 
-(** Parts.
+(** Parts, parts sets and maps.
 
-    Parts describe logical build units. Example of parts are a
-    compilation unit, a library, a binary, a test, the documentation
-    of a library, etc. A part:
+    Parts describe logical build units and define a set of
+    build products and how to build them with build actions.
 
-    {ul
-    {- Defines a kind of logical build unit and has meta data
-       that depends on this kind.}
-    {- Defines a set of build rules that it derives from its
-       meta data and through these rules a set of build products.}} *)
+    A part has a name (which may not be unique). It has a
+    {{!type:usage}usage} that indicates roughly in which context it is
+    supposed to be used. It has a {{!cond}configuration condition}
+    that indicates whether the part is available in a given
+    configuration. It has {{!meta}metadata} that is specific to the
+    part's {{!kind}kind}. It has a list of {{!needs}other parts} that
+    it uses to define itself in a part kind dependent manner. It has
+    an {{!args}argument bundle} whose usage is part kind dependent
+    aswell. It has actions, whose outputs define the part's
+    {{!products}products}. *)
 module Part : sig
 
-  (** {1 Types} *)
+  (** {1 Kinds} *)
 
   type kind =
-    [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo
-    | `Custom ]
-  (** The type for part kinds. *)
+    [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo ]
+  (** The type for part kinds. See the corresponding individual modules
+      for more information. *)
 
-  val kind_to_string : kind -> string
-  (** [kind_to_string k] is an unspecified string representation of [k]. *)
+  val pp_kind : Format.formatter -> kind -> unit
+  (** [pp_kind ppf k] prints an unspecified represetation of [k] on
+      [ppf]. *)
 
-  type part_kind = kind
-  (** Another name for {!kind}. *)
+  (** {1 Usage} *)
+
+  type usage = [ `Build | `Dev | `Doc | `Other of string | `Outcome | `Test ]
+  (** The type for part usage.
+      {ul
+      {- [`Outcome], the part is an outcome of the project.}
+      {- [`Build], the part is used for building the project.}
+      {- [`Dev], the part is used when developing the project.}
+      {- [`Test], the part is used to test the project.}
+      {- [`Doc], the part is used for building the project
+         documentation.}
+      {- [`Other u], the part is used according to a user-defined semantics.}}
+   *)
+
+  val pp_usage : Format.formatter -> usage -> unit
+  (** [pp_usage ppf u] prints an unspecified representation of [u]
+      on [ppf]. *)
+
+  (** {1 Metadata} *)
+
+  type meta
+  (** The type for part metadata *)
+
+  val meta_key : unit -> ('a -> meta) * (meta -> 'a option)
+  (** [meta_key ()] pairs a metadata injector and projector. *)
+
+  val meta_nil : meta
+  (** [meta_nil] is metadata that cannot be accessed. *)
+
+  (** {1 Parts} *)
 
   type +'a t = 'a part constraint 'a = [< kind]
   (** The type for parts. *)
 
-  (** {1 Coercions} *)
+  val v : ?usage:usage -> ?cond:bool Conf.value -> ?meta:meta ->
+    ?needs:'a part list -> ?args:(kind part -> Args.t) ->
+    ?actions:(kind part -> Action.t list) ->
+    ?check:(kind part -> bool) -> string -> [> `Base] part
+  (** [v ?usage ?cond ?meta ?needs ?args ?actions ?check name] defines
+      a base part named [name].
+      {ul
+      {- [usage] is the part's usage, default so
+         [`Outcome].}
+      {- [cond] is configuration condition for the part to
+          exist, defaults to {!Conf.true_}.}
+      {- [meta] is the part's metadata, defaults to {!meta_nil}.}
+      {- [needs] are the parts that are needed by the part, defaults to [[]],
+         the given list is {!uniq}ified. }
+      {- [args] is an argument bundle to be used by the part,
+         defaults to {!Args.empty}.}
+      {- [actions] are the action associated to the part.}
+      {- [check] is a diagnostic function that should {!Log} information
+         about potential problems with the part and return [true] if there
+         is no problem.}} *)
 
-  val coerce : ([< kind] as 'b) -> 'a t -> 'b t
-  val coerce_if : ([< kind] as 'b) -> 'a t -> 'b t option
-
-  (** {1 Base fields} *)
-
-  val name : 'a t -> string
-  (** [name p] is [p]'s name. *)
-
-  val kind : 'a t -> kind
+  val kind : 'a part -> kind
   (** [kind p] is [p]'s kind. *)
 
-  val cond : 'a t -> bool Conf.value
+  val name : 'a part -> string
+  (** [name p] is [p]'s name. *)
+
+  val usage : 'a part -> usage
+  (** [usage p] is [p]'s usage. *)
+
+  val cond : 'a part -> bool Conf.value
   (** [cond p] determines if [p] is available. *)
 
-  val args : 'a t -> args
-  (** [args env p] are arguments associated to part [p]. *)
+  val meta : 'a part -> meta
+  (** [meta p] is [p]'s metadata. *)
 
-  val deps : 'a t -> kind t list
-  (** [deps p] is [p]'s dependencies. *)
+  val get_meta : (meta -> 'a option) -> 'b t -> 'a
+  (** [get_meta proj p] uses [proj] on [p]'s metadata.
 
-  val actions : 'a t -> Action.t list
-  (** [actions env p] are the actions to build part [p] in the environment
-      [env]. *)
+      @raise Invalid_argument if [proj] returns [None]. *)
 
-  (** {1 Derived fields} *)
+  val args : 'a part -> Args.t
+  (** [args p] is the argument bundle associated to part [p]. *)
 
-  val products : 'a t -> Path.rel list Conf.value
-  (** [products p] are the products of part [p] in the environment
-      [env]. This is derived from {!rules}. *)
+  val needs : 'a part -> kind t list
+  (** [needs p] is the (uniqified) list of parts needed by [p] to
+      define itself. *)
 
-  (** {1 Comparing} *)
+  val actions : 'a part -> Action.t list
+  (** [actions env p] are the actions to build part [p]. *)
 
-  val equal : 'a t -> 'b t -> bool
-  (** [equal p p'] is [true] if [p] and [p'] have the same
-      {!kind} and {!name}. *)
+  val products : 'a part -> Path.rel list Conf.value
+  (** [products p] are the products of part [p]. This is derived from
+      {!rules}. *)
 
-  val compare : 'a t -> 'b t -> int
-  (** [compare p p'] is a total order on [p] and [p']. *)
+  val check : 'a part -> bool
+  (** [check p] logs information about potential problems with [p]
+      and returns [true] if there is no such problem. *)
 
-  (** {1 Part list operations} *)
+  val id : 'a part -> int
+  (** [id p] is a unique id for the part. *)
 
-  val keep : ('a t -> bool) -> 'a t list -> 'a t list
-  val keep_kind : (kind as 'b) -> 'a t list -> 'b t list
-  val keep_kinds : kind list -> 'a t list -> 'a t list
-  val keep_map : ('a t -> 'b option) -> 'a t list -> 'b list
-  val to_set : 'a t list -> 'a t list
-  (** [to_set ps] is [ps] without duplicates as determined
-      by {!equal}. *)
+  val sid : 'a part -> string
+  (** [sid] is a string identifier for the part, it may not be unique.
+      FIXME remove that. *)
 
-  (** {1 Specific parts} *)
+  val equal : 'a part -> 'b part -> bool
+  (** [equal p p'] is [(id p) = (id p')]. *)
 
-  (** Parts for arbitrary products. *)
-(*
-  module Base : sig
-    val create :
-      ?cond:bool Conf.value -> ?args:(kind t -> args) ->
-      ?deps:'a t list -> string ->
-      (kind t -> Action.t list) -> [> `Base] t
-  end
-*)
-  (** Parts for compilation units.
+  val compare : 'a part -> 'b part -> int
+  (** [compare p p'] is [compare (id p) (id p')]. *)
 
-      Encapsulates rules to compile a compilation unit in a build
-      directory defined by a {!Lib} or {!Bin} parent part. *)
-  module Unit : sig
+  (** {1 Coercions} *)
 
-    (** {1 Metadata} *)
+  val coerce : ([< kind] as 'b) -> 'a part -> 'b part
+  (** [coerce k p] coerces [p] to kind [k],
 
-    type ocaml_interface = [ `Normal | `Opaque | `Hidden ]
-    (** The type for OCaml compilation units interfaces.
+      @raise Invalid_argument if [p]'s kind is not [k]. *)
 
-        Adds additional information about how the interface of a
-        compilation unit should be treated.
-        {ul
-        {- [`Normal] is for regular compilation units.}
-        {- [`Opaque] is for compilation units with cross-module optimizations
-           disabled.}
-        {- [`Hidden] is for regular compilation units whose
-           [cmi] files are hidden (implies [`Opaque]).}} *)
+  val coerce_if : ([< kind] as 'b) -> 'a part -> 'b part option
+  (** [coerce_if k p] is [Some] if [p] is of kind [k] and
+      [None] otherwise. *)
 
-    type ocaml_unit = [ `Mli | `Ml | `Both ]
-    (** The type for OCaml compilation units. *)
+  (** {1 Part lists} *)
 
-    type c_unit = [ `H | `C | `Both ]
-    (** The type for C Compilation units *)
+  val uniq : 'a part list -> 'a part list
+  (** [uniq ps] is [ps] with duplicates as determined by {!equal}.
+      The list order is preserved. *)
 
-    type kind = [ `OCaml of ocaml_unit * ocaml_interface | `C of c_unit | `Js ]
-    (** The type for kinds of compilation units *)
+  val keep : ('a part -> bool) -> 'a part list -> 'a part list
+  (** [keep pred ps] is the elements of [ps] that satisfy [pred].
+      The list order is preserved. *)
 
-    val kind : [< `Unit] t -> kind
-    (** [kind u] is the kind of [u]. *)
+  val keep_map : ('a part -> 'b option) -> 'a part list -> 'b list
+  (** [keep_map m ps] is the elements of [ps] for which [m] returns
+      [Some] value. The list order is according to [ps]. *)
 
-    val src_dir : [< `Unit] t -> Path.rel
-    (** [src_dir env u] is the directory where the unit [u] is located
-        relative to the project directory. *)
+  val keep_kind : ([< kind] as 'b) -> 'a part list -> 'b part list
+  (** [keep_kind k ps] is the elements of [ps] that have kind [kind].
+      The list order is preserved. *)
 
-    (** {1 Create} *)
+  val keep_kinds : kind list -> 'a part list -> 'a part list
+  (** [keep_kinds ks] is the elements of [ps] that have one of the
+      kind [ks]. The list order is preserved. *)
 
-    val create :
-      ?cond:bool Conf.value -> ?args:args -> ?deps:'a t list ->
-      ?src_dir:(Path.rel) -> string ->
-      kind -> [> `Unit] t
+  val fold_rec : ('a -> kind part -> 'a) -> 'a -> kind part list -> 'a
+  (** [fold_rec f acc l] folds over the parts of [l] and their needs
+      recusively, in depth first pre-order. If a part appears twice in
+      the traversal is it only folded over the first time. *)
 
-    val of_base : src_dir:(Path.rel) -> kind -> [`Base] t -> [> `Unit] t
+  (** {1 Part sets and maps} *)
+
+  module Set : sig
+    include Set.S with type elt = kind part
+    val of_list : kind part list -> t
   end
 
-  (** Parts for libraries.
-
-      Ensapsulates rules to gather compilation {{!Unit}units} in a build
-      directory and compile them to library archive files. *)
-  module Lib : sig
-
-    (** {1 Metadata} *)
-
-    type kind = [ `OCaml | `OCaml_pp | `C ]
-    (** The type for kinds of libraries. *)
-
-    val kind : [< `Lib] t -> kind
-    val byte : [< `Lib] t -> bool
-    val native : [< `Lib] t -> bool
-    val native_dynlink : [< `Lib] t -> bool
-
-    (**  {1 Create} *)
-
-    val create :
-      ?cond:bool Conf.value -> ?args:args -> ?deps:part_kind t list ->
-      ?byte:bool -> ?native:bool -> ?native_dynlink:bool ->
-      string -> kind -> [< `Unit] t list -> [> `Lib] t
-    (** [create available args deps byte native native_dynlink name kind us]
-        is a library part named [name] made of units [us].
-
-        Dependencies specified in [deps] and arguments in [args] are
-        added to the units [us]. Dependencies specified in units
-        [us] are added to the dependencies of the library part. *)
-
-    val of_base :
-      ?byte:bool -> ?native:bool -> ?native_dynlink:bool ->
-      kind -> [`Base] t -> [> `Lib] t
-
-    (** {1 Part filters} *)
-
-    val ocaml : 'a t -> [> `Lib] t option
-    (** [ocaml p] is [Some p] iff [p] is a library part and has kind
-        [`OCaml]. *)
-
-    val ocaml_pp : 'a t -> [> `Lib] t option
-    (** [ocaml_pp p] is [Some p] iff [p] is a library part and has kind
-        [`OCaml_pp]. *)
-
-    val c : 'a t -> [> `Lib] t option
-    (** [c p] is [Some p] iff [p] is a library part and has kind
-        [`C]. *)
-  end
-
-  (** Parts for binaries. *)
-  module Bin : sig
-
-    (** {1 Metadata} *)
-
-    type kind = [ `OCaml | `OCaml_toplevel | `C ]
-    (** The type for kinds of binaries. *)
-
-    val kind : [< `Bin] t -> kind
-    val byte : [< `Bin] t -> bool
-    val native : [< `Bin] t -> bool
-    val js : [< `Bin] t -> bool
-
-    (** {1 Create} *)
-
-    val create :
-      ?cond:bool Conf.value ->
-      ?args:args ->
-      ?deps:part_kind t list ->
-      ?byte:bool -> ?native:bool -> ?js:bool ->
-      string -> kind -> [< `Unit] t list -> [> `Bin] t
-    (** [create available args deps byte native js name kind us]
-        is a binary named [name] made of units [us].
-
-        Dependencies specified in [deps] and arguments in [args] are
-        added to the units [us]. *)
-
-    val of_base : ?byte:bool -> ?native:bool -> ?js:bool -> kind ->
-      [< `Base] t -> [> `Bin] t
-
-    (** {1 As build action} *)
-
-(*
-    val cmd : ?args:args -> ?kind:[`Byte | `Native] -> [< `Bin] t ->
-      (string list -> string list) -> Action.cmd
-*)
-
-    (** {1 Part filters} *)
-
-    val ocaml : 'a t -> [> `Bin] t option
-    (** [ocaml p] is [Some p] iff [p] is a binary part and has kind
-        [`OCaml]. *)
-
-    val ocaml_toplevel : 'a t -> [> `Bin] t option
-    (** [ocaml_toplevel p] is [Some p] iff [p] is a binary part and has kind
-        [`OCaml_toplevel]. *)
-
-    val c : 'a t -> [> `Bin] t option
-    (** [c p] is [Some p] iff [p] is a binary part and has kind
-        [`C]. *)
-  end
-
-  (** Packages.
-
-      Packages are named entities that provide command arguments in
-      certain contexts through their {!args} attribute. These
-      arguments are determined by an external lookup mecanism.
-
-      Certain parts (e.g. {{!Unit}units}) use these arguments when
-      packages are specified in their dependencies. *)
-  module Pkg : sig
-
-    (** {1 Metadata} *)
-
-    type kind = [ `OCaml | `C ]
-    (** The type for package kinds.
-        {ul
-        {- [`OCaml] is for OCaml packages to be used in pre-preprocessing,
-           compilation, and linking contexts}
-        {- [`C] is for C packages to be used in compilation and linking
-           contexts.}} *)
-
-    val kind : [< `Pkg] t -> kind
-    (** [kind p] is [p]'s package kind. *)
-
-    (** {1 Create} *)
-
-    type ocaml_lookup = [ `OCamlfind ]
-    (** The type for ocaml package lookup mechanisms. The name of
-        the part is the OCamlfind package name to lookup. *)
-
-    type c_lookup = [ `Pkg_config ]
-    (** The type for c package lookup mechanisms. The name of
-        the part is the pkg-config package name to lookup. *)
-
-    type spec = [ `OCaml of ocaml_lookup | `C of c_lookup ]
-    (** The type for packages specification. *)
-
-    val create : ?cond:bool Conf.value -> ?args:args -> string ->
-      spec -> [> `Pkg] t
-
-    val of_base : kind -> [< `Base] t -> [> `Pkg] t
-    (** [of_base opt kind base] is a package from [base]. [base] should
-        define an interesting {!args} function. *)
-
-    (** {1 Part filters} *)
-
-    val ocaml : 'a t -> [> `Pkg] t option
-    (** [ocaml p] is [Some p] iff [p] is a package part and has kind
-        [`OCaml]. *)
-
-    val c : 'a t -> [> `Pkg] t option
-    (** [c p] is [Some p] iff [p] is a package part and has kind
-        [`C]. *)
-  end
-
-  (** Parts for command runs. *)
-  module Run : sig
-
-    (** {1 Metadata} *)
-
-    val dir : [< `Run] t -> Path.t
-
-    (** {1 Create} *)
-
-    val create :
-      ?cond:bool Conf.value ->
-      ?args:args ->
-      ?deps:'a t list ->
-      ?dir:Path.t ->
-      string -> (Action.t) -> [> `Run] t
-
-    val of_base : ?dir:Path.t -> [< `Base] t -> [> `Run] t
-  end
-
-  (** Parts for documentation. *)
-  module Doc : sig
-
-    (** {1 Metadata} *)
-
-    type kind = [ `OCamldoc ]
-    val kind : [< `Doc] t -> [`OCamldoc ]
-
-    (** {1 Create} *)
-
-    val create :
-      ?cond:bool Conf.value ->
-      ?args:args ->
-      ?keep:([< `Unit] t -> bool) ->
-      ?kind:kind -> string -> 'a t list -> [> `Doc] t
-
-    val of_base : ?kind:kind -> [< `Base] t -> [> `Doc ] t
-
-    (** {1 Documentation filters}. *)
-
-    val default : [< `Unit] t -> bool
-    val dev : [< `Unit] t -> bool
-  end
-
-  (** Parts for named directories of products. *)
-  module Dir : sig
-
-    (** {1 Metadata} *)
-
-    type kind = [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root
-                | `Etc | `Doc | `Misc | `Stublibs | `Man | `Other of string ]
-
-    val kind : [< `Dir] t -> kind
-    (** {b Note.} This is derived from the part name. *)
-
-    val install : [< `Dir] t -> bool
-
-    (** {1 Dir} *)
-
-    val create :
-      ?cond:bool Conf.value ->
-      ?keep:('a t -> Path.t list) ->
-      ?install:bool -> kind -> 'a t list -> [> `Dir ] t
-
-    val of_base : ?install:bool -> [> `Base] t -> [> `Dir] t
-
-    (** {1 Product filters} *)
-
-    val default : 'a t -> Path.t list
-  end
-
-  (** Parts for build silos. *)
-  module Silo : sig
-
-    (** {1 Create} *)
-
-    val create :
-      ?cond:bool Conf.value ->
-      ?args:args ->
-      string -> 'a t list -> [> `Silo] t
-
-    val of_base : [< `Base] t -> [> `Silo] t
-  end
-
-  (** Parts for arbitrary products with custom metadata. *)
-  module Custom : sig
-
-    (** {1 Metadata} *)
-
-    type data
-    (** The type for custom metadata. *)
-
-    val key : unit -> ('a -> data) * (data -> 'a option)
-    (** [key ()] is a new data key. A function to inject a value
-        in data, and to project a value from data. *)
-
-    val data : [< `Custom] t -> data
-
-    (** {1 Create} *)
-
-    val of_base : data -> [< `Base ] t -> [> `Custom] t
-  end
+  module Map : Map.S with type key = kind part
 end
 
-type path = string list
-(** The type for paths relative to the root directory of the project. *)
+(** Compilation unit part.
+
+    Defines a compilation unit's build products in
+    a build directory defined by an enclosing {!Lib} or {!Bin} part. *)
+module Unit : sig
+
+  (** {1 Metadata} *)
+
+  type ocaml_interface = [ `Normal | `Opaque | `Hidden ]
+  (** The type for OCaml compilation unit interfaces.
+
+      Adds additional information about how the interface of a
+      compilation unit should be treated.
+      {ul
+      {- [`Normal] is for regular compilation units.}
+      {- [`Opaque] is for compilation units with cross-module optimizations
+         disabled.}
+      {- [`Hidden] is for regular compilation units whose
+         [cmi] files are hidden (implies [`Opaque]).}} *)
+
+  type ocaml_unit = [ `Mli | `Ml | `Both ]
+  (** The type for OCaml compilation units. *)
+
+  type c_unit = [ `H | `C | `Both ]
+  (** The type for C Compilation units *)
+
+  type kind = [ `OCaml of ocaml_unit * ocaml_interface | `C of c_unit | `Js ]
+  (** The type for kinds of compilation units *)
+
+  val pp_kind : Format.formatter -> kind -> unit
+  (** [pp_kind ppf k] prints an unspecified representation of [k] on
+      [ppf]. *)
+
+  val kind : [< `Unit] part -> kind
+  (** [kind u] is the kind of [u]. *)
+
+  val dir : [< `Unit] part -> Path.t Conf.value
+  (** [dir u] is the directory where the unit [u] is located. *)
+
+  val ocaml : 'a part -> [> `Unit ] part option
+  (** [ocaml p] is [Some p] iff [p] is an OCaml compilation unit. *)
+
+  val c : 'a part -> [> `Unit ] part option
+  (** [c p] is [Some p] iff [p] is a C compilation unit. *)
+
+  val js : 'a part -> [> `Unit ] part option
+  (** [js p] is [Some p] iff [p] is a JavaScript compilation unit. *)
+
+  (** {1 Units} *)
+
+  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+    ?needs:[< `Lib | `Pkg] part list -> ?dir:Path.t Conf.value -> string ->
+    kind -> [> `Unit] part
+  (** [v ~needs ~dir name kind] is a compilation unit named [name],
+      the name of the file without the suffix located in directory
+      [dir] (defaults to {!root}) of kind [kind]. [needs] indicate the
+      project libraries and packages that are needed to compile the
+      unit. The [args] bundle is used by the unit's product actions
+      according to context. *)
+
+  val of_base : ?dir:Path.t Conf.value -> kind -> [`Base] part -> [> `Unit] part
+  (** [of_base kind p] is a compilation unit from [p]. [p]'s
+      name is the compilation unit name. See {!v}. *)
+end
+
+(** Library part.
+
+    Defines a library's build products by gathering a set of
+    {{!Unit}unit parts}.  *)
+module Lib : sig
+
+  (** {1 Metadata} *)
+
+  type kind = [ `OCaml | `OCaml_pp | `C ]
+  (** The type for kinds of libraries.
+      {ul
+      {- [`OCaml] is an OCaml library.}
+      {- [`OCaml_pp] is an OCaml pre-processing library}
+      {- [`C] is a C library.}} *)
+
+  val pp_kind : Format.formatter -> kind -> unit
+  (** [pp_kind ppf k] prints an unspecified representation of [k] on
+      [ppf]. *)
+
+  val kind : [< `Lib] part -> kind
+  (** [kind p] is the kind of [p]. *)
+
+  val byte : [< `Lib] part -> bool
+  (** [byte p] is [true] if [p] can compile to OCaml byte code. *)
+
+  val native : [< `Lib] part -> bool
+  (** [native p] is [true] if [p] can compile to native code. *)
+
+  val native_dynlink : [< `Lib] part -> bool
+  (** [native p] is [true] if [p] can compile to native dynamically
+      linked code. *)
+
+  val ocaml : 'a part -> [> `Lib] part option
+  (** [ocaml p] is [Some p] iff [p] is an [`OCaml] library. *)
+
+  val ocaml_pp : 'a part -> [> `Lib] part option
+  (** [ocaml_pp p] is [Some p] iff [p] is [`OCaml_pp] library. *)
+
+  val c : 'a part -> [> `Lib] part option
+  (** [c p] is [Some p] iff [p] is a [`C] library. *)
+
+  (**  {1 Libraries} *)
+
+  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+    ?byte:bool -> ?native:bool -> ?native_dynlink:bool ->
+    string -> kind -> [< `Unit | `Pkg | `Lib] part list -> [> `Lib] part
+  (** [v ?byte ?native ?native_dynlink name kind needs] is a library
+      named [name] of the given [kind]. [needs] has the compilation
+      units [us] that define the libary. The package and libraries
+      that are in [needs] are automatically added to [us] needs.  The
+      [args] bundle is used both by the library's product actions and
+      by [us] product actions according to context.
+
+      The library's {e ability} to compile to different targets is
+      specified by the arguments [?byte], [?native] and
+      [?native_dynlink] whose defaults respectively depend on [kind]
+      as follows.
+      {ul
+      {- [`OCaml], [true], [true], [true]}
+      {- [`OCaml_pp], [true], [false], [false]}
+      {- [`C], [false] (not applicable), [true], [true]}}
+      Whether the products associated to a compilation target are
+      concretly build depends on the configuration keys
+      {!Conf.ocaml_byte}, {!Conf.ocaml_native},
+      {!Conf.ocaml_native_dynlink} and {!Conf.c_dynlink}. *)
+
+  val of_base : ?byte:bool -> ?native:bool -> ?native_dynlink:bool ->
+    kind -> [`Base] part -> [> `Lib] part
+  (** [of_base kind p] is a library from [p]. [p]'s name is the library name.
+      See {!v}. *)
+end
+
+(** Binary executable part.
+
+    Defines a program executable's build products by gathering a set of
+    {{!Unit}unit parts}.
+
+    FIXME should we really call this Bin ? maybe Exec ? Prog ? *)
+module Bin : sig
+
+  (** {1 Metadata} *)
+
+  type kind = [ `OCaml | `OCaml_toplevel | `C ]
+  (** The type for kinds of binaries.
+      {ul
+      {- [`OCaml] is a OCaml executable.}
+      {- [`OCaml_toplevel] is an OCaml toplevel.}
+      {- [`C] is a C executable.}} *)
+
+  val pp_kind : Format.formatter -> kind -> unit
+  (** [pp_kind ppf k] prints an unspecified representation of [k] on
+      [ppf]. *)
+
+  val kind : [< `Bin] part -> kind
+  (** [kind p] is [p]'s kind. *)
+
+  val byte : [< `Bin] part -> bool
+  (** [byte p] is [true] if [p] can compile to OCaml byte code. *)
+
+  val native : [< `Bin] part -> bool
+  (** [native p] is [true] if [p] can compile to native code. *)
+
+  val js : [< `Bin] part -> bool
+  (** [js p] is [true] if [p] can compile to JavaScript code. *)
+
+  val ocaml : 'a part -> [> `Bin] part option
+  (** [ocaml p] is [Some p] iff [p] is an [`OCaml] binary. *)
+
+  val ocaml_toplevel : 'a part -> [> `Bin] part option
+  (** [ocaml_toplevel p] is [Some p] iff [p] is an [`OCaml_toplevel] binary. *)
+
+  val c : 'a part -> [> `Bin] part option
+  (** [c p] is [Some p] iff [p] is an [`C] binary. *)
+
+  (** {1 Binaries} *)
+
+  val v :
+    ?usage:Part.usage ->
+    ?cond:bool Conf.value ->
+    ?args:Args.t ->
+    ?byte:bool -> ?native:bool -> ?js:bool ->
+    string -> kind -> [< `Unit | `Lib | `Pkg ] part list -> [> `Bin] part
+  (** [v ?byte ?native ?js name kind needs] is a binary named [name]
+      of the given [kind]. [needs] has the compilation units [us] that
+      define the binary. The package and libraries that are in [needs]
+      are automatically added to [us] needs and used at link time. The
+      [args] bundle is used both by the binary's product actions
+      and by [us] product actions according to context.
+
+      The binary's {e ability} to compile to different targets is specified
+      by the arguments [?byte], [?native] and [?js] whose defaults
+      respectively depend on [kind] as follows.
+      {ul
+      {- [`OCaml], [true], [true], [false].}
+      {- [`OCaml_toplevel], [true], [false], [false].}
+      {- [`C], [false] (not applicable), [true], [false]}}
+      Whether the products associated to a compilation target are
+      concretly build dependson the configuration keys {!Conf.ocaml_byte},
+      {!Conf.ocaml_native}, {!Conf.ocaml_js} and {!Conf.c_js}. *)
+
+  val of_base : ?byte:bool -> ?native:bool -> ?js:bool -> kind ->
+    [< `Base] part -> [> `Bin] part
+  (** [of_base kind p] is a binary from [p]. [p]'s name is the binary name.
+      See {!v}. *)
+end
+
+(** Package part.
+
+    Packages are named entities that provide an argument bundle via
+    the {!Pkg.lookup} function. This bundle is usually determined by
+    an an external lookup mecanism.  Certain parts
+    (e.g. {{!Unit}units}) use these arguments when packages are
+    specified in their needs. *)
+module Pkg : sig
+
+  (** {1 Metadata} *)
+
+  type other = [ `Other of string * Args.t ]
+  (** The type for other package lookup mecanisms. The string is a
+      name for the mecanism. The argument bundle defines what the
+      mecanism yields. *)
+
+  type kind = [ `OCaml of [`OCamlfind | other ]
+              | `C of [ `Pkg_config | other ]]
+  (** The type for package kinds.
+      {ul
+      {- [`OCaml] is for OCaml packages looked up either through
+         [`OCamlfind] or an [`Other] mecanism.}
+      {- [`C] is for C packages looked up either through [`Pkg_config]
+         or an [`Other] mecanism.}} *)
+
+  val pp_kind : Format.formatter -> kind -> unit
+  (** [pp_kind ppf k] prints an unspecified representation of [k] on
+      [ppf]. *)
+
+  val kind : [< `Pkg] part -> kind
+  (** [kind p] is [p]'s package kind. *)
+
+  val lookup : [< `Pkg] part -> Args.t
+  (** [lookup p] is [p]'s package lookup argument. *)
+
+  val ocaml : 'a part -> [> `Pkg] part option
+  (** [ocaml p] is [Some p] iff [p] is an OCaml package. *)
+
+  val c : 'a part -> [> `Pkg] part option
+  (** [c p] is [Some p] iff [p] is a C package. *)
+
+  (** {1 Packages} *)
+
+  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+    string -> kind -> [> `Pkg] part
+  (** [v name kind] is a package named [name] of the given [kind].
+      [name] is the name used for lookuping up the package system.
+
+      {b Note.} [args] is unused. FIXME should we add a context
+      to ocamlfind and pkg-config invocations ? *)
+
+  val of_base : kind -> [< `Base] part -> [> `Pkg] part
+  (** [of_base kind p] is a package from [p]. [p]'s name is
+      package name. *)
+end
+
+(** Unit documentation set part.
+
+    Defines a build product for the documentation set defined
+    by a set of compilation units. *)
+module Doc : sig
+
+  (** {1 Metadata} *)
+
+  type kind = [ `OCamldoc ]
+  (** The type for unit documentation set generators. *)
+
+  val pp_kind : Format.formatter -> kind -> unit
+  (** [pp_kind ppf k] prints an unspecified representation of [k] on
+      [ppf]. *)
+
+  val kind : [< `Doc] part -> kind
+  (** [kind p] is [p]'s kind. *)
+
+  val ocamldoc : 'a part -> [> `Doc ] part option
+  (** [ocamldoc p] is [Some p] iff [p] is an [`OCamldoc] documentation
+      generator. *)
+
+  (** {1 Unit filters} *)
+
+  val default : [< `Unit] part -> bool
+  (** [default] is a part filter that selects only OCaml units whose
+      {!Unit.ocaml_interface} is not [`Hidden]. *)
+
+  val dev : [< `Unit] part -> bool
+  (** [dev] is part filter that select any kind of OCaml unit. *)
+
+  (** {1 Unit documentation sets} *)
+
+  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+    ?keep:([< `Unit] part -> bool) -> string -> kind ->
+    [< `Unit | `Lib | `Bin]  part list -> [> `Doc] part
+  (** [v keep name kind needs] is a documentation set named [name] of
+      the given [kind]. The units of the documentation set are those
+      kept by [keep] and present in [needs] or part of the libraries
+      and binaries listed in [needs]. [keep] defaults to {!dev} if
+      [usage] is [`Dev] and {!default} otherwise. *)
+
+  val of_base : kind -> [< `Base] part -> [> `Doc ] part
+  (** [of_base kind p] is a documentation set from [p]. [p]'s name is
+      the documentation set name. *)
+end
+
+(** Directory part.
+
+    A directory part defines a directory to gather a selection
+    of the build products of a part. *)
+module Dir : sig
+
+  (** {1 Metadata} *)
+
+  type kind = [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root
+              | `Etc | `Doc | `Stublibs | `Man | `Other of Path.t ]
+  (** The type for kinds of directories. They essentially correspond
+      to the sections of an OPAM
+      {{:http://opam.ocaml.org/doc/manual/dev-manual.html#sec25}install file}.
+  *)
+
+  val pp_kind : Format.formatter -> kind -> unit
+  (** [pp_kind ppf k] prints an unspecified representation of [k] on
+      [ppf]. *)
+
+  val kind : [< `Dir] part -> kind
+  (** [kind p] is [p]'s kind. *)
+
+  val install : [< `Dir] part -> bool
+  (** [kind p] is [true] if the directory contents is meant to be installed. *)
+
+  (** {1 Directory specifiers} *)
+
+  type spec = Part.kind Part.t -> Action.product ->
+    [ `Keep | `Rename of Path.t | `Drop] Conf.value
+  (** The type for directory specifiers. Given a part and a product that
+      belongs to the part, the function returns:
+      {ul
+      {- [`Drop] to drop the product from the directory.}
+      {- [`Keep] to keep the product in the directory with its basename.}
+      {- [`Rename p] to keep the product in the directory but rename it
+       to [p], where [p] is a path relative to the directory}} *)
+
+  val all : spec
+  (** [all] is a specifier that [`Keep]s any product of any part. *)
+
+  val file_exts : Path.ext list -> spec
+  (** [file_exts exts] is a specifiers that keeps, in any part,
+      products that have an extension in [exts]. *)
+
+  val install_bin : spec
+  (** [install_bin] is {!all} but has special behaviour in the following
+      cases:
+      {ul
+      {- For [`Bin] parts of kind [`OCaml] keeps only one of the
+         byte and native code executable without its extension. If
+         both are available favors native code over byte code.}
+      {- For [`Bin] parts of kind [`C] keeps only the part's
+         executable.}} *)
+
+  val install_lib : spec
+  (** [install_lib] is {!all} but has special behaviour in the following
+      cases :
+      {ul
+      {- For [`Lib] parts of kind [`OCaml], keeps only the library's
+         archives and the [cmx], [cmi] and [cmti] files according to
+         the unit's {{!Unit.ocaml_interface}interface specification}.}
+      {- For [`Lib] parts of kind [`C], keeps only the library's
+         archives.}} *)
+
+  (** {1 Dir} *)
+
+  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+    ?keep:spec -> ?install:bool -> kind -> 'a part list -> [> `Dir ] part
+  (** [v keep install kind needs] is a directory of type [kind] that
+      gathers the build products of [needs] as filtered by [keep]. If
+      [install] is [true] (defaults) the directory structure is meant
+      to be installed at a location defined by [kind].
+
+      The default for [keep] depends both on [kind] and [install]
+      as follows:
+      {ul
+      {- [`Bin], [true], {!install_bin} is used.}
+      {- [`Lib], [true], {!install_lib} is used.}
+      {- Otherwise, {!all} is used.}} *)
+
+  val of_base : ?install:bool -> kind -> [> `Base] part -> [> `Dir] part
+  (** [of_base ?install kind p] is a directory from [p]. See {!v}. *)
+end
+
+(** Parts for build silos.
+
+    FIXME. I think this should be removed. *)
+module Silo : sig
+
+  (** {1 Create} *)
+
+  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+    string -> 'a part list -> [> `Silo] part
+
+  val of_base : [< `Base] part -> [> `Silo] part
+end
+
+(** Project runs.
+
+    Project runs are build actions whose commands are always run
+    even if the actions inputs are up to date. Strictly speaking
+    they are not part of the build system but they may depend
+    on elements that need to be built by the build system. *)
+module Run : sig
+
+  (** {1 Metadata} *)
+
+  val dir : [< `Run] part -> Path.t Conf.value
+  (** [[dir p] is the directory in which the run should occur.] *)
+
+  (** {1 Create} *)
+
+  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+    ?dir:Path.t Conf.value -> string -> Action.t -> [> `Run] part
+  (** [v dir name act] is the run that executes [act] in directory
+      [dir] (defaults to {!Conf.root_dir}). *)
+
+  val of_base : ?dir:Path.t Conf.value -> [< `Base] part -> [> `Run] part
+end
+
+(** {1:spec Part specification combinators} *)
+
+type path = Path.t Conf.value
+(** The type for part paths specifications. FIXME should we
+    restrict to Path.rel ? *)
+
+val root : path
+(** [root] is the path {!Conf.root_dir}.  *)
 
 val ( / ) : path -> string -> path
-(** [path / seg] is [path @ [seg]]. *)
+(** [path / seg] is [Conf.(const Path.( / ) $ path $ const seg)]. *)
 
-val unit : ?cond:bool Conf.value -> ?args:args -> ?deps:Part.kind part list ->
-  ?kind:Part.Unit.kind -> ?dir:path -> string -> [> `Unit] part
-(** See {!Part.Unit.create}. [kind] defaults to [`OCaml (`Both, `Normal)]. *)
+val unit : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  ?needs:[< `Lib | `Pkg ] part list -> ?kind:Unit.kind -> ?dir:path -> string ->
+  [> `Unit] part
+(** See {!Unit.v}. [kind] defaults to [`OCaml (`Both, `Normal)]. *)
 
-val lib : ?cond:bool Conf.value -> ?args:args -> ?deps:Part.kind part list ->
-  ?byte:bool -> ?native:bool -> ?native_dynlink:bool ->
-  ?kind:Part.Lib.kind -> string -> [< `Unit] part list -> [> `Lib] part
-(** See {!Part.Lib.create}. [kind] defaults to [`OCaml]. *)
+val lib : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  ?byte:bool -> ?native:bool -> ?native_dynlink:bool -> ?kind:Lib.kind ->
+  string -> [< `Unit | `Pkg | `Lib] part list -> [> `Lib] part
+(** See {!Lib.v}. [kind] defaults to [`OCaml]. *)
 
-val bin : ?cond:bool Conf.value -> ?args:args -> ?deps:Part.kind part list ->
-  ?byte:bool -> ?native:bool -> ?js:bool -> ?kind:Part.Bin.kind -> string ->
-  [< `Unit] part list -> [> `Bin] part
-(** See {!Part.Bin.create}. [kind] defaults to [`OCaml]. *)
+val bin : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  ?byte:bool -> ?native:bool -> ?js:bool -> ?kind:Bin.kind -> string ->
+  [< `Unit | `Pkg | `Lib] part list -> [> `Bin] part
+(** See {!Bin.v}. [kind] defaults to [`OCaml]. *)
 
-val pkg : ?cond:bool Conf.value -> ?args:args -> ?kind:Part.Pkg.spec -> string ->
-  [> `Pkg] part
-(** See {!Part.Pkg.create}. [kind] defaults to [`OCaml `OCamlfind]. *)
+val pkg : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  ?kind:Pkg.kind -> string -> [> `Pkg] part
+(** See {!Pkg.v}. [kind] defaults to [`OCaml `OCamlfind]. *)
 
-val run : ?cond:bool Conf.value -> ?args:args -> ?deps:'a part list ->
-  ?dir:path -> string -> (Action.t) -> [> `Run] part
+val doc : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  ?keep:([< `Unit] part -> bool) -> ?kind:Doc.kind -> string ->
+  [< `Bin | `Lib | `Unit ] part list -> [> `Doc] part
+(** See {!Doc.v}. [kind] defaults to [`OCamldoc]. *)
 
-val doc : ?cond:bool Conf.value -> ?args:args ->
-  ?keep:([< `Unit] part -> bool) ->
-  ?kind:Part.Doc.kind -> string -> 'a part list -> [> `Doc] part
+val dir : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t->
+  ?keep:Dir.spec -> ?install:bool -> Dir.kind -> 'a part list -> [> `Dir ] part
+(** See {!Dir.v}. *)
 
-val dir : ?cond:bool Conf.value -> ?keep:('a part -> Path.t list) ->
-  ?install:bool -> Part.Dir.kind -> 'a part list -> [> `Dir ] part
+val silo : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  string -> 'a part list -> [> `Silo] part
+(** See {!Silo.v} *)
 
-val silo : ?cond:bool Conf.value -> ?args:args -> string -> 'a part list ->
-  [> `Silo] part
+val run : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  ?dir:path -> string -> Action.t -> [> `Run] part
+(** See {!Run.v} *)
 
 (** {1:projects Projects} *)
 
@@ -1968,12 +2208,10 @@ module Project : sig
   type t = project
   (** The type for describing projects. *)
 
-  val v : ?cond:bool Conf.value -> ?args:args -> ?actions:Action.t list ->
+  val v : ?cond:bool Conf.value -> ?args:Args.t ->
     string -> 'a part list -> project
   (** [v cond args cs n] is the project named [n] with components [cs].
-      [cond] determines if the project can exist in a build configuration.
-
-      FIXME [args]. *)
+      [cond] determines if the project can exist in a build configuration. *)
 
   val name : project -> string
   (** [name p] is the [p]'s name. *)
@@ -2264,18 +2502,14 @@ module Private : sig
 
     include module type of Project with type t = Project.t
 
-    (** {1 Static attributes} *)
-
     val cond : project -> bool Conf.value
     (** [cond p] is [p]'s cond. *)
 
-    val args : project -> args
+    val args : project -> Args.t
     (** [args p] is [p]'s args. *)
 
     val parts : project -> part_kind part list
     (** [parts p] is [p]'s parts. *)
-
-    val actions : project -> Action.t list
 
     (** {1 Configuration} *)
 
@@ -2325,14 +2559,16 @@ end
 
 (** {1:basics Basics}
 
-    An assemblage {{!project}project} is made of {{!parts}parts}.
-
+    An assemblage {{!project}project} is made of {{!parts}parts}. This
+    was very basic.
 
     {1:dont Don't}
 
     Make the project depend on direct conditions. E.g.
 {[
     if Sys.file_exists file then Some (unit "src")  else None
+    if Sys.win32 then ...
+    if Sys.ocaml_version = ...
 ]}
 
     That's the way of doing it:
@@ -2343,5 +2579,16 @@ end
 
     TODO the rule to hammer in people's mind is the following:
     don't do anything that doesn't make the set of configuration
-    keys constant on *every* run of the [assemble.ml] file.
+    keys constant on *every* load of the [assemble.ml] file. Maybe
+    we could still make an exception for a [units] combinator
+    that looksup the units in a directory automatically.
+
+   {1:limitations Limitations}
+
+   The build model behind assemblage has the following limitation.
+   {ul
+   {- Doesn't work well with tools that are not able to determine
+      their output statically, e.g. ocamldoc. FIXME what about dep
+      discovery ? E.g. Dir parts need to know the products.}
+   {- TODO}}
 *)

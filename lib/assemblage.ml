@@ -27,7 +27,6 @@ module Cmd = As_cmd
 
 module Conf = As_conf
 module Ctx = As_ctx
-type args = As_args.t
 module Args = As_args
 
 module Action = struct
@@ -37,59 +36,58 @@ end
 
 (* Parts *)
 
-module Part = struct
-  include As_part
-  type part_kind = kind
-  module Bin = As_part_bin
-  module Custom = As_part_custom
-  module Dir = As_part_dir
-  module Doc = As_part_doc
-  module Lib = As_part_lib
-  module Pkg = As_part_pkg
-  module Run = As_part_run
-  module Silo = As_part_silo
-  module Unit = As_part_unit
-end
-
-type path = string list
-let ( / ) segs seg = List.rev (seg :: List.rev segs)
+module Part = As_part
+module Unit = As_part_unit
+module Lib = As_part_lib
+module Bin = As_part_bin
+module Pkg = As_part_pkg
+module Doc = As_part_doc
+module Dir = As_part_dir
+module Silo = As_part_silo
+module Run = As_part_run
 
 type part_kind = As_part.kind
 type +'a part = 'a As_part.t
 
-let unit ?cond ?args ?deps ?(kind = `OCaml (`Both, `Normal)) ?(dir = []) name =
-  let src_dir = As_path.rel_of_segs dir in
-  Part.Unit.create ?cond ?args ?deps name kind ~src_dir
+(* Part specification combinators *)
 
-let lib ?cond ?args ?deps ?byte ?native ?native_dynlink ?(kind = `OCaml) name
-    units =
-  As_part_lib.create ?cond ?args ?deps ?byte ?native ?native_dynlink
-    name kind units
+type path = Path.t Conf.value
 
-let bin ?cond ?args ?deps ?byte ?native ?js ?(kind = `OCaml) name units =
-  As_part_bin.create ?cond ?args ?deps ?byte ?native ?js name kind units
+let root = Conf.(value root_dir)
+let ( / ) p seg = Conf.(const Path.concat_seg $ p $ const seg)
 
-let pkg ?cond ?args ?(kind = `OCaml `OCamlfind) name =
-  As_part_pkg.create ?cond ?args name kind
+let unit ?usage ?cond ?args ?needs ?(kind = `OCaml (`Both, `Normal)) ?dir name =
+  Unit.v ?usage ?cond ?args ?needs ?dir name kind
 
-let run ?cond ?args ?deps ?(dir = []) name cmds =
-  let dir = As_path.rel_of_segs dir in
-  As_part_run.create ?cond ?args ?deps ~dir name cmds
+let lib ?usage ?cond ?args ?byte ?native ?native_dynlink ?(kind = `OCaml) name
+    needs =
+  Lib.v ?usage ?cond ?args ?byte ?native ?native_dynlink name kind needs
 
-let doc ?cond ?args ?keep ?kind name parts =
-  As_part_doc.create ?cond ?args ?keep ?kind name parts
+let bin ?usage ?cond ?args ?byte ?native ?js ?(kind = `OCaml) name needs =
+  Bin.v ?usage ?cond ?args ?byte ?native ?js name kind needs
 
-let dir ?cond ?keep ?install kind =
-  As_part_dir.create ?cond ?keep ?install kind
+let pkg ?usage ?cond ?args ?(kind = `OCaml `OCamlfind) name =
+  Pkg.v ?usage ?cond ?args name kind
 
-let silo ?cond ?args name parts =
-  As_part_silo.create ?cond ?args name parts
+let doc ?usage ?cond ?args ?keep ?(kind = `OCamldoc) name needs =
+  Doc.v ?usage ?cond ?args ?keep name kind needs
+
+let dir ?usage ?cond ?args ?keep ?install kind needs =
+  Dir.v ?usage ?cond ?args ?keep ?install kind needs
+
+let silo ?usage ?cond ?args name needs =
+  Silo.v ?usage ?cond ?args name needs
+
+let run ?usage ?cond ?args ?dir name action =
+  Run.v ?usage ?cond ?args ?dir name action
 
 (* Projects *)
 
 module Project = As_project
 type project = Project.t
 let assemble = Project.assemble
+
+(* Private API *)
 
 module Private = struct
   module Fmt = As_fmt

@@ -19,61 +19,72 @@
 
     See {!Assemblage.Part}. *)
 
+(** {1 Part kinds} *)
+
+type kind = [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo ]
+val pp_kind : Format.formatter -> kind -> unit
+
+(** {1 Usage} *)
+
+type usage = [ `Dev | `Test | `Build | `Doc | `Outcome | `Other of string ]
+val pp_usage : Format.formatter -> usage -> unit
+
+(** {1 Metadata} *)
+
+type meta
+val meta_key : unit -> ('a -> meta) * (meta -> 'a option)
+val meta_nil : meta
 
 (** {1 Parts} *)
 
-type meta
+type +'a t constraint 'a = [< kind ]
 
-val meta_key : unit -> ('a -> meta) * (meta -> 'a option)
+val v_kind : ?usage:usage -> ?cond:bool As_conf.value -> ?meta:meta ->
+  ?needs:'a t list -> ?args:(kind t -> As_args.t) ->
+  ?actions:(kind t -> As_action.t list) -> ?check:(kind t -> bool) ->
+  string -> ([< kind] as 'b) -> 'b t
 
-type kind =
-  [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo | `Custom ]
+val v : ?usage:usage -> ?cond:bool As_conf.value -> ?meta:meta ->
+  ?needs:'a t list -> ?args:(kind t -> As_args.t) ->
+  ?actions:(kind t -> As_action.t list) ->
+  ?check:(kind t -> bool) -> string -> [> `Base] t
 
-val kind_to_string : kind -> string
-
-type +'a t =
-  { kind : kind;
-    name : string;
-    cond : bool As_conf.value;
-    deps : kind t list;
-    args : kind t -> As_args.t;
-    actions : kind t -> As_action.t list;
-    meta : meta; }
-constraint 'a = [< kind ]
-
-val create : ?cond:bool As_conf.value -> ?args:(kind t -> As_args.t) ->
-  ?deps:'a t list -> ?actions:(kind t -> As_action.t list) -> string ->
-  ([< kind] as 'b) -> meta -> 'b t
-
-val name : 'a t -> string
 val kind : 'a t -> kind
+val name : 'a t -> string
+val usage : 'a t -> usage
 val cond : 'a t -> bool As_conf.value
-val args : 'a t -> As_args.t
-val deps : 'a t -> kind t list
-val actions : 'a t -> As_action.t list
 val meta : 'a t -> meta
 val get_meta : (meta -> 'a option) -> 'b t -> 'a
-
-(** {1 Derived fields} *)
-
+val needs : 'a t -> kind t list
+val args : 'a t -> As_args.t
+val actions : 'a t -> As_action.t list
+val check : 'a t -> bool
 val products : 'a t -> As_path.rel list As_conf.value
-(* TODO val active : 'a t -> bool As_conf.value  *)
+val id : 'a t -> int
+val sid : 'a t -> string
+val equal : 'a t -> 'b t -> bool
+val compare : 'a t -> 'b t -> int
+val with_kind_meta : ([< kind] as 'b) -> meta -> 'a t -> 'b t
 
 (** {1 Coercions} *)
 
 val coerce : ([< kind] as 'b) -> 'a t -> 'b t
 val coerce_if : ([< kind] as 'b) -> 'a t -> 'b t option
 
-(** {1 Part list operations} *)
+(** {1 Part lists} *)
 
+val uniq : 'a t list -> 'a t list
 val keep : ('a t -> bool) -> 'a t list -> 'a t list
-val keep_kind : (kind as 'b) -> 'a t list -> 'b t list
+val keep_kind : ([< kind] as 'b) -> 'a t list -> 'b t list
 val keep_kinds : kind list -> 'a t list -> 'a t list
 val keep_map : ('a t -> 'b option) -> 'a t list -> 'b list
-val to_set : 'a t list -> 'a t list
+val fold_rec : ('a -> kind t -> 'a) -> 'a -> kind t list -> 'a
 
-(** {1 Comparing} *)
+(** {1 Part sets and maps} *)
 
-val id : 'a t -> string
-val equal : 'a t -> 'b t -> bool
-val compare : 'a t -> 'b t -> int
+module Set : sig
+  include Set.S with type elt = kind t
+  val of_list : elt list -> t
+end
+
+module Map : Map.S with type key = kind t

@@ -15,28 +15,37 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type kind = [ `OCaml | `OCaml_toplevel | `C ]
+(** Binary executable part.
 
+    See {!Assemblage.Bin} *)
+
+(** {1 Metadata} *)
+
+type kind = [ `OCaml | `OCaml_toplevel | `C ]
+val pp_kind : Format.formatter -> kind -> unit
 val kind : [< `Bin] As_part.t -> kind
 val byte : [< `Bin] As_part.t -> bool
 val native : [< `Bin] As_part.t -> bool
 val js : [< `Bin] As_part.t -> bool
+val ocaml : 'a As_part.t -> [> `Bin] As_part.t option
+val ocaml_toplevel : 'a As_part.t -> [> `Bin] As_part.t option
+val c : 'a As_part.t -> [> `Bin] As_part.t option
 
-val create :
+(** {1 Bin} *)
+
+val v :
+  ?usage:As_part.usage ->
   ?cond:bool As_conf.value ->
   ?args:As_args.t ->
-  ?deps:As_part.kind As_part.t list ->
-  ?byte:bool -> ?native:bool -> ?js:bool ->
-    string -> kind -> [< `Unit] As_part.t list -> [> `Bin] As_part.t
+  ?byte:bool -> ?native:bool -> ?js:bool -> string -> kind ->
+  [< `Unit | `Lib | `Pkg ] As_part.t list ->
+  [> `Bin] As_part.t
 
 val of_base : ?byte:bool -> ?native:bool -> ?js:bool -> kind ->
   [< `Base] As_part.t -> [> `Bin] As_part.t
 
 (*
+   TODO
   val cmd : ?args:As_args.t -> ?kind:[`Byte | `Native] -> [< `Bin] As_part.t ->
     (string list -> string list) -> As_action.cmd
 *)
-
-val ocaml : 'a As_part.t -> [> `Bin] As_part.t option
-val ocaml_toplevel : 'a As_part.t -> [> `Bin] As_part.t option
-val c : 'a As_part.t -> [> `Bin] As_part.t option

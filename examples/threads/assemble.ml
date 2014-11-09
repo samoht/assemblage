@@ -1,13 +1,12 @@
 open Assemblage
 
-let units = [ unit "main" ]
+let pkg_threads_posix = pkg "threads.posix"
+let pkg_threads_vm = pkg "threads.vm"
 
-let posix =
-  let deps = [ pkg "threads.posix" ] in
-  bin "hello-pthread" ~deps ~flags:Flags.thread units
-
+let main = unit "main"
+let posix = bin "hello-pthread" ~args:Args.thread [ pkg_threads_posix; main ]
 let vm =
-  let deps = [ pkg "threads.vm" ] in
-  bin "hello-vmthread" ~deps ~flags:Flags.vmthread ~native:false units
+  bin "hello-vmthread" ~args:Args.vmthread ~native:false
+    [ pkg_threads_vm; main ]
 
-let () = assemble (project "hello-thread" [posix; vm])
+let () = assemble (Project.v "hello-thread" [posix; vm])

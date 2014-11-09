@@ -24,15 +24,12 @@
 type t
 
 val v : ?cond:bool As_conf.value -> ?args:As_args.t ->
-  ?actions:As_action.t list -> string -> 'a As_part.t list -> t
-
-(** {1 Static attributes} *)
+  string -> 'a As_part.t list -> t
 
 val name : t -> string
 val cond : t -> bool As_conf.value
 val args : t -> As_args.t
 val parts : t -> As_part.kind As_part.t list
-val actions : t -> As_action.t list
 
 (** {1 Configuration} *)
 

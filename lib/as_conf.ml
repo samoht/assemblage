@@ -128,7 +128,6 @@ let pp_miss_key ppf (Key.V k) = As_fmt.pp ppf
     "Key@ `%s'@ not@ found@ in@ configuration.@ \
      The@ key's@ default@ value@ will@ be@ used." (Key.name k)
 
-
 let docs_project = "Project keys" (* defined here for [key], see below *)
 
 let key_id =
@@ -473,7 +472,9 @@ let ocaml_native =
   ocaml_system_key "ocaml-native" bool (const true) ~doc ~docv:"BOOL"
 
 let ocaml_native_dynlink =
-  let doc = "true if OCaml native code dynamic linking is requested." in
+  let doc = "true if OCaml native code dynamic linking compilation \
+             is requested."
+  in
   ocaml_system_key "ocaml-native-dynlink" bool (const true) ~doc ~docv:"BOOL"
 
 let ocaml_js =
@@ -539,6 +540,14 @@ let doc_c_system =
 
 let c_system_key = key ~docs:docs_c_system
 let c_system_utility ?exec = utility_key ?exec ~docs:docs_c_system
+
+let c_dynlink =
+  let doc = "true if C dynamic linking compilation is requested." in
+  c_system_key "c-dynlink" bool (const true) ~doc ~docv:"BOOL"
+
+let c_js =
+  let doc = "true if C JavaScript compilation is requested." in
+  c_system_key "c-js" bool (const true) ~doc ~docv:"BOOL"
 
 let cc = c_system_utility "cc"
 let pkg_config = c_system_utility "pkg-config"

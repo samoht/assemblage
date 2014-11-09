@@ -24,7 +24,6 @@ type t =
     cond : bool As_conf.value;
     args : As_args.t;
     parts : As_part.kind As_part.t list;
-    actions : As_action.t list;
     default_conf : As_conf.t Lazy.t;
     conf : As_conf.t option; }
 
@@ -43,24 +42,19 @@ let default_conf p = (* TODO *)
   pkg_config + uname + host_os + host_arch + target_os + target_arch + opam +
   opam_installer + opam_admin + project_version
 
-let v ?(cond = As_conf.true_) ?(args = As_args.empty) ?(actions = [])
-    name parts =
+let v ?(cond = As_conf.true_) ?(args = As_args.empty) name parts =
   let rec p =
     { name; cond; args;
-      parts = (parts :> As_part.kind As_part.t list);
-      actions;
+      parts = As_part.uniq (parts :> As_part.kind As_part.t list);
       default_conf = lazy (default_conf p);
       conf = None; }
   in
   p
 
-(* Static attributes *)
-
 let name p = p.name
 let cond p = p.cond
 let args p = p.args
 let parts p = p.parts
-let actions p = p.actions
 
 (* Configuration *)
 

@@ -1,12 +1,13 @@
 open Assemblage
 
-let dir = [ "src" ]
+let dir = root / "src"
 
 let a = unit "a" ~dir
 let b =
   let dir = dir / "b" in
+  (* FIXME *)
   pack "b" [ unit "a" ~dir; unit "c" ~dir; ]
 
-let main = bin "main" ~deps:[a;b] [ unit "main" ~dir ]
+let main = bin "main" [ unit "main" ~dir; a; b ]
 
-let () = assemble (project "pack" [main])
+let () = assemble (Project.v "pack" [main])

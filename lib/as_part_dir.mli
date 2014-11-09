@@ -15,18 +15,35 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(** Directory part.
+
+    See {!Assemblage.Dir}. *)
+
+(** {1 Metadata} *)
 
 type kind = [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root
-            | `Etc | `Doc | `Misc | `Stublibs | `Man | `Other of string ]
+            | `Etc | `Doc | `Stublibs | `Man | `Other of As_path.t ]
+
+val pp_kind : Format.formatter -> kind -> unit
 
 val kind : [< `Dir] As_part.t -> kind
 val install : [< `Dir] As_part.t -> bool
 
-val create :
-  ?cond:bool As_conf.value ->
-  ?keep:('a As_part.t -> As_path.t list) -> (* FIXME As_path.t -> bool ? *)
-  ?install:bool -> kind -> 'a As_part.t list -> [> `Dir ] As_part.t
+(** {1 Directory specifiers} *)
 
-val of_base : ?install:bool -> [> `Base] As_part.t -> [> `Dir] As_part.t
+type spec = As_part.kind As_part.t -> As_action.product ->
+  [ `Keep | `Rename of As_path.t | `Drop] As_conf.value
 
-val default : 'a As_part.t -> As_path.t list
+val all : spec
+val file_exts : As_path.ext list -> spec
+val install_bin : spec
+val install_lib : spec
+
+(** {1 Dir} *)
+
+val v : ?usage:As_part.usage -> ?cond:bool As_conf.value -> ?args:As_args.t ->
+  ?keep:spec -> ?install:bool -> kind -> 'a As_part.t list ->
+  [> `Dir ] As_part.t
+
+val of_base : ?install:bool -> kind -> [> `Base] As_part.t ->
+  [> `Dir] As_part.t

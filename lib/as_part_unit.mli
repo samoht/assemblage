@@ -15,25 +15,31 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Part for compilation units.
+(** Compilation unit part.
 
-    See {!Assemblage.Part.Unit}. *)
+    See {!Assemblage.Unit}. *)
+
+(** {1 Metadata} *)
 
 type ocaml_interface = [ `Normal | `Opaque | `Hidden ]
 type ocaml_unit = [ `Ml | `Mli | `Both ]
 type c_unit = [ `C | `H | `Both ]
 
 type kind = [ `OCaml of ocaml_unit * ocaml_interface | `C of c_unit | `Js ]
+val pp_kind : Format.formatter -> kind -> unit
+
 val kind : [< `Unit] As_part.t -> kind
-val src_dir : [< `Unit] As_part.t -> As_path.rel
+val dir : [< `Unit] As_part.t -> As_path.t As_conf.value
 
 val ocaml : 'a As_part.t -> [> `Unit] As_part.t option
 val c : 'a As_part.t -> [> `Unit] As_part.t option
 val js : 'a As_part.t -> [> `Unit] As_part.t option
 
-val create :
-  ?cond:bool As_conf.value -> ?args:As_args.t -> ?deps:'a As_part.t list ->
-  ?src_dir:As_path.rel -> string -> kind -> [> `Unit] As_part.t
+(** {1 Unit} *)
 
-val of_base : src_dir:(As_path.rel) -> kind -> [`Base] As_part.t ->
+val v : ?usage:As_part.usage -> ?cond:bool As_conf.value ->
+  ?args:As_args.t -> ?needs:[< `Pkg | `Lib ] As_part.t list ->
+  ?dir:As_path.t As_conf.value -> string -> kind -> [> `Unit] As_part.t
+
+val of_base : ?dir:As_path.t As_conf.value -> kind -> [< `Base] As_part.t ->
   [> `Unit] As_part.t

@@ -15,13 +15,23 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-val dir : [< `Run] As_part.t -> As_path.t
+(** Run part.
 
-val create :
-  ?cond:bool As_conf.value ->
-  ?args:As_args.t ->
-  ?deps:'a As_part.t list ->
-  ?dir:As_path.t ->
-    string -> As_action.t -> [> `Run] As_part.t
+    See {!Assemblage.Run}. *)
 
-val of_base : ?dir:As_path.t -> [< `Base] As_part.t -> [> `Run] As_part.t
+(** {1 Metadata} *)
+
+val dir : [< `Run] As_part.t -> As_path.t As_conf.value
+
+(** {1 Run} *)
+
+val v : ?usage:As_part.usage -> ?cond:bool As_conf.value ->
+  ?args:As_args.t -> ?dir:As_path.t As_conf.value ->
+  string -> As_action.t -> [> `Run] As_part.t
+
+val of_bin : ?usage:As_part.usage -> ?cond:bool As_conf.value ->
+  ?args:As_args.t -> ?dir:As_path.t As_conf.value ->
+  [< `Bin] As_part.t -> (string list) As_conf.value -> [> `Run] As_part.t
+
+val of_base : ?dir:As_path.t As_conf.value ->
+  [< `Base] As_part.t -> [> `Run] As_part.t

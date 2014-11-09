@@ -177,6 +177,8 @@ val opam_admin : string key
 val docs_c_system : string
 val doc_c_system : string
 
+val c_dynlink : bool key
+val c_js : bool key
 val cc : string key
 val pkg_config : string key
 

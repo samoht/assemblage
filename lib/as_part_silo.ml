@@ -15,17 +15,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-type meta = unit
+(* Silo *)
 
-let inj, proj = As_part.meta_key ()
-let get_meta p = As_part.get_meta proj p
-let meta () = inj ()
-
-let create ?cond ?(args = As_args.empty) name ps =
-  let meta = meta () in
+let v ?usage ?cond ?(args = As_args.empty) name ps =
   let args _ = args in
-  As_part.create ?cond ~args name `Silo meta
+  As_part.v_kind ?usage ?cond ~args name `Silo
 
 let of_base p =
-  let meta = meta () in
-  { p with As_part.kind = `Silo; meta = meta }
+  let meta = As_part.meta_nil in
+  As_part.with_kind_meta `Silo meta p
