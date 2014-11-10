@@ -31,6 +31,11 @@ let pp_kind ppf k = As_fmt.pp_str ppf begin match k with
 
 let str_of_kind = Format.asprintf "%a" pp_kind
 
+let kind_root kind name = (* only a suggestion *)
+  let part_dir = Format.asprintf "%a-%s" pp_kind kind name in
+  let in_build_dir build = As_path.(as_rel (build / part_dir)) in
+  As_conf.(const in_build_dir $ (value As_conf.build_dir))
+
 (* Usage *)
 
 type usage = [ `Dev | `Test | `Build | `Doc | `Outcome | `Other of string ]
@@ -56,6 +61,7 @@ type +'a t =
     cond : bool As_conf.value;
     meta : meta;
     needs : kind t list; (* N.B. parts unique but ordered. *)
+    root : As_path.rel As_conf.value;
     args : kind t -> As_args.t;
     actions : kind t -> As_action.t list;
     check : kind t -> bool; }
@@ -65,7 +71,7 @@ let part_id =
   let count = ref (-1) in
   fun () -> incr count; !count
 
-let uniq ps =                     (* uniquify part list while keeping order. *)
+let list_uniq ps =               (* uniquify part list while keeping order. *)
   let module Int = struct
     type t = int
     let compare : int -> int -> int = compare
@@ -77,14 +83,15 @@ let uniq ps =                     (* uniquify part list while keeping order. *)
   List.rev (snd (List.fold_left add (Set.empty, []) ps))
 
 let v_kind ?(usage = `Outcome) ?(cond = As_conf.true_) ?(meta = meta_nil)
-    ?(needs = []) ?(args = fun _ -> As_args.empty)
+    ?(needs = []) ?(args = fun _ -> As_args.empty) ?root
     ?(actions = fun _ -> []) ?(check = fun _ -> true) name kind =
-  let needs = uniq needs in
+  let needs = list_uniq needs in
+  let root = match root with None -> kind_root kind name | Some r -> r in
   { id = part_id ();
     kind = (kind :> kind);
     name; usage; cond; meta;
     needs = (needs :> kind t list);
-    args;
+    args; root;
     actions = (actions :> kind t -> As_action.t list);
     check = (check :> kind t -> bool); }
 
@@ -110,11 +117,18 @@ let deps p =
   List.fold_left add_action As_conf.Key.Set.empty (actions p)
   |> union (As_args.deps (args p))
 
-let products p =
   (* FIXME As_action doesn't thread condition, so this is not
      accurate according to config and we should maybe also
      directly thread p.cond *)
-  let outputs = List.map As_action.outputs (actions p) in
+let products ?exts p =
+  let action_outputs = match exts with
+  | None -> As_action.outputs
+  | Some exts ->
+      let keep f = List.exists (fun e -> As_path.has_ext e f) exts in
+      let keeps = List.filter keep in
+      fun a -> As_conf.(const keeps $ As_action.outputs a)
+  in
+  let outputs = List.map action_outputs (actions p) in
   let add acc outputs = As_conf.(const List.rev_append $ outputs $ acc) in
   let rev_outputs = List.fold_left add (As_conf.const []) outputs in
   As_conf.(const List.rev $ rev_outputs)
@@ -124,6 +138,17 @@ let sid p = Format.asprintf "%a-%s" pp_kind p.kind p.name
 let equal p p' = p.id = p'.id
 let compare p p' = (compare : int -> int -> int) p.id p'.id
 let with_kind_meta (#kind as k) meta p = { p with kind = k; meta; }
+
+(* Part root directory *)
+
+let root p = p.root
+let with_root root p = { p with root }
+let rooted ?ext p name =
+  let mk_file r = match ext with
+  | None -> As_path.(as_rel (r / name))
+  | Some e -> As_path.(as_rel (r / name + e))
+  in
+  As_conf.(const mk_file $ p.root)
 
 (* Coercing *)
 
@@ -136,16 +161,26 @@ let coerce_if (#kind as k) ({kind} as p) =
 
 (* Part lists *)
 
-let keep pred ps =
+let list_products ?exts ps =
+  let products = products ?exts in
+  let add acc p = As_conf.(const List.rev_append $ products p $ acc) in
+  let rev_products = List.fold_left add (As_conf.const []) ps in
+  As_conf.(const List.rev $ rev_products)
+
+let list_keep pred ps =
   let keep acc p = if pred p then p :: acc else acc in
   List.rev (List.fold_left keep [] ps)
 
-let keep_map fn ps =
+let list_keep_map fn ps =
   let add acc p = match fn p with None -> acc | Some v -> v :: acc in
   List.rev (List.fold_left add [] ps)
 
-let keep_kind kind ps = keep_map (coerce_if kind) ps
-let keep_kinds kinds ps = keep (fun p -> List.mem (kind p) kinds) ps
+let list_keep_kind kind ps = list_keep_map (coerce_if kind) ps
+let list_keep_kinds kinds ps = list_keep (fun p -> List.mem (kind p) kinds) ps
+let list_fold f acc ps = List.fold_left f acc ps
+let list_fold_kind kind f acc ps =
+  let f acc p = match coerce_if kind p with None -> acc | Some p -> f acc p in
+  list_fold f acc ps
 
 (* Part sets and maps *)
 
@@ -162,9 +197,9 @@ end
 
 module Map = Map.Make (Part)
 
-(* Fold *)
+(* Recursive fold *)
 
-let fold_rec f acc l =
+let list_fold_rec f acc ps =
   let rec loop (seen, r as acc) = function
   | (next :: todo) :: todo' ->
       if Set.mem next seen then loop acc (todo :: todo') else
@@ -173,4 +208,8 @@ let fold_rec f acc l =
   | [] :: todo -> loop acc todo
   | [] -> assert false
   in
-  loop (Set.empty, acc) [l]
+  loop (Set.empty, acc) [ps]
+
+let list_fold_kind_rec kind f acc ps =
+  let f acc p = match coerce_if kind p with None -> acc | Some p -> f acc p in
+  list_fold_rec f acc ps

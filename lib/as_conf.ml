@@ -588,7 +588,7 @@ let system_utilities_utility ?win32 name =
   in
   utility_key ~docs:docs_system_utilities ?exec name
 
-let ln = system_utilities_utility "ln" (* FIXME windows *)
+let ln = system_utilities_utility "ln" ~win32:"copy" (* FIXME windows *)
 let cp = system_utilities_utility "cp" ~win32:"copy"
 let mv = system_utilities_utility "mv" ~win32:"move"
 let cd = system_utilities_utility "cd"

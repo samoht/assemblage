@@ -23,6 +23,10 @@
 type product = As_path.rel As_conf.value
 type products = As_path.rel list As_conf.value
 
+val products_keep : (As_path.rel -> bool) -> products -> products
+val products_keep_ext : As_path.ext -> products -> products
+val products_keep_exts : As_path.ext list -> products -> products
+
 (** {1 Build commands} *)
 
 type cmds
@@ -38,19 +42,22 @@ val cmds_deps : cmds -> As_conf.Key.Set.t
 
 val dev_null : As_path.t As_conf.value
 
-val cp : ?stdout:product -> ?stderr:product -> src:As_path.t As_conf.value ->
-  dst:As_path.t As_conf.value -> cmds
+val ln : ?stdout:product -> ?stderr:product -> src:As_path.rel As_conf.value ->
+  dst:As_path.rel As_conf.value -> unit -> cmds
 
-val mv : ?stdout:product -> ?stderr:product -> src:As_path.t As_conf.value ->
-  dst:As_path.t As_conf.value -> cmds
+val cp : ?stdout:product -> ?stderr:product -> src:As_path.rel As_conf.value ->
+  dst:As_path.rel As_conf.value -> unit -> cmds
+
+val mv : ?stdout:product -> ?stderr:product -> src:As_path.rel As_conf.value ->
+  dst:As_path.rel As_conf.value -> unit -> cmds
 
 val rm_files : ?stdout:product -> ?stderr:product -> ?f:bool As_conf.value ->
-  As_path.t list As_conf.value -> cmds
+  As_path.rel list As_conf.value -> cmds
 
 val rm_dirs : ?stdout:product -> ?stderr:product -> ?f:bool As_conf.value ->
-  ?r:bool As_conf.value -> As_path.t list As_conf.value -> cmds
+  ?r:bool As_conf.value -> As_path.rel list As_conf.value -> cmds
 
-val mkdir : ?stdout:product -> ?stderr:product -> As_path.t As_conf.value ->
+val mkdir : ?stdout:product -> ?stderr:product -> As_path.rel As_conf.value ->
   cmds
 
 (** {1 Actions} *)
@@ -106,3 +113,6 @@ module Spec : sig
 
   val ( <*> ) : cmds -> cmds -> cmds
 end
+
+val link : ?stdout:product -> ?stderr:product -> src:product -> dst:product ->
+  unit -> t

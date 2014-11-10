@@ -1338,6 +1338,18 @@ module Action : sig
   (** The type for lists of build products. A configuration value holding
       a list of file paths. *)
 
+  val products_keep : (Path.rel -> bool) -> products -> products
+  (** [products_keep pred ps] is the elements of [ps] that satisfy [pred].
+      The list order is preserved. *)
+
+  val products_keep_ext : Path.ext -> products -> products
+  (** [products_keep_ext ext ps] is the elements of [ps] that have
+      extension [ext]. *)
+
+  val products_keep_exts : Path.ext list -> products -> products
+  (** [products_keep_exts exts ps] is the elements of [ps] that have
+      extensions in [ext]. *)
+
   (** {1 Build commands} *)
 
   type cmds
@@ -1367,30 +1379,34 @@ module Action : sig
   val dev_null : Path.t Conf.value
   (** [dev_null] is a file that discards all writes. *)
 
-  val cp : ?stdout:product -> ?stderr:product -> src:Path.t Conf.value ->
-    dst:Path.t Conf.value -> cmds
+  val ln : ?stdout:product -> ?stderr:product -> src:Path.rel Conf.value ->
+    dst:Path.rel Conf.value -> unit -> cmds
+  (** [ln ~src ~dst] symbolically links file [src] to [dst]. *)
+
+  val cp : ?stdout:product -> ?stderr:product -> src:Path.rel Conf.value ->
+    dst:Path.rel Conf.value -> unit -> cmds
   (** [cp ~src ~dst] copies file [src] to [dst]. *)
 
-  val mv : ?stdout:product -> ?stderr:product -> src:Path.t Conf.value ->
-    dst:Path.t Conf.value -> cmds
+  val mv : ?stdout:product -> ?stderr:product -> src:Path.rel Conf.value ->
+    dst:Path.rel Conf.value -> unit -> cmds
   (** [mv ~src ~dst] moves path [src] to [dst]. *)
 
   val rm_files : ?stdout:product -> ?stderr:product ->
-    ?f:bool Conf.value -> Path.t list Conf.value -> cmds
+    ?f:bool Conf.value -> Path.rel list Conf.value -> cmds
   (** [rm_files ~f paths] removes the {e file} paths [paths].
       If [f] is [true] files are removed regardless of permissions
       (defaults to [false]). [paths] elements must be files, for
       directories, see {!rm_dirs}. *)
 
   val rm_dirs : ?stdout:product -> ?stderr:product -> ?f:bool Conf.value ->
-    ?r:bool Conf.value -> Path.t list Conf.value -> cmds
+    ?r:bool Conf.value -> Path.rel list Conf.value -> cmds
   (** [rm_dirs ~f ~r paths] removes the {e directory} paths [paths].
       If [f] is [true] directories are removed regardless of permissions
       (defaults to [false]). If [r] is [true] removes the file hierarchies
       rooted at the elements of [paths]. Note that [paths] must be
       directories, for removing files, see {!rm_files}. *)
 
-  val mkdir : ?stdout:product -> ?stderr:product -> Path.t Conf.value -> cmds
+  val mkdir : ?stdout:product -> ?stderr:product -> Path.rel Conf.value -> cmds
   (** [mkdir p] creates the directory [p]. Intermediate directories
       are created as required ([mkdir -p] in Unix parlance). *)
 
@@ -1469,6 +1485,11 @@ module Action : sig
 
   (** {1 Built-in actions} *)
 
+  val link : ?stdout:product -> ?stderr:product -> src:product -> dst:product ->
+    unit -> t
+  (** [link ~src ~dst ()] is an action that links [src] to [dst] using
+      {!ln}. FIXME rel hack *)
+
   (** Actions for handling OCaml products.
 
       All the actions have appropriate support for the {!Conf.debug},
@@ -1492,49 +1513,49 @@ module Action : sig
 
     (** {1 Preprocessing} *)
 
-    val compile_src_ast : [`Ml | `Mli ] -> src:product -> t
-    (** [compile_src_ast kind src] treats [src] of the given [ml] type
+    val compile_src_ast : [`Ml | `Mli ] -> src:product -> unit -> t
+    (** [compile_src_ast kind src ()] treats [src] of the given [ml] type
         and builds its AST. FIXME needs arguments for
         applying pp on the way ? *)
 
     (** {1 Compiling} *)
 
-    val compile_mli : incs:includes -> src:product -> t
-    (** [compile_mli ~incs ~src] compiles the mli file [src] (which can
+    val compile_mli : incs:includes -> src:product -> unit -> t
+    (** [compile_mli ~incs ~src ()] compiles the mli file [src] (which can
         be an AST, see {!compile_src_ast}) with includes [incs]. *)
 
     val compile_ml_byte : has_mli:bool Conf.value -> incs:includes ->
-      src:product -> t
-    (** [compile_ml_byte ~has_mli ~incs ~src] compiles to byte code the ml
+      src:product -> unit -> t
+    (** [compile_ml_byte ~has_mli ~incs ~src ()] compiles to byte code the ml
         file [src] (which can be an AST, see {!compile_src_ast}) with
         includes [incs]. [has_mli] indicates whether the source has a
         corresponding mli file. *)
 
     val compile_ml_native : has_mli:bool Conf.value ->
-      incs:includes -> src:product -> t
-    (** [compile_ml_native ~has_mli ~incs ~src] is like {!compile_ml_byte}
+      incs:includes -> src:product -> unit -> t
+    (** [compile_ml_native ~has_mli ~incs ~src ()] is like {!compile_ml_byte}
         but compiles to native code. *)
 
-    val compile_c : src:product -> t
-    (** [compile_c src] compiles the C [src] to native code through
+    val compile_c : src:product -> unit -> t
+    (** [compile_c src ()] compiles the C [src] to native code through
         the OCaml compiler. *)
 
     (** {1 Archiving} *)
 
-    val archive_byte : cmos:products -> name:name -> t
-    (** [archive_byte cmos name] archives the byte code files [cmos]
+    val archive_byte : cmos:products -> name:name -> unit -> t
+    (** [archive_byte cmos name ()] archives the byte code files [cmos]
         to a byte code archive (cma) named by [name]. *)
 
-    val archive_native : cmx_s:products -> name:name -> t
-    (** [archive_native cmx_s name] archives the native code files [cmx_s]
+    val archive_native : cmx_s:products -> name:name -> unit -> t
+    (** [archive_native cmx_s name ()] archives the native code files [cmx_s]
         to a native code archive (cmxa) named by [name]. *)
 
-    val archive_shared : cmx_s:products -> name:name -> t
-    (** [archive_shared cmx_s name] archives the native code files [cmx_s]
+    val archive_shared : cmx_s:products -> name:name -> unit -> t
+    (** [archive_shared cmx_s name ()] archives the native code files [cmx_s]
         to a native code shared archive (cmxs) named by [name]. *)
 
-    val archive_c : objs:products -> name:name -> t
-    (** [archive_c cmx_s name] archives the C object files [objs]
+    val archive_c : objs:products -> name:name -> unit -> t
+    (** [archive_c cmx_s name ()] archives the C object files [objs]
         to a C archive and shared archived (a, so) named by [name]. *)
 
     (** {1 Linking} *)
@@ -1669,9 +1690,10 @@ module Part : sig
   val actions : 'a part -> Action.t list
   (** [actions env p] are the actions to build part [p]. *)
 
-  val products : 'a part -> Path.rel list Conf.value
-  (** [products p] are the products of part [p]. This is derived from
-      {!rules}. *)
+  val products : ?exts:Path.ext list -> 'a part -> Path.rel list Conf.value
+  (** [products p] are the products of part [p]. If [exts] is present
+      only those that have one of the extensions in the list are selected.
+      This is derived from {!rules}. *)
 
   val check : 'a part -> bool
   (** [check p] logs information about potential problems with [p]
@@ -1703,30 +1725,50 @@ module Part : sig
 
   (** {1 Part lists} *)
 
-  val uniq : 'a part list -> 'a part list
-  (** [uniq ps] is [ps] with duplicates as determined by {!equal}.
+  val list_products : ?exts:Path.ext list -> 'a t list ->
+    Path.rel list Conf.value
+  (** [list_products ?exts ps] is the list of products defined by
+      parts [ps]. If [exts] is present only those products with extensions
+      in [exts] are kept. *)
+
+  val list_uniq : 'a part list -> 'a part list
+  (** [list_uniq ps] is [ps] with duplicates as determined by {!equal} removed.
       The list order is preserved. *)
 
-  val keep : ('a part -> bool) -> 'a part list -> 'a part list
-  (** [keep pred ps] is the elements of [ps] that satisfy [pred].
+  val list_keep : ('a part -> bool) -> 'a part list -> 'a part list
+  (** [list_keep pred ps] is the elements of [ps] that satisfy [pred].
       The list order is preserved. *)
 
-  val keep_map : ('a part -> 'b option) -> 'a part list -> 'b list
-  (** [keep_map m ps] is the elements of [ps] for which [m] returns
+  val list_keep_map : ('a part -> 'b option) -> 'a part list -> 'b list
+  (** [list_keep_map f ps] is the elements of [ps] for which [f] returns
       [Some] value. The list order is according to [ps]. *)
 
-  val keep_kind : ([< kind] as 'b) -> 'a part list -> 'b part list
-  (** [keep_kind k ps] is the elements of [ps] that have kind [kind].
+  val list_keep_kind : ([< kind] as 'b) -> 'a part list -> 'b part list
+  (** [list_keep_kind k ps] is the elements of [ps] that have kind [kind].
       The list order is preserved. *)
 
-  val keep_kinds : kind list -> 'a part list -> 'a part list
-  (** [keep_kinds ks] is the elements of [ps] that have one of the
+  val list_keep_kinds : kind list -> 'a part list -> 'a part list
+  (** [list_keep_kinds ks] is the elements of [ps] that have one of the
       kind [ks]. The list order is preserved. *)
 
-  val fold_rec : ('a -> kind part -> 'a) -> 'a -> kind part list -> 'a
+  val list_fold : ('a -> ([< kind] as 'b) part -> 'a) -> 'a -> 'b part list ->
+    'a
+  (** [list_fold f acc ps] is [List.fold_left f acc ps]. *)
+
+  val list_fold_kind : ([< kind] as 'b) -> ('a -> 'b part -> 'a) -> 'a ->
+    'c part list -> 'a
+  (** [list_fold kind f acc ps] is like {!list_fold} but folds only
+      over the parts whose kind is [kind]. *)
+
+  val list_fold_rec : ('a -> kind part -> 'a) -> 'a -> kind part list -> 'a
   (** [fold_rec f acc l] folds over the parts of [l] and their needs
       recusively, in depth first pre-order. If a part appears twice in
       the traversal is it only folded over the first time. *)
+
+  val list_fold_kind_rec : ([< kind] as 'b) -> ('a -> 'b t -> 'a) -> 'a ->
+    kind t list -> 'a
+  (** [list_fold_kind_rec] is the same traversal as {!list_fold_rec}
+      but only parts whose kind is [kind] are folded over. *)
 
   (** {1 Part sets and maps} *)
 

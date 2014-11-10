@@ -47,14 +47,12 @@ let to_string m =
 (* From assemblage project *)
 
 let project_ocamlfind_pkgs proj =
-  let add pkgs p = match Part.coerce_if `Pkg p with
-  | None -> pkgs
-  | Some p ->
-      match Pkg.kind p with
-      | `OCaml `OCamlfind -> String.Set.add (Part.name p) pkgs
-      | _ -> pkgs
+  let add pkgs p = match Pkg.kind p with
+  | `OCaml `OCamlfind -> String.Set.add (Part.name p) pkgs
+  | _ -> pkgs
   in
-  Part.fold_rec add (String.Set.singleton "assemblage") (Project.parts proj)
+  let init = (String.Set.singleton "assemblage") in
+  Part.list_fold_kind_rec `Pkg add init (Project.parts proj)
 
 let of_project p : t =
   let add v acc = v :: acc in

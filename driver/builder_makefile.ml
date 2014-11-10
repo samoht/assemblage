@@ -19,6 +19,11 @@ open Makefile.Infix
 open Assemblage
 open Assemblage.Private
 
+(* FIXME if we assume the tuple kind * name of parts are not unique
+   we should keep track of the roots of the generated parts
+   and change the root if there's a clash. Or maybe this should
+   in fact be done in As_project. *)
+
 let str = Format.asprintf
 
 type gen =
@@ -92,11 +97,12 @@ let mk_part gen p =
       let name = Part.name p in
       let kind = Part.kind p in
       let comment = str "%a-%s rules" Part.pp_kind kind name in
-      let gen = { gen with rmk = `Comment comment :: `Blank :: gen.rmk } in
-      List.fold_left (mk_action (Part.args p)) gen actions
+      let rmk = `Blank :: `Comment comment :: `Blank :: gen.rmk in
+      List.fold_left (mk_action (Part.args p)) { gen with rmk } actions
 
 let mk_gen_dirs gen =
   let add_dir dir gen =
+    let dir = Path.as_rel dir in
     (* Fake action to use portable Action.mkdir to make the recipe *)
     let nil = Conf.const [] in
     let cmds = Action.mkdir (Conf.const dir) in
@@ -109,7 +115,8 @@ let mk_gen_dirs gen =
     let rmk = rule :: gen.rmk in
     { gen with rmk }
   in
-  let rmk = `Comment ("Build directories rules") :: `Blank :: gen.rmk in
+  let header = "Build directories rules" in
+  let rmk = `Blank :: `Comment header :: `Blank :: gen.rmk in
   Path.Set.fold add_dir gen.dirs { gen with rmk }
 
 let of_project ~setup_files proj =

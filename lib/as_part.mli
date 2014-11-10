@@ -41,6 +41,7 @@ type +'a t constraint 'a = [< kind ]
 
 val v_kind : ?usage:usage -> ?cond:bool As_conf.value -> ?meta:meta ->
   ?needs:'a t list -> ?args:(kind t -> As_args.t) ->
+  ?root:As_path.rel As_conf.value ->
   ?actions:(kind t -> As_action.t list) -> ?check:(kind t -> bool) ->
   string -> ([< kind] as 'b) -> 'b t
 
@@ -59,13 +60,19 @@ val needs : 'a t -> kind t list
 val args : 'a t -> As_args.t
 val actions : 'a t -> As_action.t list
 val check : 'a t -> bool
-val products : 'a t -> As_path.rel list As_conf.value
+val products : ?exts:As_path.ext list -> 'a t -> As_path.rel list As_conf.value
 val id : 'a t -> int
 val sid : 'a t -> string
 val equal : 'a t -> 'b t -> bool
 val compare : 'a t -> 'b t -> int
 val with_kind_meta : ([< kind] as 'b) -> meta -> 'a t -> 'b t
 val deps : 'a t -> As_conf.Key.Set.t
+
+(** {1 Part root directory} *)
+
+val root : 'a t -> As_path.rel As_conf.value
+val rooted : ?ext:As_path.ext -> 'a t -> string -> As_path.rel As_conf.value
+val with_root : As_path.rel As_conf.value -> 'a t -> 'a t
 
 (** {1 Coercions} *)
 
@@ -74,12 +81,20 @@ val coerce_if : ([< kind] as 'b) -> 'a t -> 'b t option
 
 (** {1 Part lists} *)
 
-val uniq : 'a t list -> 'a t list
-val keep : ('a t -> bool) -> 'a t list -> 'a t list
-val keep_kind : ([< kind] as 'b) -> 'a t list -> 'b t list
-val keep_kinds : kind list -> 'a t list -> 'a t list
-val keep_map : ('a t -> 'b option) -> 'a t list -> 'b list
-val fold_rec : ('a -> kind t -> 'a) -> 'a -> kind t list -> 'a
+val list_products : ?exts:As_path.ext list -> 'a t list ->
+  As_path.rel list As_conf.value
+val list_uniq : 'a t list -> 'a t list
+val list_keep : ('a t -> bool) -> 'a t list -> 'a t list
+val list_keep_map : ('a t -> 'b option) -> 'a t list -> 'b list
+val list_keep_kind : ([< kind] as 'b) -> 'a t list -> 'b t list
+val list_keep_kinds : kind list -> 'a t list -> 'a t list
+val list_fold : ('a -> 'b t -> 'a) -> 'a -> 'b t list -> 'a
+val list_fold_kind : ([< kind] as 'b) -> ('a -> 'b t -> 'a) -> 'a ->
+  'c t list -> 'a
+
+val list_fold_rec : ('a -> kind t -> 'a) -> 'a -> kind t list -> 'a
+val list_fold_kind_rec : ([< kind] as 'b) -> ('a -> 'b t -> 'a) -> 'a ->
+  kind t list -> 'a
 
 (** {1 Part sets and maps} *)
 

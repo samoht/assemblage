@@ -106,6 +106,5 @@ module Install = struct
       | `Toplevel -> add_products (fun m -> `Toplevel m) d acc
     in
     let header = `Header (Some (Project.watermark_string proj)) in
-    let dirs = Part.keep_kind `Dir (Project.parts proj) in
-    header, List.fold_left add_dir init dirs
+    header, Part.list_fold_kind `Dir add_dir init (Project.parts proj)
 end

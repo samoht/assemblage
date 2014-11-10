@@ -19,6 +19,12 @@
 type product = As_path.rel As_conf.value
 type products = As_path.rel list As_conf.value
 
+let products_keep pred ps = As_conf.(const (List.filter pred) $ ps)
+let products_keep_ext ext ps = products_keep (As_path.has_ext ext) ps
+let products_keep_exts exts ps =
+  let pred f = List.exists (fun e -> As_path.has_ext e f) exts in
+  products_keep pred ps
+
 (* Build commands *)
 
 type cmd_spec =
@@ -75,7 +81,17 @@ let dev_null =
   in
   As_conf.(const dev_null $ value host_os)
 
-let cp ?stdout ?stderr ~src ~dst =
+let ln ?stdout ?stderr ~src ~dst () =
+  let args os src dst = match os with
+  | "Win32" ->
+      As_log.warn "Symbolic@ links@ unsupported@ copying@ instead.";
+      [ "/Y"; path_arg src; path_arg dst; ]
+  | _ -> [ "-s"; "-f"; path_arg src; path_arg dst; ]
+  in
+  let args = As_conf.(const args $ (value host_os) $ src $ dst) in
+  cmd As_conf.ln args ?stdout ?stderr
+
+let cp ?stdout ?stderr ~src ~dst () =
   let args os src dst = match os with
   | "Win32" -> [ "/Y"; path_arg src; path_arg dst; ]
   | _ -> [ path_arg src; path_arg dst; ]
@@ -83,7 +99,7 @@ let cp ?stdout ?stderr ~src ~dst =
   let args = As_conf.(const args $ (value host_os) $ src $ dst) in
   cmd As_conf.cp args ?stdout ?stderr
 
-let mv ?stdout ?stderr ~src ~dst =
+let mv ?stdout ?stderr ~src ~dst () =
   let args os src dst = match os with
   | "Win32" -> [ "/Y"; path_arg src; path_arg dst; ]
   | _ -> [ path_arg src; path_arg dst; ]
@@ -215,3 +231,26 @@ module Spec = struct
   (* Commands *)
   let ( <*> ) = ( <*> )
 end
+
+let link ?stdout ?stderr ~src ~dst () =
+  let open Spec in
+  let add_if_some v acc = match v with
+  | None -> acc
+  | Some fd -> add (product fd) acc
+  in
+  let ctx = As_ctx.v [ `Link ] in
+  let inputs = product src in
+  let outputs = add_if_some stdout @@ add_if_some stderr @@ product dst in
+  let cmd =
+    (** FIXME here we really mean link src to dst when seen from
+        the root directory. We are using `..` but As_path.t are
+        not supposed to have such segments. Really need to sort out
+        paths. *)
+    let rec relativize src dst = match As_path.(as_rel (dirname dst)) with
+    | d when As_path.is_current d -> src
+    | d -> relativize (As_path.(as_rel (dir ".." // src))) d
+    in
+    let src = As_conf.(const relativize $ src $ dst) in
+    ln ?stdout ?stderr ~src ~dst ()
+  in
+  v ~ctx ~inputs ~outputs cmd

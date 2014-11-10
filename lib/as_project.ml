@@ -106,7 +106,7 @@ let v ?(cond = As_conf.true_) ?(args = As_args.empty) ?(schemes = []) name
     ~parts =
   let rec p =
     { name; cond; args; schemes;
-      parts = As_part.uniq (parts :> As_part.kind As_part.t list);
+      parts = As_part.list_uniq (parts :> As_part.kind As_part.t list);
       deps = lazy (deps p);
       conf = None; }
   in

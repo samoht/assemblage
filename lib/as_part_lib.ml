@@ -57,57 +57,66 @@ let ocaml = is_kind `OCaml
 let ocaml_pp = is_kind `OCaml_pp
 let c = is_kind `C
 
+let warn_unit_dupe = format_of_string
+    "More@ than@ one@ unit@ named@ `%s'@ in@ library@ part@ %s"
+
 let find_unit u p =
-  let is_u p = match As_part.coerce_if `Unit p with
-  | Some p when As_part.name p = u -> Some p
+  let is_u part = match As_part.coerce_if `Unit part with
+  | Some part when As_part.name part = u -> Some part
   | _ -> None
   in
-  match As_part.keep_map is_u (As_part.needs p) with
+  match As_part.list_keep_map is_u (As_part.needs p) with
   | [] -> None
-  | ps -> Some (List.hd ps)
+  | [u] -> Some u
+  | us -> As_log.warn warn_unit_dupe u (As_part.name p); Some (List.hd us)
+
+(* Checks *)
+
+let unique_units l = true
+let check p =
+  let l = As_part.coerce `Lib p in
+  let unique_units = unique_units l in
+  unique_units
 
 (* Actions *)
 
-(*
-  let lib_file fext l =
-    As_path.(as_rel (As_env.build_dir env // (file (name l)) + fext))
+let add_if c f v acc = if c then (f v) :: acc else acc
 
-  let lib_args l =
-    let pkgs = keep_kind `Pkg (deps l) in
-    let pkgs_args = As_args.concat (List.map args pkgs) in
-    As_args.(args env l @@@ pkgs_args)
+(* FIXME here we should add rules for ocamldep for each unit. And
+   add the dep as an input to its actions. *)
 
-  let ocaml_rules units env l =
-    (*  FIXME: check if there are C units and use directly ocamlmklib *)
-    let byte = if byte l then [ ocaml_archive_byte units env l ] else [] in
-    let nat = if native l then [ ocaml_archive_native units env l ] else [] in
-    let dyn =
-      if native_dynlink l then [ ocaml_archive_shared units env l ] else []
-    in
-    List.concat [ byte; nat; dyn; ]
+let ocaml_actions args kind lib =
+  let name = As_part.rooted lib (As_part.name lib) in
+  let not_pp = kind <> `OCaml_pp in
+  let reroot acc u = As_part.with_root (As_part.root lib) u :: acc in
+  let rev_units = As_part.list_fold_kind `Unit reroot [] (As_part.needs lib) in
+  let units = List.rev rev_units in
+  let units_prods = As_part.list_products units in
+  let cmos = As_action.products_keep_ext `Cmo units_prods in
+  let cmx_s = As_action.products_keep_ext `Cmx units_prods in
+  let add_actions acc u = List.rev_append (List.rev (As_part.actions u)) acc in
+  let byte = byte lib in
+  let native = native lib && not_pp in
+  let shared = native_dynlink lib && not_pp in
+  add_if byte (As_action_ocaml.archive_byte ~cmos ~name) () @@
+  add_if native (As_action_ocaml.archive_native ~cmx_s ~name) () @@
+  add_if shared (As_action_ocaml.archive_shared ~cmx_s ~name) () @@
+  As_part.list_fold add_actions [] rev_units
 
-  let ocaml_pp_rules units env l = [ ocaml_archive_byte units env l ]
-*)
-  let actions units p = []
-(*
-    let l = coerce `Lib p in
-    let build_dir = As_path.dir (kind_to_string `Lib ^ "-" ^ (name l)) in
-    let env = As_env.push_build_dir env build_dir in
-    let units_rules = List.(flatten (map (actions env) units)) in
-    let mkdir_rule = As_action.mkdir env ~dir:(As_env.build_dir env) in
-    match kind l with
-    | `C -> mkdir_rule :: units_rules @ c_rules units env p
-    | `OCaml -> mkdir_rule :: units_rules @ ocaml_rules units env p
-    | `OCaml_pp -> mkdir_rule :: units_rules @ ocaml_pp_rules units env p
-*)
+let actions args p =
+  let l = As_part.coerce `Lib p in
+  match kind p with
+  | `OCaml | `OCaml_pp as k -> ocaml_actions args k l
+  | `C -> As_log.warn "Damned the C library part is TODO"; []
 
 (* Lib *)
 
 let v ?usage ?cond ?(args = As_args.empty) ?byte ?native
     ?native_dynlink name kind needs  =
   let meta = meta ?byte ?native ?native_dynlink kind in
+  let actions = actions args in
   let args _  = args in
-  As_part.v_kind ?usage ?cond ~meta ~args ~needs name `Lib
+  As_part.v_kind ?usage ?cond ~meta ~args ~needs ~actions name `Lib
 
 let of_base ?byte ?native ?native_dynlink kind p =
   let meta = meta ?byte ?native ?native_dynlink kind in

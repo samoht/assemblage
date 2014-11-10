@@ -92,10 +92,13 @@ let buf_add_cmd b cmd =
 let buf_add_rule b { ext; targets; prereqs; order_only_prereqs; recipe } =
   let has_oo = order_only_prereqs <> [] in
   let oo = if has_oo then "|" :: order_only_prereqs else [] in
+  let reqs = prereqs @ oo in
   buf_add_strings ~indent:"" b 0 targets;
   Buffer.add_string b (if ext then "::" else ":");
-  Buffer.add_string b " \\\n    ";
-  buf_add_strings b 4 (prereqs @ oo);
+  if reqs <> [] then begin
+    Buffer.add_string b " \\\n    ";
+    buf_add_strings b 4 (prereqs @ oo);
+  end;
   Buffer.add_char b '\n';
   List.iter (buf_add_cmd b) recipe;
   Buffer.add_char b '\n';

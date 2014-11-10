@@ -15,8 +15,14 @@
  *)
 
 let str = Printf.sprintf
-let err_not_relative = "not a relative path"
-let err_not_absolute = "not an absolute path"
+
+let to_string = function
+| `Rel segs -> String.concat Filename.dir_sep segs
+(* FIXME windows what's the root ? *)
+| `Abs segs -> (Filename.dir_sep ^ String.concat Filename.dir_sep segs)
+
+let err_not_rel abs = str "not a relative path %s" (to_string abs)
+let err_not_abs rel = str "not an absolute path %s" (to_string rel)
 let err_no_ext seg = str "no file extension in last segment (%s)" seg
 
 (* File paths *)
@@ -46,8 +52,8 @@ let is_root = function `Abs [] -> true | _ -> false
 let is_rel = function `Rel _ -> true | _ -> false
 let is_abs = function `Abs _ -> true | _ -> false
 let is_dash = function `Rel [ "-" ] -> true | _ -> false
-let as_rel = function `Rel _ as v -> v | _ -> invalid_arg err_not_relative
-let as_abs = function `Abs _ as v -> v | _ -> invalid_arg err_not_absolute
+let as_rel = function `Rel segs as v -> v | v -> invalid_arg (err_not_rel v)
+let as_abs = function `Abs segs as v -> v | v -> invalid_arg (err_not_abs v)
 let as_path p = (p :> t)
 
 let basename p = match List.rev (segs p) with [] -> "" | seg :: _ -> seg
@@ -90,11 +96,6 @@ let of_string s =                                (* N.B. collapses // to / *)
   match As_string.split ~sep:Filename.dir_sep s with
   | "" :: segs -> abs_of_segs segs   (* FIXME windows ?? *)
   | segs -> rel_of_segs segs
-
-let to_string = function
-| `Rel segs -> String.concat Filename.dir_sep segs
-(* FIXME windows what's the root ? *)
-| `Abs segs -> (Filename.dir_sep ^ String.concat Filename.dir_sep segs)
 
 let quote p = Filename.quote (to_string p)
 
@@ -154,7 +155,7 @@ let get_ext p = match ext p with
 let has_ext e p = match ext p with None -> false | Some e' -> e = e'
 
 let add_ext p e =
-  let suff = "." ^ ext_to_string e in
+  let suff = ext_to_string e in
   let add_ext segs = match List.rev segs with
   | [] -> [str ".%s" suff]
   | seg :: rsegs -> List.rev (str "%s.%s" seg suff :: rsegs)

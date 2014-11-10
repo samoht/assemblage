@@ -37,11 +37,11 @@ type meta =
     dir : As_path.t As_conf.value }
 
 let inj, proj = As_part.meta_key ()
-let get_meta p = As_part.get_meta proj p
+let get_meta unit = As_part.get_meta proj unit
 let meta ?(dir = As_conf.(value root_dir)) kind = inj { kind; dir }
 
-let kind p = (get_meta p).kind
-let dir p = (get_meta p).dir
+let kind unit = (get_meta unit).kind
+let dir unit = (get_meta unit).dir
 
 let is_kind k p = match As_part.coerce_if `Unit p with
 | None -> None
@@ -55,6 +55,11 @@ let is_kind k p = match As_part.coerce_if `Unit p with
 let ocaml = is_kind `OCaml
 let js = is_kind `Js
 let c = is_kind `C
+
+let src e unit =               (* source file for the unit with extention e *)
+  let mk_file d = As_path.(as_rel (d / (As_part.name unit) + e)) in
+  As_conf.(const mk_file $ dir unit)
+
 
 (* Actions *)
 
@@ -86,20 +91,6 @@ let c = is_kind `C
     in
     As_args.(args env u @@@ pkgs_args @@@ concat (List.map lib_args libs))
 
-  let link_src fext env u =
-    let cond = cond u in
-    let dst = unit_file fext env u in
-    let src = As_path.(as_rel (src_dir env u / (basename dst))) in
-    As_action.link ~cond env ~src ~dst
-
-  let js_rules u env = [ link_src `Js u env ]
-  let js_args u env = As_args.empty
-
-  let rec c_rules c_unit env u = match c_unit with
-  | `H -> [ link_src `H env u ]
-  | `C -> [ link_src `C env u; c_compile env u; ]
-  | `Both -> c_rules `H env u @ c_rules `C env u
-
   let ocamlpp_ext fext ctx =
     let kind = match fext with `Ml -> "cml" | `Mli -> "cmli" in
     let ctx = match ctx with `Byte -> "byte" | `Native -> "native" in
@@ -120,21 +111,63 @@ let c = is_kind `C
       ocaml_rules `Mli env u @ ocaml_rules `Ml env u
 *)
 
-let actions p = []
-(*
-  let u = coerce `Unit p in
-  match kind u with
-  | `Js -> js_actions u
-  | `C unit -> c_actions unit u
-  | `OCaml (unit, _) -> ocaml_action unit u
-*)
+let add_if c f v acc = if c then (f v) :: acc else acc
+
+let js_actions args unit =
+  let src = src `Js unit in
+  let dst = As_part.rooted ~ext:`Js unit (As_part.name unit) in
+  As_action.link ~src ~dst () :: []
+
+let c_actions args spec unit =
+  (* FIXME for C I think we want to distinguish two backends
+     one that goes through ocamlc and the other who goes to Conf.cc.
+     This should be reflected in the metadata. *)
+  let has_h, has_c = match spec with
+  | `H -> true, false | `C -> false, true | `Both -> true, true
+  in
+  let src_h = src `H unit in
+  let src_c = src `C unit in
+  let dst_h = As_part.rooted ~ext:`H unit (As_part.name unit) in
+  let dst_c = As_part.rooted ~ext:`C unit (As_part.name unit) in
+  add_if has_h (As_action.link ~src:src_h ~dst:dst_h) () @@
+  add_if has_c (As_action.link ~src:src_c ~dst:dst_c) () @@
+  []
+
+let ocaml_actions args spec unit =
+  let has_mli, has_ml = match spec with
+  | `Mli -> true, false | `Ml -> false, true | `Both -> true, true
+  in
+  let has_mli_v = As_conf.(const has_mli) in
+  let incs = As_conf.(const []) in (* FIXME *)
+  let src_mli = src `Mli unit in
+  let src_ml = src `Ml unit in
+  let mli = As_part.rooted ~ext:`Mli unit (As_part.name unit) in
+  let ml = As_part.rooted ~ext:`Ml unit (As_part.name unit) in
+  add_if has_mli (As_action.link ~src:src_mli ~dst:mli) () @@
+  add_if has_ml (As_action.link ~src:src_ml ~dst:ml) () @@
+  add_if has_mli (As_action_ocaml.compile_mli ~incs ~src:mli) () @@
+  add_if has_ml (As_action_ocaml.compile_ml_byte
+                   ~has_mli:has_mli_v ~incs ~src:ml) () @@
+  add_if has_ml (As_action_ocaml.compile_ml_native
+                   ~has_mli:has_mli_v ~incs ~src:ml) () @@
+  []
+
+let actions args p =
+  let unit = As_part.coerce `Unit p in
+  match kind unit with
+  | `C spec -> c_actions args spec unit
+  | `Js -> js_actions args unit
+  | `OCaml (spec, _) -> ocaml_actions args spec unit
+
+
 
 (* Create *)
 
 let v ?usage ?cond ?(args = As_args.empty) ?needs ?dir name kind =
   let meta = meta ?dir kind in
+  let actions = actions args in
   let args _ = args in
-  As_part.v_kind ?usage ?cond ~meta ~args ?needs name `Unit
+  As_part.v_kind ?usage ?cond ~meta ~args ~actions ?needs name `Unit
 
 let of_base ?dir kind p =
   let meta = meta ?dir kind in

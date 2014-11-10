@@ -25,28 +25,32 @@ type name = As_path.rel As_conf.value
 
 (** {1 Preprocess} *)
 
-val compile_src_ast : [`Ml | `Mli ] -> src:As_action.product -> As_action.t
+val compile_src_ast : [`Ml | `Mli ] -> src:As_action.product -> unit ->
+  As_action.t
 
 (** {1 Compiling} *)
 
-val compile_mli : incs:includes -> src:As_action.product -> As_action.t
+val compile_mli : incs:includes -> src:As_action.product -> unit -> As_action.t
 val compile_ml_byte : has_mli:bool As_conf.value -> incs:includes ->
-  src:As_action.product -> As_action.t
+  src:As_action.product -> unit -> As_action.t
 
 val compile_ml_native : has_mli:bool As_conf.value -> incs:includes ->
-  src:As_action.product -> As_action.t
+  src:As_action.product -> unit -> As_action.t
 
-val compile_c : src:As_action.product -> As_action.t
+val compile_c : src:As_action.product -> unit -> As_action.t
 
 (** {1 Archiving} *)
 
 val archive_byte : cmos:As_path.rel list As_conf.value -> name:name ->
-  As_action.t
+  unit -> As_action.t
 
 val archive_native : cmx_s:As_path.rel list As_conf.value ->
-  name:name -> As_action.t
+  name:name -> unit -> As_action.t
 
-val archive_shared : cmx_s:As_action.products -> name:name -> As_action.t
-val archive_c : objs:As_action.products -> name:name -> As_action.t
+val archive_shared : cmx_s:As_action.products -> name:name -> unit ->
+  As_action.t
+
+val archive_c : objs:As_action.products -> name:name -> unit ->
+  As_action.t
 
 (** {1 Linking} *)

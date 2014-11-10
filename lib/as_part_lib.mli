@@ -17,7 +17,7 @@
 
 (** Library part.
 
-    See {!Assemblage.Part}. *)
+    See {!Assemblage.Lib}. *)
 
 (** {1 Metadata} *)
 

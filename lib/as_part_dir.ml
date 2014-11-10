@@ -108,13 +108,16 @@ let install_lib p product = match As_part.coerce_if `Lib p with
     | `OCaml | `OCaml_pp ->
         As_conf.(const (install_lib_ocaml_product p) $ product)
 
+(* Checks *)
 
 (* Actions *)
+
+let actions keep args d = []
 
 (* Dir *)
 
 let v ?usage ?cond ?(args = As_args.empty) ?keep ?(install = true) kind needs =
-  let _keep = match keep with
+  let keep = match keep with
   | Some keep -> keep
   | None ->
       match kind, install with
@@ -123,8 +126,9 @@ let v ?usage ?cond ?(args = As_args.empty) ?keep ?(install = true) kind needs =
       | _ -> all
   in
   let args _ = args in
+  let actions = actions keep args in
   let meta = meta kind install in
-  As_part.v_kind ?usage ?cond ~args ~meta (name_of_kind kind) `Dir
+  As_part.v_kind ?usage ?cond ~args ~meta ~actions (name_of_kind kind) `Dir
 
 let of_base ?(install = true) kind p =
   let meta = meta kind install in

@@ -22,14 +22,17 @@ let lib_assemblage =
   let kind = `OCaml (`Both, `Hidden) in
   let unit ?needs ?(kind = kind) name = unit ?needs ~kind name ~dir in
   lib "assemblage"
-    [ unit "as_action";
-      unit "as_action_ocaml";
-      unit "as_args";
+    [ unit "as_univ";
+      unit "as_string";
+      unit "as_fmt";
+      unit "as_path";
+      unit "as_log";
       unit "as_cmd";
       unit "as_conf" ~needs:[pkg_cmdliner]; (* FIXME remove dep *)
       unit "as_ctx";
-      unit "as_fmt";
-      unit "as_log";
+      unit "as_args";
+      unit "as_action";
+      unit "as_action_ocaml";
       unit "as_part";
       unit "as_part_bin";
       unit "as_part_custom";
@@ -40,10 +43,7 @@ let lib_assemblage =
       unit "as_part_run";
       unit "as_part_silo";
       unit "as_part_unit";
-      unit "as_path";
       unit "as_project";
-      unit "as_string";
-      unit "as_univ";
       unit "assemblage" ~kind:(`OCaml (`Both, `Normal)); ]
 
 let lib_assemblage_tools =
