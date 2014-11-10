@@ -673,18 +673,25 @@ end
 
 (** Build configuration.
 
+    TODO not good. Rephrase and say what a configuration is
+    (map from keys to value).
+
     Assemblage keeps tracks of the configuration keys needed to define
     a project and its build system through configuration values. A
     configuration value denotes a concrete OCaml value of a certain
     type.
 
-    Configuration keys are named configuration value that are
-    meant to be redefined by the end user of the build system
-    (e.g. from the command line). A configuration key can be used to
-    determine a configuration value or other configuration keys.
+    Configuration {{!type:key}keys} are named configuration value that
+    are meant to be redefined by the end user of the build system
+    (e.g. from the command line or from an IDE). A configuration key
+    can be used to determine a configuration value or other
+    configuration keys.
 
-    TODO say what a configuration is (map from keys to value)
-    TODO add configuration schemes.
+    Configuration {{!type:scheme}schemes} are named, user defined,
+    configuration key presets. They allow the end user to quickly
+    setup a given configuration. Configuration schemes are meant to be
+    used for development, not distribution, where configuration setup
+    based on feature detection is more adapted.
 
     Before {{!key}defining} your own keys you should prefer the
     {{!builtin_keys}built-in ones}. *)
@@ -775,6 +782,24 @@ module Conf : sig
 
   val value : 'a key -> 'a value
   (** [value k] is [k]'s value. *)
+
+  (** {1:scheme Configuration schemes} *)
+
+  type scheme
+  (** The type for configuration schemes. A configuration scheme is
+      a named set of configuration key-value binding definitions. *)
+
+  type def
+  (** The type for key-value binding definitions. *)
+
+  val def : 'a key -> 'a -> def
+  (** [def k v] is a definition that binds key [k] to value [v]. *)
+
+  val scheme : ?doc:string -> ?base:scheme -> string -> def list -> scheme
+  (** [scheme base name defs] is a configuration scheme named [name]
+      that has the key-value bindings of [base] together with those
+      of [defs], the latter taking precedence. [doc] is a documentation
+      string for the scheme. *)
 
   (** {1:builtin_keys Built-in configuration keys} *)
 
@@ -2208,9 +2233,9 @@ module Project : sig
   type t = project
   (** The type for describing projects. *)
 
-  val v : ?cond:bool Conf.value -> ?args:Args.t ->
-    string -> 'a part list -> project
-  (** [v cond args cs n] is the project named [n] with components [cs].
+  val v : ?cond:bool Conf.value -> ?args:Args.t -> ?schemes:Conf.scheme list ->
+      string -> parts:'a part list -> project
+  (** [v cond args parts n] is the project named [n] with parts [parts].
       [cond] determines if the project can exist in a build configuration. *)
 
   val name : project -> string
@@ -2303,7 +2328,6 @@ module Private : sig
         [Warning]. *)
   end
 
-
   (** Command. *)
   module Cmd : sig
 
@@ -2344,9 +2368,14 @@ module Private : sig
 
     (** {1:build Build configuration} *)
 
+    type t
+    (** The type for configurations. *)
+
     include module type of Conf
     with type 'a value = 'a Conf.value
      and type 'a key = 'a Conf.key
+     and type scheme = string * (string * t)
+     and type def = Conf.def
 
     (** {1:keys Keys} *)
 
@@ -2398,9 +2427,6 @@ module Private : sig
     end
 
     (** {1:configurations Configurations} *)
-
-    type t
-    (** The type for configurations. *)
 
     val empty : t
     (** [empty] is the empty configuration. *)
@@ -2562,13 +2588,16 @@ module Private : sig
     val args : project -> Args.t
     (** [args p] is [p]'s args. *)
 
+    val schemes : project -> Conf.scheme list
+    (** [schemes p] is [p]'s configuration schemes. *)
+
     val parts : project -> part_kind part list
     (** [parts p] is [p]'s parts. *)
 
     (** {1 Configuration} *)
 
-    val default_conf : project -> Conf.t
-    (** [default_conf p] is the configuration needed to define [p] as
+    val base_conf : project -> Conf.t
+    (** [base_conf p] is the configuration needed to define [p] as
         derived from the project's definition. *)
 
     val conf : project -> Conf.t

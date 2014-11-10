@@ -97,6 +97,13 @@ val eval : t -> 'a value -> 'a
 val deps : 'a value -> Key.Set.t
 val pp : Format.formatter -> t -> unit
 
+(** {1 Configuration schemes} *)
+
+type scheme = string * (string * t)
+type def
+val def : 'a key -> 'a -> def
+val scheme : ?doc:string -> ?base:scheme -> string -> def list -> scheme
+
 (** {1 Configuration error messages} *)
 
 val pp_key_dup : Format.formatter -> Key.t -> unit

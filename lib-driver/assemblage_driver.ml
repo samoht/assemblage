@@ -20,14 +20,16 @@ open Cmdliner
 
 let str = Printf.sprintf
 
-(* Configuration specification *)
+(* Configuration *)
 
 module Conf_spec = struct
+
+  (* Configuration specification *)
 
   let uppercase = function None -> None | Some s -> Some (String.uppercase s)
   let value_converter_of_converter (parse, _) =
     let parse s = match parse s with
-    | `Ok v -> `Ok (Conf.const v) | `Error _ as e -> e
+    | `Ok v -> `Ok (Some (Conf.const v)) | `Error _ as e -> e
     in
     let print = Fmt.nop (* config is needed for accurate default values so
                            don't print anything *)
@@ -41,7 +43,6 @@ module Conf_spec = struct
       then (Log.warn "%a" Conf.pp_key_dup (Conf.Key.V k); (names, acc))
       else
       let names' = As_string.Set.add (Conf.Key.name k) names in
-      let v = Conf.Key.default k in
       let c = value_converter_of_converter (Conf.Key.converter k) in
       (* We suffix the name to avoid end-user clashes with other options *)
       let name = str "%s-key" (Conf.Key.name k) in
@@ -49,11 +50,12 @@ module Conf_spec = struct
       let docs = uppercase (Conf.Key.docs k) in
       let docv = Conf.Key.docv k in
       let i = Arg.info [name] ?doc ?docv ?docs in
-      let opt = Arg.(value (opt c v & i)) in
-      let acc' = Term.(pure Conf.set $ acc $ pure k $ opt) in
+      let opt = Arg.(value (opt c None & i)) in
+      let set acc k = function None -> acc | Some v -> Conf.set acc k v in
+      let acc' = Term.(pure set $ acc $ pure k $ opt) in
       (names', acc')
     in
-    let acc = (As_string.Set.empty, Cmdliner.Term.pure c) in
+    let acc = (As_string.Set.empty, Cmdliner.Term.pure Conf.empty) in
     snd (Conf.Key.Set.fold add (Conf.domain c) acc)
 
   let builtin_sections =
@@ -86,6 +88,36 @@ module Conf_spec = struct
     in
     if Conf.is_empty c then man_empty else
     List.rev (List.fold_left add_section [] builtin_sections)
+
+  (* Configuration scheme selection *)
+
+  let docs = "CONFIGURATION SCHEMES"
+
+  let scheme_ui sl =
+    if sl = [] then Term.(pure None) else
+    let names = List.map (fun (name, _) -> (name, name)) sl in
+    let conv = Arg.(some ~none:"none" (Arg.enum names)) in
+    let vopt = Some (fst (List.hd names)) in
+    let doc_names = Arg.doc_alts_enum names in
+    let scheme_name =
+      Arg.(value & opt ~vopt conv None & info ["s"; "scheme"]
+             ~docs ~docv:"SCHEME"
+             ~doc:(str "Use the given configuration scheme. $(docv) must be %s."
+                     doc_names))
+    in
+    let select name = match name with
+    | None -> None
+    | Some name -> Some (name, (List.assoc name sl))
+    in
+    Term.(pure select $ scheme_name)
+
+  let scheme_man sl =
+    if sl = [] then [] else
+    let sl = List.sort compare sl in
+    let add_scheme acc (name, (doc, _)) = `I (name, doc) :: acc in
+    (`S docs) ::
+    (`P "The following configuration schemes are available.") ::
+    (List.rev (List.fold_left add_scheme [] sl))
 end
 
 (* Library preferences *)

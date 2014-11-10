@@ -1,5 +1,14 @@
 open Assemblage
 
+(* Configuration schemes *)
+
+let dev = Conf.scheme "dev" ~doc:"Convenience scheme for development."
+    [ Conf.def Conf.debug true;
+      Conf.def Conf.warn_error true;
+      Conf.def Conf.doc true; ]
+
+let schemes = [ dev; ]
+
 (* OCamlfind packages *)
 
 let pkg_cmdliner = pkg "cmdliner"
@@ -54,7 +63,7 @@ let lib_assemblage_driver =
       pkg_toplevel;
       unit ~dir "assemblage_driver"; ]
 
-(* Binaries *)
+(* The default assemblage driver *)
 
 let bin_assemblage =
   let dir = root / "driver" in
@@ -73,11 +82,11 @@ let bin_assemblage =
       unit "main" ~kind:(`OCaml (`Ml, `Normal));
       unit "makefile"; ]
 
+(* Tests & examples *)
+
 let assemble_assemble =
   (* Sanity check, can we compile assemble.ml ? *)
   bin "assemble" [lib_assemblage; unit "assemble" ~dir:root ]
-
-(* Tests & examples *)
 
 (*
 
@@ -131,11 +140,10 @@ let install =
     dir `Bin [ bin_assemblage ] ;
 (* FIXME   dir `Doc [ root_file "CHANGES.md"; root_file "README.md" ] *) ]
 
-(* The project *)
-
-let p =
-  Project.v "assemblage" @@
+let parts =
   [ lib_assemblage; lib_assemblage_tools; lib_assemblage_driver;
     bin_assemblage; dev_doc; api_doc ] @ install @ tests
 
-let () = assemble p
+(* The project *)
+
+let () = assemble @@ Project.v "assemblage" ~schemes ~parts

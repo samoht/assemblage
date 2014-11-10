@@ -23,11 +23,12 @@ type t =
   { name : string;
     cond : bool As_conf.value;
     args : As_args.t;
+    schemes : As_conf.scheme list;
     parts : As_part.kind As_part.t list;
-    default_conf : As_conf.t Lazy.t;
+    base_conf : As_conf.t Lazy.t;
     conf : As_conf.t option; }
 
-let default_conf p = (* TODO *)
+let base_conf p = (* TODO *)
   let ( + ) = As_conf.add in
   let open As_conf in
   empty + debug + profile + test + doc + jobs +
@@ -42,11 +43,12 @@ let default_conf p = (* TODO *)
   pkg_config + uname + host_os + host_arch + target_os + target_arch + opam +
   opam_installer + opam_admin + project_version
 
-let v ?(cond = As_conf.true_) ?(args = As_args.empty) name parts =
+let v ?(cond = As_conf.true_) ?(args = As_args.empty) ?(schemes = [])
+    name ~parts =
   let rec p =
-    { name; cond; args;
+    { name; cond; args; schemes;
       parts = As_part.uniq (parts :> As_part.kind As_part.t list);
-      default_conf = lazy (default_conf p);
+      base_conf = lazy (base_conf p);
       conf = None; }
   in
   p
@@ -54,17 +56,18 @@ let v ?(cond = As_conf.true_) ?(args = As_args.empty) name parts =
 let name p = p.name
 let cond p = p.cond
 let args p = p.args
+let schemes p = p.schemes
 let parts p = p.parts
 
 (* Configuration *)
 
-let default_conf p = Lazy.force p.default_conf
+let base_conf p = Lazy.force p.base_conf
 let conf p = match p.conf with
 | Some c -> c
 | None ->
     As_log.msg_driver_fault As_log.Warning
-      "No@ configuration@ set@ for@ project,@ using@ default@ configuration.";
-    default_conf p
+      "No@ configuration@ set@ for@ project,@ using@ base@ configuration.";
+    base_conf p
 
 let with_conf p c = { p with conf = Some c }
 let eval p v = As_conf.eval (conf p) v

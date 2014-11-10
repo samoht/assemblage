@@ -105,14 +105,24 @@ let cmd_with_project ?(config = true) name cmd ~doc ~man ~see_also : 'a cmd =
       Term.info name ~doc ~sdocs:common_option_section ~man
     end
 
-let cmds_terms init p cmds =
-  let conf = match p with
-  | None -> Conf.empty
-  | Some p -> Project.default_conf p
+let project_conf p =
+  (* Project base conf, overriden by scheme, overriden by cl opts *)
+  let base = match p with None -> Conf.empty | Some p -> Project.base_conf p in
+  let schemes = match p with None -> [] | Some p -> Project.schemes p in
+  let scheme = Conf_spec.scheme_ui schemes in
+  let opts = Conf_spec.ui base in
+  let merge base scheme opts = match scheme with
+  | None -> Conf.merge base opts
+  | Some (_, (_, scheme)) -> Conf.merge (Conf.merge base scheme) opts
   in
-  let conf_opts, conf_man = Conf_spec.ui conf, Conf_spec.man conf in
+  let conf = Term.(pure merge $ pure base $ scheme $ opts) in
+  let man = Conf_spec.(scheme_man schemes @ man base) in
+  conf, man
+
+let cmds_terms init p cmds =
+  let conf, conf_man = project_conf p in (* Do it only once *)
   let add_cmd = function
-  | `With_project cmd -> cmd init p conf_opts conf_man
+  | `With_project cmd -> cmd init p conf conf_man
   | `With_project_no_config cmd -> cmd init p
   | `No_project cmd -> cmd init
   in

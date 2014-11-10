@@ -39,12 +39,22 @@ module Conf_spec : sig
   val ui : Conf.t -> Conf.t Term.t
   (** [ui c] is a {!Cmdliner} term that allows to set the value of
       the public configuration keys of [c] using flags on the command
-      line. For a given key [k], the default value if the flag is
-      absent on the command line is the value of [k] in [c] ({b not}
-      the default value of the key). *)
+      line. The domain of the resulting configuration is precisely
+      the key that were setup on the command line, {b not} the full
+      domain of [c]. *)
 
   val man : Conf.t -> Cmdliner.Manpage.block list
   (** [man c] is a man page fragment for the the term [ui c]. *)
+
+  (** {1 Configuration scheme selection} *)
+
+  val scheme_ui : Conf.scheme list -> Conf.scheme option Term.t
+  (** [scheme_ui sl] is a {!Cmdliner} term that allows to select a
+      configuration scheme from the list of schemes [sl]. *)
+
+  val scheme_man : Conf.scheme list -> Cmdliner.Manpage.block list
+  (** [scheme_man sl] is a man page fragment for the term
+      [scheme_ui sl]. *)
 end
 
 (** Library preferences.

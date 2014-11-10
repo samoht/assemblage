@@ -206,6 +206,18 @@ let pp ppf c =
   in
   As_fmt.pp ppf "@[<v>%a@]" (As_fmt.pp_list pp_binding) defs
 
+(* Configuration schemes *)
+
+type scheme = string * (string * t)
+type def = D : 'a key * 'a -> def
+let def k v = D (k, v)
+
+let scheme ?doc ?base name defs =
+  let doc = match doc with None -> str "The %s scheme." name | Some d -> d in
+  let init = match base with None -> empty | Some (_, (_, conf)) -> conf in
+  let add acc (D (k, v)) = set acc k (const v) in
+  name, (doc, List.fold_left add init defs)
+
 (* Bultin configuration value converters
    FIXME remove Cmdliner dep *)
 
