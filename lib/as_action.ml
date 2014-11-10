@@ -28,6 +28,18 @@ type cmd_spec =
     stdout_spec : As_path.rel As_conf.value option;
     stderr_spec : As_path.rel As_conf.value option; }
 
+let cmd_deps cmd =
+  let union = As_conf.Key.Set.union in
+  let opt_deps v = match v with
+  | None -> As_conf.Key.Set.empty
+  | Some v -> As_conf.deps v
+  in
+  As_conf.Key.(Set.singleton (V cmd.exec_spec))
+  |> union (As_conf.deps cmd.args_spec)
+  |> union (opt_deps cmd.stdin_spec)
+  |> union (opt_deps cmd.stdout_spec)
+  |> union (opt_deps cmd.stderr_spec)
+
 type cmds = cmd_spec list
 
 let cmd ?stdin ?stdout ?stderr exec args =
@@ -39,6 +51,9 @@ let cmd ?stdin ?stdout ?stderr exec args =
 
 let seq cmds cmds' =  List.rev_append (List.rev cmds) cmds'
 let (<*>) = seq
+let cmds_deps cmds =
+  let add_cmd acc cmd = As_conf.Key.Set.union acc (cmd_deps cmd) in
+  List.fold_left add_cmd As_conf.Key.Set.empty cmds
 
 (* Portable system utility invocations *)
 
@@ -117,6 +132,14 @@ let ctx a = a.ctx
 let inputs a = a.inputs   (* FIXME should we thread r.cond here ? *)
 let outputs a = a.outputs (* FIXME should we thread r.cond here ? *)
 let cmds a = a.cmds
+let deps a =
+  let union = As_conf.Key.Set.union in
+  cmds_deps a.cmds
+  |> union (As_conf.deps a.cond)
+  |> union (As_conf.deps a.inputs)
+  |> union (As_conf.deps a.outputs)
+
+(* Action evaluation *)
 
 type cmd =
   { exec : string;
@@ -142,6 +165,7 @@ let eval_cmds conf a args =
   in
   List.rev (List.fold_left add_cmd [] a.cmds)
 
+(* Action specification combinators *)
 
 module Spec = struct
 

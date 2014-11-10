@@ -116,7 +116,11 @@ module Key = struct
   let of_univ k = k.Def.of_univ
   let to_univ k = k.Def.to_univ
 
-  module Set = Kset
+  module Set = struct
+    include Kset
+    let of_list = List.fold_left (fun acc s -> add s acc) empty
+  end
+
   module Map = Kmap
 end
 

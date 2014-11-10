@@ -99,5 +99,6 @@ module Private = struct
     include As_action
     module OCaml = As_action_ocaml
   end
+  module Part = As_part
   module Project = As_project
 end

@@ -65,6 +65,7 @@ val sid : 'a t -> string
 val equal : 'a t -> 'b t -> bool
 val compare : 'a t -> 'b t -> int
 val with_kind_meta : ([< kind] as 'b) -> meta -> 'a t -> 'b t
+val deps : 'a t -> As_conf.Key.Set.t
 
 (** {1 Coercions} *)
 

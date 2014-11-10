@@ -104,6 +104,12 @@ let args p = p.args (p :> kind t)   (* FIXME memoize *)
 let actions p = p.actions (p :> kind t) (* FIXME memoize *)
 let check p = p.check (p :> kind t)
 
+let deps p =
+  let union = As_conf.Key.Set.union in
+  let add_action acc a = union acc (As_action.deps a) in
+  List.fold_left add_action As_conf.Key.Set.empty (actions p)
+  |> union (As_args.deps (args p))
+
 let products p =
   (* FIXME As_action doesn't thread condition, so this is not
      accurate according to config and we should maybe also

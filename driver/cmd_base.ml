@@ -107,7 +107,11 @@ let cmd_with_project ?(config = true) name cmd ~doc ~man ~see_also : 'a cmd =
 
 let project_conf p =
   (* Project base conf, overriden by scheme, overriden by cl opts *)
-  let base = match p with None -> Conf.empty | Some p -> Project.base_conf p in
+  let deps = match p with
+  | None -> Conf.Key.Set.empty
+  | Some p -> Project.deps p
+  in
+  let base = Conf.of_keys deps in
   let schemes = match p with None -> [] | Some p -> Project.schemes p in
   let scheme = Conf_spec.scheme_ui schemes in
   let opts = Conf_spec.ui base in

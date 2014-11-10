@@ -23,8 +23,9 @@ let str = Printf.sprintf
    thread the condition in the evaluation of args. *)
 
 type cargs = { cond : bool As_conf.value; args : string list As_conf.value }
-let cond ca = ca.cond
-let args ca = ca.args
+let cargs_cond ca = ca.cond
+let cargs_args ca = ca.args
+let cargs_deps ca = As_conf.(Key.Set.union (deps ca.cond) (deps ca.args))
 
 (* Argument bundles *)
 
@@ -47,6 +48,11 @@ let append a0 a1 =
 let ( @@@ ) = append
 let concat al = List.fold_left append empty al
 let bindings = Cmap.bindings
+
+let deps a =
+  let add_carg acc cargs = As_conf.Key.Set.union acc (cargs_deps cargs) in
+  let add_ctx _ cargss acc = List.fold_left add_carg acc cargss in
+  Cmap.fold add_ctx a As_conf.Key.Set.empty
 
 let for_ctx a ctx =
   let add bctx cargs_list acc =

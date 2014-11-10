@@ -34,7 +34,7 @@ val parts : t -> As_part.kind As_part.t list
 
 (** {1 Configuration} *)
 
-val base_conf : t -> As_conf.t
+val deps : t -> As_conf.Key.Set.t
 val conf : t -> As_conf.t
 val with_conf : t -> As_conf.t -> t
 

@@ -24,7 +24,7 @@ let str = Format.asprintf
 type gen =
   { proj : Project.t;   (* The project to generate. *)
     dirs : Path.Set.t;  (* Set of directories that need to exist. *)
-    rmk : Makefile.t;   (* Reverse makefile definition. *) }
+    rmk : Makefile.t;   (* Reversed makefile definition. *) }
 
 let generator proj =
   { proj; dirs = Path.Set.empty;
@@ -97,7 +97,7 @@ let mk_part gen p =
 
 let mk_gen_dirs gen =
   let add_dir dir gen =
-    (* Fake action to use portable mkdir to make the recipe *)
+    (* Fake action to use portable Action.mkdir to make the recipe *)
     let nil = Conf.const [] in
     let cmds = Action.mkdir (Conf.const dir) in
     let action = Action.v ~ctx:Ctx.empty ~inputs:nil ~outputs:nil cmds in

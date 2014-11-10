@@ -32,6 +32,7 @@ val cmd : ?stdin:product -> ?stdout:product -> ?stderr:product ->
 
 val seq : cmds -> cmds -> cmds
 val ( <*> ) : cmds -> cmds -> cmds
+val cmds_deps : cmds -> As_conf.Key.Set.t
 
 (** {2 Portable system utility invocations} *)
 
@@ -56,18 +57,15 @@ val mkdir : ?stdout:product -> ?stderr:product -> As_path.t As_conf.value ->
 
 type t
 
-val v :
-  ?cond:bool As_conf.value ->
-  ctx:As_ctx.t ->
-  inputs:products ->
-  outputs:products ->
-  cmds -> t
+val v : ?cond:bool As_conf.value -> ctx:As_ctx.t -> inputs:products ->
+  outputs:products -> cmds -> t
 
 val cond : t -> bool As_conf.value
 val ctx : t -> As_ctx.t
 val inputs : t -> products
 val outputs : t -> products
 val cmds : t -> cmds
+val deps : t -> As_conf.Key.Set.t
 
 type cmd =
   { exec : string;

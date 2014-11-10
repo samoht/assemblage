@@ -22,8 +22,9 @@
 (** {1 Arguments with conditions} *)
 
 type cargs
-val cond : cargs -> bool As_conf.value
-val args : cargs -> string list As_conf.value
+val cargs_cond : cargs -> bool As_conf.value
+val cargs_args : cargs -> string list As_conf.value
+val cargs_deps : cargs -> As_conf.Key.Set.t
 
 (** {1 Argument bundles} *)
 
@@ -36,6 +37,7 @@ val append : t -> t -> t
 val ( @@@ ) : t -> t -> t
 val concat : t list -> t
 val bindings : t -> (As_ctx.t * cargs list) list
+val deps : t -> As_conf.Key.Set.t
 val for_ctx : t -> As_ctx.t -> cargs list
 val eval_for_ctx : As_conf.t -> t -> As_ctx.t -> string list
 

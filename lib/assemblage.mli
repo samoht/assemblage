@@ -2422,7 +2422,11 @@ module Private : sig
 
       (** {1:setmap Key sets and maps} *)
 
-      module Set : Set.S with type elt = t
+      module Set : sig
+        include Set.S with type elt = t
+        val of_list : elt list -> t
+      end
+
       module Map : Map.S with type key = t
     end
 
@@ -2504,16 +2508,24 @@ module Private : sig
 
     include module type of Args with type t = Args.t
 
+    val deps : t -> Conf.Key.Set.t
+    (** [deps a] is the set of configuration keys which may be needed
+        for evaluating the constituents of [a]. *)
+
     (** {1 Conditonalized arguments} *)
 
     type cargs
     (** The type for conditionalized arguments. *)
 
-    val cond : cargs -> bool Conf.value
-    (** [cond args] is [args]'s condition. *)
+    val cargs_cond : cargs -> bool Conf.value
+    (** [cargs_cond args] is [args]'s condition. *)
 
-    val args : cargs -> string list Conf.value
-    (** [args cargs] is [args]'s arguments. *)
+    val cargs_args : cargs -> string list Conf.value
+    (** [cargs_args cargs] is [args]'s arguments. *)
+
+    val cargs_deps : cargs -> Conf.Key.Set.t
+    (** [cargs_deps cargs] is the set of configuration keys which may be needed
+        for evaluating the constituents of [cargs]. *)
 
     (** {1 Argument lookup} *)
 
@@ -2556,6 +2568,10 @@ module Private : sig
     val cmds : t -> cmds
     (** [cmds a] is [a]'s commands to generate outputs from the inputs. *)
 
+    val deps : t -> Conf.Key.Set.t
+    (** [deps a] is the set of configuration keys which may be needed
+        for evaluating the constituents of [a]. *)
+
     (** {1 Concrete commands} *)
 
     type cmd =
@@ -2568,6 +2584,20 @@ module Private : sig
     val eval_cmds : Conf.t -> t -> Args.t -> cmd list
     (** [eval_cmds conf a args] is [a]'s command sequence in
         configuration [conf] and with argument bundle [args]. *)
+  end
+
+  (** Parts. *)
+  module Part : sig
+
+    (** {1 Part} *)
+
+    include module type of Part with type kind = Part.kind
+                                 and type +'a t = 'a Part.t
+                                   constraint 'a = [< part_kind ]
+
+    val deps : 'a t -> Conf.Key.Set.t
+    (** [deps a] is the set of configuration keys which may be needed
+        for evaluating [a]. *)
   end
 
   (** Projects.
@@ -2594,14 +2624,18 @@ module Private : sig
     val parts : project -> part_kind part list
     (** [parts p] is [p]'s parts. *)
 
-    (** {1 Configuration} *)
+    (** {1 Configuration and evaluation} *)
 
-    val base_conf : project -> Conf.t
-    (** [base_conf p] is the configuration needed to define [p] as
-        derived from the project's definition. *)
+    val deps : project -> Conf.Key.Set.t
+    (** [deps p] is the set of configuration keys which may be needed
+        for evaluating the constituents of [p]. *)
 
     val conf : project -> Conf.t
-    (** [conf p] is the project's configuration. *)
+    (** [conf p] is the project's configuration.
+
+        {b Note} The client should set a configuration whose
+        domain has is at least {!deps}[ p] using {!with_conf}
+        otherwise warnings are generated. *)
 
     val with_conf : project -> Conf.t -> project
     (** [with_conf p c] is [p] with configuration [c]. *)

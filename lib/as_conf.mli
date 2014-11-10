@@ -59,7 +59,11 @@ module Key : sig
   val docv : 'a key -> string option
   val docs : 'a key -> string option
 
-  module Set : Set.S with type elt = t
+  module Set : sig
+    include Set.S with type elt = t
+    val of_list : elt list -> t
+  end
+
   module Map : Map.S with type key = t
 end
 
