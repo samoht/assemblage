@@ -19,7 +19,7 @@
 type product = As_path.rel As_conf.value
 type products = As_path.rel list As_conf.value
 
-let products_keep pred ps = As_conf.(const (List.filter pred) $ ps)
+let products_keep pred ps = As_conf.List.keep pred ps
 let products_keep_ext ext ps = products_keep (As_path.has_ext ext) ps
 let products_keep_exts exts ps =
   let pred f = List.exists (fun e -> As_path.has_ext e f) exts in

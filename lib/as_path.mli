@@ -69,6 +69,7 @@ type ext =
 val ext_to_string : ext -> string
 val ext_of_string : string -> ext
 val has_ext : ext -> [< t ] -> bool
+val ext_matches : ext list -> [< t ] -> bool
 val ext : [< t ] -> ext option
 val get_ext : [< t ] -> ext
 val add_ext : [< t ] -> ext -> t

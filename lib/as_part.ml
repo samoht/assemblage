@@ -123,15 +123,11 @@ let deps p =
 let products ?exts p =
   let action_outputs = match exts with
   | None -> As_action.outputs
-  | Some exts ->
-      let keep f = List.exists (fun e -> As_path.has_ext e f) exts in
-      let keeps = List.filter keep in
-      fun a -> As_conf.(const keeps $ As_action.outputs a)
+  | Some es ->
+      fun a -> As_conf.List.keep (As_path.ext_matches es) (As_action.outputs a)
   in
-  let outputs = List.map action_outputs (actions p) in
-  let add acc outputs = As_conf.(const List.rev_append $ outputs $ acc) in
-  let rev_outputs = List.fold_left add (As_conf.const []) outputs in
-  As_conf.(const List.rev $ rev_outputs)
+  let rev_outputs = List.rev_map action_outputs (actions p) in
+  As_conf.List.(flatten (rev_wrap rev_outputs))
 
 let id p = p.id
 let sid p = Format.asprintf "%a-%s" pp_kind p.kind p.name
@@ -162,10 +158,8 @@ let coerce_if (#kind as k) ({kind} as p) =
 (* Part lists *)
 
 let list_products ?exts ps =
-  let products = products ?exts in
-  let add acc p = As_conf.(const List.rev_append $ products p $ acc) in
-  let rev_products = List.fold_left add (As_conf.const []) ps in
-  As_conf.(const List.rev $ rev_products)
+  let rev_products = List.rev_map (products ?exts) ps in
+  As_conf.List.(flatten (rev_wrap rev_products))
 
 let list_keep pred ps =
   let keep acc p = if pred p then p :: acc else acc in

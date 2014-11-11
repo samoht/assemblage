@@ -153,6 +153,9 @@ let get_ext p = match ext p with
     invalid_arg (err_no_ext seg)
 
 let has_ext e p = match ext p with None -> false | Some e' -> e = e'
+let ext_matches exts p = match ext p with
+| None -> false
+| Some e -> List.mem e exts
 
 let add_ext p e =
   let suff = ext_to_string e in
