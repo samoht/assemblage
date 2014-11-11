@@ -26,7 +26,7 @@ type products = As_path.rel list As_conf.value
 (** {1 Build commands} *)
 
 type cmd
-val cmd_exec : cmd -> string
+val cmd_cmd : cmd -> string
 val cmd_args : cmd -> string list
 val cmd_args_with_ctx : As_conf.t -> As_ctx.t -> As_args.t -> cmd -> string list
 val cmd_stdin : cmd -> As_path.rel option
@@ -35,34 +35,27 @@ val cmd_stderr : cmd -> As_path.rel option
 
 type cmds = cmd list As_conf.value
 
-val cmd : ?stdin:product -> ?stdout:product -> ?stderr:product ->
+type cmd_gen =
+  ?stdin:As_path.rel -> ?stdout:As_path.rel -> ?stderr:As_path.rel ->
+  string list -> cmd
+
+val cmd : string As_conf.key -> cmd_gen As_conf.value
+val cmd_exec : ?stdin:product -> ?stdout:product -> ?stderr:product ->
   string As_conf.key -> string list As_conf.value -> cmds
 
 val seq : cmds -> cmds -> cmds
 val ( <*> ) : cmds -> cmds -> cmds
-val cmds_deps : cmds -> As_conf.Key.Set.t
 
 (** {2 Portable system utility invocations} *)
 
 val dev_null : As_path.t As_conf.value
 
-val ln : ?stdout:product -> ?stderr:product -> src:As_path.rel As_conf.value ->
-  dst:As_path.rel As_conf.value -> unit -> cmds
-
-val cp : ?stdout:product -> ?stderr:product -> src:As_path.rel As_conf.value ->
-  dst:As_path.rel As_conf.value -> unit -> cmds
-
-val mv : ?stdout:product -> ?stderr:product -> src:As_path.rel As_conf.value ->
-  dst:As_path.rel As_conf.value -> unit -> cmds
-
-val rm_files : ?stdout:product -> ?stderr:product -> ?f:bool As_conf.value ->
-  As_path.rel list As_conf.value -> cmds
-
-val rm_dirs : ?stdout:product -> ?stderr:product -> ?f:bool As_conf.value ->
-  ?r:bool As_conf.value -> As_path.rel list As_conf.value -> cmds
-
-val mkdir : ?stdout:product -> ?stderr:product -> As_path.rel As_conf.value ->
-  cmds
+val ln : (As_path.rel -> As_path.rel -> cmd) As_conf.value
+val cp : (As_path.rel -> As_path.rel -> cmd) As_conf.value
+val mv : (As_path.rel -> As_path.rel -> cmd) As_conf.value
+val rm_files : (?f:bool -> As_path.rel list -> cmd) As_conf.value
+val rm_dirs : (?f:bool -> ?r:bool -> As_path.rel list -> cmd) As_conf.value
+val mkdir : (As_path.rel -> cmd) As_conf.value
 
 (** {1 Actions} *)
 
@@ -109,5 +102,4 @@ module Spec : sig
   val ( <*> ) : cmds -> cmds -> cmds
 end
 
-val link : ?stdout:product -> ?stderr:product -> src:product -> dst:product ->
-  unit -> t
+val link : src:product -> dst:product -> unit -> t

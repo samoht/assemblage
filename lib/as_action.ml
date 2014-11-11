@@ -22,17 +22,17 @@ type products = As_path.rel list As_conf.value
 (* Build commands *)
 
 type cmd =
-  { exec_key : string As_conf.key;
-    exec : string;
+  { cmd_key : string As_conf.key;
+    cmd : string;
     args : string list;
     stdin : As_path.rel option;
     stdout : As_path.rel option;
     stderr : As_path.rel option; }
 
-let cmd_exec c = c.exec
+let cmd_cmd c = c.cmd
 let cmd_args c = c.args
 let cmd_args_with_ctx conf ctx args c =
-  let ctx = As_ctx.add (`Cmd c.exec_key) ctx in
+  let ctx = As_ctx.add (`Cmd c.cmd_key) ctx in
   let injected = As_args.for_ctx conf ctx args in
   List.rev_append (List.rev injected) c.args
 
@@ -41,19 +41,29 @@ let cmd_stdout c = c.stdout
 let cmd_stderr c = c.stderr
 
 type cmds = cmd list As_conf.value
+type cmd_gen =
+  ?stdin:As_path.rel -> ?stdout:As_path.rel -> ?stderr:As_path.rel ->
+  string list -> cmd
 
-let cmd ?stdin ?stdout ?stderr exec args =
+let cmd c =
+  let build_cmd cmd_key cmd = fun ?stdin ?stdout ?stderr args ->
+    { cmd_key; cmd; args; stdin; stdout; stderr }
+  in
+  As_conf.(const build_cmd $ const c $ (value c))
+
+let cmd_exec ?stdin ?stdout ?stderr c args =
   let stdin = As_conf.Option.wrap stdin in
   let stdout = As_conf.Option.wrap stdout in
   let stderr = As_conf.Option.wrap stderr in
-  let cmd exec_key exec args stdin stdout stderr =
-    [{ exec_key; exec; args; stdin; stdout; stderr }]
+  let build_cmds cmd_key cmd args stdin stdout stderr =
+    [{ cmd_key; cmd; args; stdin; stdout; stderr }]
   in
-  As_conf.(const cmd $ const exec $ (value exec) $ args $ stdin $ stdout $
+  As_conf.(const build_cmds $ const c $ (value c) $ args $ stdin $ stdout $
            stderr)
 
 let seq cmds cmds' = As_conf.List.(rev_append (rev cmds) cmds')
 let (<*>) = seq
+
 
 (* Portable system utility invocations *)
 
@@ -63,11 +73,6 @@ let path_arg p = As_path.to_string p
 let paths_args_rev ps = List.rev_map As_path.to_string ps
 let paths_args ps = List.rev (paths_args_rev ps)
 
-(* FIXME IMPORTANT copy and move on Win don't support multiple files, except if
-   they are wildcards. For this reason ~src is not ~srcs. If we transform
-   the type cmds to a value we can generate a sequence of commands for
-   the moves. *)
-
 let dev_null =
   let dev_null = function
   | "Win32" -> As_path.file "NUL"
@@ -75,55 +80,59 @@ let dev_null =
   in
   As_conf.(const dev_null $ value host_os)
 
-let ln ?stdout ?stderr ~src ~dst () =
-  let args os src dst = match os with
+let ln =
+  let make_cmd os (exec : cmd_gen) = match os with
   | "Win32" ->
       As_log.warn "Symbolic@ links@ unsupported@ copying@ instead.";
-      [ "/Y"; path_arg src; path_arg dst; ]
-  | _ -> [ "-s"; "-f"; path_arg src; path_arg dst; ]
+      fun src dst -> exec [ "/Y"; path_arg src; path_arg dst;]
+  | _ ->
+      fun src dst -> exec [ "-s"; "-f"; path_arg src; path_arg dst;]
   in
-  let args = As_conf.(const args $ (value host_os) $ src $ dst) in
-  cmd As_conf.ln args ?stdout ?stderr
+  As_conf.(const make_cmd $ (value host_os) $ (cmd As_conf.ln ))
 
-let cp ?stdout ?stderr ~src ~dst () =
-  let args os src dst = match os with
-  | "Win32" -> [ "/Y"; path_arg src; path_arg dst; ]
-  | _ -> [ path_arg src; path_arg dst; ]
+let cp =
+  let make_cmd os (exec : cmd_gen) = match os with
+  | "Win32" -> fun src dst -> exec [ "/Y"; path_arg src; path_arg dst;]
+  | _ -> fun src dst -> exec [ path_arg src; path_arg dst;]
   in
-  let args = As_conf.(const args $ (value host_os) $ src $ dst) in
-  cmd As_conf.cp args ?stdout ?stderr
+  As_conf.(const make_cmd $ value host_os $ cmd As_conf.cp)
 
-let mv ?stdout ?stderr ~src ~dst () =
-  let args os src dst = match os with
-  | "Win32" -> [ "/Y"; path_arg src; path_arg dst; ]
-  | _ -> [ path_arg src; path_arg dst; ]
+let mv =
+  let make_cmd os (exec : cmd_gen) = match os with
+  | "Win32" -> fun src dst -> exec [ "/Y"; path_arg src; path_arg dst;]
+  | _ -> fun src dst -> exec [ path_arg src; path_arg dst;]
   in
-  let args = As_conf.(const args $ (value host_os) $ src $ dst) in
-  cmd As_conf.cp args ?stdout ?stderr
+  As_conf.(const make_cmd $ value host_os $ cmd As_conf.mv)
 
-let rm_files ?stdout ?stderr ?(f = As_conf.false_) paths =
-  let args os f paths = match os with
-  | "Win32" -> add_if f "/F" @@ add "/Q" @@ paths_args paths
-  | _ -> add_if f "-f" @@ paths_args paths
+let rm_files =
+  let make_cmd os (exec : cmd_gen) = match os with
+  | "Win32" ->
+      fun ?(f = false) paths ->
+        exec (add_if f "/F" @@ add "/Q" @@ paths_args paths)
+  | _ ->
+      fun ?(f = false) paths ->
+        exec (add_if f "-f" @@ paths_args paths)
   in
-  let args = As_conf.(const args $ (value host_os) $ f $ paths) in
-  cmd As_conf.rm args ?stdout ?stderr
+  As_conf.(const make_cmd $ value host_os $ cmd As_conf.rm)
 
-let rm_dirs ?stdout ?stderr ?(f = As_conf.false_) ?(r = As_conf.false_) paths =
-  let args os f r paths = match os with
-  | "Win32" -> add_if f "/F" @@ add_if r "/S" @@ add "/Q" @@ paths_args paths
-  | _ -> add_if f "-f" @@ add_if r "-r" @@ paths_args paths
+let rm_dirs =
+  let make_cmd os (exec : cmd_gen) = match os with
+  | "Win32" ->
+      fun ?(f = false) ?(r = false) paths ->
+        exec (add_if f "/F" @@ add_if r "/S" @@ add "/Q" @@ paths_args paths)
+  | _ ->
+      fun ?(f = false) ?(r = false) paths ->
+        exec (add_if f "-f" @@ add_if r "-r" @@ paths_args paths)
   in
-  let args = As_conf.(const args $ (value host_os) $ f $ r $ paths) in
-  cmd As_conf.rmdir args ?stdout ?stderr
+  As_conf.(const make_cmd $ value host_os $ cmd As_conf.rmdir)
 
-let mkdir ?stdout ?stderr dir =
-  let args os dir = match os with
-  | "Win32" -> [ path_arg dir ]
-  | _ -> [ "-p"; path_arg dir ]
+let mkdir =
+  let make_cmd os (exec : cmd_gen) = match os with
+  | "Win32" -> fun dir -> exec [ path_arg dir ]
+  | _ -> fun dir -> exec [ "-p"; path_arg dir ]
   in
-  let args = As_conf.(const args $ (value host_os) $ dir) in
-  cmd As_conf.mkdir args ?stdout ?stderr
+  As_conf.(const make_cmd $ value host_os $ cmd As_conf.mkdir)
+
 
 (* Actions *)
 
@@ -149,7 +158,10 @@ let deps a =
   |> union (As_conf.deps a.outputs)
   |> union (As_conf.deps a.cmds)
 
-(* Action specification combinators *)
+(* Action specification combinators
+
+   FIXME this needs reviewing e.g. w.r.t. As_conf.List
+*)
 
 module Spec = struct
 
@@ -200,15 +212,11 @@ module Spec = struct
   let ( <*> ) = ( <*> )
 end
 
-let link ?stdout ?stderr ~src ~dst () =
+let link ~src ~dst () =
   let open Spec in
-  let add_if_some v acc = match v with
-  | None -> acc
-  | Some fd -> add (product fd) acc
-  in
   let ctx = As_ctx.v [ `Link ] in
   let inputs = product src in
-  let outputs = add_if_some stdout @@ add_if_some stderr @@ product dst in
+  let outputs = product dst in
   let cmd =
     (** FIXME here we really mean link src to dst when seen from
         the root directory. We are using `..` but As_path.t are
@@ -219,6 +227,7 @@ let link ?stdout ?stderr ~src ~dst () =
     | d -> relativize (As_path.(as_rel (dir ".." // src))) d
     in
     let src = As_conf.(const relativize $ src $ dst) in
-    ln ?stdout ?stderr ~src ~dst ()
+    let act_ln = ln in (* because of existing As_conf.ln *)
+    As_conf.(List.singleton (act_ln $ src $ dst))
   in
   v ~ctx ~inputs ~outputs cmd

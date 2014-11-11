@@ -63,7 +63,7 @@ let mk_recipe conf ctx args cmds =
     | None -> acc | Some file -> (Path.to_string file) :: op :: acc
     in
     let cmdline =
-      [Action.cmd_exec cmd]
+      [Action.cmd_cmd cmd]
       |> List.rev_append (Action.cmd_args_with_ctx conf ctx args cmd)
       |> redirect "<"  (Action.cmd_stdin cmd)
       |> redirect "1>" (Action.cmd_stdout cmd)
@@ -105,14 +105,11 @@ let mk_part gen p =
 let mk_gen_dirs gen =
   let add_dir dir gen =
     let dir = Path.as_rel dir in
-    (* Fake action to use portable Action.mkdir to make the recipe *)
-    let nil = Conf.const [] in
-    let cmds = Action.mkdir (Conf.const dir) in
-    let action = Action.v ~ctx:Ctx.empty ~inputs:nil ~outputs:nil cmds in
-    let cmds = Project.eval gen.proj (Action.cmds action) in
-    let recipe = mk_recipe (Project.conf gen.proj) Ctx.empty Args.empty cmds in
     let prereqs = [] in
     let targets = [Path.to_string dir] in
+    let cmd = Conf.(Action.mkdir $ const dir) in
+    let cmd = Project.eval gen.proj cmd in
+    let recipe = [ Action.cmd_cmd cmd :: Action.cmd_args cmd ] in
     let rule = Makefile.rule ~targets ~prereqs ~recipe () in
     let rmk = rule :: gen.rmk in
     { gen with rmk }

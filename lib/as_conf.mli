@@ -43,6 +43,7 @@ module List : sig
   val rev_wrap : 'a value list -> 'a list value
   val is_empty : 'a list value -> bool value
   val empty : 'a list value
+  val singleton : 'a value -> 'a list value
   val add : 'a value -> 'a list value -> 'a list value
   val add_if : bool value -> 'a value -> 'a list value -> 'a list value
   val rev : 'a list value -> 'a list value

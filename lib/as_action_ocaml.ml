@@ -41,7 +41,7 @@ let compile_src_ast src_kind ~src () =
     add (path_arg src) @@
     path_arg ~opt:"-o" outfile
   in
-  let cmd = As_action.cmd As_conf.ocaml_dumpast args in
+  let cmd = As_action.cmd_exec As_conf.ocaml_dumpast args in
   As_action.v ~cond ~ctx ~inputs ~outputs cmd
 
 (* Compile *)
@@ -70,7 +70,7 @@ let compile_mli ~incs ~src () =
   let args =
     compile_with_incs incs @@ add (atoms [ "-c"; "-intf" ]) @@ path_arg src
   in
-  let cmd = As_action.cmd mli_compiler args in
+  let cmd = As_action.cmd_exec mli_compiler args in
   As_action.v ~cond ~ctx ~inputs ~outputs cmd
 
 let compile_ml_byte ~has_mli ~incs ~src () =
@@ -89,7 +89,7 @@ let compile_ml_byte ~has_mli ~incs ~src () =
   let args =
     compile_with_incs incs @@ add (atoms [ "-c"; "-impl" ]) @@ path_arg src
   in
-  let cmd = As_action.cmd As_conf.ocamlc args in
+  let cmd = As_action.cmd_exec As_conf.ocamlc args in
   As_action.v ~cond ~ctx ~inputs ~outputs cmd
 
 let compile_ml_native ~has_mli ~incs ~src  () =
@@ -110,7 +110,7 @@ let compile_ml_native ~has_mli ~incs ~src  () =
     compile_with_incs incs @@
     add (atoms [ "-c"; "-impl" ]) @@ path_arg src
   in
-  let cmd = As_action.cmd As_conf.ocamlopt args in
+  let cmd = As_action.cmd_exec As_conf.ocamlopt args in
   As_action.v ~cond ~ctx ~inputs ~outputs cmd
 
 (* Archive *)
@@ -124,7 +124,7 @@ let archive_byte ~cmos ~name () =
   let args =
     add (atoms ["-a"; "-o"]) @@ add (path_arg cma) @@ paths_args cmos
   in
-  let cmd = As_action.cmd As_conf.ocamlc args in
+  let cmd = As_action.cmd_exec As_conf.ocamlc args in
   As_action.v ~cond ~ctx ~inputs ~outputs cmd
 
 let archive_native ~cmx_s ~name () =
@@ -136,7 +136,7 @@ let archive_native ~cmx_s ~name () =
   let args =
     add (atoms [ "-a"; "-o" ]) @@ add (path_arg cmxa) @@ paths_args cmx_s
   in
-  let cmd = As_action.cmd As_conf.ocamlopt args in
+  let cmd = As_action.cmd_exec As_conf.ocamlopt args in
   As_action.v ~cond ~ctx ~inputs ~outputs cmd
 
 let archive_shared ~cmx_s ~name () =
@@ -148,7 +148,7 @@ let archive_shared ~cmx_s ~name () =
   let args =
     add (atoms [ "-shared"; "-o" ]) @@ add (path_arg cmxs) @@ paths_args cmx_s
   in
-  let cmd = As_action.cmd As_conf.ocamlopt args in
+  let cmd = As_action.cmd_exec As_conf.ocamlopt args in
   As_action.v ~cond ~ctx ~inputs ~outputs cmd
 
 let c_compiler = (* don't fail if ocamlc is not available *)
@@ -162,7 +162,7 @@ let compile_c ~src () =
   let inputs = product src in
   let outputs = product src ~ext:`O in
   let args = add (atom "-c") @@ path_arg src in
-  let cmd = As_action.cmd c_compiler args in
+  let cmd = As_action.cmd_exec c_compiler args in
   As_action.v ~cond ~ctx ~inputs ~outputs cmd
 
 let archive_c ~objs ~name () =
@@ -171,5 +171,5 @@ let archive_c ~objs ~name () =
   let inputs = objs in
   let outputs = add (product name ~ext:`A) @@ product name ~ext:`So in
   let args = add (atom "-o") @@ add (path_arg name) @@ paths_args objs in
-  let cmd = As_action.cmd As_conf.ocamlmklib args in
+  let cmd = As_action.cmd_exec As_conf.ocamlmklib args in
   As_action.v ~cond ~ctx ~inputs ~outputs cmd

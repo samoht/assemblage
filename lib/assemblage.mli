@@ -774,6 +774,9 @@ module Conf : sig
     val empty : 'a list value
     (** [empty] is [const []]. *)
 
+    val singleton : 'a value -> 'a list value
+    (** [singleton v] is [const (fun v -> [v]) $ v]. *)
+
     val add : 'a value -> 'a list value -> 'a list value
     (** [add v vl] adds [v] in front of [vl]. *)
 
@@ -1427,21 +1430,36 @@ module Action : sig
   (** The type for lists of build products. A configuration value holding
       a list of file paths. *)
 
-  (** {1 Build commands} *)
+  (** {1 Build commands}
+
+      One particular aspect of build commands is that the executing
+      program must be a configuration key. This ensures that the
+      executions can be addressed via a {{!Ctx.command}context element}
+      and that the tool can be redefined by the build system end user. *)
 
   type cmd
-  (** The type for commands. *)
+  (** The type for a command execution. *)
 
   type cmds = cmd list Conf.value
-  (** The type for sequences of build commands. *)
+  (** The type for sequences of command executions. *)
 
-  val cmd : ?stdin:product -> ?stdout:product ->
-    ?stderr:product -> string Conf.key ->
-    string list Conf.value -> cmds
-  (** [cmd exec args] is the sequence that executes [exec] with
+  type cmd_gen =
+    ?stdin:Path.rel -> ?stdout:Path.rel -> ?stderr:Path.rel -> string list ->
+    cmd
+  (** The type for command execution generators. The string list is
+      the arguments given to the program. If present the optional
+      arguments allow to redirect the standard file descriptors and *)
+
+  val cmd : string Conf.key -> cmd_gen Conf.value
+  (** [cmd cmd] is a value that allows to define an execution for the
+      program [cmd] with the given generator. *)
+
+  val cmd_exec : ?stdin:product -> ?stdout:product -> ?stderr:product ->
+    string Conf.key -> string list Conf.value -> cmds
+  (** [cmd_exec cmd args] is the sequence that executes program [cmd] with
       argument [args]. The optional [stdin], [stdout], and [stderr]
       arguments allow to redirect the standard file descriptors of the
-      execution to files. *)
+      execution to files. Convenience function built on top of {!cmd}. *)
 
   val seq : cmds -> cmds -> cmds
   (** [seq cmds cmds'] is the sequence of build commands made of [cmds]
@@ -1454,41 +1472,44 @@ module Action : sig
 
       Rather than using {{!Conf.system_utility_keys}system utility
       configuration keys} directly you should use the following functions,
-      they will enforce portable behaviour. *)
+      they will enforce portable behaviour.
+
+      {b Note.} Function arguments could support more labelling but
+      this doesn't blend well with {!Conf.app}. *)
 
   val dev_null : Path.t Conf.value
   (** [dev_null] is a file that discards all writes. *)
 
-  val ln : ?stdout:product -> ?stderr:product -> src:Path.rel Conf.value ->
-    dst:Path.rel Conf.value -> unit -> cmds
-  (** [ln ~src ~dst] symbolically links file [src] to [dst]. *)
+  val ln : (Path.rel -> Path.rel -> cmd) Conf.value
+  (** [ln] has a command [exec src dst] to link symbolically file [src] to
+      [dst].
 
-  val cp : ?stdout:product -> ?stderr:product -> srcs:products ->
-    dst:Path.rel Conf.value -> unit -> cmds
-  (** [cp ~src ~dst] copies file [src] to [dst]. *)
+      {b Warning.} On Windows this is a copy. *)
 
-  val mv : ?stdout:product -> ?stderr:product -> srcs:products ->
-    dst:Path.rel Conf.value -> unit -> cmds
-  (** [mv ~src ~dst] moves path [src] to [dst]. *)
+  val cp : (Path.rel -> Path.rel -> cmd) Conf.value
+  (** [cp] has a command [exec src dst] to copy file [src] to [dst]. *)
 
-  val rm_files : ?stdout:product -> ?stderr:product ->
-    ?f:bool Conf.value -> Path.rel list Conf.value -> cmds
-  (** [rm_files ~f paths] removes the {e file} paths [paths].
-      If [f] is [true] files are removed regardless of permissions
-      (defaults to [false]). [paths] elements must be files, for
-      directories, see {!rm_dirs}. *)
+  val mv : (Path.rel -> Path.rel -> cmd) Conf.value
+  (** [mv] has a command [exec src dst] to move path [src] to [dst]. *)
 
-  val rm_dirs : ?stdout:product -> ?stderr:product -> ?f:bool Conf.value ->
-    ?r:bool Conf.value -> Path.rel list Conf.value -> cmds
-  (** [rm_dirs ~f ~r paths] removes the {e directory} paths [paths].
-      If [f] is [true] directories are removed regardless of permissions
-      (defaults to [false]). If [r] is [true] removes the file hierarchies
-      rooted at the elements of [paths]. Note that [paths] must be
-      directories, for removing files, see {!rm_files}. *)
+  val rm_files : (?f:bool -> Path.rel list -> cmd) Conf.value
+  (** [rm_files] has a command [exec ~f paths] to remove the {e file}
+      paths [paths]. If [f] is [true] files are removed regardless of
+      permissions (defaults to [false]). [paths] elements must be files,
+      for directories, see {!rm_dirs}. *)
 
-  val mkdir : ?stdout:product -> ?stderr:product -> Path.rel Conf.value -> cmds
-  (** [mkdir p] creates the directory [p]. Intermediate directories
-      are created as required ([mkdir -p] in Unix parlance). *)
+  val rm_dirs : (?f:bool -> ?r:bool -> Path.rel list -> cmd) Conf.value
+  (** [rm_dirs] has a command [exec ~f ~r paths] to remove the {e
+      directory} paths [paths]. If [f] is [true] directories are
+      removed regardless of permissions (defaults to [false]).  If [r]
+      is [true] removes the file hierarchies rooted at the elements of
+      [paths]. Note that [paths] must be directories, for removing
+      files, see {!rm_files}. *)
+
+  val mkdir : (Path.rel -> cmd) Conf.value
+  (** [mkdir] has a command [exec d] to create the directory [p].
+      Intermediate directories are created as required ([mkdir -p] in
+      Unix parlance). *)
 
   (** {1 Build actions} *)
 
@@ -1565,8 +1586,7 @@ module Action : sig
 
   (** {1 Built-in actions} *)
 
-  val link : ?stdout:product -> ?stderr:product -> src:product -> dst:product ->
-    unit -> t
+  val link : src:product -> dst:product -> unit -> t
   (** [link ~src ~dst ()] is an action that links [src] to [dst] using
       {!ln}. FIXME rel hack *)
 
@@ -2697,8 +2717,8 @@ module Private : sig
 
     (** {1 Commands} *)
 
-    val cmd_exec : cmd -> string
-    (** [cmd_exec c] is [c]'s executable. *)
+    val cmd_cmd : cmd -> string
+    (** [cmd_cmd c] is [c]'s executable. *)
 
     val cmd_args : cmd -> string list
     (** [cmd_args cmd] are [c]'s arguments. *)

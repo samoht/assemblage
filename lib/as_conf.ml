@@ -116,6 +116,7 @@ module VList = struct
 
   let is_empty vs = const (fun l -> l = []) $ vs
   let empty = const []
+  let singleton v = const (fun v -> [v]) $ v
   let add v vs = const (fun v vs -> v :: vs) $ v $ vs
   let add_if c v vs =
     const (fun c v vs -> if c then v :: vs else vs) $ c $ v $ vs
