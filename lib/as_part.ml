@@ -25,7 +25,7 @@ type kind = [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo ]
 let pp_kind ppf k = As_ctx.pp_kind ppf (k :> kind) (* weird *)
 let str_of_kind k = Format.asprintf "%a" As_ctx.pp_kind k
 
-let kind_root kind name = (* only a suggestion *)
+let kind_root kind name = (* a suggestion for the part's root dir *)
   let part_dir = Format.asprintf "%a-%s" pp_kind kind name in
   let in_build_dir build = As_path.(as_rel (build / part_dir)) in
   As_conf.(const in_build_dir $ (value As_conf.build_dir))
@@ -136,8 +136,8 @@ let root p = p.root
 let with_root root p = { p with root }
 let rooted ?ext p name =
   let mk_file r = match ext with
-  | None -> As_path.(as_rel (r / name))
-  | Some e -> As_path.(as_rel (r / name + e))
+  | None -> As_path.(r / name)
+  | Some e -> As_path.(r / name + e)
   in
   As_conf.(const mk_file $ p.root)
 

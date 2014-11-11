@@ -940,11 +940,6 @@ module Conf : sig
   (** [build_dir] is the path to the build directory expressed relative to the
       {!root_dir} (defaults to ["_build"]). *)
 
-  val product_dir : Path.rel key
-  (** [product_dir] is the path to the directory where current build product
-      should be produced. This key is private and expressed relative to the
-      {!root_dir}. *)
-
   val docs_build_directories : string
   (** [docs_build_directories] is the name of the documentation section
       in which build directory keys are described. *)
@@ -1422,11 +1417,11 @@ module Action : sig
 
   (** {1 Products} *)
 
-  type product = Path.rel Conf.value
+  type product = Path.t Conf.value
   (** The type for build products. A configuration value holding
       a file path. *)
 
-  type products = Path.rel list Conf.value
+  type products = Path.t list Conf.value
   (** The type for lists of build products. A configuration value holding
       a list of file paths. *)
 
@@ -1444,7 +1439,7 @@ module Action : sig
   (** The type for sequences of command executions. *)
 
   type cmd_gen =
-    ?stdin:Path.rel -> ?stdout:Path.rel -> ?stderr:Path.rel -> string list ->
+    ?stdin:Path.t -> ?stdout:Path.t -> ?stderr:Path.t -> string list ->
     cmd
   (** The type for command execution generators. The string list is
       the arguments given to the program. If present the optional
@@ -1480,25 +1475,25 @@ module Action : sig
   val dev_null : Path.t Conf.value
   (** [dev_null] is a file that discards all writes. *)
 
-  val ln : (Path.rel -> Path.rel -> cmd) Conf.value
+  val ln : (Path.t -> Path.t -> cmd) Conf.value
   (** [ln] has a command [exec src dst] to link symbolically file [src] to
       [dst].
 
       {b Warning.} On Windows this is a copy. *)
 
-  val cp : (Path.rel -> Path.rel -> cmd) Conf.value
+  val cp : (Path.t -> Path.t -> cmd) Conf.value
   (** [cp] has a command [exec src dst] to copy file [src] to [dst]. *)
 
-  val mv : (Path.rel -> Path.rel -> cmd) Conf.value
+  val mv : (Path.t -> Path.t -> cmd) Conf.value
   (** [mv] has a command [exec src dst] to move path [src] to [dst]. *)
 
-  val rm_files : (?f:bool -> Path.rel list -> cmd) Conf.value
+  val rm_files : (?f:bool -> Path.t list -> cmd) Conf.value
   (** [rm_files] has a command [exec ~f paths] to remove the {e file}
       paths [paths]. If [f] is [true] files are removed regardless of
       permissions (defaults to [false]). [paths] elements must be files,
       for directories, see {!rm_dirs}. *)
 
-  val rm_dirs : (?f:bool -> ?r:bool -> Path.rel list -> cmd) Conf.value
+  val rm_dirs : (?f:bool -> ?r:bool -> Path.t list -> cmd) Conf.value
   (** [rm_dirs] has a command [exec ~f ~r paths] to remove the {e
       directory} paths [paths]. If [f] is [true] directories are
       removed regardless of permissions (defaults to [false]).  If [r]
@@ -1506,7 +1501,7 @@ module Action : sig
       [paths]. Note that [paths] must be directories, for removing
       files, see {!rm_files}. *)
 
-  val mkdir : (Path.rel -> cmd) Conf.value
+  val mkdir : (Path.t -> cmd) Conf.value
   (** [mkdir] has a command [exec d] to create the directory [p].
       Intermediate directories are created as required ([mkdir -p] in
       Unix parlance). *)
@@ -1555,21 +1550,21 @@ module Action : sig
 
     (** {1 Paths and products} *)
 
-    val path : product -> ext:Path.ext -> Path.rel Conf.value
+    val path : product -> ext:Path.ext -> Path.t Conf.value
     (** [path p ~ext] is [p] with its extension (if any)
         {{!Path.change_ext}changed} to [ext]. *)
 
     val path_base : product -> string Conf.value
     (** [path_base p] is the {{!Path.basename}basename} of [p]. *)
 
-    val path_dir : product -> Path.rel Conf.value
+    val path_dir : product -> Path.t Conf.value
     (** [path_dir p] is the {{!Path.dirname}dirname} of [p]. *)
 
-    val path_arg : ?opt:string -> Path.rel Conf.value -> string list_v
+    val path_arg : ?opt:string -> Path.t Conf.value -> string list_v
     (** [path_arg p] is the list made of [p] {{!Path.quote}converted}
         to a string. If [opt] is present it is added in front of the list. *)
 
-    val paths_args : ?opt:string -> Path.rel list Conf.value ->
+    val paths_args : ?opt:string -> Path.t list Conf.value ->
       string list_v
     (** [paths_args p] is  like {!path_arg} but for a list of paths.
         If [opt] is present it is added in front of each path list element. *)
@@ -1602,11 +1597,11 @@ module Action : sig
 
     (** {1 Types} *)
 
-    type includes = Path.rel list Conf.value
+    type includes = Path.t list Conf.value
     (** The type for lists of include directories. A configuration value
         holding a list of directory paths. *)
 
-    type name = Path.rel Conf.value
+    type name = Path.t Conf.value
     (** The type for product names. A product names defines a build
         location through its {{!Path.dirname}dirname} and a name through its
         {e suffix-less} {{!Path.basename}basename}. *)
@@ -1790,7 +1785,7 @@ module Part : sig
   val actions : 'a part -> Action.t list
   (** [actions env p] are the actions to build part [p]. *)
 
-  val products : ?exts:Path.ext list -> 'a part -> Path.rel list Conf.value
+  val products : ?exts:Path.ext list -> 'a part -> Path.t list Conf.value
   (** [products p] are the products of part [p]. If [exts] is present
       only those that have one of the extensions in the list are selected.
       This is derived from {!rules}. *)
@@ -1826,7 +1821,7 @@ module Part : sig
   (** {1 Part lists} *)
 
   val list_products : ?exts:Path.ext list -> 'a t list ->
-    Path.rel list Conf.value
+    Path.t list Conf.value
   (** [list_products ?exts ps] is the list of products defined by
       parts [ps]. If [exts] is present only those products with extensions
       in [exts] are kept. *)
@@ -2317,11 +2312,11 @@ end
 (** {1:spec Part specification combinators} *)
 
 type path = Path.t Conf.value
-(** The type for part paths specifications. FIXME should we
-    restrict to Path.rel ? *)
+(** The type for part paths specifications. *)
 
 val root : path
-(** [root] is the path {!Conf.root_dir}.  *)
+(** [root] is the {{!Path.current}current directory} relative to the
+    project root.  *)
 
 val ( / ) : path -> string -> path
 (** [path / seg] is [Conf.(const Path.( / ) $ path $ const seg)]. *)
@@ -2702,10 +2697,10 @@ module Private : sig
     val ctx : t -> Ctx.t
     (** [ctx a] is [a]'s context. *)
 
-    val inputs : t -> Path.rel list Conf.value
+    val inputs : t -> Path.t list Conf.value
     (** [inputs a] is the list of products input by [a]'s action. *)
 
-    val outputs : t -> Path.rel list Conf.value
+    val outputs : t -> Path.t list Conf.value
     (** [outputs a] is the list of products output by [a]'s action. *)
 
     val cmds : t -> cmds
@@ -2730,13 +2725,13 @@ module Private : sig
         augmented with [c]'s {!Ctx.command} element in configuration
         [conf]. *)
 
-    val cmd_stdin : cmd -> Path.rel option
+    val cmd_stdin : cmd -> Path.t option
     (** [cmd_stdin c] is [c]'s stdin redirection (if any). *)
 
-    val cmd_stdout : cmd -> Path.rel option
+    val cmd_stdout : cmd -> Path.t option
     (** [cmd_stdout c] is [c]'s stdout redirection (if any). *)
 
-    val cmd_stderr : cmd -> Path.rel option
+    val cmd_stderr : cmd -> Path.t option
     (** [cmd_stderr c] is [c]'s stderr redirection (if any). *)
   end
 

@@ -16,8 +16,8 @@
 
 (* Products *)
 
-type product = As_path.rel As_conf.value
-type products = As_path.rel list As_conf.value
+type product = As_path.t As_conf.value
+type products = As_path.t list As_conf.value
 
 (* Build commands *)
 
@@ -25,9 +25,9 @@ type cmd =
   { cmd_key : string As_conf.key;
     cmd : string;
     args : string list;
-    stdin : As_path.rel option;
-    stdout : As_path.rel option;
-    stderr : As_path.rel option; }
+    stdin : As_path.t option;
+    stdout : As_path.t option;
+    stderr : As_path.t option; }
 
 let cmd_cmd c = c.cmd
 let cmd_args c = c.args
@@ -42,7 +42,7 @@ let cmd_stderr c = c.stderr
 
 type cmds = cmd list As_conf.value
 type cmd_gen =
-  ?stdin:As_path.rel -> ?stdout:As_path.rel -> ?stderr:As_path.rel ->
+  ?stdin:As_path.t -> ?stdout:As_path.t -> ?stderr:As_path.t ->
   string list -> cmd
 
 let cmd c =
@@ -139,8 +139,8 @@ let mkdir =
 type t =
   { cond : bool As_conf.value;
     ctx : As_ctx.t;
-    inputs : As_path.rel list As_conf.value;
-    outputs : As_path.rel list As_conf.value;
+    inputs : As_path.t list As_conf.value;
+    outputs : As_path.t list As_conf.value;
     cmds : cmds; }
 
 let v ?(cond = As_conf.true_) ~ctx ~inputs ~outputs cmds =
@@ -182,11 +182,11 @@ module Spec = struct
   (* Path and products *)
 
   let path p ~ext:e =
-    let change_ext p = As_path.(as_rel (change_ext p e)) in
+    let change_ext p = As_path.(change_ext p e) in
     As_conf.(const change_ext $ p)
 
   let path_base p = As_conf.(const As_path.basename $ p)
-  let path_dir p = As_conf.(const (fun p -> As_path.(as_rel (dirname p))) $ p)
+  let path_dir p = As_conf.(const As_path.dirname $ p)
   let path_arg ?opt p =
     let make_arg p =
       let p = As_path.to_string p in
@@ -222,9 +222,15 @@ let link ~src ~dst () =
         the root directory. We are using `..` but As_path.t are
         not supposed to have such segments. Really need to sort out
         paths. *)
-    let rec relativize src dst = match As_path.(as_rel (dirname dst)) with
-    | d when As_path.is_current d -> src
-    | d -> relativize (As_path.(as_rel (dir ".." // src))) d
+    let parent = Filename.parent_dir_name in
+    let rec relativize src dst =
+      let rec loop src dst =
+        match As_path.(as_rel (dirname dst)) with
+        | d when As_path.is_current d -> src
+        | d -> loop (As_path.(as_rel (dir parent // src))) d
+      in
+      if not (As_path.(is_rel src) && As_path.(is_rel dst)) then src else
+      As_path.as_path (loop (As_path.as_rel src) (As_path.as_rel dst))
     in
     let src = As_conf.(const relativize $ src $ dst) in
     let act_ln = ln in (* because of existing As_conf.ln *)

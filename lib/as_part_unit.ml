@@ -57,7 +57,7 @@ let js = is_kind `Js
 let c = is_kind `C
 
 let src e unit =               (* source file for the unit with extention e *)
-  let mk_file d = As_path.(as_rel (d / (As_part.name unit) + e)) in
+  let mk_file d = As_path.(d / (As_part.name unit) + e) in
   As_conf.(const mk_file $ dir unit)
 
 

@@ -20,8 +20,8 @@
 
 (** {1 Types} *)
 
-type includes = As_path.rel list As_conf.value
-type name = As_path.rel As_conf.value
+type includes = As_path.t list As_conf.value
+type name = As_path.t As_conf.value
 
 (** {1 Preprocess} *)
 
@@ -41,11 +41,9 @@ val compile_c : src:As_action.product -> unit -> As_action.t
 
 (** {1 Archiving} *)
 
-val archive_byte : cmos:As_path.rel list As_conf.value -> name:name ->
-  unit -> As_action.t
-
-val archive_native : cmx_s:As_path.rel list As_conf.value ->
-  name:name -> unit -> As_action.t
+val archive_byte : cmos:As_action.products -> name:name -> unit -> As_action.t
+val archive_native : cmx_s:As_action.products -> name:name -> unit ->
+  As_action.t
 
 val archive_shared : cmx_s:As_action.products -> name:name -> unit ->
   As_action.t

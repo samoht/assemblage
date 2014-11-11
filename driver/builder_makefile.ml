@@ -104,7 +104,6 @@ let mk_part gen p =
 
 let mk_gen_dirs gen =
   let add_dir dir gen =
-    let dir = Path.as_rel dir in
     let prereqs = [] in
     let targets = [Path.to_string dir] in
     let cmd = Conf.(Action.mkdir $ const dir) in

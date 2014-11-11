@@ -60,7 +60,7 @@ val needs : 'a t -> kind t list
 val args : 'a t -> As_args.t
 val actions : 'a t -> As_action.t list
 val check : 'a t -> bool
-val products : ?exts:As_path.ext list -> 'a t -> As_path.rel list As_conf.value
+val products : ?exts:As_path.ext list -> 'a t -> As_path.t list As_conf.value
 val id : 'a t -> int
 val sid : 'a t -> string
 val equal : 'a t -> 'b t -> bool
@@ -72,7 +72,7 @@ val ctx : 'a t -> As_ctx.t
 (** {1 Part root directory} *)
 
 val root : 'a t -> As_path.rel As_conf.value
-val rooted : ?ext:As_path.ext -> 'a t -> string -> As_path.rel As_conf.value
+val rooted : ?ext:As_path.ext -> 'a t -> string -> As_path.t As_conf.value
 val with_root : As_path.rel As_conf.value -> 'a t -> 'a t
 
 (** {1 Coercions} *)
@@ -83,7 +83,7 @@ val coerce_if : ([< kind] as 'b) -> 'a t -> 'b t option
 (** {1 Part lists} *)
 
 val list_products : ?exts:As_path.ext list -> 'a t list ->
-  As_path.rel list As_conf.value
+  As_path.t list As_conf.value
 val list_uniq : 'a t list -> 'a t list
 val list_keep : ('a t -> bool) -> 'a t list -> 'a t list
 val list_keep_map : ('a t -> 'b option) -> 'a t list -> 'b list

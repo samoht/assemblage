@@ -18,8 +18,8 @@ open As_action.Spec;;
 
 (* Types *)
 
-type includes = As_path.rel list As_conf.value
-type name = As_path.rel As_conf.value
+type includes = As_path.t list As_conf.value
+type name = As_path.t As_conf.value
 
 (* Global options *)
 
