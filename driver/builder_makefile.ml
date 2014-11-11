@@ -53,28 +53,28 @@ let keys gen =
   let rmk, conf =
     (`Blank :: gen.rmk, Project.conf (gen.proj))
     |> alter Conf.ocamlc "OCAMLC"
-    |> alter Conf.ocamlopt "OCAMLOPT"
+    |> alter Conf.mkdir "MKDIR"
   in
   { gen with proj = Project.with_conf gen.proj conf; rmk }
 
-let mk_recipe cmds =
+let mk_recipe conf ctx args cmds =
   let add_cmd acc cmd =
     let redirect op file acc = match file with
     | None -> acc | Some file -> (Path.to_string file) :: op :: acc
     in
     let cmdline =
-      [cmd.Action.exec]
-      |> List.rev_append cmd.Action.args
-      |> redirect "<" cmd.Action.stdin
-      |> redirect "1>" cmd.Action.stdout
-      |> redirect "2>" cmd.Action.stderr
+      [Action.cmd_exec cmd]
+      |> List.rev_append (Action.cmd_args_with_ctx conf ctx args cmd)
+      |> redirect "<"  (Action.cmd_stdin cmd)
+      |> redirect "1>" (Action.cmd_stdout cmd)
+      |> redirect "2>" (Action.cmd_stderr cmd)
       |> List.rev
     in
     cmdline :: acc
   in
   List.rev (List.fold_left add_cmd [] cmds)
 
-let mk_action args gen action =
+let mk_action part gen action =
   if not (Project.eval gen.proj (Action.cond action)) then gen else
   let inputs = Project.eval gen.proj (Action.inputs action) in
   let outputs = Project.eval gen.proj (Action.outputs action) in
@@ -82,8 +82,10 @@ let mk_action args gen action =
   let order_only_prereqs = List.rev_map Path.to_string dirs in
   let prereqs = List.rev_map Path.to_string (List.rev inputs) in
   let targets = List.rev_map Path.to_string (List.rev outputs) in
-  let cmds = Action.eval_cmds (Project.conf gen.proj) action args in
-  let recipe = mk_recipe cmds in
+  let cmds = Project.eval gen.proj (Action.cmds action) in
+  let ctx = Ctx.union (Part.ctx part) (Action.ctx action) in
+  let args = Part.args part in
+  let recipe = mk_recipe (Project.conf gen.proj) ctx args cmds in
   let dirs = List.fold_left (fun set d -> Path.Set.add d set) gen.dirs dirs in
   let rule = Makefile.rule ~order_only_prereqs ~targets ~prereqs ~recipe () in
   let rmk = rule :: gen.rmk in
@@ -98,7 +100,7 @@ let mk_part gen p =
       let kind = Part.kind p in
       let comment = str "%a-%s rules" Part.pp_kind kind name in
       let rmk = `Blank :: `Comment comment :: `Blank :: gen.rmk in
-      List.fold_left (mk_action (Part.args p)) { gen with rmk } actions
+      List.fold_left (mk_action p) { gen with rmk } actions
 
 let mk_gen_dirs gen =
   let add_dir dir gen =
@@ -107,8 +109,8 @@ let mk_gen_dirs gen =
     let nil = Conf.const [] in
     let cmds = Action.mkdir (Conf.const dir) in
     let action = Action.v ~ctx:Ctx.empty ~inputs:nil ~outputs:nil cmds in
-    let cmds = Action.eval_cmds (Project.conf gen.proj) action Args.empty in
-    let recipe = mk_recipe cmds in
+    let cmds = Project.eval gen.proj (Action.cmds action) in
+    let recipe = mk_recipe (Project.conf gen.proj) Ctx.empty Args.empty cmds in
     let prereqs = [] in
     let targets = [Path.to_string dir] in
     let rule = Makefile.rule ~targets ~prereqs ~recipe () in

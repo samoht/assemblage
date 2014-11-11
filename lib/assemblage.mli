@@ -317,7 +317,7 @@ module Path : sig
       according to the driver's platform convention with {!Filename.dir_sep}. *)
 
   val pp : Format.formatter -> t -> unit
-  (** [pp ppf p] prints path on [ppf] using {!to_string}. *)
+  (** [pp ppf p] prints path [p] on [ppf] using {!to_string}. *)
 
   (** {1 File extensions} *)
 
@@ -330,8 +330,12 @@ module Path : sig
   | `Ext of string ]
   (** The type for file extensions. *)
 
+  val pp_ext : Format.formatter -> ext -> unit
+  (** [pp_ext ppf p] prints file extension [ext] on [ppf] using
+      {!ext_to_string}. *)
+
   val ext_to_string : ext -> string
-  (** [ext_to_string ext] is [ext] as a string. *)
+  (** [ext_to_string ext] is [ext] as a string (without seperator). *)
 
   val ext_of_string : string -> ext
   (** [ext_of_string ext] is [ext] as a file extension. *)
@@ -1220,18 +1224,30 @@ end
     Build contexts define an indirect addressing mechanism used to
     inject {{!Args}arguments} on the command lines of build
     {{!Action}Actions}. The concrete build context associated to an
-    action's command depends on the the end-user (through parts TODO), the
-    action designer (the [context] argument of {!Action.v}), and
-    the {{!Action.cmd}key name} of the command being executed. *)
+    action's command depends on the the end-user (via the
+    {{!Part.name}part name}), the action designer (the [context] argument
+    of {!Action.v}), and the {{!Action.cmd}key name} of the command being
+    executed. *)
 module Ctx : sig
 
   (** {1:elements Context elements} *)
 
-  type build_phase = [ `Prepare | `Gen | `Dep | `Pp | `Compile | `Archive
+  type tag = [ `Tag of string ]
+  (** The type for user defined tags. *)
+
+  type language = [ `OCaml | `C | `Js | `Lang of string ]
+  (** The type for informing about the broad type of input build products.
+      {ul
+      {- [`OCaml] working on OCaml related build products.}
+      {- [`C] working on C releated build products.}
+      {- [`Js] working on JavaScript related build products.}
+      {- [`Other l] working on language [l] related build products.}} *)
+
+  type build_phase = [ `Gen | `Dep | `Pp | `Compile
+                     | `Archive of [ `Static | `Shared ]
                      | `Link | `Doc ]
   (** The type for informing about build phases.
       {ul
-      {- [`Prepare] source is being prepared. FIXME.}
       {- [`Gen] source or data is being generated.}
       {- [`Dep] source is analyzed for dependencies.}
       {- [`Pp] source is pre-processed.}
@@ -1240,41 +1256,37 @@ module Ctx : sig
       {- [`Link] compilation products are being linked into an executable.}
       {- [`Doc] documentation is being generated. FIXME}} *)
 
-  type language = [ `OCaml | `C | `Js ]
-  (** The type for informing about the broad type of input build products.
-      {ul
-      {- [`OCaml] working on OCaml related build products.}
-      {- [`C] working on C releated build products.}
-      {- [`Js] working on JavaScript related build products.}} *)
+  type source = [ `Src of Path.ext ]
+  (** The type for informing about source products. *)
 
-  type ocaml_source = [ `Ml | `Mli ]
-  (** The type for informing about OCaml source products.
+  type target = [ `Target of [`Src | `Byte | `Native | `Js | `Other of string ]]
+  (** The type for informing about compilation targets.
       {ul
-      {- [`Ml] working on ml sources.}
-      {- [`Mli] workong on mli sources.}} *)
-
-  type ocaml_target = [ `Byte | `Native | `Js ]
-  (** The type for informing about OCaml build targets.
-      {ul
+      {- [`Src] working on source code generation.}
       {- [`Byte] working on byte code generation.}
       {- [`Native] working on native code generation.}
-      {- [`Js] working on JavaScript code generation.}} *)
-
-  type archive_product = [ `Shared ]
-  (** The type for informing about archive build products.
-      {ul
-      {- [`Shared], working on generating a shared archive.}} *)
+      {- [`Js] working on JavaScript code generation.}
+      {- [`Other o] working on other kind of generation.}} *)
 
   type command = [ `Cmd of string Conf.key ]
   (** The type for informing about the command being executed.
       {ul
       {- [`Cmd k], the command [k] is being executed.}} *)
 
-  type tag = [ `Tag of string ]
-  (** The type for user defined tags. TODO part tags ? *)
+  type part_usage = [ `Build | `Dev | `Doc | `Other of string
+                    | `Outcome | `Test ]
+  (** The type for {{!type:Part.usage}part usages}. *)
 
-  type elt = [ build_phase | language | ocaml_source | ocaml_target
-             | archive_product | command | tag ]
+  type part_kind = [ `Base | `Bin | `Dir | `Doc | `Lib
+                   | `Pkg | `Run | `Silo | `Unit ]
+  (** The type for {{!type:Part.kind}part kinds}. *)
+
+  type part = [ `Part of [part_usage | part_kind | `Name of string ] ]
+  (** The type for informing about a part. Its name,
+      {{!type:Part.kind}kind} and {{!type:Part.usage}usages}. *)
+
+  type elt = [ tag | language | build_phase | source | target | command
+             | part ]
   (** The type for context elements. *)
 
   val pp_elt : Format.formatter -> elt -> unit
@@ -1415,21 +1427,12 @@ module Action : sig
   (** The type for lists of build products. A configuration value holding
       a list of file paths. *)
 
-  val products_keep : (Path.rel -> bool) -> products -> products
-  (** [products_keep pred ps] is the elements of [ps] that satisfy [pred].
-      The list order is preserved. *)
-
-  val products_keep_ext : Path.ext -> products -> products
-  (** [products_keep_ext ext ps] is the elements of [ps] that have
-      extension [ext]. *)
-
-  val products_keep_exts : Path.ext list -> products -> products
-  (** [products_keep_exts exts ps] is the elements of [ps] that have
-      extensions in [ext]. *)
-
   (** {1 Build commands} *)
 
-  type cmds
+  type cmd
+  (** The type for commands. *)
+
+  type cmds = cmd list Conf.value
   (** The type for sequences of build commands. *)
 
   val cmd : ?stdin:product -> ?stdout:product ->
@@ -1460,11 +1463,11 @@ module Action : sig
     dst:Path.rel Conf.value -> unit -> cmds
   (** [ln ~src ~dst] symbolically links file [src] to [dst]. *)
 
-  val cp : ?stdout:product -> ?stderr:product -> src:Path.rel Conf.value ->
+  val cp : ?stdout:product -> ?stderr:product -> srcs:products ->
     dst:Path.rel Conf.value -> unit -> cmds
   (** [cp ~src ~dst] copies file [src] to [dst]. *)
 
-  val mv : ?stdout:product -> ?stderr:product -> src:Path.rel Conf.value ->
+  val mv : ?stdout:product -> ?stderr:product -> srcs:products ->
     dst:Path.rel Conf.value -> unit -> cmds
   (** [mv ~src ~dst] moves path [src] to [dst]. *)
 
@@ -2646,17 +2649,17 @@ module Private : sig
     (** [cargs_deps cargs] is the set of configuration keys which may be needed
         for evaluating the constituents of [cargs]. *)
 
-    (** {1 Argument lookup} *)
-
     val bindings : t -> (Ctx.t * cargs list) list
     (** [bindings args] is the list of bindings in [args]. *)
 
-    val for_ctx : t -> Ctx.t -> cargs list
-    (** [for_ctx args ctx] is the list of conditionalized arguments
+    val cargs_for_ctx : Ctx.t -> t -> cargs list
+    (** [cargs_with_ctx ctx -> args] is the list of conditionalized arguments
         in [args] for context [ctx]. *)
 
-    val eval_for_ctx : Conf.t -> t -> Ctx.t -> string list
-    (** [eval_for_ctx conf args ctx] is the arguments in [args] for
+    (** {1 Argument lookup} *)
+
+    val for_ctx : Conf.t -> Ctx.t -> t -> string list
+    (** [with_ctx conf ctx args] is the arguments in [args] for
         context [ctx] in configuration [conf]. *)
   end
 
@@ -2670,6 +2673,7 @@ module Private : sig
     (** {1 Actions} *)
 
     include module type of Action with type t = Action.t
+                                   and type cmd = Action.cmd
                                    and type cmds = Action.cmds
 
     val cond : t -> bool Conf.value
@@ -2691,18 +2695,29 @@ module Private : sig
     (** [deps a] is the set of configuration keys which may be needed
         for evaluating the constituents of [a]. *)
 
-    (** {1 Concrete commands} *)
+    (** {1 Commands} *)
 
-    type cmd =
-      { exec : string;
-        args : string list;
-        stdin : Path.rel option;
-        stdout : Path.rel option;
-        stderr : Path.rel option; }
+    val cmd_exec : cmd -> string
+    (** [cmd_exec c] is [c]'s executable. *)
 
-    val eval_cmds : Conf.t -> t -> Args.t -> cmd list
-    (** [eval_cmds conf a args] is [a]'s command sequence in
-        configuration [conf] and with argument bundle [args]. *)
+    val cmd_args : cmd -> string list
+    (** [cmd_args cmd] are [c]'s arguments. *)
+
+    val cmd_args_with_ctx : Conf.t -> Ctx.t -> Args.t -> cmd ->
+      string list
+    (** [cmd_args_with_ctx conf ctx args cmd] are [c]'s arguments
+        prepended with the arguments found [args] for the context [ctx]
+        augmented with [c]'s {!Ctx.command} element in configuration
+        [conf]. *)
+
+    val cmd_stdin : cmd -> Path.rel option
+    (** [cmd_stdin c] is [c]'s stdin redirection (if any). *)
+
+    val cmd_stdout : cmd -> Path.rel option
+    (** [cmd_stdout c] is [c]'s stdout redirection (if any). *)
+
+    val cmd_stderr : cmd -> Path.rel option
+    (** [cmd_stderr c] is [c]'s stderr redirection (if any). *)
   end
 
   (** Parts. *)
@@ -2713,6 +2728,10 @@ module Private : sig
     include module type of Part with type kind = Part.kind
                                  and type +'a t = 'a Part.t
                                    constraint 'a = [< part_kind ]
+
+    val ctx : 'a t -> Ctx.t
+    (** [ctx p] is a context that describes [p] using {{!type:Ctx.part}part
+        context elements}. *)
 
     val deps : 'a t -> Conf.Key.Set.t
     (** [deps a] is the set of configuration keys which may be needed

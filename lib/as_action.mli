@@ -23,13 +23,17 @@
 type product = As_path.rel As_conf.value
 type products = As_path.rel list As_conf.value
 
-val products_keep : (As_path.rel -> bool) -> products -> products
-val products_keep_ext : As_path.ext -> products -> products
-val products_keep_exts : As_path.ext list -> products -> products
-
 (** {1 Build commands} *)
 
-type cmds
+type cmd
+val cmd_exec : cmd -> string
+val cmd_args : cmd -> string list
+val cmd_args_with_ctx : As_conf.t -> As_ctx.t -> As_args.t -> cmd -> string list
+val cmd_stdin : cmd -> As_path.rel option
+val cmd_stdout : cmd -> As_path.rel option
+val cmd_stderr : cmd -> As_path.rel option
+
+type cmds = cmd list As_conf.value
 
 val cmd : ?stdin:product -> ?stdout:product -> ?stderr:product ->
   string As_conf.key -> string list As_conf.value -> cmds
@@ -73,15 +77,6 @@ val inputs : t -> products
 val outputs : t -> products
 val cmds : t -> cmds
 val deps : t -> As_conf.Key.Set.t
-
-type cmd =
-  { exec : string;
-    args : string list;
-    stdin : As_path.rel option;
-    stdout : As_path.rel option;
-    stderr : As_path.rel option; }
-
-val eval_cmds : As_conf.t -> t -> As_args.t -> cmd list
 
 (** Combinators to define build actions.
 

@@ -21,20 +21,25 @@
 
 (** {1 Context elements} *)
 
-type build_phase =
-  [ `Prepare | `Gen | `Dep | `Pp | `Compile | `Archive | `Link | `Doc ]
-
-type language = [ `OCaml | `C | `Js ]
-type ocaml_source = [ `Ml | `Mli ]
-type ocaml_target = [ `Byte | `Native | `Js ]
-type archive_product = [ `Shared ]
-type command = [ `Cmd of string As_conf.key ]
 type tag = [ `Tag of string ]
-type elt =
-  [ build_phase | language | ocaml_source | ocaml_target | archive_product |
-    command | tag ]
+type language = [ `OCaml | `C | `Js | `Lang of string ]
+type build_phase =
+  [ `Gen | `Dep | `Pp | `Compile | `Archive of [ `Static | `Shared ] | `Link
+  | `Doc ]
+
+type source = [ `Src of As_path.ext ]
+type target = [ `Target of [`Src | `Byte | `Native | `Js | `Other of string ]]
+type command = [ `Cmd of string As_conf.key ]
+type part_usage = [ `Build | `Dev | `Doc | `Other of string | `Outcome | `Test ]
+type part_kind =
+  [ `Base | `Bin | `Dir | `Doc | `Lib | `Pkg | `Run | `Silo | `Unit ]
+
+type part = [ `Part of [ part_usage | part_kind | `Name of string ]]
+type elt = [ tag | language | build_phase | source | target | command | part ]
 
 val pp_elt : Format.formatter -> elt -> unit
+val pp_kind : Format.formatter -> part_kind -> unit
+val pp_usage : Format.formatter -> part_usage -> unit
 
 (** {1 Contexts} *)
 

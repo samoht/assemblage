@@ -66,6 +66,7 @@ type ext =
   | `Tbz | `Xml | `Zip
   | `Ext of string ]
 
+val pp_ext : Format.formatter -> ext -> unit
 val ext_to_string : ext -> string
 val ext_of_string : string -> ext
 val has_ext : ext -> [< t ] -> bool

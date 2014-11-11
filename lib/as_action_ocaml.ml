@@ -28,7 +28,7 @@ let debug = add_if_key As_conf.debug (atom "-g") @@ atoms []
 (* Preprocess *)
 
 let compile_src_ast src_kind ~src () =
-  let ctx = As_ctx.v [ `OCaml; `Pp; (src_kind :> As_ctx.elt) ] in
+  let ctx = As_ctx.v [ `OCaml; `Pp; `Src (src_kind :> As_path.ext) ] in
   let cond = As_conf.(value ocaml_build_ast) in
   let outfile = match src_kind with
   | `Ml -> path src ~ext:`Ml_pp
@@ -60,7 +60,7 @@ let mli_compiler = (* don't fail if ocamlc is not available *)
   key ~public:false "ocamlc-mli" string comp
 
 let compile_mli ~incs ~src () =
-  let ctx = As_ctx.v [`OCaml; `Compile; `Mli ] in
+  let ctx = As_ctx.v [`OCaml; `Compile; `Src `Mli ] in
   let cond = As_conf.(value ocaml_native ||| value ocaml_byte) in
   let inputs = (* FIXME add (product src ~ext:`Mli_dep) @@ *) product src in
   let outputs =
@@ -74,7 +74,7 @@ let compile_mli ~incs ~src () =
   As_action.v ~cond ~ctx ~inputs ~outputs cmd
 
 let compile_ml_byte ~has_mli ~incs ~src () =
-  let ctx = As_ctx.v [ `OCaml; `Compile; `Byte ] in
+  let ctx = As_ctx.v [ `OCaml; `Compile; `Src `Ml; `Target `Byte;  ] in
   let cond = As_conf.(value ocaml_byte) in
   let inputs =
     add_if has_mli (product src ~ext:`Cmi) @@
@@ -93,7 +93,7 @@ let compile_ml_byte ~has_mli ~incs ~src () =
   As_action.v ~cond ~ctx ~inputs ~outputs cmd
 
 let compile_ml_native ~has_mli ~incs ~src  () =
-  let ctx = As_ctx.v [ `OCaml; `Compile; `Native ] in
+  let ctx = As_ctx.v [ `OCaml; `Compile; `Src `Ml; `Target `Native; ] in
   let cond = As_conf.(value ocaml_native) in
   let inputs =
     add_if has_mli (product src ~ext:`Cmi) @@
@@ -116,7 +116,7 @@ let compile_ml_native ~has_mli ~incs ~src  () =
 (* Archive *)
 
 let archive_byte ~cmos ~name () =
-  let ctx = As_ctx.v [ `OCaml; `Archive; `Byte ] in
+  let ctx = As_ctx.v [ `OCaml; `Archive `Static ; `Target `Byte ] in
   let cond = As_conf.(value ocaml_byte) in
   let cma = path name ~ext:`Cma in
   let inputs = cmos in
@@ -128,7 +128,7 @@ let archive_byte ~cmos ~name () =
   As_action.v ~cond ~ctx ~inputs ~outputs cmd
 
 let archive_native ~cmx_s ~name () =
-  let ctx = As_ctx.v [ `OCaml; `Archive; `Native ] in
+  let ctx = As_ctx.v [ `OCaml; `Archive `Static ; `Target `Native ] in
   let cond = As_conf.(value ocaml_native) in
   let cmxa = path name ~ext:`Cmxa in
   let inputs = cmx_s in
@@ -140,7 +140,7 @@ let archive_native ~cmx_s ~name () =
   As_action.v ~cond ~ctx ~inputs ~outputs cmd
 
 let archive_shared ~cmx_s ~name () =
-  let ctx = As_ctx.v [ `OCaml; `Archive; `Native; `Shared ] in
+  let ctx = As_ctx.v [ `OCaml; `Archive `Shared; `Target `Native; ] in
   let cond = As_conf.(value ocaml_native &&& value ocaml_native_dynlink) in
   let cmxs = path name ~ext:`Cmxs in
   let inputs = cmx_s in
@@ -157,7 +157,7 @@ let c_compiler = (* don't fail if ocamlc is not available *)
   key ~public:false "ocamlc-c" string comp
 
 let compile_c ~src () =
-  let ctx = As_ctx.v [ `OCaml; `C; `Compile ] in
+  let ctx = As_ctx.v [ `OCaml; `C; `Compile; `Src `C; ] in
   let cond = As_conf.(value ocaml_native ||| value ocaml_byte) in
   let inputs = product src in
   let outputs = product src ~ext:`O in
@@ -166,7 +166,7 @@ let compile_c ~src () =
   As_action.v ~cond ~ctx ~inputs ~outputs cmd
 
 let archive_c ~objs ~name () =
-  let ctx = As_ctx.v [ `OCaml; `C; `Archive; `Shared ] in
+  let ctx = As_ctx.v [ `OCaml; `C; `Archive `Shared; `Target `Native; ] in
   let cond = As_conf.(value ocaml_native ||| value ocaml_byte) in
   let inputs = objs in
   let outputs = add (product name ~ext:`A) @@ product name ~ext:`So in

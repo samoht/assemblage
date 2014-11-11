@@ -137,6 +137,8 @@ let ext_of_string = function
 | "tar" -> `Tar | "tbz"  -> `Tbz | "xml" -> `Xml | "zip" -> `Zip
 | ext -> `Ext ext
 
+let pp_ext ppf e = As_fmt.pp_str ppf (ext_to_string e)
+
 let ext p = match List.rev (segs p) with
 | [] -> None
 | seg :: _ ->

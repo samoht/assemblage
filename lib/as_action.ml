@@ -19,47 +19,41 @@
 type product = As_path.rel As_conf.value
 type products = As_path.rel list As_conf.value
 
-let products_keep pred ps = As_conf.List.keep pred ps
-let products_keep_ext ext ps = products_keep (As_path.has_ext ext) ps
-let products_keep_exts exts ps =
-  let pred f = List.exists (fun e -> As_path.has_ext e f) exts in
-  products_keep pred ps
-
 (* Build commands *)
 
-type cmd_spec =
-  { exec_spec : string As_conf.key;
-    args_spec : string list As_conf.value;
-    stdin_spec : As_path.rel As_conf.value option;
-    stdout_spec : As_path.rel As_conf.value option;
-    stderr_spec : As_path.rel As_conf.value option; }
+type cmd =
+  { exec_key : string As_conf.key;
+    exec : string;
+    args : string list;
+    stdin : As_path.rel option;
+    stdout : As_path.rel option;
+    stderr : As_path.rel option; }
 
-let cmd_deps cmd =
-  let union = As_conf.Key.Set.union in
-  let opt_deps v = match v with
-  | None -> As_conf.Key.Set.empty
-  | Some v -> As_conf.deps v
-  in
-  As_conf.Key.(Set.singleton (V cmd.exec_spec))
-  |> union (As_conf.deps cmd.args_spec)
-  |> union (opt_deps cmd.stdin_spec)
-  |> union (opt_deps cmd.stdout_spec)
-  |> union (opt_deps cmd.stderr_spec)
+let cmd_exec c = c.exec
+let cmd_args c = c.args
+let cmd_args_with_ctx conf ctx args c =
+  let ctx = As_ctx.add (`Cmd c.exec_key) ctx in
+  let injected = As_args.for_ctx conf ctx args in
+  List.rev_append (List.rev injected) c.args
 
-type cmds = cmd_spec list
+let cmd_stdin c = c.stdin
+let cmd_stdout c = c.stdout
+let cmd_stderr c = c.stderr
+
+type cmds = cmd list As_conf.value
 
 let cmd ?stdin ?stdout ?stderr exec args =
-  [{ exec_spec = exec;
-     args_spec = args;
-     stdin_spec = stdin;
-     stdout_spec = stdout;
-     stderr_spec = stderr; }]
+  let stdin = As_conf.Option.wrap stdin in
+  let stdout = As_conf.Option.wrap stdout in
+  let stderr = As_conf.Option.wrap stderr in
+  let cmd exec_key exec args stdin stdout stderr =
+    [{ exec_key; exec; args; stdin; stdout; stderr }]
+  in
+  As_conf.(const cmd $ const exec $ (value exec) $ args $ stdin $ stdout $
+           stderr)
 
-let seq cmds cmds' =  List.rev_append (List.rev cmds) cmds'
+let seq cmds cmds' = As_conf.List.(rev_append (rev cmds) cmds')
 let (<*>) = seq
-let cmds_deps cmds =
-  let add_cmd acc cmd = As_conf.Key.Set.union acc (cmd_deps cmd) in
-  List.fold_left add_cmd As_conf.Key.Set.empty cmds
 
 (* Portable system utility invocations *)
 
@@ -150,36 +144,10 @@ let outputs a = a.outputs (* FIXME should we thread r.cond here ? *)
 let cmds a = a.cmds
 let deps a =
   let union = As_conf.Key.Set.union in
-  cmds_deps a.cmds
-  |> union (As_conf.deps a.cond)
+  (As_conf.deps a.cond)
   |> union (As_conf.deps a.inputs)
   |> union (As_conf.deps a.outputs)
-
-(* Action evaluation *)
-
-type cmd =
-  { exec : string;
-    args : string list;
-    stdin : As_path.rel option;
-    stdout : As_path.rel option;
-    stderr : As_path.rel option; }
-
-let eval_cmds conf a args =
-  let eval_opt_fd fd = match fd with
-  | None -> None
-  | Some v -> Some (As_conf.eval conf v)
-  in
-  let add_cmd acc cmd =
-    let ctx = As_ctx.add (`Cmd cmd.exec_spec) a.ctx in
-    let exec = As_conf.eval conf (As_conf.value cmd.exec_spec) in
-    let injected = As_args.eval_for_ctx conf args ctx in
-    let args = injected @ (As_conf.eval conf cmd.args_spec) in
-    let stdin = eval_opt_fd cmd.stdin_spec in
-    let stdout = eval_opt_fd cmd.stdout_spec in
-    let stderr = eval_opt_fd cmd.stderr_spec in
-    { exec; args; stdin; stdout; stderr } :: acc
-  in
-  List.rev (List.fold_left add_cmd [] a.cmds)
+  |> union (As_conf.deps a.cmds)
 
 (* Action specification combinators *)
 

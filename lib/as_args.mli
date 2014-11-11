@@ -26,6 +26,9 @@ val cargs_cond : cargs -> bool As_conf.value
 val cargs_args : cargs -> string list As_conf.value
 val cargs_deps : cargs -> As_conf.Key.Set.t
 
+
+
+
 (** {1 Argument bundles} *)
 
 type t
@@ -38,8 +41,8 @@ val ( @@@ ) : t -> t -> t
 val concat : t list -> t
 val bindings : t -> (As_ctx.t * cargs list) list
 val deps : t -> As_conf.Key.Set.t
-val for_ctx : t -> As_ctx.t -> cargs list
-val eval_for_ctx : As_conf.t -> t -> As_ctx.t -> string list
+val cargs_for_ctx : As_ctx.t -> t -> cargs list
+val for_ctx : As_conf.t -> As_ctx.t -> t -> string list
 
 (** {1 Built-in argument bundles} *)
 

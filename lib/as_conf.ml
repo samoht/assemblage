@@ -90,7 +90,6 @@ let ( &&& ) a b = const ( && ) $ a $ b
 let pick_if c a b = const (fun c a b -> if c then a else b) $ c $ a $ b
 
 module Option = struct
-
   let wrap = function
   | None -> const None
   | Some v -> const (fun v -> Some v) $ v
@@ -112,7 +111,8 @@ module Option = struct
       const get $ none $ v
 end
 
-module VList = struct (* there's a List = VList at the end of the file *)
+module VList = struct
+  (* N.B. we do module List = VList at the end. *)
 
   let is_empty vs = const (fun l -> l = []) $ vs
   let empty = const []
@@ -123,7 +123,6 @@ module VList = struct (* there's a List = VList at the end of the file *)
   let rev_wrap vs = List.fold_left (fun vs v -> add v vs) (const []) vs
   let rev vs = const List.rev $ vs
   let wrap vs = rev (rev_wrap vs)
-
   let append vs vs' = const List.append $ vs $ vs'
   let rev_append vs vs' = const List.rev_append $ vs $ vs'
   let flatten vs = const List.flatten $ vs

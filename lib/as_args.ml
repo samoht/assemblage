@@ -54,15 +54,15 @@ let deps a =
   let add_ctx _ cargss acc = List.fold_left add_carg acc cargss in
   Cmap.fold add_ctx a As_conf.Key.Set.empty
 
-let for_ctx a ctx =
+let cargs_for_ctx ctx a =
   let add bctx cargs_list acc =
     if not (As_ctx.matches bctx ctx) then acc else
     List.rev_append cargs_list acc
   in
   List.rev (Cmap.fold add a [])
 
-let eval_for_ctx conf a ctx =
-  let cargs = for_ctx a ctx in
+let for_ctx conf ctx a =
+  let cargs = cargs_for_ctx ctx a in
   let add acc cargs =
     if not (As_conf.eval conf cargs.cond) then acc else
     let args = As_conf.eval conf cargs.args in
@@ -75,47 +75,47 @@ let eval_for_ctx conf a ctx =
 let linkall =
   let f = As_conf.const ["-linkall"] in
   concat
-    [ v (As_ctx.v [`OCaml; `Archive; `Shared]) f;
-      v (As_ctx.v [`OCaml; `Link; `Byte]) f;
-      v (As_ctx.v [`OCaml; `Link; `Native]) f;
-      v (As_ctx.v [`OCaml; `Link; `Js]) f; ]
+    [ v (As_ctx.v [`OCaml; `Archive `Shared]) f;
+      v (As_ctx.v [`OCaml; `Link; `Target `Byte]) f;
+      v (As_ctx.v [`OCaml; `Link; `Target `Native]) f;
+      v (As_ctx.v [`OCaml; `Link; `Target `Js]) f; ]
 
 let thread =
   let f = As_conf.const ["-thread"] in
   concat
-    [ v (As_ctx.v [`OCaml; `Compile; `Byte]) f;
-      v (As_ctx.v [`OCaml; `Compile; `Native]) f;
-      v (As_ctx.v [`OCaml; `Link; `Byte]) f;
-      v (As_ctx.v [`OCaml; `Link; `Native]) f; ]
+    [ v (As_ctx.v [`OCaml; `Compile; `Target `Byte]) f;
+      v (As_ctx.v [`OCaml; `Compile; `Target `Native]) f;
+      v (As_ctx.v [`OCaml; `Link; `Target `Byte]) f;
+      v (As_ctx.v [`OCaml; `Link; `Target `Native]) f; ]
 
 let vmthread =
   let f = As_conf.const ["-vmthread"] in
   concat
-    [ v (As_ctx.v [`OCaml; `Compile; `Byte]) f;
-      v (As_ctx.v [`OCaml; `Link; `Byte]) f; ]
+    [ v (As_ctx.v [`OCaml; `Compile; `Target `Byte]) f;
+      v (As_ctx.v [`OCaml; `Link; `Target `Byte]) f; ]
 
 (* FIXME: which phase? *)
 let cclib args =
   let f = As_conf.const (List.map (str "-cclib %s") args) in
   concat
     [ v (As_ctx.v [`OCaml; `Compile; `C]) (As_conf.const args);
-      v (As_ctx.v [`OCaml; `Link; `Byte]) f;
-      v (As_ctx.v [`OCaml; `Link; `Byte]) f; ]
+      v (As_ctx.v [`OCaml; `Link; `Target `Byte]) f;
+      v (As_ctx.v [`OCaml; `Link; `Target `Byte]) f; ]
 
 (* FIXME: which phase? *)
 let ccopt args =
   let f = As_conf.const (List.map (str "-ccopt %s") args) in
   concat
-    [ v (As_ctx.v [`OCaml; `Compile; `Byte]) f;
-      v (As_ctx.v [`OCaml; `Compile; `Native]) f;
+    [ v (As_ctx.v [`OCaml; `Compile; `Target `Byte]) f;
+      v (As_ctx.v [`OCaml; `Compile; `Target `Native]) f;
       v (As_ctx.v [`C; `Compile]) (As_conf.const args);
-      v (As_ctx.v [`OCaml; `Link; `Byte]) f;
-      v (As_ctx.v [`OCaml; `Link; `Native]) f; ]
+      v (As_ctx.v [`OCaml; `Link; `Target `Byte]) f;
+      v (As_ctx.v [`OCaml; `Link; `Target `Native]) f; ]
 
 (* FIXME: which phase? *)
 let stub s =
   concat
-    [ v (As_ctx.v [`OCaml; `Link; `Byte])
+    [ v (As_ctx.v [`OCaml; `Link; `Target `Byte])
         (As_conf.const [str "-cclib -l%s -dllib -l%s" s s]);
-      v (As_ctx.v [`OCaml; `Link; `Native])
+      v (As_ctx.v [`OCaml; `Link; `Target `Native])
         (As_conf.const [str "-cclib -l%s" s]); ]

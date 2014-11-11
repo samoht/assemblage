@@ -20,16 +20,10 @@ let err_coerce k exp = str "part has kind %s not %s" k exp
 
 (* Part kinds *)
 
-type kind =
-  [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo ]
+type kind = [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo ]
 
-let pp_kind ppf k = As_fmt.pp_str ppf begin match k with
-  | `Base -> "base" | `Unit -> "unit" | `Lib -> "lib" | `Bin -> "bin"
-  | `Pkg -> "pkg" | `Run -> "run" | `Doc -> "doc" | `Silo -> "silo"
-  | `Dir -> "dir"
-  end
-
-let str_of_kind = Format.asprintf "%a" pp_kind
+let pp_kind ppf k = As_ctx.pp_kind ppf (k :> kind) (* weird *)
+let str_of_kind k = Format.asprintf "%a" As_ctx.pp_kind k
 
 let kind_root kind name = (* only a suggestion *)
   let part_dir = Format.asprintf "%a-%s" pp_kind kind name in
@@ -39,11 +33,7 @@ let kind_root kind name = (* only a suggestion *)
 (* Usage *)
 
 type usage = [ `Dev | `Test | `Build | `Doc | `Outcome | `Other of string ]
-
-let pp_usage ppf u = As_fmt.pp_str ppf begin match u with
-  | `Dev -> "dev" | `Test -> "test" | `Build -> "build" | `Doc -> "doc"
-  | `Outcome -> "outcome" | `Other s -> s
-  end
+let pp_usage = As_ctx.pp_usage
 
 (* Metadata *)
 
@@ -89,7 +79,7 @@ let v_kind ?(usage = `Outcome) ?(cond = As_conf.true_) ?(meta = meta_nil)
   let root = match root with None -> kind_root kind name | Some r -> r in
   { id = part_id ();
     kind = (kind :> kind);
-    name; usage; cond; meta;
+    name; usage = (usage : usage) ; cond; meta;
     needs = (needs :> kind t list);
     args; root;
     actions = (actions :> kind t -> As_action.t list);
@@ -116,6 +106,11 @@ let deps p =
   let add_action acc a = union acc (As_action.deps a) in
   List.fold_left add_action As_conf.Key.Set.empty (actions p)
   |> union (As_args.deps (args p))
+
+let ctx p = As_ctx.(add (`Part (`Name p.name)) @@
+                    add ((`Part p.kind) :> As_ctx.elt) @@
+                    add ((`Part p.usage) :> As_ctx.elt) @@
+                    empty)
 
   (* FIXME As_action doesn't thread condition, so this is not
      accurate according to config and we should maybe also
