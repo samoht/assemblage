@@ -28,6 +28,7 @@ type products = As_path.t list As_conf.value
 type cmd
 val cmd_cmd : cmd -> string
 val cmd_args : cmd -> string list
+val cmd_ctx : As_ctx.t -> cmd -> As_ctx.t
 val cmd_args_with_ctx : As_conf.t -> As_ctx.t -> As_args.t -> cmd -> string list
 val cmd_stdin : cmd -> As_path.t option
 val cmd_stdout : cmd -> As_path.t option
@@ -65,11 +66,21 @@ val v : ?cond:bool As_conf.value -> ctx:As_ctx.t -> inputs:products ->
   outputs:products -> cmds -> t
 
 val cond : t -> bool As_conf.value
+val args : t -> As_args.t
 val ctx : t -> As_ctx.t
 val inputs : t -> products
 val outputs : t -> products
 val cmds : t -> cmds
 val deps : t -> As_conf.Key.Set.t
+
+val add_inputs : products -> t -> t
+(** [add_inputs ps a] add [ps] to the inputs of [a]. *)
+
+val add_ctx_args : As_ctx.t -> As_args.t -> t -> t
+(** [add_ctx_args ctx args t] adds context [ctx] and argument bundle [args]
+    to [t]. This is used by parts to watermark their actions
+    on {!As_part.actions}. *)
+
 
 (** Combinators to define build actions.
 

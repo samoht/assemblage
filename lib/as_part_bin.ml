@@ -55,25 +55,25 @@ let c = is_kind `C
 let ocaml = is_kind `OCaml
 let ocaml_toplevel = is_kind `OCaml_toplevel
 
+(* Check *)
+
+let check p =
+  let bin = As_part.coerce `Bin p in
+  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind bin);
+  true
+
 (* Actions *)
 
-let ocaml_actions units p = []
-let actions units p = []
-(*
-    let b = coerce `Bin p in
-    let build_dir = As_path.dir (kind_to_string `Bin ^ "-" ^ (name b)) in
-    let env = As_env.push_build_dir env build_dir in
-    let units_actions = List.(flatten (map actions units)) in
-    units_actions @ ocaml_actions units p
-*)
+let actions p =
+  let bin = As_part.coerce `Bin p in
+  As_log.warn "%a part actions are TODO" As_part.pp_kind (As_part.kind bin);
+  []
 
 (* Part *)
 
-let v ?usage ?cond ?(args = As_args.empty) ?byte ?native ?js name kind needs =
+let v ?usage ?cond ?args ?byte ?native ?js name kind needs =
   let meta = meta ?byte ?native ?js kind in
-  let args _ = args in
-  let actions = actions needs in
-  As_part.v_kind ?usage ?cond ~meta ~args ~needs ~actions name `Bin
+  As_part.v_kind ?usage ?cond ?args ~meta ~needs ~actions ~check name `Bin
 
 let of_base ?byte ?native ?js kind p =
   let meta = meta ?byte ?native ?js kind in

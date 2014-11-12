@@ -23,13 +23,18 @@ let get_meta p = As_part.get_meta proj p
 let meta ?(dir = As_conf.(value root_dir)) () = inj { dir }
 let dir p = (get_meta p).dir
 
+(* Checks *)
+
+let check p =
+  let run = As_part.coerce `Run p in
+  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind run);
+  true
+
 (* Run *)
 
-let v ?usage ?cond ?(args = As_args.empty) ?dir name cmds =
+let v ?usage ?cond ?args ?dir name cmds =
   let meta = meta ?dir () in
-  let args _ = args in
-  As_part.v_kind ?usage ?cond ~meta ~args name `Run
-
+  As_part.v_kind ?usage ?cond ?args ~meta ~check name `Run
 
 let of_bin ?usage ?cond ?args ?dir bin cmds = failwith "TODO"
 

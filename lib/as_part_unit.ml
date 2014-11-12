@@ -60,6 +60,12 @@ let src e unit =               (* source file for the unit with extention e *)
   let mk_file d = As_path.(d / (As_part.name unit) + e) in
   As_conf.(const mk_file $ dir unit)
 
+(* Check *)
+
+let check p =
+  let unit = As_part.coerce `Unit p in
+  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind unit);
+  true
 
 (* Actions *)
 
@@ -113,12 +119,12 @@ let src e unit =               (* source file for the unit with extention e *)
 
 let add_if c f v acc = if c then (f v) :: acc else acc
 
-let js_actions args unit =
+let js_actions unit =
   let src = src `Js unit in
-  let dst = As_part.rooted ~ext:`Js unit (As_part.name unit) in
+  let dst = As_part.rooted unit (As_part.name unit) ~ext:`Js in
   As_action.link ~src ~dst () :: []
 
-let c_actions args spec unit =
+let c_actions spec unit =
   (* FIXME for C I think we want to distinguish two backends
      one that goes through ocamlc and the other who goes to Conf.cc.
      This should be reflected in the metadata. *)
@@ -127,13 +133,13 @@ let c_actions args spec unit =
   in
   let src_h = src `H unit in
   let src_c = src `C unit in
-  let dst_h = As_part.rooted ~ext:`H unit (As_part.name unit) in
-  let dst_c = As_part.rooted ~ext:`C unit (As_part.name unit) in
+  let dst_h = As_part.rooted unit (As_part.name unit) ~ext:`H in
+  let dst_c = As_part.rooted unit (As_part.name unit) ~ext:`C in
   add_if has_h (As_action.link ~src:src_h ~dst:dst_h) () @@
   add_if has_c (As_action.link ~src:src_c ~dst:dst_c) () @@
   []
 
-let ocaml_actions args spec unit =
+let ocaml_actions spec unit =
   let has_mli, has_ml = match spec with
   | `Mli -> true, false | `Ml -> false, true | `Both -> true, true
   in
@@ -141,8 +147,8 @@ let ocaml_actions args spec unit =
   let incs = As_conf.(const []) in (* FIXME *)
   let src_mli = src `Mli unit in
   let src_ml = src `Ml unit in
-  let mli = As_part.rooted ~ext:`Mli unit (As_part.name unit) in
-  let ml = As_part.rooted ~ext:`Ml unit (As_part.name unit) in
+  let mli = As_part.rooted unit (As_part.name unit) ~ext:`Mli in
+  let ml = As_part.rooted unit (As_part.name unit) ~ext:`Ml in
   add_if has_mli (As_action.link ~src:src_mli ~dst:mli) () @@
   add_if has_ml (As_action.link ~src:src_ml ~dst:ml) () @@
   add_if has_mli (As_action_ocaml.compile_mli ~incs ~src:mli) () @@
@@ -152,22 +158,18 @@ let ocaml_actions args spec unit =
                    ~has_mli:has_mli_v ~incs ~src:ml) () @@
   []
 
-let actions args p =
+let actions p =
   let unit = As_part.coerce `Unit p in
   match kind unit with
-  | `C spec -> c_actions args spec unit
-  | `Js -> js_actions args unit
-  | `OCaml (spec, _) -> ocaml_actions args spec unit
-
-
+  | `C spec -> c_actions spec unit
+  | `Js -> js_actions unit
+  | `OCaml (spec, _) -> ocaml_actions spec unit
 
 (* Create *)
 
-let v ?usage ?cond ?(args = As_args.empty) ?needs ?dir name kind =
+let v ?usage ?cond ?args ?needs ?dir name kind =
   let meta = meta ?dir kind in
-  let actions = actions args in
-  let args _ = args in
-  As_part.v_kind ?usage ?cond ~meta ~args ~actions ?needs name `Unit
+  As_part.v_kind ?usage ?cond ?args ~meta ?needs ~actions ~check name `Unit
 
 let of_base ?dir kind p =
   let meta = meta ?dir kind in

@@ -81,9 +81,9 @@ module Elt = struct
   | `Lang l -> As_fmt.pp ppf "lang:%s" l
   | `Link -> As_fmt.pp_str ppf "link"
   | `OCaml -> As_fmt.pp_str ppf "ocaml"
-  | `Part (#part_kind as k) -> As_fmt.pp ppf "part:kind:%a" pp_kind k
-  | `Part (#part_usage as u) -> As_fmt.pp ppf "part:usage:%a" pp_usage u
-  | `Part (`Name n) -> As_fmt.pp ppf "part:%s" n
+  | `Part (#part_kind as k) -> As_fmt.pp ppf "part-kind:%a" pp_kind k
+  | `Part (#part_usage as u) -> As_fmt.pp ppf "part-usage:%a" pp_usage u
+  | `Part (`Name n) -> As_fmt.pp ppf "part-name:%s" n
   | `Pp -> As_fmt.pp_str ppf "pp"
   | `Src ext -> As_fmt.pp ppf "src:%a" As_path.pp_ext ext
   | `Tag t -> As_fmt.pp ppf "tag:%s" t
@@ -102,5 +102,5 @@ let v elts = List.fold_left (fun acc e -> add e acc) empty elts
 let matches = subset
 
 let pp ppf c =
-  let pp_sep ppf () = As_fmt.pp ppf "," in
+  let pp_sep ppf () = As_fmt.pp ppf ",@ " in
   As_fmt.pp_list ~pp_sep pp_elt ppf (elements c)

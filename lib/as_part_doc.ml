@@ -45,18 +45,29 @@ let default p = match As_part_unit.kind p with
 
 let dev p = match As_part_unit.kind p with `OCaml _ -> true | _ -> false
 
+(* Check *)
+
+let check p =
+  let doc = As_part.coerce `Doc p in
+  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind doc);
+  true
+
 (* Actions *)
+
+let actions p =
+  let doc = As_part.coerce `Doc p in
+  As_log.warn "%a part actions are TODO" As_part.pp_kind (As_part.kind doc);
+  []
 
 (* Doc *)
 
-let v ?usage ?cond ?(args = As_args.empty) ?keep name kind needs =
+let v ?usage ?cond ?args ?keep name kind needs =
   let _keep = match keep with
   | Some k -> k
   | None -> if usage = Some `Dev then dev else default
   in
   let meta = meta kind in
-  let args _ = args in
-  As_part.v_kind ?usage ?cond ~meta ~needs ~args name `Doc
+  As_part.v_kind ?usage ?cond ?args ~meta ~needs ~actions ~check name `Doc
 
 let of_base kind p =
   let meta = meta kind in

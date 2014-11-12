@@ -39,16 +39,15 @@ val meta_nil : meta
 
 type +'a t constraint 'a = [< kind ]
 
-val v_kind : ?usage:usage -> ?cond:bool As_conf.value -> ?meta:meta ->
-  ?needs:'a t list -> ?args:(kind t -> As_args.t) ->
-  ?root:As_path.rel As_conf.value ->
+val v_kind : ?usage:usage -> ?cond:bool As_conf.value -> ?args:As_args.t ->
+  ?meta:meta -> ?needs:'a t list -> ?root:As_path.rel As_conf.value ->
   ?actions:(kind t -> As_action.t list) -> ?check:(kind t -> bool) ->
   string -> ([< kind] as 'b) -> 'b t
 
-val v : ?usage:usage -> ?cond:bool As_conf.value -> ?meta:meta ->
-  ?needs:'a t list -> ?args:(kind t -> As_args.t) ->
-  ?actions:(kind t -> As_action.t list) ->
-  ?check:(kind t -> bool) -> string -> [> `Base] t
+val v : ?usage:usage -> ?cond:bool As_conf.value -> ?args:As_args.t ->
+  ?meta:meta -> ?needs:'a t list -> ?root:As_path.rel As_conf.value ->
+  ?actions:(kind t -> As_action.t list) -> ?check:(kind t -> bool) ->
+  string -> [> `Base] t
 
 val kind : 'a t -> kind
 val name : 'a t -> string
@@ -62,7 +61,6 @@ val actions : 'a t -> As_action.t list
 val check : 'a t -> bool
 val products : ?exts:As_path.ext list -> 'a t -> As_path.t list As_conf.value
 val id : 'a t -> int
-val sid : 'a t -> string
 val equal : 'a t -> 'b t -> bool
 val compare : 'a t -> 'b t -> int
 val with_kind_meta : ([< kind] as 'b) -> meta -> 'a t -> 'b t
@@ -84,7 +82,7 @@ val coerce_if : ([< kind] as 'b) -> 'a t -> 'b t option
 
 val list_products : ?exts:As_path.ext list -> 'a t list ->
   As_path.t list As_conf.value
-val list_uniq : 'a t list -> 'a t list
+val list_uniq : kind t list -> kind t list
 val list_keep : ('a t -> bool) -> 'a t list -> 'a t list
 val list_keep_map : ('a t -> 'b option) -> 'a t list -> 'b list
 val list_keep_kind : ([< kind] as 'b) -> 'a t list -> 'b t list

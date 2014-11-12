@@ -7,7 +7,11 @@ let dev = Conf.scheme "dev" ~doc:"Convenience scheme for development."
       Conf.def Conf.warn_error true;
       Conf.def Conf.doc true; ]
 
-let schemes = [ dev; ]
+let schemes = [ dev ]
+
+(* Arguments *)
+
+let args = Args.empty
 
 (* OCamlfind packages *)
 
@@ -146,4 +150,4 @@ let parts =
 
 (* The project *)
 
-let () = assemble @@ Project.v "assemblage" ~schemes ~parts
+let () = assemble @@ Project.v "assemblage" ~args ~schemes ~parts

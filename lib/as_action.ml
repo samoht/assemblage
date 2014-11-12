@@ -22,23 +22,24 @@ type products = As_path.t list As_conf.value
 (* Build commands *)
 
 type cmd =
-  { cmd_key : string As_conf.key;
-    cmd : string;
-    args : string list;
-    stdin : As_path.t option;
-    stdout : As_path.t option;
-    stderr : As_path.t option; }
+  { cmd_key : string As_conf.key;      (* Remember the key for the context. *)
+    cmd : string;                     (* This is the evaluation of cmd_key. *)
+    args : string list;                               (* command arguments. *)
+    stdin : As_path.t option;                (* stdin redirection (if any). *)
+    stdout : As_path.t option;              (* stdout redirection (if any). *)
+    stderr : As_path.t option; }            (* stderr redirection (if any). *)
 
 let cmd_cmd c = c.cmd
 let cmd_args c = c.args
-let cmd_args_with_ctx conf ctx args c =
-  let ctx = As_ctx.add (`Cmd c.cmd_key) ctx in
-  let injected = As_args.for_ctx conf ctx args in
-  List.rev_append (List.rev injected) c.args
-
 let cmd_stdin c = c.stdin
 let cmd_stdout c = c.stdout
 let cmd_stderr c = c.stderr
+
+let cmd_ctx ctx c = As_ctx.add (`Cmd c.cmd_key) ctx
+let cmd_args_with_ctx conf ctx args c =
+  let injected = As_args.for_ctx conf (cmd_ctx ctx c) args in
+  List.rev_append (List.rev injected) c.args
+
 
 type cmds = cmd list As_conf.value
 type cmd_gen =
@@ -64,17 +65,16 @@ let cmd_exec ?stdin ?stdout ?stderr c args =
 let seq cmds cmds' = As_conf.List.(rev_append (rev cmds) cmds')
 let (<*>) = seq
 
-
 (* Portable system utility invocations *)
 
 let add v acc = v :: acc
 let add_if b v acc = if b then v :: acc else acc
-let path_arg p = As_path.to_string p
+let path_arg p = As_path.to_string p               (* FIXME quoting issues. *)
 let paths_args_rev ps = List.rev_map As_path.to_string ps
 let paths_args ps = List.rev (paths_args_rev ps)
 
 let dev_null =
-  let dev_null = function
+  let dev_null os = match os with
   | "Win32" -> As_path.file "NUL"
   | _ -> As_path.(root / "dev" / "null")
   in
@@ -133,20 +133,21 @@ let mkdir =
   in
   As_conf.(const make_cmd $ value host_os $ cmd As_conf.mkdir)
 
-
 (* Actions *)
 
 type t =
-  { cond : bool As_conf.value;
-    ctx : As_ctx.t;
-    inputs : As_path.t list As_conf.value;
-    outputs : As_path.t list As_conf.value;
-    cmds : cmds; }
+  { cond : bool As_conf.value;             (* [true] if available in config. *)
+    args : As_args.t;               (* argument bundle to use on evaluation. *)
+    ctx : As_ctx.t;                         (* context to use on evaluation. *)
+    inputs : products;       (* inputs that need to exist and be up to date. *)
+    outputs : products;          (* outputs that need to be touched by cmds. *)
+    cmds : cmds; }                                       (* action commands. *)
 
 let v ?(cond = As_conf.true_) ~ctx ~inputs ~outputs cmds =
-  { cond; ctx; inputs; outputs; cmds }
+  { cond; args = As_args.empty; ctx; inputs; outputs; cmds }
 
 let cond a = a.cond
+let args a = a.args
 let ctx a = a.ctx
 let inputs a = a.inputs   (* FIXME should we thread r.cond here ? *)
 let outputs a = a.outputs (* FIXME should we thread r.cond here ? *)
@@ -154,9 +155,14 @@ let cmds a = a.cmds
 let deps a =
   let union = As_conf.Key.Set.union in
   (As_conf.deps a.cond)
+  |> union (As_args.deps a.args)
   |> union (As_conf.deps a.inputs)
   |> union (As_conf.deps a.outputs)
   |> union (As_conf.deps a.cmds)
+
+let add_inputs ps a = { a with inputs = As_conf.List.append ps a.inputs }
+let add_ctx_args ctx args a =
+  { a with ctx = As_ctx.union ctx a.ctx; args = As_args.append args a.args }
 
 (* Action specification combinators
 

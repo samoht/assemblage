@@ -48,19 +48,25 @@ let is_kind k p = match As_part.coerce_if `Pkg p with
 let ocaml = is_kind `OCaml
 let c = is_kind `C
 
-(* Packages *)
-
 let lookup_args = function
 | `OCaml (`Other (_, args)) -> args
 | `C (`Other (_, args)) -> args
 | `OCaml `OCamlfind -> As_args.empty (* TODO *)
 | `C `Pkg_config -> As_args.empty (* TODO *)
 
-let v ?usage ?cond ?(args = As_args.empty) name kind =
+(* Checks *)
+
+let check p =
+  let pkg = As_part.coerce `Pkg p in
+  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind pkg);
+  true
+
+(* Packages *)
+
+let v ?usage ?cond ?args name kind =
   let lookup = lookup_args kind in
-  let args _ = args in
   let meta = meta kind lookup in
-  As_part.v_kind ?usage ?cond ~meta ~args name `Pkg
+  As_part.v_kind ?usage ?cond ?args ~meta ~check name `Pkg
 
 let of_base kind p =
   let lookup = lookup_args kind in

@@ -41,80 +41,106 @@ type meta = As_univ.t
 let meta_key = As_univ.create
 let meta_nil = fst (meta_key ()) ()
 
-(* Part *)
+(* Part definition, sets and maps *)
 
 type +'a t =
-  { id : int;
-    kind : kind;
-    name : string;
-    usage : usage;
-    cond : bool As_conf.value;
-    meta : meta;
-    needs : kind t list; (* N.B. parts unique but ordered. *)
-    root : As_path.rel As_conf.value;
-    args : kind t -> As_args.t;
-    actions : kind t -> As_action.t list;
-    check : kind t -> bool; }
+  { id : int;                                   (* a unique id for the part. *)
+    kind : kind;                                         (* the part's kind. *)
+    name : string;                      (* the part name, may not be unique. *)
+    usage : usage;                                      (* the part's usage. *)
+    cond : bool As_conf.value;             (* [true] if available in config. *)
+    args : As_args.t;                           (* end user argument bundle. *)
+    meta : meta;                         (* part's metadata (kind specific). *)
+    needs : kind t list;          (* part's need, n.b. unique and *ordered*. *)
+    root : As_path.rel As_conf.value;        (* part's build root directory. *)
+    action_defs : kind t -> As_action.t list;          (* action definition. *)
+    actions : As_action.t list Lazy.t;                    (* part's actions. *)
+    check : kind t -> bool; }               (* part's sanity check function. *)
   constraint 'a = [< kind ]
+
+module Def = struct
+  type part = kind t
+  type t = part
+  let compare p p' = (compare : int -> int -> int) p.id p'.id
+end
+
+module Set = struct
+  include Set.Make (Def)
+  let of_list = List.fold_left (fun acc s -> add s acc) empty
+end
+
+module Map = Map.Make (Def)
+
+(* Part *)
 
 let part_id =
   let count = ref (-1) in
   fun () -> incr count; !count
 
 let list_uniq ps =               (* uniquify part list while keeping order. *)
-  let module Int = struct
-    type t = int
-    let compare : int -> int -> int = compare
-  end in
-  let module Set = Set.Make (Int) in
   let add (seen, ps as acc) p =
-    if Set.mem p.id seen then acc else (Set.add p.id seen), (p :: ps)
+    if Set.mem p seen then acc else (Set.add p seen), (p :: ps)
   in
   List.rev (snd (List.fold_left add (Set.empty, []) ps))
 
-let v_kind ?(usage = `Outcome) ?(cond = As_conf.true_) ?(meta = meta_nil)
-    ?(needs = []) ?(args = fun _ -> As_args.empty) ?root
-    ?(actions = fun _ -> []) ?(check = fun _ -> true) name kind =
-  let needs = list_uniq needs in
+let ctx p =                                      (* a context for the part. *)
+  As_ctx.(add (`Part (`Name p.name)) @@
+          add ((`Part p.kind) :> As_ctx.elt) @@
+          add ((`Part p.usage) :> As_ctx.elt) @@
+          empty)
+
+let compute_actions p = (* gets actions from defining fun, adds ctx and args *)
+  let ctx = ctx p in
+  let add acc a = (As_action.add_ctx_args ctx p.args a) :: acc in
+  List.rev (List.fold_left add [] (p.action_defs p))
+
+let v_kind ?(usage = `Outcome) ?(cond = As_conf.true_) ?(args = As_args.empty)
+    ?(meta = meta_nil) ?(needs = []) ?root ?(actions = fun _ -> [])
+    ?(check = fun _ -> true) name kind =
+  (* Man it's coercion hell in there. *)
+  let needs = (list_uniq (needs :> Set.elt list)) in
   let root = match root with None -> kind_root kind name | Some r -> r in
-  { id = part_id ();
-    kind = (kind :> kind);
-    name; usage = (usage : usage) ; cond; meta;
-    needs = (needs :> kind t list);
-    args; root;
-    actions = (actions :> kind t -> As_action.t list);
-    check = (check :> kind t -> bool); }
+  let rec part =
+    { id = part_id (); kind = (kind :> kind);
+      name; usage; cond; args;
+      meta; needs = (needs :> kind t list); root;
+      action_defs = (actions :> kind t -> As_action.t list);
+      actions = lazy (compute_actions (part :> kind t));
+      check = (check :> kind t -> bool); }
+  in
+  part
 
-let v ?usage ?cond ?meta ?needs ?args ?actions ?check name =
-  v_kind ?usage ?cond ?meta ?needs ?args ?actions ?check name `Base
+let v ?usage ?cond ?args ?meta ?needs ?root ?actions ?check name =
+  v_kind ?usage ?cond ?args ?meta ?needs ?root ?actions ?check name `Base
 
+let id p = p.id
 let kind p = p.kind
 let name p = p.name
 let usage p = p.usage
 let cond p = p.cond
+let args p = p.args
 let meta p = p.meta
+let needs p = p.needs
+let root p = p.root
+let actions p = Lazy.force (p.actions)
+let check p = p.check (p :> kind t)
+
 let get_meta proj p =  match proj p.meta with
 | None -> assert false | Some m -> m
 
-let needs p = p.needs
-let args p = p.args (p :> kind t)   (* FIXME memoize *)
-let actions p = p.actions (p :> kind t) (* FIXME memoize *)
-let check p = p.check (p :> kind t)
-
+(* FIXME a mecanism for meta deps, they are opaque for now. *)
 let deps p =
+  (* Note we don't add p.needs's deps. If they are really needed
+     they will have propagated in our action defs, same for
+     p.args/p.root. *)
   let union = As_conf.Key.Set.union in
   let add_action acc a = union acc (As_action.deps a) in
   List.fold_left add_action As_conf.Key.Set.empty (actions p)
-  |> union (As_args.deps (args p))
+  |> union (As_conf.deps p.cond)
 
-let ctx p = As_ctx.(add (`Part (`Name p.name)) @@
-                    add ((`Part p.kind) :> As_ctx.elt) @@
-                    add ((`Part p.usage) :> As_ctx.elt) @@
-                    empty)
-
-  (* FIXME As_action doesn't thread condition, so this is not
-     accurate according to config and we should maybe also
-     directly thread p.cond *)
+(* FIXME As_action doesn't thread condition, so this is not
+   accurate according to config and we should maybe also
+   directly thread p.cond (likely no, review that again). *)
 let products ?exts p =
   let action_outputs = match exts with
   | None -> As_action.outputs
@@ -124,16 +150,23 @@ let products ?exts p =
   let rev_outputs = List.rev_map action_outputs (actions p) in
   As_conf.List.(flatten (rev_wrap rev_outputs))
 
-let id p = p.id
-let sid p = Format.asprintf "%a-%s" pp_kind p.kind p.name
 let equal p p' = p.id = p'.id
-let compare p p' = (compare : int -> int -> int) p.id p'.id
+let compare = Def.compare
+
+(* FIXME we should make it clear in the {Bin,Unit,...}.of_base part
+   functions that their meta will be overwritten and that they should
+   not try to access it in their def function (that function
+   will get called again if there is a with_root call *)
 let with_kind_meta (#kind as k) meta p = { p with kind = k; meta; }
 
 (* Part root directory *)
 
-let root p = p.root
-let with_root root p = { p with root }
+let with_root root old =
+  let rec newp =
+    { old with root; actions = lazy (compute_actions (newp :> kind t)) }
+  in
+  newp
+
 let rooted ?ext p name =
   let mk_file r = match ext with
   | None -> As_path.(r / name)
@@ -170,21 +203,6 @@ let list_fold f acc ps = List.fold_left f acc ps
 let list_fold_kind kind f acc ps =
   let f acc p = match coerce_if kind p with None -> acc | Some p -> f acc p in
   list_fold f acc ps
-
-(* Part sets and maps *)
-
-module Part = struct
-  type part = kind t
-  type t = part
-  let compare = compare
-end
-
-module Set = struct
-  include Set.Make (Part)
-  let of_list = List.fold_left (fun acc s -> add s acc) empty
-end
-
-module Map = Map.Make (Part)
 
 (* Recursive fold *)
 

@@ -72,11 +72,10 @@ let find_unit u p =
 
 (* Checks *)
 
-let unique_units l = true
 let check p =
-  let l = As_part.coerce `Lib p in
-  let unique_units = unique_units l in
-  unique_units
+  let lib = As_part.coerce `Lib p in
+  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind lib);
+  true
 
 (* Actions *)
 
@@ -85,7 +84,7 @@ let add_if c f v acc = if c then (f v) :: acc else acc
 (* FIXME here we should add rules for ocamldep for each unit. And
    add the dep as an input to its actions. *)
 
-let ocaml_actions args kind lib =
+let ocaml_actions kind lib =
   let name = As_part.rooted lib (As_part.name lib) in
   let not_pp = kind <> `OCaml_pp in
   let reroot acc u = As_part.with_root (As_part.root lib) u :: acc in
@@ -103,20 +102,17 @@ let ocaml_actions args kind lib =
   add_if shared (As_action_ocaml.archive_shared ~cmx_s ~name) () @@
   As_part.list_fold add_actions [] rev_units
 
-let actions args p =
+let actions p =
   let l = As_part.coerce `Lib p in
   match kind p with
-  | `OCaml | `OCaml_pp as k -> ocaml_actions args k l
+  | `OCaml | `OCaml_pp as k -> ocaml_actions k l
   | `C -> As_log.warn "Damned the C library part is TODO"; []
 
 (* Lib *)
 
-let v ?usage ?cond ?(args = As_args.empty) ?byte ?native
-    ?native_dynlink name kind needs  =
+let v ?usage ?cond ?args ?byte ?native ?native_dynlink name kind needs  =
   let meta = meta ?byte ?native ?native_dynlink kind in
-  let actions = actions args in
-  let args _  = args in
-  As_part.v_kind ?usage ?cond ~meta ~args ~needs ~actions name `Lib
+  As_part.v_kind ?usage ?cond ?args ~meta ~needs ~actions ~check name `Lib
 
 let of_base ?byte ?native ?native_dynlink kind p =
   let meta = meta ?byte ?native ?native_dynlink kind in

@@ -110,13 +110,21 @@ let install_lib p product = match As_part.coerce_if `Lib p with
 
 (* Checks *)
 
+let check p =
+  let dir = As_part.coerce `Dir p in
+  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind dir);
+  true
+
 (* Actions *)
 
-let actions keep args d = []
+let actions keep p =
+  let dir = As_part.coerce `Dir p in
+  As_log.warn "%a part actions are TODO" As_part.pp_kind (As_part.kind dir);
+  []
 
 (* Dir *)
 
-let v ?usage ?cond ?(args = As_args.empty) ?keep ?(install = true) kind needs =
+let v ?usage ?cond ?args ?keep ?(install = true) kind needs =
   let keep = match keep with
   | Some keep -> keep
   | None ->
@@ -125,10 +133,10 @@ let v ?usage ?cond ?(args = As_args.empty) ?keep ?(install = true) kind needs =
       | `Lib, true -> install_lib
       | _ -> all
   in
-  let args _ = args in
-  let actions = actions keep args in
+  let actions = actions keep in
   let meta = meta kind install in
-  As_part.v_kind ?usage ?cond ~args ~meta ~actions (name_of_kind kind) `Dir
+  let name = name_of_kind kind in
+  As_part.v_kind ?usage ?cond ?args ~meta ~actions ~check name `Dir
 
 let of_base ?(install = true) kind p =
   let meta = meta kind install in

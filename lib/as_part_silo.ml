@@ -15,11 +15,28 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* Silo *)
+(* Silo
 
-let v ?usage ?cond ?(args = As_args.empty) name ps =
-  let args _ = args in
-  As_part.v_kind ?usage ?cond ~args name `Silo
+   FIXME I wonder if we really still want that. *)
+
+(* Check *)
+
+let check p =
+  let silo = As_part.coerce `Silo p in
+  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind silo);
+  true
+
+(* Actions *)
+
+let actions p =
+  let silo = As_part.coerce `Silo p in
+  As_log.warn "%a part actions are TODO" As_part.pp_kind (As_part.kind silo);
+  []
+
+(* Silos *)
+
+let v ?usage ?cond ?args name needs =
+  As_part.v_kind ?usage ?cond ?args name `Silo
 
 let of_base p =
   let meta = As_part.meta_nil in

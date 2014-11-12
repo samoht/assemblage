@@ -62,6 +62,7 @@ let mk_recipe conf ctx args cmds =
     let redirect op file acc = match file with
     | None -> acc | Some file -> (Path.to_string file) :: op :: acc
     in
+    Log.show "ctx: @[%a@]" Ctx.pp (Action.cmd_ctx ctx cmd);
     let cmdline =
       [Action.cmd_cmd cmd]
       |> List.rev_append (Action.cmd_args_with_ctx conf ctx args cmd)
@@ -74,7 +75,7 @@ let mk_recipe conf ctx args cmds =
   in
   List.rev (List.fold_left add_cmd [] cmds)
 
-let mk_action part gen action =
+let mk_action gen action =
   if not (Project.eval gen.proj (Action.cond action)) then gen else
   let inputs = Project.eval gen.proj (Action.inputs action) in
   let outputs = Project.eval gen.proj (Action.outputs action) in
@@ -82,13 +83,15 @@ let mk_action part gen action =
   let order_only_prereqs = List.rev_map Path.to_string dirs in
   let prereqs = List.rev_map Path.to_string (List.rev inputs) in
   let targets = List.rev_map Path.to_string (List.rev outputs) in
-  let cmds = Project.eval gen.proj (Action.cmds action) in
-  let ctx = Ctx.union (Part.ctx part) (Action.ctx action) in
-  let args = Part.args part in
-  let recipe = mk_recipe (Project.conf gen.proj) ctx args cmds in
-  let dirs = List.fold_left (fun set d -> Path.Set.add d set) gen.dirs dirs in
+  let recipe =
+    let ctx = Action.ctx action in
+    let args = Args.append (Project.args gen.proj) (Action.args action) in
+    let cmds = Project.eval gen.proj (Action.cmds action) in
+    mk_recipe (Project.conf gen.proj) ctx args cmds
+  in
   let rule = Makefile.rule ~order_only_prereqs ~targets ~prereqs ~recipe () in
   let rmk = rule :: gen.rmk in
+  let dirs = List.fold_left (fun set d -> Path.Set.add d set) gen.dirs dirs in
   { gen with dirs; rmk; }
 
 let mk_part gen p =
@@ -100,7 +103,7 @@ let mk_part gen p =
       let kind = Part.kind p in
       let comment = str "%a-%s rules" Part.pp_kind kind name in
       let rmk = `Blank :: `Comment comment :: `Blank :: gen.rmk in
-      List.fold_left (mk_action p) { gen with rmk } actions
+      List.fold_left mk_action { gen with rmk } actions
 
 let mk_gen_dirs gen =
   let add_dir dir gen =
