@@ -18,18 +18,14 @@
 (* Metadata *)
 
 type kind = [ `OCaml | `OCaml_toplevel | `C ]
-type bla = Blu
+
 let pp_kind ppf k = As_fmt.pp_str ppf begin match k with
   | `OCaml -> "OCaml" | `OCaml_toplevel -> "OCaml_toplevel" | `C -> "C"
   end
 
-type meta =
-  { kind : kind;
-    native : bool;
-    byte : bool;
-    js : bool }
+type meta = { kind : kind; native : bool; byte : bool; js : bool }
 
-let inj, proj = As_part.meta_key ()
+let inj, proj = As_part.(meta_key meta_deps_none)
 let get_meta p = As_part.get_meta proj p
 let meta ?byte ?native ?js kind =
   let def_byte, def_nat, def_js = match kind with

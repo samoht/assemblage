@@ -32,9 +32,17 @@ let pp_usage = As_ctx.pp_usage
 
 (* Metadata *)
 
-type meta = As_univ.t
-let meta_key = As_univ.create
-let meta_nil = fst (meta_key ()) ()
+type meta = { meta : As_univ.t; meta_deps : As_univ.t -> As_conf.Key.Set.t }
+
+let meta_key deps =
+  let inj, proj = As_univ.create () in
+  let meta_deps m = match proj m with None -> assert false | Some m -> deps m in
+  let inj meta = { meta = inj meta; meta_deps } in
+  let proj m = proj m.meta in
+  inj, proj
+
+let meta_deps_none _ = As_conf.Key.Set.empty
+let meta_nil = fst (meta_key meta_deps_none) ()
 
 (* Part definition, sets and maps *)
 
@@ -49,7 +57,7 @@ type +'a t =
     needs : kind t list;          (* part's need, n.b. unique and *ordered*. *)
     root : As_path.rel As_conf.value;        (* part's build root directory. *)
     action_defs : kind t -> As_action.t list;          (* action definition. *)
-    actions : As_action.t list Lazy.t;                    (* part's actions. *)
+    actions : As_action.t list Lazy.t; (* part's actions (via actions_defs). *)
     check : kind t -> bool; }               (* part's sanity check function. *)
   constraint 'a = [< kind ]
 
@@ -118,7 +126,7 @@ let v_kind ?(usage = `Outcome) ?(cond = As_conf.true_) ?(args = As_args.empty)
     ?(meta = meta_nil) ?(needs = []) ?root ?(actions = fun _ -> [])
     ?(check = fun _ -> true) name kind =
   (* Man it's coercion hell in there. *)
-  let needs = (list_uniq (needs :> Set.elt list)) in
+  let needs = list_uniq (needs :> Set.elt list) in
   let root = match root with
   | None -> alloc_root (kind :> kind) (usage :> usage) name
   | Some r -> r
@@ -151,7 +159,6 @@ let check p = p.check (p :> kind t)
 let get_meta proj p =  match proj p.meta with
 | None -> assert false | Some m -> m
 
-(* FIXME a mecanism for meta deps, they are opaque for now. *)
 let deps p =
   (* Note we don't add p.needs's deps. If they are really needed
      they will have propagated in our action defs, same for
@@ -160,6 +167,7 @@ let deps p =
   let add_action acc a = union acc (As_action.deps a) in
   List.fold_left add_action As_conf.Key.Set.empty (actions p)
   |> union (As_conf.deps p.cond)
+  |> union (p.meta.meta_deps p.meta.meta)
 
 (* FIXME As_action doesn't thread condition, so this is not
    accurate according to config and we should maybe also

@@ -30,11 +30,11 @@ let pp_kind ppf kind = As_fmt.pp_str ppf begin match kind with
   end
 
 let name_of_kind k = Format.asprintf "%a" pp_kind k
-(* FIXME name of `Other will have file seps *)
+(* FIXME name of `Other will have file separators *)
 
 type meta = { kind : kind; install : bool }
 
-let inj, proj = As_part.meta_key ()
+let inj, proj = As_part.(meta_key meta_deps_none)
 let get_meta p = As_part.get_meta proj p
 let meta kind install = inj { kind; install }
 let kind p = (get_meta p).kind

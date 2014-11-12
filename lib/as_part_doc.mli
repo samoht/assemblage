@@ -22,7 +22,9 @@
 (** {1 Metadata} *)
 
 type kind = [ `OCamldoc ]
+
 val pp_kind : Format.formatter -> kind -> unit
+
 val kind : [< `Doc] As_part.t -> [`OCamldoc ]
 val ocamldoc : 'a As_part.t -> [> `Doc ] As_part.t option
 

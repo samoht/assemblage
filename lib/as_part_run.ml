@@ -18,7 +18,8 @@
 (* Metadata *)
 
 type meta = { dir : As_path.t As_conf.value }
-let inj, proj = As_part.meta_key ()
+let meta_deps m = As_conf.deps m.dir
+let inj, proj = As_part.meta_key meta_deps
 let get_meta p = As_part.get_meta proj p
 let meta ?(dir = As_conf.(value root_dir)) () = inj { dir }
 let dir p = (get_meta p).dir

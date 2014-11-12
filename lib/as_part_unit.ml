@@ -32,11 +32,9 @@ let pp_kind ppf k = As_fmt.pp_str ppf begin match k with
   | `OCaml _ -> "OCaml" | `C _ -> "C" | `Js -> "JavaScript"
   end
 
-type meta =
-  { kind : kind;
-    dir : As_path.t As_conf.value }
-
-let inj, proj = As_part.meta_key ()
+type meta = { kind : kind; dir : As_path.t As_conf.value }
+let meta_deps m = As_conf.deps m.dir
+let inj, proj = As_part.meta_key meta_deps
 let get_meta unit = As_part.get_meta proj unit
 let meta ?(dir = As_conf.(value root_dir)) kind = inj { kind; dir }
 

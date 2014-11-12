@@ -1691,12 +1691,7 @@ module Action : sig
   end
 end
 
-(** {1:parts Parts}
-
-    Parts describe logical and higher-level build units using metadata
-    and other parts. Using this information a part defines a set of
-    build products and actions to build them. Use the {{!spec}combinators}
-    to specify your parts. *)
+(** {1:parts Parts} *)
 
 type part_kind =
   [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo ]
@@ -1707,19 +1702,40 @@ type +'a part constraint 'a = [< part_kind ]
 
 (** Parts, parts sets and maps.
 
-    Parts describe logical build units and define a set of
-    build products and how to build them with build actions.
+    A part is a higher-level logical build unit. It has specific
+    metadata that depends on its {{!type:part_kind}kind} and may refer
+    to other parts. Using this information a part defines a set
+    of build actions which in turn define the part's build products.
+    Use the {{!spec}combinators} to specify your parts.
 
-    A part has a name (which may not be unique). It has a
-    {{!type:usage}usage} that indicates roughly in which context it is
-    supposed to be used. It has a {{!cond}configuration condition}
-    that indicates whether the part is available in a given
-    configuration. It has {{!meta}metadata} that is specific to the
-    part's {{!kind}kind}. It has a list of {{!needs}other parts} that
-    it uses to define itself in a part kind dependent manner. It has
-    an {{!args}argument bundle} whose usage is part kind dependent
-    aswell. It has actions, whose outputs define the part's
-    {{!products}products}. *)
+    In addition to part kind specific metadata, any part has the
+    following attributes that you specify:
+    {ul
+    {- A {{!name}name} used to identify the part. Note that it may not
+       be unique. The part's name is often used as metadata itself,
+       e.g. it defines the library name for {{!Lib}library parts} or
+       the name of a {{!Unit} compilation unit}, etc.}
+    {- A {{!type:kind}kind} that identifies the of metadata it needs
+       and the build actions it encapsulates.}
+    {- A {{!type:usage}usage}. This is a broad usage label to classify
+       your parts. It can be used by drivers to derive bureaucratic
+       information about your project. For example if some of
+       your parts are only used for developing the project you
+       should mark them with the [`Dev] usage, this will allow
+       to mark their package dependencies as being developement only.}
+    {- {{!needs}Needs.} This is a list of parts it uses to
+       define its actions. The way needs are used depend
+       on the part kind. FIXME expand on that.}
+    {- A {{!cond}configuration condition} that indicates whether
+       a part is available in a given configuration. For example
+       the existence of a library may depends on the presence
+       of an optional package.}
+    {- An {{!args}argument bundle} which it applies to its
+       actions and to the part it swallows FIXME.}}
+
+    Given all this information a part will give you
+    {{!actions}build actions} which by themselves define build
+    {{!products}build products}. *)
 module Part : sig
 
   (** {1 Kinds} *)
@@ -1751,13 +1767,22 @@ module Part : sig
   (** [pp_usage ppf u] prints an unspecified representation of [u]
       on [ppf]. *)
 
-  (** {1 Metadata} *)
+  (** {1 Metadata}
+
+      FIXME Meta data creation function is currently only exposed in
+      the {{!Private.Part.meta_key}private API}. Not doing so would
+      mean we need to reveal part of the private API (Key sets) and
+      concepts not really relevant to the casual user. We need to
+      decide whether creating new part with metadata is sufficently
+      mundane to be worth it.  My take on this is rather no, you can
+      put your metadata in the [actions] closure (it will also prevent
+      it from being rewritten by [of_base] functions). Metadata is
+      useful if we want to provide a module for a custom part and that
+      other parts use this module directly (like the builtin part
+      do). *)
 
   type meta
   (** The type for part metadata *)
-
-  val meta_key : unit -> ('a -> meta) * (meta -> 'a option)
-  (** [meta_key ()] pairs a metadata injector and projector. *)
 
   val meta_nil : meta
   (** [meta_nil] is metadata that cannot be accessed. *)
@@ -1774,7 +1799,7 @@ module Part : sig
   (** [v ?usage ?cond ?meta ?needs ?args ?actions ?check name] defines
       a base part named [name].
       {ul
-      {- [usage] is the part's usage, default so
+      {- [usage] is the part's usage, default to
          [`Outcome].}
       {- [cond] is configuration condition for the part to
           exist, defaults to {!Conf.true_}.}
@@ -2783,6 +2808,7 @@ module Private : sig
     (** {1 Part} *)
 
     include module type of Part with type kind = Part.kind
+                                 and type meta = Part.meta
                                  and type +'a t = 'a Part.t
                                    constraint 'a = [< part_kind ]
 
@@ -2793,6 +2819,18 @@ module Private : sig
     val deps : 'a t -> Conf.Key.Set.t
     (** [deps a] is the set of configuration keys which may be needed
         for evaluating [a]. *)
+
+    (** {1 Metadata} *)
+
+    val meta_deps_none : 'a -> Conf.Key.Set.t
+    (** [meta_deps_none] is a metadata dependency function that
+        returns {!Conf.Key.Set.empty}. See {!meta_key}. *)
+
+    val meta_key : ('a -> Conf.Key.Set.t) -> ('a -> meta) * (meta -> 'a option)
+    (** [meta_key deps] pairs a metadata injector and projector. The function
+        [deps] must, given a metadata value be able to compute the configuration
+        keys (if any) which are needed for evaluating the elements of the
+        metadata. *)
   end
 
   (** Projects.
