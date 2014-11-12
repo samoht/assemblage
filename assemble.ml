@@ -45,7 +45,6 @@ let lib_assemblage =
       unit "as_part_lib";
       unit "as_part_pkg";
       unit "as_part_run";
-      unit "as_part_silo";
       unit "as_part_unit";
       unit "as_project";
       unit "assemblage" ~kind:(`OCaml (`Both, `Normal)); ]

@@ -29,9 +29,7 @@ type source = [ `Src of As_path.ext ]
 type target = [ `Target of [`Src | `Byte | `Native | `Js | `Other of string ]]
 type command = [ `Cmd of string As_conf.key ]
 type part_usage = [ `Build | `Dev | `Doc | `Other of string | `Outcome | `Test ]
-type part_kind =
-  [ `Base | `Bin | `Dir | `Doc | `Lib | `Pkg | `Run | `Silo | `Unit ]
-
+type part_kind = [ `Base | `Bin | `Dir | `Doc | `Lib | `Pkg | `Run | `Unit ]
 type part = [ `Part of [ part_usage | part_kind | `Name of string ]]
 
 module Elt = struct
@@ -57,7 +55,6 @@ module Elt = struct
   | `Lib -> As_fmt.pp_str ppf "lib"
   | `Pkg -> As_fmt.pp_str ppf "pkg"
   | `Run -> As_fmt.pp_str ppf "run"
-  | `Silo -> As_fmt.pp_str ppf "silo"
   | `Unit -> As_fmt.pp_str ppf "unit"
 
   let pp_usage ppf = function

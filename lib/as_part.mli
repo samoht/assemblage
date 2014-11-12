@@ -21,7 +21,7 @@
 
 (** {1 Part kinds} *)
 
-type kind = [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo ]
+type kind = [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir ]
 val pp_kind : Format.formatter -> kind -> unit
 
 (** {1 Usage} *)

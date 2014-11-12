@@ -1275,8 +1275,7 @@ module Ctx : sig
                     | `Outcome | `Test ]
   (** The type for {{!type:Part.usage}part usages}. *)
 
-  type part_kind = [ `Base | `Bin | `Dir | `Doc | `Lib
-                   | `Pkg | `Run | `Silo | `Unit ]
+  type part_kind = [ `Base | `Bin | `Dir | `Doc | `Lib | `Pkg | `Run | `Unit ]
   (** The type for {{!type:Part.kind}part kinds}. *)
 
   type part = [ `Part of [part_usage | part_kind | `Name of string ] ]
@@ -1693,8 +1692,7 @@ end
 
 (** {1:parts Parts} *)
 
-type part_kind =
-  [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo ]
+type part_kind = [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir ]
 (** The type for part kinds. *)
 
 type +'a part constraint 'a = [< part_kind ]
@@ -1740,8 +1738,7 @@ module Part : sig
 
   (** {1 Kinds} *)
 
-  type kind =
-    [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo ]
+  type kind = [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir ]
   (** The type for part kinds. See the corresponding individual modules
       for more information. *)
 
@@ -2252,7 +2249,7 @@ end
 (** Directory part.
 
     A directory part defines a directory to gather a selection
-    of the build products of a part. *)
+    of the build products of other parts. *)
 module Dir : sig
 
   (** {1 Metadata} *)
@@ -2272,7 +2269,9 @@ module Dir : sig
   (** [kind p] is [p]'s kind. *)
 
   val install : [< `Dir] part -> bool
-  (** [kind p] is [true] if the directory contents is meant to be installed. *)
+  (** [kind p] is [true] if the directory contents is meant to be installed.
+
+      FIXME should we rather derive that from the part's usage ? *)
 
   (** {1 Directory specifiers} *)
 
@@ -2284,7 +2283,7 @@ module Dir : sig
       {- [`Drop] to drop the product from the directory.}
       {- [`Keep] to keep the product in the directory with its basename.}
       {- [`Rename p] to keep the product in the directory but rename it
-       to [p], where [p] is a path relative to the directory}} *)
+         to [p], where [p] is a path relative to the directory}} *)
 
   val all : spec
   (** [all] is a specifier that [`Keep]s any product of any part. *)
@@ -2331,19 +2330,6 @@ module Dir : sig
 
   val of_base : ?install:bool -> kind -> [> `Base] part -> [> `Dir] part
   (** [of_base ?install kind p] is a directory from [p]. See {!v}. *)
-end
-
-(** Parts for build silos.
-
-    FIXME. I think this should be removed. *)
-module Silo : sig
-
-  (** {1 Create} *)
-
-  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
-    string -> 'a part list -> [> `Silo] part
-
-  val of_base : [< `Base] part -> [> `Silo] part
 end
 
 (** Project runs.
@@ -2408,10 +2394,6 @@ val doc : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
 val dir : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t->
   ?keep:Dir.spec -> ?install:bool -> Dir.kind -> 'a part list -> [> `Dir ] part
 (** See {!Dir.v}. *)
-
-val silo : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
-  string -> 'a part list -> [> `Silo] part
-(** See {!Silo.v} *)
 
 val run : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
   ?dir:path -> string -> Action.t -> [> `Run] part

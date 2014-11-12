@@ -43,7 +43,6 @@ module Bin = As_part_bin
 module Pkg = As_part_pkg
 module Doc = As_part_doc
 module Dir = As_part_dir
-module Silo = As_part_silo
 module Run = As_part_run
 
 type part_kind = As_part.kind
@@ -74,9 +73,6 @@ let doc ?usage ?cond ?args ?keep ?(kind = `OCamldoc) name needs =
 
 let dir ?usage ?cond ?args ?keep ?install kind needs =
   Dir.v ?usage ?cond ?args ?keep ?install kind needs
-
-let silo ?usage ?cond ?args name needs =
-  Silo.v ?usage ?cond ?args name needs
 
 let run ?usage ?cond ?args ?dir name action =
   Run.v ?usage ?cond ?args ?dir name action

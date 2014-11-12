@@ -19,7 +19,7 @@ let str = Format.asprintf
 
 (* Part kinds *)
 
-type kind = [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo ]
+type kind = [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir ]
 let pp_kind ppf k = As_ctx.pp_kind ppf (k :> kind) (* weird *)
 
 let err_coerce k exp =
