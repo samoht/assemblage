@@ -40,7 +40,6 @@ let cmd_args_with_ctx conf ctx args c =
   let injected = As_args.for_ctx conf (cmd_ctx ctx c) args in
   List.rev_append (List.rev injected) c.args
 
-
 type cmds = cmd list As_conf.value
 type cmd_gen =
   ?stdin:As_path.t -> ?stdout:As_path.t -> ?stderr:As_path.t ->
@@ -89,6 +88,30 @@ let ln =
       fun src dst -> exec [ "-s"; "-f"; path_arg src; path_arg dst;]
   in
   As_conf.(const make_cmd $ (value host_os) $ (cmd As_conf.ln ))
+
+let ln_rel =
+  (* FIXME here we really mean link src to dst when seen from
+     the empty relative directory. We are using `..` but As_path.t are
+     not supposed to have such segments. Really need to sort out
+     paths. *)
+  let see src ~from:dst = (* src as seen from dst, as short as possible *)
+    let parent = Filename.parent_dir_name in
+    let rec loop src dst = match As_path.Rel.dirname dst with
+    | d when As_path.Rel.is_empty d -> src
+    | d -> loop (As_path.Rel.(base parent // src)) d
+    in
+    match As_path.to_rel src, As_path.to_rel dst with
+    | Some src, Some dst ->
+        let pre = As_path.Rel.find_prefix src dst in
+        let rem p = match As_path.Rel.rem_prefix pre p with
+        | Some p -> p | None -> assert false
+        in
+        As_path.(of_rel (loop (rem src) (rem dst)))
+    | _ -> src
+  in
+  let make_cmd ln src dst = ln (see src ~from:dst) dst in
+  let ln_cmd = ln in
+  As_conf.(const make_cmd $ ln_cmd)
 
 let cp =
   let make_cmd os (exec : cmd_gen) = match os with
@@ -223,23 +246,5 @@ let link ~src ~dst () =
   let ctx = As_ctx.v [ `Link ] in
   let inputs = product src in
   let outputs = product dst in
-  let cmd =
-    (** FIXME here we really mean link src to dst when seen from
-        the root directory. We are using `..` but As_path.t are
-        not supposed to have such segments. Really need to sort out
-        paths. *)
-    let parent = Filename.parent_dir_name in
-    let rec relativize src dst =
-      let rec loop src dst =
-        match As_path.(as_rel (dirname dst)) with
-        | d when As_path.is_current d -> src
-        | d -> loop (As_path.(as_rel (dir parent // src))) d
-      in
-      if not (As_path.(is_rel src) && As_path.(is_rel dst)) then src else
-      As_path.as_path (loop (As_path.as_rel src) (As_path.as_rel dst))
-    in
-    let src = As_conf.(const relativize $ src $ dst) in
-    let act_ln = ln in (* because of existing As_conf.ln *)
-    As_conf.(List.singleton (act_ln $ src $ dst))
-  in
+  let cmd = As_conf.(List.singleton (ln_rel $ src $ dst)) in
   v ~ctx ~inputs ~outputs cmd

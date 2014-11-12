@@ -52,8 +52,8 @@ type +'a part = 'a As_part.t
 
 type path = Path.t Conf.value
 
-let root = Conf.(const As_path.current)
-let ( / ) p seg = Conf.(const Path.concat_seg $ p $ const seg)
+let root = Conf.(const As_path.empty)
+let ( / ) p seg = Conf.(const Path.add $ p $ const seg)
 
 let unit ?usage ?cond ?args ?needs ?(kind = `OCaml (`Both, `Normal)) ?dir name =
   Unit.v ?usage ?cond ?args ?needs ?dir name kind

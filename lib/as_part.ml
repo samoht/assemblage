@@ -102,7 +102,7 @@ let alloc_root =
         allocated := As_string.Set.add !candidate !allocated;
         !candidate
     in
-    let in_build_dir build = As_path.(as_rel (build / part_root)) in
+    let in_build_dir build = As_path.Rel.(build / part_root) in
     As_conf.(const in_build_dir $ (value As_conf.build_dir))
 
 let list_uniq ps =               (* uniquify part list while keeping order. *)
@@ -200,8 +200,8 @@ let with_root root old =
 
 let rooted ?ext p name =
   let mk_file r = match ext with
-  | None -> As_path.(r / name)
-  | Some e -> As_path.(r / name + e)
+  | None -> As_path.(of_rel (Rel.(r / name)))
+  | Some e -> As_path.(of_rel (Rel.(r / name + e)))
   in
   As_conf.(const mk_file $ p.root)
 

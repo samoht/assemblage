@@ -30,7 +30,7 @@ end
 
 module Install = struct
 
-  type move = string * string option * bool
+  type move = Path.t * Path.t option * bool
 
   let move ?(maybe = false) ?dst src = (src, dst, maybe)
 
@@ -64,8 +64,11 @@ module Install = struct
         pr "%s: [\n  \"" field;
       end;
       if maybe then pr "?";
-      pr "%s\"" src;
-      (match dst with None -> () | Some dst -> pr " {\"%s\"}" dst);
+      pr "%s\"" (Path.to_string src);
+      begin match dst with
+      | None -> ()
+      | Some dst -> pr " {\"%s\"}" (Path.to_string dst)
+      end;
       field
     in
     (match header with None -> () | Some h -> pr "# %s\n\n" h);
@@ -76,35 +79,51 @@ module Install = struct
 
   (* For an assemblage project *)
 
+  let err_abs_product = format_of_string
+      "`Dir@ part@ has@ an@ absolute@ product@ (%a)@ (custom@ `Dir@ part ?)."
+
+  let err_no_prefix = format_of_string
+      "`Dir@ part@ product@ (%a) is@ not@ a@ prefix@ of@ part@ directory\
+       @ root (%a) (custom `Dir@ part ?)."
+
   let of_project ?(add = []) proj =
-    let init = add in
-    let add_products ?prefix elt d acc =
-      let add_product acc p =
-        (* FIXME handle dst correctly: we should respect the hierarchy that
-           the products give us up to the the Dir build root. *)
-        let dst = match prefix with
-        | None -> Path.(basename p)
-        | Some other -> Path.(to_string (other / (basename p)))
-        in
-        elt (move (Path.to_string p) ~dst) :: acc
+    let add_products ?prefix dir_root acc products elt =
+      let add_product acc product = match Path.to_rel product with
+      | None -> Log.err err_abs_product Path.pp product; acc
+      | Some product ->
+          match Path.Rel.rem_prefix dir_root product with
+          | None ->
+              Log.err err_no_prefix Path.Rel.pp product Path.Rel.pp dir_root;
+              acc
+          | Some dst ->
+              let dst = match prefix with
+              | None -> Path.of_rel dst
+              | Some other -> Path.(other // dst)
+              in
+              elt (move (Path.of_rel product) ~dst) :: acc
       in
-      List.fold_left add_product acc (Project.eval proj (Part.products d))
+      List.fold_left add_product acc products
     in
-    let add_dir acc d =
-      if not (Dir.install d) && Project.eval proj (Part.cond d) then acc else
-      match Dir.kind d with
-      | `Bin -> add_products (fun m -> `Bin m) d acc
-      | `Doc -> add_products (fun m -> `Doc m) d acc
-      | `Etc -> add_products (fun m -> `Etc m) d acc
-      | `Lib -> add_products (fun m -> `Lib m) d acc
-      | `Man -> add_products (fun m -> `Man m) d acc
-      | `Other o -> add_products ~prefix:o (fun m -> `Misc m) d acc
-      | `Sbin -> add_products (fun m -> `Sbin m) d acc
-      | `Share -> add_products (fun m -> `Share m) d acc
-      | `Share_root -> add_products (fun m -> `Share_root m) d acc
-      | `Stublibs -> add_products (fun m -> `Stublibs m) d acc
-      | `Toplevel -> add_products (fun m -> `Toplevel m) d acc
+    let add_dir acc dir =
+      if not (Dir.install dir && Project.eval proj (Part.cond dir))
+      then acc else
+      let dir_root = Project.eval proj (Part.root dir) in
+      let products = Project.eval proj (Part.products dir) in
+      let add_products ?prefix = add_products ?prefix dir_root acc products in
+      match Dir.kind dir with
+      | `Bin -> add_products (fun m -> `Bin m)
+      | `Doc -> add_products (fun m -> `Doc m)
+      | `Etc -> add_products (fun m -> `Etc m)
+      | `Lib -> add_products (fun m -> `Lib m)
+      | `Man -> add_products (fun m -> `Man m)
+      | `Other o -> add_products ~prefix:o (fun m -> `Misc m)
+      | `Sbin -> add_products (fun m -> `Sbin m)
+      | `Share -> add_products (fun m -> `Share m)
+      | `Share_root -> add_products (fun m -> `Share_root m)
+      | `Stublibs -> add_products (fun m -> `Stublibs m)
+      | `Toplevel -> add_products (fun m -> `Toplevel m)
     in
     let header = `Header (Some (Project.watermark_string proj)) in
+    let init = add in
     header, Part.list_fold_kind `Dir add_dir init (Project.parts proj)
 end

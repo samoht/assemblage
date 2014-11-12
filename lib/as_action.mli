@@ -52,6 +52,7 @@ val ( <*> ) : cmds -> cmds -> cmds
 val dev_null : As_path.t As_conf.value
 
 val ln : (As_path.t -> As_path.t -> cmd) As_conf.value
+val ln_rel : (As_path.t -> As_path.t -> cmd) As_conf.value
 val cp : (As_path.t -> As_path.t -> cmd) As_conf.value
 val mv : (As_path.t -> As_path.t -> cmd) As_conf.value
 val rm_files : (?f:bool -> As_path.t list -> cmd) As_conf.value

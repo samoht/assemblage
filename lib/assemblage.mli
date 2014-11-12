@@ -208,107 +208,108 @@ module Path : sig
   type filename = string
   (** The type for file names (basenames). *)
 
-  type segs
-  (** The type for lists of path segments. *)
+  type rel
+  (** The type for relative paths. *)
 
-  type rel = [`Rel of segs]
-  (** The type for relative file paths. The empty list of segments denotes
-      the current directory. *)
+  type abs
+  (** The type for absolute paths. *)
 
-  type abs = [`Abs of segs]
-  (** The type for absolute file paths. The empty list of segments denotes
-      the root directory. *)
+  type t
+  (** The type for absolute or relative paths. *)
 
-  type t = [ abs | rel ]
-  (** The type for paths. Either relative or absolute paths. *)
+  val root : t
+  (** [root] is the root absolute path (empty list of segments). *)
 
-  val current : [> rel]
-  (** [current] is the current directory for relative paths. *)
+  val empty : t
+  (** [empty] is the empty relative path (empty list of segments). *)
 
-  val root : [> abs]
-  (** [root] is the root directory for absolute paths. *)
+  val dash : t
+  (** [dash] is the ["-"] relative path. *)
 
-  val dash : [> rel]
-  (** [dash] is {!file}[ "-"]. *)
+  val add : t -> string -> t
+  (** [add p seg] concatenates [seg] at the end of [p]. For any [p],
+      [add p "" = p]. *)
 
-  val is_current : [> rel] -> bool
-  (** [is_current p] is true iff [p] is {!current}. *)
+  val concat : t -> rel -> t
+  (** [concat p p'] concatenates [p'] at the end of [p]. *)
 
-  val is_root : [> abs] -> bool
-  (** [is_root p] is true iff [p] is {!root}. *)
+  val ( / ) : t -> string -> t
+  (** [p / c] is [add p c]. Left associative. *)
 
-  val is_rel : [> rel] -> bool
-  (** [is_rel p] is [true] iff [p] is a relative path. *)
+  val ( // ) : t -> rel -> t
+  (** [p // p'] is [concat p p']. Left associative. *)
 
-  val is_abs : [> abs] -> bool
-  (** [is_abs p] is [true] iff [p] is an absolute path. *)
+  val file : filename -> t
+  (** [file name] is [add empty f]. *)
 
-  val is_dash : [> rel] -> bool
-  (** [is_dash] is [true] iff [p] is {!dash}. *)
+  val base : string -> t
+  (** [base name] is [add empty f]. *)
 
-  val as_rel : t -> rel
-  (** [as_rel p] is [p] as a relative path.
-
-      @raise Invalid_argument if [p] is an absolute path. *)
-
-  val as_abs : t -> abs
-  (** [as_abs p] is [p] as an absolute path.
-
-      @raise Invalid_argument if [p] is a relative path. *)
-
-  val as_path : [< t ] -> t
-  (** [as_path p] is [p]. *)
-
-  val basename : [< t ] -> string
+  val basename : t -> string
   (** [basename p] is the basename of [p]. If [p] has no segments the
       empty string is returned. *)
 
-  val dirname : [< t ] -> t
+  val dirname :  t -> t
   (** [dirname p] is the dirname of [p]. If [p] has no segments [p]
       is returned. *)
 
-  val concat_seg : [< t ] -> string -> t
-  (** [concat_seg p seg] concatenates [seg] at the end of [p]. For any [p],
-      [concat_seg p "" = p]. *)
+  val rem_prefix : t -> t -> rel option
+  (** [rem_prefix pre p] is [p] with the literal prefix [pre] removed. [None] if
+      [pre] is not a prefix of [p]. *)
 
-  val concat : [< t ] -> rel -> t
-  (** [concat p p'] concatenates [p'] at the end of [p]. *)
+  val find_prefix : t -> t -> t option
+  (** [find_prefix p p'] is a common prefix for [p] and [p']. There is
+      always a common prefix between path of the same kind (either {!root}
+      or {!empty} and [None] is only returned if [p] and [p'] are of
+      different kind. *)
 
-  val ( / ) : [< t ]  -> string -> t
-  (** [p / c] is [concat_seg p c]. Left associative. *)
+  (** {1 Predicates and comparison} *)
 
-  val ( // ) : [< t ] -> rel -> t
-  (** [p // p'] is [concat p p']. Left associative. *)
+  val is_root : t -> bool
+  (** [is_root p] is [true] iff [p] is {!root}. *)
 
-  val file : filename -> [> rel]
-  (** [file f] is the relative path to file name [f].
-      Equivalent to [current / f]. *)
+  val is_empty : t -> bool
+  (** [is_empty p] is [true] iff [p] is {!empty}. *)
 
-  val dir : string -> [> rel]
-  (** [dir d] is the relative path to directory [d].
-      Equivalent to [current / d]. *)
+  val is_dash : t -> bool
+  (** [is_dash p] is [true] iff [p] is {!dash}. *)
 
-  val rel_of_segs : string list -> t
-  (** [rel_of_segs segs] is a relative path from segments [segs]. *)
+  val is_rel : t -> bool
+  (** [is_rel p] is [true] iff [p] is a relative path. *)
 
-  val abs_of_segs : string list -> t
-  (** [abs_of_segs segs] is an absolute path from segments [segs]. *)
+  val is_abs : t -> bool
+  (** [is_abs p] is [true] iff [p] is an absolute path. *)
 
-  val to_abs : ?rel_base:abs -> [< t ] -> t
-  (** [to_abs rel_base p] is [p] if [p] is absolute and [rel_base // p] if
-      [p] is relative. [rel_base] defaults to {!root}. *)
+  val is_prefix : t -> t -> bool
+  (** [is_prefix p p'] is [true] if [p] is a literal prefix of [p']. *)
 
   val equal : t -> t -> bool
   (** [equal p p'] is [p = p']. *)
 
-  val compare : t -> t -> int
+  val compare : t  -> t -> int
   (** [compare p p'] is [Pervasives.compare p p']. *)
 
-  val quote : [< t ] -> string
-  (** [quote p] is the path [p] as a string, quoted according
-      to the driver's platform conventions with {!Filename.quote}. *)
+  (** {1 Conversions} *)
 
-  val to_string : [< t ] -> string
+  val to_rel : t -> rel option
+  (** [to_rel p] is [Some r] if [p] is a relative path. *)
+
+  val of_rel : rel -> t
+  (** [of_rel r] is [r] as a path. *)
+
+  val to_abs : t -> abs option
+  (** [to_abs p] is [Some a] if [p] is an absolute path. *)
+
+  val of_abs : abs -> t
+  (** [of_abs a] is [a] as a path. *)
+
+  val to_segs : t -> [ `Abs of string list | `Rel of string list ]
+  (** [to_segs p] is [p]'s segments. *)
+
+  val of_segs : [ `Abs of string list | `Rel of string list ] -> t
+  (** [of_segs segs] is a path from [segs] segments. *)
+
+  val to_string : t -> string
   (** [to_string p] is the path [p] as a string according to
       the driver's platform convention with {!Filename.dir_sep}. *)
 
@@ -316,68 +317,293 @@ module Path : sig
   (** [of_string s] is the string [s] as a path. [s] is splitted
       according to the driver's platform convention with {!Filename.dir_sep}. *)
 
+  val quote : t -> string
+  (** [quote p] is the path [p] as a string, quoted according
+       to the driver's platform conventions with {!Filename.quote}. *)
+
   val pp : Format.formatter -> t -> unit
   (** [pp ppf p] prints path [p] on [ppf] using {!to_string}. *)
 
   (** {1 File extensions} *)
 
   type ext =
-  [ `A | `Byte | `C | `Cma | `Cmi | `Cmo | `Cmt | `Cmti | `Cmx | `Cmxa
-  | `Cmxs | `Css | `Dll | `Exe | `Gif | `H | `Html | `Install | `Img
-  | `Jpeg | `Js | `Json | `Lib | `Md | `Ml | `Ml_dep | `Ml_pp | `Mli
-  | `Mli_dep | `Mli_pp | `Native | `O | `Opt | `Png | `Sh | `So | `Tar
-  | `Tbz | `Xml | `Zip
-  | `Ext of string ]
+    [ `A | `Byte | `C | `Cma | `Cmi | `Cmo | `Cmt | `Cmti | `Cmx | `Cmxa
+    | `Cmxs | `Css | `Dll | `Exe | `Gif | `H | `Html | `Install | `Img
+    | `Jpeg | `Js | `Json | `Lib | `Md | `Ml | `Ml_dep | `Ml_pp | `Mli
+    | `Mli_dep | `Mli_pp | `Native | `O | `Opt | `Png | `Sh | `So | `Tar
+    | `Tbz | `Xml | `Zip
+    | `Ext of string ]
   (** The type for file extensions. *)
 
-  val pp_ext : Format.formatter -> ext -> unit
-  (** [pp_ext ppf p] prints file extension [ext] on [ppf] using
-      {!ext_to_string}. *)
-
   val ext_to_string : ext -> string
-  (** [ext_to_string ext] is [ext] as a string (without seperator). *)
+  (** [ext_to_string ext] is [ext] as a string (without separator). *)
 
   val ext_of_string : string -> ext
-  (** [ext_of_string ext] is [ext] as a file extension. *)
+  (** [ext_of_string ext] is [ext] as a file extension ([ext] without separator). *)
 
-  val has_ext : ext -> [< t ] -> bool
-  (** [has_ext p ext] is [true] iff [p]'s last segment has file extension
-      [ext]. *)
+  val pp_ext : Format.formatter -> ext -> unit
+  (** [pp_ext ppf p] prints file extension [ext] on [ppf] using {!ext_to_string}. *)
 
-  val ext_matches : ext list -> [< t ] -> bool
-  (** [ext_matches exts p] is [true] iff [p]'s last segment has a file
-      extension in [exts]. *)
-
-  val ext : [< t ] -> ext option
+  val ext : t -> ext option
   (** [ext p] is [p]'s last segment file extension (if any). *)
 
-  val get_ext : [< t ] -> ext
+  val get_ext : t -> ext
   (** [get_ext p] is [p]'s last segment file extension.
 
       @raise Invalid_argument if [p]'s last segment has no file extension. *)
 
-  val add_ext : [< t ] -> ext -> t
-  (** [add_ext p ext] is [p] with [ext] concatenated to the {!basename}
-      of [p]. *)
+  val add_ext : t -> ext -> t
+  (** [add_ext p ext] is [p] with [ext] concatenated to [p]'s last segment. *)
 
-  val rem_ext : [< t ] -> t
-  (** [rem_ext p] is [p] with [ext] removed from the {!basename} of
-      [p] (if it has an extension). *)
+  val rem_ext : t -> t
+  (** [rem_ext p] is [p] with [ext] removed from [p]'s last segment (if it has an
+      extension). *)
 
-  val change_ext : [< t ] -> ext -> t
+  val change_ext : t -> ext -> t
   (** [change_ext p e] is [add_ext (rem_ext p)]. *)
 
-  val ( + ) : [< t ] -> ext -> t
+  val ( + ) : t -> ext -> t
   (** [p + ext] is [add_ext p e]. Left associative. *)
 
-  val ( -+ ) : [< t ] -> ext -> t
-  (** [p -+ ext] is [change_ext p e]. Left associative. *)
+  val has_ext : ext -> t -> bool
+  (** [has_ext p ext] is [true] iff [p]'s last segment has file extension [ext]. *)
+
+  val ext_matches : ext list -> t -> bool
+  (** [ext_matches exts p] is [true] iff [p]'s last segment has a file extension
+      in [exts]. *)
+
+  (** {1 Relative paths} *)
+
+  (** Relative paths. *)
+  module Rel : sig
+
+    (** {1 Relative paths} *)
+
+    type path = t
+    (** The type for absolute or relative paths. *)
+
+    type t = rel
+    (** The type for relative paths. *)
+
+    val empty : rel
+    (** See {!Path.empty}. *)
+
+    val dash : rel
+    (** See {!Path.dash}. *)
+
+    val add : rel -> string -> rel
+    (** See {!Path.add}. *)
+
+    val concat : rel -> rel -> rel
+    (** See {!Path.concat}. *)
+
+    val file : filename -> rel
+    (** [file name] is [add empty f]. *)
+
+    val base : string -> rel
+    (** [base name] is [add empty f]. *)
+
+    val ( / ) : rel -> string -> rel
+    (** See {!Path.( / )}. *)
+
+    val ( // ) : rel -> rel -> rel
+    (** See {!Path.( // )}. *)
+
+    val basename : rel -> string
+    (** See {!Path.basename}. *)
+
+    val dirname :  rel -> rel
+    (** See {!Path.dirname}. *)
+
+    val rem_prefix : rel -> rel -> rel option
+    (** See {!Path.rem_prefix}. *)
+
+    val find_prefix : rel -> rel -> rel
+    (** See {!Path.find_prefix}. *)
+
+    (** {1 Predicates and comparison} *)
+
+    val is_empty : rel -> bool
+    (** See {!Path.is_empty}. *)
+
+    val is_dash : rel -> bool
+    (** See {!Path.is_dash}. *)
+
+    val is_prefix : rel -> rel -> bool
+    (** See {!Path.is_prefix}. *)
+
+    val equal : rel -> rel -> bool
+    (** See {!Path.equal}. *)
+
+    val compare : rel  -> rel -> int
+    (** See {!Path.compare}. *)
+
+    (** {1 Conversions} *)
+
+    val to_segs : rel -> string list
+    (** [to_segs r] is [r]'s segments. *)
+
+    val of_segs : string list -> rel
+    (** [of_segs segs] is a path from [segs] segments. *)
+
+    val to_string : rel -> string
+    (** See {!Path.to_string}. *)
+
+    val quote : rel -> string
+    (** See {!Path.quote}. *)
+
+    val pp : Format.formatter -> rel -> unit
+    (** See {!Path.pp}. *)
+
+    (** {1 File extensions} *)
+
+    val ext : rel -> ext option
+    (** See {!Path.ext}. *)
+
+    val get_ext : rel -> ext
+    (** See {!Path.get_ext}. *)
+
+    val add_ext : rel -> ext -> rel
+    (** See {!Path.add_ext}. *)
+
+    val rem_ext : rel -> rel
+    (** See {!Path.rem_ext}. *)
+
+    val change_ext : rel -> ext -> rel
+    (** See {!Path.change_ext}. *)
+
+    val ( + ) : rel -> ext -> rel
+    (** See {!Path.( + )}. *)
+
+    val has_ext : ext -> rel -> bool
+    (** See {!Path.has_ext}. *)
+
+    val ext_matches : ext list -> rel -> bool
+    (** See {!Path.ext_matches}. *)
+
+    (** {1 Path sets and maps} *)
+
+    module Set : sig
+      include Set.S with type elt = rel
+      val of_list : elt list -> t
+    end
+
+    module Map : Map.S with type key = rel
+
+  end
+
+  (** {1 Absolute paths} *)
+
+  (** Absolute paths. *)
+  module Abs : sig
+
+    (** {1 Absolute paths} *)
+
+    type path = t
+    (** The type for absolute or relative paths. *)
+
+    type t = abs
+    (** The type for absolute paths. *)
+
+    val root : abs
+    (** See {!Path.root}. *)
+
+    val add : abs -> string -> abs
+    (** See {!Path.add}. *)
+
+    val concat : abs -> rel -> abs
+    (** See {!Path.concat}. *)
+
+    val ( / ) : abs -> string -> abs
+    (** See {!Path.( / )}. *)
+
+    val ( // ) : abs -> rel -> abs
+    (** See {!Path.( // )}. *)
+
+    val basename : abs -> string
+    (** See {!Path.basename}. *)
+
+    val dirname :  abs -> abs
+    (** See {!Path.dirname}. *)
+
+    val rem_prefix : abs -> abs -> rel option
+    (** See {!Path.rem_prefix}. *)
+
+    val find_prefix : abs -> abs -> abs
+    (** See {!Path.find_prefix}. *)
+
+    (** {1 Predicates and comparison} *)
+
+    val is_root : abs -> bool
+    (** See {!Path.is_root}. *)
+
+    val is_prefix : abs -> abs -> bool
+    (** See {!Path.is_prefix}. *)
+
+    val equal : abs -> abs -> bool
+    (** See {!Path.equal}. *)
+
+    val compare : abs  -> abs -> int
+    (** See {!Path.compare}. *)
+
+    (** {1 Conversions} *)
+
+    val to_segs : abs -> string list
+    (** [to_segs a] is [a]'s segments. *)
+
+    val of_segs : string list -> abs
+    (** [of_segs segs] is a path from [segs] segments. *)
+
+    val to_string : abs -> string
+    (** See {!Path.to_string}. *)
+
+    val quote : abs -> string
+    (** See {!Path.quote}. *)
+
+    val pp : Format.formatter -> abs -> unit
+    (** See {!Path.pp}. *)
+
+    (** {1 File extensions} *)
+
+    val ext : abs -> ext option
+    (** See {!Path.ext}. *)
+
+    val get_ext : abs -> ext
+    (** See {!Path.get_ext}. *)
+
+    val add_ext : abs -> ext -> abs
+    (** See {!Path.add_ext}. *)
+
+    val rem_ext : abs -> abs
+    (** See {!Path.rem_ext}. *)
+
+    val change_ext : abs -> ext -> abs
+    (** See {!Path.change_ext}. *)
+
+    val ( + ) : abs -> ext -> abs
+    (** See {!Path.( + )}. *)
+
+    val has_ext : ext -> abs -> bool
+    (** See {!Path.has_ext}. *)
+
+    val ext_matches : ext list -> abs -> bool
+    (** See {!Path.ext_matches}. *)
+
+    (** {1 Path sets and maps} *)
+
+    module Set : sig
+      include Set.S with type elt = abs
+      val of_list : elt list -> t
+    end
+
+    module Map : Map.S with type key = abs
+  end
 
   (** {1 Path sets and maps} *)
 
   module Set : sig
     include Set.S with type elt = t
-    val of_list : [ abs | rel ] list -> t
+    val of_list : elt list -> t
   end
 
   module Map : Map.S with type key = t
@@ -1513,6 +1739,12 @@ module Action : sig
 
       {b Warning.} On Windows this is a copy. *)
 
+  val ln_rel : (Path.t -> Path.t -> cmd) Conf.value
+  (** [ln_rel] has a command [exec src dst] to link symbolically file
+      [src] to [dst]. FIXME if [src] and [dst] are relative this links
+      [src] to [dst] as seen from the empty relative directory (is
+      that understandable ? is that really needed ? *)
+
   val cp : (Path.t -> Path.t -> cmd) Conf.value
   (** [cp] has a command [exec src dst] to copy file [src] to [dst]. *)
 
@@ -1615,7 +1847,7 @@ module Action : sig
 
   val link : src:product -> dst:product -> unit -> t
   (** [link ~src ~dst ()] is an action that links [src] to [dst] using
-      {!ln}. FIXME rel hack *)
+      {!ln_rel}. *)
 
   (** Actions for handling OCaml products.
 
@@ -1863,6 +2095,20 @@ module Part : sig
 
   val compare : 'a part -> 'b part -> int
   (** [compare p p'] is [compare (id p) (id p')]. *)
+
+  (** {1 Part root directory} *)
+
+  val root : 'a t -> Path.rel Conf.value
+  (** [root p] is [p]'s root build directory expressed relative
+      to {!Conf.root_dir}. *)
+
+  val rooted : ?ext:Path.ext -> 'a t -> string -> Path.t As_conf.value
+  (** [rooted ext p name] is a file rooted at [root p] with name
+      [name] and extension [ext] (if any). *)
+
+  val with_root : Path.rel Conf.value -> 'a t -> 'a t
+  (** [with_root dir p] is [p] with root [dir] the part's actions
+      will be adapted to match the new root. *)
 
   (** {1 Coercions} *)
 
@@ -2248,8 +2494,12 @@ end
 
 (** Directory part.
 
-    A directory part defines a directory to gather a selection
-    of the build products of other parts. *)
+    A directory part defines a clean directory in which a selection
+    of part products can be gathered.
+
+    By indicating directories to be {!install}able this gives a full and
+    declarative description to drivers of your project's outcome
+    installation. *)
 module Dir : sig
 
   (** {1 Metadata} *)
@@ -2271,19 +2521,30 @@ module Dir : sig
   val install : [< `Dir] part -> bool
   (** [kind p] is [true] if the directory contents is meant to be installed.
 
-      FIXME should we rather derive that from the part's usage ? *)
+      FIXME should we rather derive that from the part's usage e.g. if
+      its [`Outcome] ? OTOH part's usage are abscribed no semantics in
+      the core assemblage library at the moment and maybe it's better
+      that way. *)
 
-  (** {1 Directory specifiers} *)
+  (** {1 Directory specifiers}
 
-  type spec = Part.kind Part.t -> Action.product ->
-    [ `Keep | `Rename of Path.t | `Drop] Conf.value
-  (** The type for directory specifiers. Given a part and a product that
-      belongs to the part, the function returns:
+      Directory specifiers take a part and a product that belong
+      to that part and indicate whether the product should be
+      part of the directory and under which name (or path).
+
+      FIXME a few combinators to quickly devise spec values
+      would be welcome, e.g. put a specific part in sub directory, etc.  *)
+
+  type spec = Part.kind Part.t -> (As_path.t ->
+    [ `Keep | `Rename of Path.rel | `Drop]) Conf.value
+  (** The type for directory specifiers. Given a part it returns
+      a value that has a function that given a product of the part
+      returns:
       {ul
       {- [`Drop] to drop the product from the directory.}
       {- [`Keep] to keep the product in the directory with its basename.}
       {- [`Rename p] to keep the product in the directory but rename it
-         to [p], where [p] is a path relative to the directory}} *)
+         to [p], where [p] is a file path relative to the directory.}} *)
 
   val all : spec
   (** [all] is a specifier that [`Keep]s any product of any part. *)
@@ -2292,9 +2553,8 @@ module Dir : sig
   (** [file_exts exts] is a specifiers that keeps, in any part,
       products that have an extension in [exts]. *)
 
-  val install_bin : spec
-  (** [install_bin] is {!all} but has special behaviour in the following
-      cases:
+  val bin : spec
+  (** [bin] is {!all} except in the following cases:
       {ul
       {- For [`Bin] parts of kind [`OCaml] keeps only one of the
          byte and native code executable without its extension. If
@@ -2302,31 +2562,41 @@ module Dir : sig
       {- For [`Bin] parts of kind [`C] keeps only the part's
          executable.}} *)
 
-  val install_lib : spec
-  (** [install_lib] is {!all} but has special behaviour in the following
-      cases :
+  val lib : spec
+  (** [lib] is {!all} except in the following cases:
       {ul
       {- For [`Lib] parts of kind [`OCaml], keeps only the library's
-         archives and the [cmx], [cmi] and [cmti] files according to
-         the unit's {{!Unit.ocaml_interface}interface specification}.}
+         archives and the library's unit's [cmx], [cmi] and [cmti]
+         files according to their
+         {{!Unit.ocaml_interface}interface specification}.}
       {- For [`Lib] parts of kind [`C], keeps only the library's
          archives.}} *)
 
   (** {1 Dir} *)
 
   val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
-    ?keep:spec -> ?install:bool -> kind -> 'a part list -> [> `Dir ] part
+    ?keep:spec -> ?install:bool -> kind ->
+    [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] part list ->
+    [> `Dir ] part
   (** [v keep install kind needs] is a directory of type [kind] that
-      gathers the build products of [needs] as filtered by [keep]. If
-      [install] is [true] (defaults) the directory structure is meant
-      to be installed at a location defined by [kind].
+      gathers the products of [needs] as filtered by [keep].
 
-      The default for [keep] depends both on [kind] and [install]
-      as follows:
+      If [install] is [true] the directory structure is meant to be
+      installed at a root location defined by [kind]. [install]
+      defaults to [true] except for kind [`Other].
+
+      The name of the part is automatically derived from [kind]
+      in the obvious way. For [`Other p] the name is the basename of
+      [p].
+
+      The default for [keep] depends in [kind] as follows:
       {ul
-      {- [`Bin], [true], {!install_bin} is used.}
-      {- [`Lib], [true], {!install_lib} is used.}
-      {- Otherwise, {!all} is used.}} *)
+      {- [`Bin], {!bin} is used.}
+      {- [`Lib], {!lib} is used.}
+      {- Otherwise, {!all} is used.}}
+
+      {b Note.} Due to the way assemblage and ocamldoc work, trying
+      to install a [`Doc] part will be disappointing. *)
 
   val of_base : ?install:bool -> kind -> [> `Base] part -> [> `Dir] part
   (** [of_base ?install kind p] is a directory from [p]. See {!v}. *)
@@ -2392,7 +2662,8 @@ val doc : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
 (** See {!Doc.v}. [kind] defaults to [`OCamldoc]. *)
 
 val dir : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t->
-  ?keep:Dir.spec -> ?install:bool -> Dir.kind -> 'a part list -> [> `Dir ] part
+  ?keep:Dir.spec -> ?install:bool -> Dir.kind ->
+  [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] part list -> [> `Dir ] part
 (** See {!Dir.v}. *)
 
 val run : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->

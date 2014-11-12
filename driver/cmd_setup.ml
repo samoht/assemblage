@@ -31,7 +31,7 @@ let write file s =
 let write_meta p file = write file Meta.(to_string @@ of_project p)
 let write_merlin p file = write file Merlin.(to_string @@ of_project p)
 let write_install p meta file =
-  let add = [ `Lib (Opam.Install.move (Path.to_string meta)) ] in
+  let add = [ `Lib (Opam.Install.move meta) ] in
   write file Opam.Install.(to_string @@ of_project ~add p)
 
 let write_makefile p ~setup_files file =
@@ -43,7 +43,7 @@ let setup `Make ~merlin p =
   let install = Path.file (str "%s.install" @@ Project.name p) in
   let dotmerlin = Path.file ".merlin" in
   let makefile = Path.file "Makefile" in
-  let meta = Path.(Project.eval_key p Conf.build_dir / "META") in
+  let meta = Path.(of_rel (Project.eval_key p Conf.build_dir) / "META") in
   let setup_files =
     add_if merlin dotmerlin @@ install :: meta :: makefile :: []
   in

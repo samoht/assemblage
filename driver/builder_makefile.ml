@@ -57,7 +57,6 @@ let mk_recipe conf ctx args cmds =
     let redirect op file acc = match file with
     | None -> acc | Some file -> (Path.to_string file) :: op :: acc
     in
-    Log.show "ctx: @[%a@]" Ctx.pp (Action.cmd_ctx ctx cmd);
     let cmdline =
       [Action.cmd_cmd cmd]
       |> List.rev_append (Action.cmd_args_with_ctx conf ctx args cmd)
@@ -70,11 +69,12 @@ let mk_recipe conf ctx args cmds =
   in
   List.rev (List.fold_left add_cmd [] cmds)
 
+(* TODO check and warn about empty targets and cmds and skip *)
 let mk_action gen action =
   if not (Project.eval gen.proj (Action.cond action)) then gen else
   let inputs = Project.eval gen.proj (Action.inputs action) in
   let outputs = Project.eval gen.proj (Action.outputs action) in
-  let dirs = List.rev_map Path.dirname outputs in
+  let dirs = Path.(Set.elements (Set.of_list (List.rev_map dirname outputs))) in
   let order_only_prereqs = List.rev_map Path.to_string dirs in
   let prereqs = List.rev_map Path.to_string (List.rev inputs) in
   let targets = List.rev_map Path.to_string (List.rev outputs) in

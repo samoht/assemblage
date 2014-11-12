@@ -293,21 +293,21 @@ let path =
   let print ppf v = As_fmt.pp_str ppf (As_path.to_string v) in
   parse, print
 
-let path_kind check ok err =
-  let parse s =
-    let p = As_path.of_string s in
-    if check p then `Ok (ok p) else `Error (err s)
+let path_kind conv to_string err =
+  let parse s = match conv (As_path.of_string s) with
+  | None -> `Error (err s)
+  | Some p -> `Ok p
   in
-  let print ppf v = As_fmt.pp_str ppf (As_path.to_string v) in
+  let print ppf v = As_fmt.pp_str ppf (to_string v) in
   parse, print
 
 let rel_path =
   let err s = str "`%s' is not a relative path." s in
-  path_kind As_path.is_rel As_path.as_rel err
+  path_kind As_path.to_rel As_path.Rel.to_string err
 
 let abs_path =
   let err s = str "`%s' is not an absolute path." s in
-  path_kind As_path.is_abs As_path.as_abs err
+  path_kind As_path.to_abs As_path.Abs.to_string err
 
 let version : (int * int * int * string option) converter =
   let parser s =
@@ -380,7 +380,7 @@ let build_dir =
   let doc = "Path to the build directory expressed relative the root \
              directory (see $(b,--root-dir))."
   in
-  let build_dir = const (As_path.dir "_build") in
+  let build_dir = const (As_path.Rel.base "_build") in
   build_directories_key "build-dir" rel_path build_dir ~doc ~docv:"PATH"
 
 (* Project keys *)

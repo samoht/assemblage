@@ -21,6 +21,8 @@
 
 (** {1 Metadata synchronization} *)
 
+open Assemblage
+
 module Sync : sig
 
 end
@@ -32,7 +34,7 @@ module Install : sig
   (** {1 Install file} *)
 
   type move
-  val move : ?maybe:bool -> ?dst:string -> string -> move
+  val move : ?maybe:bool -> ?dst:Path.t -> Path.t -> move
 
   type field_elt =
     [ `Bin of move | `Doc of move | `Etc of move | `Lib of move | `Man of move
@@ -42,5 +44,5 @@ module Install : sig
   type t = [`Header of string option ] * field_elt list
 
   val to_string : t -> string
-  val of_project : ?add:field_elt list -> Assemblage.project -> t
+  val of_project : ?add:field_elt list -> project -> t
 end

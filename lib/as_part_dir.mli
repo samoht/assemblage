@@ -31,18 +31,20 @@ val install : [< `Dir] As_part.t -> bool
 
 (** {1 Directory specifiers} *)
 
-type spec = As_part.kind As_part.t -> As_action.product ->
-  [ `Keep | `Rename of As_path.t | `Drop] As_conf.value
+type spec =
+    As_part.kind As_part.t ->
+    (As_path.t -> [ `Keep | `Rename of As_path.rel | `Drop]) As_conf.value
 
 val all : spec
 val file_exts : As_path.ext list -> spec
-val install_bin : spec
-val install_lib : spec
+val bin : spec
+val lib : spec
 
 (** {1 Dir} *)
 
 val v : ?usage:As_part.usage -> ?cond:bool As_conf.value -> ?args:As_args.t ->
-  ?keep:spec -> ?install:bool -> kind -> 'a As_part.t list ->
+  ?keep:spec -> ?install:bool -> kind ->
+  [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] As_part.t list ->
   [> `Dir ] As_part.t
 
 val of_base : ?install:bool -> kind -> [> `Base] As_part.t ->

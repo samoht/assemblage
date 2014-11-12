@@ -5,7 +5,7 @@ open Assemblage
 let dev = Conf.scheme "dev" ~doc:"Convenience scheme for development."
     [ Conf.def Conf.debug true;
       Conf.def Conf.warn_error true;
-      Conf.def Conf.doc true; ]
+      Conf.def Conf.doc true;]
 
 let schemes = [ dev ]
 
@@ -47,7 +47,7 @@ let lib_assemblage =
       unit "as_part_run";
       unit "as_part_unit";
       unit "as_project";
-      unit "assemblage" ~kind:(`OCaml (`Both, `Normal)); ]
+      unit "assemblage" ~kind:(`OCaml (`Both, `Normal));]
 
 let lib_assemblage_tools =
   let dir = root / "lib-driver" in
@@ -57,14 +57,14 @@ let lib_assemblage_tools =
     [ unit "ast_merlin";
       unit "ast_meta";
       unit "ast_opam";
-      unit "assemblage_tools" ~kind:(`OCaml (`Both, `Normal)); ]
+      unit "assemblage_tools" ~kind:(`OCaml (`Both, `Normal));]
 
 let lib_assemblage_driver =
   let dir = root / "lib-driver" in
   lib "assemblage_driver"
     [ pkg_cmdliner;
       pkg_toplevel;
-      unit ~dir "assemblage_driver"; ]
+      unit ~dir "assemblage_driver";]
 
 (* The default assemblage driver *)
 
@@ -89,7 +89,7 @@ let bin_assemblage =
 
 let assemble_assemble =
   (* Sanity check, can we compile assemble.ml ? *)
-  bin "assemble" [lib_assemblage; unit "assemble" ~dir:root ]
+  bin "assemble" [ lib_assemblage; unit "assemble" ~dir:root]
 
 (*
 
@@ -140,14 +140,16 @@ let dev_doc = doc ~usage:`Dev "dev" [lib_assemblage]
 let api_doc = doc "api" [lib_assemblage]
 
 let install =
-  [ dir `Lib [ lib_assemblage; lib_assemblage_tools; lib_assemblage_driver; ];
-    dir `Bin [ bin_assemblage ] ;
+  [ dir `Lib [ lib_assemblage; lib_assemblage_tools; lib_assemblage_driver;];
+    dir `Bin [ bin_assemblage];
+
 (* FIXME   dir `Doc [ root_file "CHANGES.md"; root_file "README.md" ] *) ]
+
+
+(* The project *)
 
 let parts =
   [ lib_assemblage; lib_assemblage_tools; lib_assemblage_driver;
     bin_assemblage; dev_doc; api_doc ] @ install @ tests
-
-(* The project *)
 
 let () = assemble @@ Project.v "assemblage" ~args ~schemes ~parts

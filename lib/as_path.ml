@@ -14,91 +14,141 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+(* FIXME if we want to introduce .. and . we should normalize in the
+   constructors to have a path that has for absolute paths, no .. or
+   . at all or for relative paths only possible .. at the beginning of
+   the path. The functions should then be reviewed with that normal
+   form in mind. *)
+
 let str = Printf.sprintf
 
-let to_string = function
-| `Rel segs -> String.concat Filename.dir_sep segs
-(* FIXME windows what's the root ? *)
-| `Abs segs -> (Filename.dir_sep ^ String.concat Filename.dir_sep segs)
-
-let err_not_rel abs = str "not a relative path %s" (to_string abs)
-let err_not_abs rel = str "not an absolute path %s" (to_string rel)
-let err_no_ext seg = str "no file extension in last segment (%s)" seg
+let err_no_ext p = str "no file extension in last segment (%s)" p
 
 (* File paths *)
 
 type filename = string
-type segs = string list
-type rel = [ `Rel of segs ]
-type abs = [ `Abs of segs ]
-
-module Path = struct
-  type t = [ abs | rel ]
-  let compare = compare
-end
-
-type t = Path.t
+type rel = [ `Rel of string list ]
+type abs = [ `Abs of string list ]
+type t = [ rel | abs ]
 
 let segs = function `Abs segs | `Rel segs -> segs
 let map f = function
 | `Rel segs -> `Rel (f segs)
 | `Abs segs -> `Abs (f segs)
 
-let current = `Rel []
 let root = `Abs []
-let dash = `Rel ["-"]
-let is_current = function `Rel [] -> true | _ -> false
-let is_root = function `Abs [] -> true | _ -> false
-let is_rel = function `Rel _ -> true | _ -> false
-let is_abs = function `Abs _ -> true | _ -> false
-let is_dash = function `Rel [ "-" ] -> true | _ -> false
-let as_rel = function `Rel segs as v -> v | v -> invalid_arg (err_not_rel v)
-let as_abs = function `Abs segs as v -> v | v -> invalid_arg (err_not_abs v)
-let as_path p = (p :> t)
+let empty = `Rel []
+let dash = `Rel [ "-" ]
 
-let basename p = match List.rev (segs p) with [] -> "" | seg :: _ -> seg
-let dirname p =
-  let dirname segs = match List.rev segs with
-  | [] -> [] | seg :: rsegs -> List.rev rsegs
-  in
-  map dirname p
+let naked_add seg segs =
+  if seg = "" then segs else List.rev (seg :: List.rev segs)
 
-let concat_seg p = function
-| "" -> (p :> t)
-| seg ->
-    let cat segs = List.rev (seg :: List.rev segs) in
-    map cat p
+let add p seg = map (naked_add seg) p
 
-let concat p (`Rel segs') =
-  let cat segs = List.(rev_append (rev segs) segs') in
-  (map cat p :> t)
+let naked_concat (`Rel segs) prefix = List.rev_append (List.rev prefix) segs
+let concat prefix rel = map (naked_concat rel) prefix
 
-let ( / ) = concat_seg
+let ( / ) = add
 let ( // ) = concat
 
-let file f = as_rel (concat_seg current f)
-let dir d = as_rel (concat_seg current d)
+let file f = add empty f
+let base f = add empty f
 
-let rel_of_segs ss = `Rel (segs (List.fold_left concat_seg current ss))
-let abs_of_segs ss = `Abs (segs (List.fold_left concat_seg root ss))
+let basename p = match List.rev (segs p) with [] -> "" | seg :: _ -> seg
 
-let to_abs ?(rel_base = root) p = match p with
-| `Rel ss -> `Abs List.(rev_append (rev (segs rel_base)) ss)
-| `Abs _ as p -> p
+let naked_dirname segs = match List.rev segs with
+| [] -> [] | _ :: rsegs -> List.rev rsegs
+
+let dirname p = map naked_dirname p
+
+let rec naked_rem_prefix segs segs' = match segs, segs' with
+| s :: ss, s' :: ss' when s = s' -> naked_rem_prefix ss ss'
+| s :: ss, _ -> None
+| [], ss -> Some (`Rel ss)
+
+let rem_prefix p p' = match p, p' with
+| `Rel segs, `Rel segs' -> naked_rem_prefix segs segs'
+| `Abs segs, `Abs segs' -> naked_rem_prefix segs segs'
+| _ , _ -> None
+
+let rec naked_find_prefix acc segs segs' = match segs, segs' with
+| s :: ss, s' :: ss' when s = s' -> naked_find_prefix (s :: acc) ss ss'
+| _ -> List.rev acc
+
+let find_prefix p p' = match p, p' with
+| `Rel segs, `Rel segs' -> Some (`Rel (naked_find_prefix [] segs segs'))
+| `Abs segs, `Abs segs' -> Some (`Rel (naked_find_prefix [] segs segs'))
+| _, _ -> None
+
+(*
+let relativize p p' =
+   (* N.B. this wouldn't work if [s] could be Filename.parent_dir_name *)
+  let rec relat segs segs' acc = match segs, segs' with
+  | s :: ss, s' :: ss' when s = s' -> relat ss ss' acc
+  | s :: ss, ss' -> relat ss ss' (Filename.parent_dir_name :: acc)
+  | [], ss -> List.rev_append acc ss
+  in
+  match p, p' with
+  | `Rel segs, `Rel segs' -> Some (`Rel (relat segs segs' []))
+  | `Abs segs, `Abs segs' -> Some (`Rel (relat segs segs' []))
+  | _ -> None
+*)
+
+(* Predicates and comparison *)
+
+let is_root = function `Abs [] -> true | _ -> false
+let is_empty = function `Rel [] -> true | _ -> false
+let is_dash = function `Rel ["-"] -> true | _ -> false
+let is_rel = function `Rel _ -> true | _ -> false
+let is_abs = function `Abs _ -> true | _ -> false
+
+let rec naked_is_prefix segs segs' = match segs, segs' with
+| s :: ss, s' :: ss' when s = s' -> naked_is_prefix ss ss'
+| s :: ss, _ -> false
+| [], ss -> true
+
+let is_prefix p p' = match p, p' with
+| `Rel segs, `Rel segs' -> naked_is_prefix segs segs'
+| `Abs segs, `Abs segs' -> naked_is_prefix segs segs'
+| _ , _ -> false
 
 let equal p p' = p = p'
-let compare = Path.compare
+let compare = Pervasives.compare
+
+(* Conversions *)
+
+let to_rel = function `Rel _ as v -> Some v | `Abs _ -> None
+let of_rel r = (r :> t)
+
+let to_abs = function `Abs _ as v -> Some v | `Rel _ -> None
+let of_abs a = (a :> t)
+
+let to_segs p = p
+
+let rel_of_segs segs = (* This could be improved many revs through add *)
+  `Rel (List.fold_left (fun ss s -> naked_add s ss) [] segs)
+
+let abs_of_segs segs = (* This could be improved many revs through add *)
+  `Abs (List.fold_left (fun ss s -> naked_add s ss) [] segs)
+
+let of_segs = function
+| `Rel segs -> rel_of_segs segs
+| `Abs segs -> abs_of_segs segs
 
 (* FIXME `{to,of}_string,quote` are we doing the right things ?  *)
+
+let to_string = function
+| `Rel segs -> String.concat Filename.dir_sep segs
+(* FIXME windows what's the root ? *)
+| `Abs segs -> (Filename.dir_sep ^ String.concat Filename.dir_sep segs)
 
 let of_string s =                                (* N.B. collapses // to / *)
   (* FIXME unquote ? *)
   match As_string.split ~sep:Filename.dir_sep s with
-  | "" :: segs -> abs_of_segs segs   (* FIXME windows ?? *)
-  | segs -> rel_of_segs segs
+  | "" :: segs -> of_segs (`Abs segs)   (* FIXME windows ?? *)
+  | segs -> of_segs (`Rel segs)
 
 let quote p = Filename.quote (to_string p)
-
 let pp ppf p = As_fmt.pp_str ppf (to_string p)
 
 (* File extensions *)
@@ -150,40 +200,158 @@ let ext p = match List.rev (segs p) with
 
 let get_ext p = match ext p with
 | Some ext -> ext
-| None ->
-    let seg = match List.rev (segs p) with [] -> "" | seg :: _ -> seg in
-    invalid_arg (err_no_ext seg)
+| None -> invalid_arg (err_no_ext (to_string p))
+
+let naked_add_ext ext segs =
+  let suff = ext_to_string ext in
+  match List.rev segs with
+  | [] -> [str ".%s" suff]
+  | seg :: rsegs -> List.rev (str "%s.%s" seg suff :: rsegs)
+
+let add_ext p ext = map (naked_add_ext ext) p
+
+let naked_rem_ext segs = match List.rev segs with
+| [] -> []
+| seg :: segs' ->
+    try
+      let i = String.rindex seg '.' in
+      let name = String.sub seg 0 i in
+      List.rev (name :: segs')
+    with Not_found -> segs
+
+let rem_ext p = map naked_rem_ext p
+
+let ( + ) = add_ext
+
+let change_ext p e = add_ext (rem_ext p) e
 
 let has_ext e p = match ext p with None -> false | Some e' -> e = e'
 let ext_matches exts p = match ext p with
 | None -> false
 | Some e -> List.mem e exts
 
-let add_ext p e =
-  let suff = ext_to_string e in
-  let add_ext segs = match List.rev segs with
-  | [] -> [str ".%s" suff]
-  | seg :: rsegs -> List.rev (str "%s.%s" seg suff :: rsegs)
-  in
-  map add_ext p
+module Rel = struct
+  type path = t
+  type t = rel
 
-let rem_ext p =
-  let rem segs = match List.rev segs with
-  | [] -> []
-  | seg :: segs' ->
-      try
-        let i = String.rindex seg '.' in
-        let name = String.sub seg 0 i in
-        List.rev (name :: segs')
-      with Not_found -> segs
-  in
-  map rem p
+  let empty = empty
+  let dash = dash
+  let add (`Rel segs) seg = `Rel (naked_add seg segs)
+  let concat (`Rel segs) rel = `Rel (naked_concat rel segs)
+  let file f = add empty f
+  let base f = add empty f
+  let ( / ) = add
+  let ( // ) = concat
+  let basename = basename
+  let dirname (`Rel segs) = `Rel (naked_dirname segs)
+  let rem_prefix (`Rel ss) (`Rel ss') = naked_rem_prefix ss ss'
+  let find_prefix (`Rel ss) (`Rel ss') = (`Rel (naked_find_prefix [] ss ss'))
+  (* Predicates and comparisons *)
 
-let change_ext p e = add_ext (rem_ext p) e
-let ( + ) = add_ext
-let ( -+ ) = change_ext
+  let is_empty = is_empty
+  let is_dash = is_dash
+  let is_prefix (`Rel segs) (`Rel segs') = naked_is_prefix segs segs'
+  let equal = equal
+  let compare = compare
 
-(* Path sets and maps *)
+  (* Conversions *)
+
+  let to_segs (`Rel segs) = segs
+  let of_segs segs = rel_of_segs segs
+  let to_string = to_string
+  let quote = quote
+  let pp = pp
+
+  (* File extensions *)
+
+  let ext = ext
+  let get_ext = get_ext
+  let add_ext (`Rel segs) ext = `Rel (naked_add_ext ext segs)
+  let rem_ext (`Rel segs) = `Rel (naked_rem_ext segs)
+  let change_ext p ext = add_ext (rem_ext p) ext
+  let ( + ) = add_ext
+  let has_ext = has_ext
+  let ext_matches = ext_matches
+
+  (* Sets and maps *)
+
+  module Path = struct
+    type path = t
+    type t = path
+    let compare = compare
+  end
+
+  module Set = struct
+    include Set.Make (Path)
+    let of_list = List.fold_left (fun acc s -> add s acc) empty
+  end
+
+  module Map = Map.Make (Path)
+end
+
+module Abs = struct
+  type path = t
+  type t = abs
+
+  let root = root
+  let add (`Abs segs) seg = `Abs (naked_add seg segs)
+  let concat (`Abs segs) rel = `Abs (naked_concat rel segs)
+  let ( / ) = add
+  let ( // ) = concat
+  let basename = basename
+  let dirname (`Abs segs) = `Abs (naked_dirname segs)
+  let rem_prefix (`Abs ss) (`Abs ss') = naked_rem_prefix ss ss'
+  let find_prefix (`Abs ss) (`Abs ss') = (`Abs (naked_find_prefix [] ss ss'))
+
+  (* Predicates and comparisons *)
+
+  let is_root = is_root
+  let is_prefix (`Abs segs) (`Abs segs') = naked_is_prefix segs segs'
+  let equal = equal
+  let compare = compare
+
+  (* Conversions *)
+
+  let to_segs (`Abs segs) = segs
+  let of_segs segs = abs_of_segs segs
+  let to_string = to_string
+  let quote = quote
+  let pp = pp
+
+  (* File extensions *)
+
+  let ext = ext
+  let get_ext = get_ext
+  let add_ext (`Abs segs) ext = `Abs (naked_add_ext ext segs)
+  let rem_ext (`Abs segs) = `Abs (naked_rem_ext segs)
+  let change_ext p ext = add_ext (rem_ext p) ext
+  let ( + ) = add_ext
+  let has_ext = has_ext
+  let ext_matches = ext_matches
+
+  (* Sets and maps *)
+
+  module Path = struct
+    type path = t
+    type t = path
+    let compare = compare
+  end
+
+  module Set = struct
+    include Set.Make (Path)
+    let of_list = List.fold_left (fun acc s -> add s acc) empty
+  end
+
+  module Map = Map.Make (Path)
+end
+
+(** {1 Sets and maps} *)
+
+module Path = struct
+  type path = t
+  type t = path
+  let compare = compare
+end
 
 module Set = struct
   include Set.Make (Path)

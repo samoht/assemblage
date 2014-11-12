@@ -120,7 +120,7 @@ let archive_byte ~cmos ~name () =
   let cond = As_conf.(value ocaml_byte) in
   let cma = path name ~ext:`Cma in
   let inputs = cmos in
-  let outputs = product cma in
+  let outputs =  product cma in
   let args =
     add (atoms ["-a"; "-o"]) @@ add (path_arg cma) @@ paths_args cmos
   in
@@ -132,7 +132,7 @@ let archive_native ~cmx_s ~name () =
   let cond = As_conf.(value ocaml_native) in
   let cmxa = path name ~ext:`Cmxa in
   let inputs = cmx_s in
-  let outputs = product cmxa in
+  let outputs = add (product (path name ~ext:`A)) @@ (product cmxa) in
   let args =
     add (atoms [ "-a"; "-o" ]) @@ add (path_arg cmxa) @@ paths_args cmx_s
   in

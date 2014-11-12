@@ -45,7 +45,7 @@ module Opam : sig
     type move
     (** The type for file moves. *)
 
-    val move : ?maybe:bool -> ?dst:string -> string -> move
+    val move : ?maybe:bool -> ?dst:Path.t -> Path.t -> move
     (** [move src ~dst] moves [src] to [dst]. [src] is expressed
         relative to the install file and [dst] relative to the
         destination directory which is determined by the move's
