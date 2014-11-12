@@ -15,20 +15,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let str = Printf.sprintf
-let err_coerce k exp = str "part has kind %s not %s" k exp
+let str = Format.asprintf
 
 (* Part kinds *)
 
 type kind = [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir | `Silo ]
-
 let pp_kind ppf k = As_ctx.pp_kind ppf (k :> kind) (* weird *)
-let str_of_kind k = Format.asprintf "%a" As_ctx.pp_kind k
 
-let kind_root kind name = (* a suggestion for the part's root dir *)
-  let part_dir = Format.asprintf "%a-%s" pp_kind kind name in
-  let in_build_dir build = As_path.(as_rel (build / part_dir)) in
-  As_conf.(const in_build_dir $ (value As_conf.build_dir))
+let err_coerce k exp =
+  Format.asprintf "part has kind %a not %a" pp_kind k pp_kind exp
 
 (* Usage *)
 
@@ -77,6 +72,31 @@ let part_id =
   let count = ref (-1) in
   fun () -> incr count; !count
 
+let alloc_root =
+  (* We intercept and resolve duplicate *default* roots at the lowest level.
+     This is part of the strategy to avoid crazy graph rewriting operations. *)
+  let allocated = ref As_string.Set.empty in
+  fun kind usage name ->
+    let part_root =
+      let base = match usage with
+      | `Outcome -> str "%a-%s" pp_kind kind name
+      | u -> str "%a-%a-%s" pp_kind kind pp_usage u name
+      in
+      let candidate = ref base in
+      try
+        for i = 1 to max_int do
+          if not (As_string.Set.mem !candidate !allocated) then raise Exit else
+          candidate := str "%s~%d" base i
+        done;
+        As_log.warn "You are being unreasonable, consider yourself doomed.";
+        !candidate
+      with Exit ->
+        allocated := As_string.Set.add !candidate !allocated;
+        !candidate
+    in
+    let in_build_dir build = As_path.(as_rel (build / part_root)) in
+    As_conf.(const in_build_dir $ (value As_conf.build_dir))
+
 let list_uniq ps =               (* uniquify part list while keeping order. *)
   let add (seen, ps as acc) p =
     if Set.mem p seen then acc else (Set.add p seen), (p :: ps)
@@ -99,10 +119,13 @@ let v_kind ?(usage = `Outcome) ?(cond = As_conf.true_) ?(args = As_args.empty)
     ?(check = fun _ -> true) name kind =
   (* Man it's coercion hell in there. *)
   let needs = (list_uniq (needs :> Set.elt list)) in
-  let root = match root with None -> kind_root kind name | Some r -> r in
+  let root = match root with
+  | None -> alloc_root (kind :> kind) (usage :> usage) name
+  | Some r -> r
+  in
   let rec part =
     { id = part_id (); kind = (kind :> kind);
-      name; usage; cond; args;
+      name; usage = usage; cond; args;
       meta; needs = (needs :> kind t list); root;
       action_defs = (actions :> kind t -> As_action.t list);
       actions = lazy (compute_actions (part :> kind t));
@@ -177,8 +200,7 @@ let rooted ?ext p name =
 (* Coercing *)
 
 let coerce (#kind as k) ({kind} as p) =
-  if p.kind = k then p else
-  invalid_arg (err_coerce (str_of_kind p.kind) (str_of_kind k))
+  if p.kind = k then p else invalid_arg (err_coerce p.kind k)
 
 let coerce_if (#kind as k) ({kind} as p) =
   if p.kind = k then Some p else None
@@ -203,8 +225,6 @@ let list_fold f acc ps = List.fold_left f acc ps
 let list_fold_kind kind f acc ps =
   let f acc p = match coerce_if kind p with None -> acc | Some p -> f acc p in
   list_fold f acc ps
-
-(* Recursive fold *)
 
 let list_fold_rec f acc ps =
   let rec loop (seen, r as acc) = function

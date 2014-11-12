@@ -19,11 +19,6 @@ open Makefile.Infix
 open Assemblage
 open Assemblage.Private
 
-(* FIXME if we assume the tuple kind * name of parts are not unique
-   we should keep track of the roots of the generated parts
-   and change the root if there's a clash. Or maybe this should
-   in fact be done in As_project. *)
-
 let str = Format.asprintf
 
 type gen =
