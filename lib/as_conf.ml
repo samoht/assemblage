@@ -146,7 +146,6 @@ module VList = struct
     const (keep f) $ vs
 end
 
-
 (* Configuration keys *)
 
 type 'a key = 'a Def.key
@@ -157,6 +156,7 @@ module Key = struct
 
   type t = Def.t = V : 'a key -> t
 
+  let hide_type k = V k
   let equal (V k0) (V k1) = (k0.Def.id : int) = (k1.Def.id : int)
   let compare = Def.compare
 
@@ -382,9 +382,6 @@ let build_dir =
   in
   let build_dir = const (As_path.dir "_build") in
   build_directories_key "build-dir" rel_path build_dir ~doc ~docv:"PATH"
-
-let product_dir =
-  build_directories_key "product-dir" rel_path ~public:false (value build_dir)
 
 (* Project keys *)
 

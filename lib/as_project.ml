@@ -29,76 +29,11 @@ type t =
     deps : As_conf.Key.Set.t Lazy.t;
     conf : As_conf.t option; }
 
-let test_keys =
-  let add_key k acc = As_conf.Key.(Set.add (V k) acc) in
-  As_conf.Key.Set.empty
-  |> add_key As_conf.project_version
-  (**)
-  |> add_key As_conf.uname
-  |> add_key As_conf.host_os
-  |> add_key As_conf.host_arch
-  |> add_key As_conf.host_word_size
-  |> add_key As_conf.target_os
-  |> add_key As_conf.target_arch
-  |> add_key As_conf.target_word_size
-  (**)
-  |> add_key As_conf.root_dir
-  |> add_key As_conf.build_dir
-  |> add_key As_conf.product_dir
-  (**)
-  |> add_key As_conf.debug
-  |> add_key As_conf.profile
-  |> add_key As_conf.warn_error
-  |> add_key As_conf.test
-  |> add_key As_conf.doc
-  |> add_key As_conf.jobs
-  (**)
-  |> add_key As_conf.ocaml_native_tools
-  |> add_key As_conf.ocaml_version
-  |> add_key As_conf.ocaml_byte
-  |> add_key As_conf.ocaml_native
-  |> add_key As_conf.ocaml_native_dynlink
-  |> add_key As_conf.ocaml_build_ast
-  |> add_key As_conf.ocaml_js
-  |> add_key As_conf.ocaml_annot
-  |> add_key As_conf.ocaml_dumpast
-  |> add_key As_conf.ocamlc
-  |> add_key As_conf.ocamlopt
-  |> add_key As_conf.js_of_ocaml
-  |> add_key As_conf.ocamldep
-  |> add_key As_conf.ocamlmklib
-  |> add_key As_conf.ocamldoc
-  |> add_key As_conf.ocamllex
-  |> add_key As_conf.ocamlyacc
-  |> add_key As_conf.ocaml
-  |> add_key As_conf.ocamlrun
-  |> add_key As_conf.ocamldebug
-  |> add_key As_conf.ocamlprof
-  |> add_key As_conf.ocamlfind
-  |> add_key As_conf.opam
-  |> add_key As_conf.opam_installer
-  |> add_key As_conf.opam_admin
-  (**)
-  |> add_key As_conf.c_dynlink
-  |> add_key As_conf.c_js
-  |> add_key As_conf.cc
-  |> add_key As_conf.pkg_config
-  (**)
-  |> add_key As_conf.ln
-  |> add_key As_conf.cp
-  |> add_key As_conf.mv
-  |> add_key As_conf.cd
-  |> add_key As_conf.rm
-  |> add_key As_conf.rmdir
-  |> add_key As_conf.mkdir
-  |> add_key As_conf.cat
-  |> add_key As_conf.make
-
 let deps p =
   let add_key k acc = As_conf.Key.(Set.add (V k) acc) in
   let add_part acc p = As_conf.Key.Set.union acc (As_part.deps p) in
   (* FIXME test_keys should be As_conf.Key.Set.empty *)
-  List.fold_left add_part test_keys p.parts
+  List.fold_left add_part As_conf.Key.Set.empty p.parts
   |> add_key As_conf.project_version
   |> add_key As_conf.root_dir
 

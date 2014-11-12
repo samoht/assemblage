@@ -2416,7 +2416,6 @@ end
 val assemble : project -> unit
 (** [assemble p] registers [p] for assembling by an assemblage driver. *)
 
-
 (** {1 Private API} *)
 
 (** Private functions and types for implementing drivers.
@@ -2557,6 +2556,9 @@ module Private : sig
 
       (** The type for existential keys. *)
       type t = V : 'a key -> t
+
+      val hide_type : 'a key -> t
+      (** [hide_type k] hides the type parameter of [k]. *)
 
       val equal : t -> t -> bool
       (** [equal k k'] is [true] iff [name k = name k']. *)

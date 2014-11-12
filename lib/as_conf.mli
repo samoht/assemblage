@@ -73,6 +73,8 @@ type 'a key
 
 module Key : sig
   type t = V : 'a key -> t
+
+  val hide_type : 'a key -> t
   val equal : t -> t -> bool
   val compare : t -> t -> int
 
@@ -166,7 +168,6 @@ val doc_build_directories : string
 
 val root_dir : As_path.t key
 val build_dir : As_path.rel key
-val product_dir : As_path.rel key
 
 (** {2 Build property keys} *)
 
