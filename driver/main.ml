@@ -33,5 +33,4 @@ let main () =
       | `Ok () | `Version | `Help ->
           if Log.err_count () <> 0 then exit 1 else exit 0
 
-
 let () = main ()

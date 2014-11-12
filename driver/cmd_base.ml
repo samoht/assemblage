@@ -106,12 +106,16 @@ let cmd_with_project ?(config = true) name cmd ~doc ~man ~see_also : 'a cmd =
     end
 
 let project_conf p =
-  (* Project base conf, overriden by scheme, overriden by cl opts *)
-  let deps = match p with
-  | None -> Conf.Key.Set.empty
-  | Some p -> Project.deps p
+  (* Project base configuration, overriden by configuration scheme,
+     overriden by command line options. The driver also uses keys
+     that may not be used by the project's actions we also add them
+     to the mix. *)
+  let driver_keys = Conf.(Key.Set.singleton (Key.hide_type mkdir)) in
+  let base_keys = match p with
+  | None -> driver_keys
+  | Some p -> Conf.Key.Set.union (Project.deps p) driver_keys
   in
-  let base = Conf.of_keys deps in
+  let base = Conf.of_keys base_keys in
   let schemes = match p with None -> [] | Some p -> Project.schemes p in
   let scheme = Conf_spec.scheme_ui schemes in
   let opts = Conf_spec.ui base in
