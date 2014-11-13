@@ -35,7 +35,7 @@ let name_of_kind = function
 
 type meta = { kind : kind; install : bool }
 
-let inj, proj = As_part.(meta_key meta_deps_none)
+let inj, proj = As_part.meta_key ()
 let get_meta p = As_part.get_meta proj p
 let meta ?install kind =
   let install = match install with

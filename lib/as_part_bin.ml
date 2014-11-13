@@ -25,7 +25,7 @@ let pp_kind ppf k = As_fmt.pp_str ppf begin match k with
 
 type meta = { kind : kind; native : bool; byte : bool; js : bool }
 
-let inj, proj = As_part.(meta_key meta_deps_none)
+let inj, proj = As_part.meta_key ()
 let get_meta p = As_part.get_meta proj p
 let meta ?byte ?native ?js kind =
   let def_byte, def_nat, def_js = match kind with

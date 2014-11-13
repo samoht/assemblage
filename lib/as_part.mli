@@ -33,8 +33,7 @@ val pp_usage : Format.formatter -> usage -> unit
 
 type meta
 
-val meta_key : ('a -> As_conf.Key.Set.t) -> ('a -> meta) * (meta -> 'a option)
-val meta_deps_none : 'a -> As_conf.Key.Set.t
+val meta_key : unit -> ('a -> meta) * (meta -> 'a option)
 val meta_nil : meta
 
 (** {1 Parts} *)

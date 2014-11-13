@@ -1996,22 +1996,13 @@ module Part : sig
   (** [pp_usage ppf u] prints an unspecified representation of [u]
       on [ppf]. *)
 
-  (** {1 Metadata}
-
-      FIXME Meta data creation function is currently only exposed in
-      the {{!Private.Part.meta_key}private API}. Not doing so would
-      mean we need to reveal part of the private API (Key sets) and
-      concepts not really relevant to the casual user. We need to
-      decide whether creating new part with metadata is sufficently
-      mundane to be worth it.  My take on this is rather no, you can
-      put your metadata in the [actions] closure (it will also prevent
-      it from being rewritten by [of_base] functions). Metadata is
-      useful if we want to provide a module for a custom part and that
-      other parts use this module directly (like the builtin part
-      do). *)
+  (** {1 Metadata} *)
 
   type meta
   (** The type for part metadata *)
+
+  val meta_key : unit -> ('a -> meta) * (meta -> 'a option)
+  (** [meta_key ()] pairs a metadata injector and projector. *)
 
   val meta_nil : meta
   (** [meta_nil] is metadata that cannot be accessed. *)
@@ -3072,18 +3063,6 @@ module Private : sig
     val deps : 'a t -> Conf.Key.Set.t
     (** [deps a] is the set of configuration keys which may be needed
         for evaluating [a]. *)
-
-    (** {1 Metadata} *)
-
-    val meta_deps_none : 'a -> Conf.Key.Set.t
-    (** [meta_deps_none] is a metadata dependency function that
-        returns {!Conf.Key.Set.empty}. See {!meta_key}. *)
-
-    val meta_key : ('a -> Conf.Key.Set.t) -> ('a -> meta) * (meta -> 'a option)
-    (** [meta_key deps] pairs a metadata injector and projector. The function
-        [deps] must, given a metadata value be able to compute the configuration
-        keys (if any) which are needed for evaluating the elements of the
-        metadata. *)
   end
 
   (** Projects.

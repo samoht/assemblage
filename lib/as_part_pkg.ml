@@ -30,8 +30,7 @@ let pp_kind ppf = function
 | `C (`Other (n, _)) -> As_fmt.pp ppf "C (%s)" n
 
 type meta = { kind : kind; lookup : As_args.t; }
-let meta_deps m = As_args.deps m.lookup
-let inj, proj = As_part.meta_key meta_deps
+let inj, proj = As_part.meta_key ()
 let get_meta p = As_part.get_meta proj p
 let meta kind lookup = inj { kind; lookup }
 
