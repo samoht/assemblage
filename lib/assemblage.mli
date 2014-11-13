@@ -254,8 +254,8 @@ module Path : sig
       is returned. *)
 
   val rem_prefix : t -> t -> rel option
-  (** [rem_prefix pre p] is [p] with the literal prefix [pre] removed. [None] if
-      [pre] is not a prefix of [p]. *)
+  (** [rem_prefix pre p] is [p] with the literal prefix [pre] removed. [None]
+      if [pre] is not a prefix of [p]. *)
 
   val find_prefix : t -> t -> t option
   (** [find_prefix p p'] is a common prefix for [p] and [p']. There is
@@ -339,10 +339,12 @@ module Path : sig
   (** [ext_to_string ext] is [ext] as a string (without separator). *)
 
   val ext_of_string : string -> ext
-  (** [ext_of_string ext] is [ext] as a file extension ([ext] without separator). *)
+  (** [ext_of_string ext] is [ext] as a file extension ([ext] without
+      separator). *)
 
   val pp_ext : Format.formatter -> ext -> unit
-  (** [pp_ext ppf p] prints file extension [ext] on [ppf] using {!ext_to_string}. *)
+  (** [pp_ext ppf p] prints file extension [ext] on [ppf] using
+      {!ext_to_string}. *)
 
   val ext : t -> ext option
   (** [ext p] is [p]'s last segment file extension (if any). *)
@@ -356,8 +358,8 @@ module Path : sig
   (** [add_ext p ext] is [p] with [ext] concatenated to [p]'s last segment. *)
 
   val rem_ext : t -> t
-  (** [rem_ext p] is [p] with [ext] removed from [p]'s last segment (if it has an
-      extension). *)
+  (** [rem_ext p] is [p] with [ext] removed from [p]'s last segment
+      (if it has an extension). *)
 
   val change_ext : t -> ext -> t
   (** [change_ext p e] is [add_ext (rem_ext p)]. *)
@@ -366,11 +368,12 @@ module Path : sig
   (** [p + ext] is [add_ext p e]. Left associative. *)
 
   val has_ext : ext -> t -> bool
-  (** [has_ext p ext] is [true] iff [p]'s last segment has file extension [ext]. *)
+  (** [has_ext p ext] is [true] iff [p]'s last segment has file extension
+      [ext]. *)
 
   val ext_matches : ext list -> t -> bool
-  (** [ext_matches exts p] is [true] iff [p]'s last segment has a file extension
-      in [exts]. *)
+  (** [ext_matches exts p] is [true] iff [p]'s last segment has a file
+      extension in [exts]. *)
 
   (** {1 Relative paths} *)
 
@@ -2112,6 +2115,11 @@ module Part : sig
   (** [coerce_if k p] is [Some] if [p] is of kind [k] and
       [None] otherwise. *)
 
+  (** {1 File part} *)
+
+  val file : ?usage:usage -> ?cond:bool Conf.value -> Path.t -> [> `Base] part
+  (** [file p] is a part whose product is [p]. *)
+
   (** {1 Part lists} *)
 
   val list_products : ?exts:Path.ext list -> 'a t list ->
@@ -2656,6 +2664,13 @@ val dir : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t->
   ?keep:Dir.spec -> ?install:bool -> Dir.kind ->
   [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] part list -> [> `Dir ] part
 (** See {!Dir.v}. *)
+
+val file : ?usage:Part.usage -> ?cond:bool Conf.value -> Path.t ->
+  [> `Base] part
+(** See {!Base.file}. FIXME the only use I have for this is to be able
+    to put files in {!dir}. Is there a better way ? Also the way
+    it is implemented (action without cmds and inputs) means we need
+    to clarify these edges cases for drivers. *)
 
 val run : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
   ?dir:path -> string -> Action.t -> [> `Run] part

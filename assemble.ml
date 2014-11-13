@@ -142,9 +142,7 @@ let api_doc = doc "api" [lib_assemblage]
 let install =
   [ dir `Lib [ lib_assemblage; lib_assemblage_tools; lib_assemblage_driver;];
     dir `Bin [ bin_assemblage];
-
-(* FIXME   dir `Doc [ root_file "CHANGES.md"; root_file "README.md" ] *) ]
-
+    dir `Doc [ file (Path.file "README.md"); file (Path.file "CHANGES.md");]]
 
 (* The project *)
 

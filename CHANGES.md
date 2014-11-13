@@ -1,8 +1,9 @@
-0.4.0: [trunk]
+
+# 0.4.0: [trunk]
 - Fix regression in the generation of docs
 - Merlin .merlin file generation
 
-0.3.0: [Aug 2014]
+# 0.3.0: [2014-08]
 - #43 Simpler and saner command-line options handling.
   Use `--feature=[true|false]` instead of --[enable|disable]-feature
 - #63 Remove the big recursive module in As_project: that makes the code simpler
@@ -28,7 +29,8 @@
 - Faster and simpler bootstrap procedure
 - Add a `Doc` component
 
-0.2.0: [Aug 2014]
+# 0.2.0: [2014-08]
+
 - #54 No more mutation in the underlying component graph
 - #52 Unify the compilation units, with different kinds: they can be OCaml,
   C or Js
@@ -47,7 +49,7 @@
 - Be more explicit in the type describing the different compilation phases and
   the different files
 
-0.1.0: [July 2014]
+# 0.1.0: [2014-07]
 - Initial release to get early feedback.
 - Support for simple to medium projects
 - Not working: the C stub generation does not work completely

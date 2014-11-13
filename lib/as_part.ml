@@ -205,6 +205,25 @@ let coerce (#kind as k) ({kind} as p) =
 let coerce_if (#kind as k) ({kind} as p) =
   if p.kind = k then Some p else None
 
+
+(* File part *)
+
+(* FIXME this may mean that we are missing something or at
+   least we should say something about actions whose list of
+   commands is empty.
+*)
+let file ?usage:usage ?cond p =
+  let actions _ =
+    let ctx = As_ctx.empty in
+    let inputs = As_conf.List.empty in
+    let outputs = As_conf.const [p] in
+    let cmds = As_conf.List.empty in
+    [As_action.v ~ctx ~inputs ~outputs cmds]
+  in
+  v ?usage ?cond ~actions (As_path.basename p)
+
+
+
 (* Part lists *)
 
 let list_products ?exts ps =

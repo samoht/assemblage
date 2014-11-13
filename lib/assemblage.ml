@@ -74,6 +74,9 @@ let doc ?usage ?cond ?args ?keep ?(kind = `OCamldoc) name needs =
 let dir ?usage ?cond ?args ?keep ?install kind needs =
   Dir.v ?usage ?cond ?args ?keep ?install kind needs
 
+let file ?usage ?cond p =
+  Part.file ?usage ?cond p
+
 let run ?usage ?cond ?args ?dir name action =
   Run.v ?usage ?cond ?args ?dir name action
 

@@ -79,6 +79,10 @@ val with_root : As_path.rel As_conf.value -> 'a t -> 'a t
 val coerce : ([< kind] as 'b) -> 'a t -> 'b t
 val coerce_if : ([< kind] as 'b) -> 'a t -> 'b t option
 
+(** {1 File part} *)
+
+val file : ?usage:usage -> ?cond:bool As_conf.value -> As_path.t -> [> `Base] t
+
 (** {1 Part lists} *)
 
 val list_products : ?exts:As_path.ext list -> 'a t list ->
