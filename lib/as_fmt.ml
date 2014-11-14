@@ -53,12 +53,7 @@ let pp_white_str ~spaces ppf s =
 let pp_text = pp_white_str ~spaces:true
 let pp_lines = pp_white_str ~spaces:false
 
-(* Conditional UTF-8 formatting
-
-   Note that it would be interesting to investigate if the Format tags
-   mechanism can be used to pretty-print multi-byte UTF-8 correctly --
-   that for a loose definition of correct, you'd still need the
-   unicode segmentation algorithm for visual correctness. *)
+(* Conditional UTF-8 formatting *)
 
 let utf8_enabled, set_utf8_enabled =
   let enabled = ref false in
@@ -90,21 +85,13 @@ let ansi_style_code = function
 | `White -> "\027[37m"
 | `None -> "\027[m"
 
-let style_tag_funs =
-  { Format.mark_open_tag = (fun t -> t);
-    Format.mark_close_tag = (fun _ -> "\027[m");
-    Format.print_open_tag = (fun _ -> ());
-    Format.print_close_tag = (fun _ -> ()); }
+let ansi_style_reset = "\027[m"
 
 let pp_styled style pp_v ppf = match style_tags () with
 | `None -> pp_v ppf
 | `Ansi ->
-    begin fun ppf ->
-      Format.pp_set_formatter_tag_functions ppf style_tag_funs;
-      Format.pp_set_mark_tags ppf true;
-      Format.kfprintf
-        (fun ppf -> Format.pp_close_tag ppf ()) ppf
-        "%a%a" Format.pp_open_tag (ansi_style_code style) pp_v
-    end ppf
+    Format.kfprintf
+      (fun ppf -> pp ppf "@<0>%s" ansi_style_reset) ppf "@<0>%s%a"
+      (ansi_style_code style) pp_v
 
 let pp_styled_str style = pp_styled style pp_str
