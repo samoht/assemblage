@@ -1363,8 +1363,12 @@ module Conf : sig
   (** {2:system_utility_keys System utility keys}
 
       {b Note.} Build actions should not use these utilities directly
-      but use {{!Action.portable_invocations}portable
-      system utility invocations}. *)
+      but use {{!Action.Sys}portable system utility invocations}. *)
+
+  val echo : string key
+  (** [echo] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/echo.html}
+      echo} utility (defaults to ["echo"]). *)
 
   val ln : string key
   (** [ln] is the
@@ -1691,13 +1695,10 @@ module Action : sig
       One particular aspect of build commands is that the executing
       program must be a configuration key. This ensures that the
       executions can be addressed via a {{!Ctx.command}context element}
-      and that the tool can be redefined by the build system end user. *)
+      and that the program can be redefined by the build system end user. *)
 
   type cmd
-  (** The type for a command execution. *)
-
-  type cmds = cmd list Conf.value
-  (** The type for sequences of command executions. *)
+  (** The type for command executions. *)
 
   type cmd_gen =
     ?stdin:Path.t -> ?stdout:Path.t -> ?stderr:Path.t -> string list ->
@@ -1711,20 +1712,13 @@ module Action : sig
       program [cmd] with the given generator. *)
 
   val cmd_exec : ?stdin:product -> ?stdout:product -> ?stderr:product ->
-    string Conf.key -> string list Conf.value -> cmds
-  (** [cmd_exec cmd args] is the sequence that executes program [cmd] with
-      argument [args]. The optional [stdin], [stdout], and [stderr]
-      arguments allow to redirect the standard file descriptors of the
-      execution to files. Convenience function built on top of {!cmd}. *)
+    string Conf.key -> string list Conf.value -> cmd list Conf.value
+  (** [cmd_exec cmd args] is the a command sequence that executes
+      program [cmd] with argument [args]. The optional [stdin], [stdout],
+      and [stderr] arguments allow to redirect the standard file descriptors
+      of the execution to files. Convenience function built on top of {!cmd}. *)
 
-  val seq : cmds -> cmds -> cmds
-  (** [seq cmds cmds'] is the sequence of build commands made of [cmds]
-      followed by [cmds']. *)
-
-  val ( <*> ) : cmds -> cmds -> cmds
-  (** [cmds <*> cmds'] is [seq cmds cmds']. *)
-
-  (** {2:portable_invocations Portable system utility invocations}
+  (** Portable system utility invocations
 
       Rather than using {{!Conf.system_utility_keys}system utility
       configuration keys} directly you should use the following functions,
@@ -1732,46 +1726,53 @@ module Action : sig
 
       {b Note.} Function arguments could support more labelling but
       this doesn't blend well with {!Conf.app}. *)
+  module Sys : sig
 
-  val dev_null : Path.t Conf.value
-  (** [dev_null] is a file that discards all writes. *)
+  (** {1:portable_invocations Portable system utility invocations} *)
 
-  val ln : (Path.t -> Path.t -> cmd) Conf.value
-  (** [ln] has a command [exec src dst] to link symbolically file [src] to
-      [dst].
+    val dev_null : Path.t Conf.value
+    (** [dev_null] is a file that discards all writes. *)
 
-      {b Warning.} On Windows this is a copy. *)
+    val ln : (Path.t -> Path.t -> cmd) Conf.value
+    (** [ln] has a command [exec src dst] to link symbolically file [src] to
+        [dst].
 
-  val ln_rel : (Path.t -> Path.t -> cmd) Conf.value
-  (** [ln_rel] has a command [exec src dst] to link symbolically file
-      [src] to [dst]. FIXME if [src] and [dst] are relative this links
-      [src] to [dst] as seen from the empty relative directory (is
-      that understandable ? is that really needed ? *)
+        {b Warning.} On Windows this is a copy. *)
 
-  val cp : (Path.t -> Path.t -> cmd) Conf.value
-  (** [cp] has a command [exec src dst] to copy file [src] to [dst]. *)
+    val ln_rel : (Path.t -> Path.t -> cmd) Conf.value
+    (** [ln_rel] has a command [exec src dst] to link symbolically file
+        [src] to [dst]. FIXME if [src] and [dst] are relative this links
+        [src] to [dst] as seen from the empty relative directory (is
+        that understandable ? is that really needed ? *)
 
-  val mv : (Path.t -> Path.t -> cmd) Conf.value
-  (** [mv] has a command [exec src dst] to move path [src] to [dst]. *)
+    val cp : (Path.t -> Path.t -> cmd) Conf.value
+    (** [cp] has a command [exec src dst] to copy file [src] to [dst]. *)
 
-  val rm_files : (?f:bool -> Path.t list -> cmd) Conf.value
-  (** [rm_files] has a command [exec ~f paths] to remove the {e file}
-      paths [paths]. If [f] is [true] files are removed regardless of
-      permissions (defaults to [false]). [paths] elements must be files,
-      for directories, see {!rm_dirs}. *)
+    val mv : (Path.t -> Path.t -> cmd) Conf.value
+    (** [mv] has a command [exec src dst] to move path [src] to [dst]. *)
 
-  val rm_dirs : (?f:bool -> ?r:bool -> Path.t list -> cmd) Conf.value
-  (** [rm_dirs] has a command [exec ~f ~r paths] to remove the {e
-      directory} paths [paths]. If [f] is [true] directories are
-      removed regardless of permissions (defaults to [false]).  If [r]
-      is [true] removes the file hierarchies rooted at the elements of
-      [paths]. Note that [paths] must be directories, for removing
-      files, see {!rm_files}. *)
+    val rm_files : (?f:bool -> Path.t list -> cmd) Conf.value
+    (** [rm_files] has a command [exec ~f paths] to remove the {e file}
+        paths [paths]. If [f] is [true] files are removed regardless of
+        permissions (defaults to [false]). [paths] elements must be files,
+        for directories, see {!rm_dirs}. *)
 
-  val mkdir : (Path.t -> cmd) Conf.value
-  (** [mkdir] has a command [exec d] to create the directory [p].
-      Intermediate directories are created as required ([mkdir -p] in
-      Unix parlance). *)
+    val rm_dirs : (?f:bool -> ?r:bool -> Path.t list -> cmd) Conf.value
+    (** [rm_dirs] has a command [exec ~f ~r paths] to remove the {e
+        directory} paths [paths]. If [f] is [true] directories are
+        removed regardless of permissions (defaults to [false]).  If [r]
+        is [true] removes the file hierarchies rooted at the elements of
+        [paths]. Note that [paths] must be directories, for removing
+        files, see {!rm_files}. *)
+
+    val mkdir : (Path.t -> cmd) Conf.value
+    (** [mkdir] has a command [exec d] to create the directory [p].
+        Intermediate directories are created as required ([mkdir -p] in
+        Unix parlance). *)
+
+    val stamp : (Path.t -> string -> cmd) Conf.value
+    (** [stamp] has a command [execs f content] that writes [content] to [f]. *)
+  end
 
   (** {1 Build actions} *)
 
@@ -1779,7 +1780,7 @@ module Action : sig
   (** The type for build actions. *)
 
   val v : ?cond:bool Conf.value -> ctx:Ctx.t -> inputs:products ->
-    outputs:products -> cmds -> t
+    outputs:products -> cmd list Conf.value -> t
    (** [v cond args ctx inputs outputs cmds] is the action that given the
        existence of [inputs] creates the products [outputs] using the
        sequence of command [cmds]. The action is only available if
@@ -1842,8 +1843,7 @@ module Action : sig
 
     (** {1 Commands} *)
 
-    val ( <*> ) : cmds -> cmds -> cmds
-    (** ( <*> ) is {!Action.( <*> )}. *)
+    val ( <*> ) : 'a list Conf.value -> 'a list Conf.value -> 'a list Conf.value
   end
 
   (** {1 Built-in actions} *)
@@ -1935,36 +1935,40 @@ type +'a part constraint 'a = [< part_kind ]
 
 (** Parts, parts sets and maps.
 
-    A part is a higher-level logical build unit. It has specific
-    metadata that depends on its {{!type:part_kind}kind} and may refer
-    to other parts. Using this information a part defines a set
-    of build actions which in turn define the part's build products.
-    Use the {{!spec}combinators} to specify your parts.
+    A part is a value that encapsulates a set of build actions. It
+    defines a higher-level logical build unit with specific metadata
+    that depends on its {{!type:part_kind}kind}. A part refers to that
+    metadata and possibliy to other parts to define its build actions.
+    The outputs of a part's build actions define the part's build
+    products.
 
-    In addition to part kind specific metadata, any part has the
-    following attributes that you specify:
+    In addition to the metadata that is specific to a part, each part has the
+    following attributes that the user specifies:
     {ul
     {- A {{!name}name} used to identify the part. Note that it may not
-       be unique. The part's name is often used as metadata itself,
-       e.g. it defines the library name for {{!Lib}library parts} or
+       be unique. The part's name is often used as metadata itself.
+       For example it defines the library name for {{!Lib}library parts} or
        the name of a {{!Unit} compilation unit}, etc.}
-    {- A {{!type:kind}kind} that identifies the of metadata it needs
-       and the build actions it encapsulates.}
+    {- A {{!type:kind}kind} that identifies the kind of metadata it needs
+       and the build actions it encapsulates and hence the kind of build
+       products it produces.}
     {- A {{!type:usage}usage}. This is a broad usage label to classify
        your parts. It can be used by drivers to derive bureaucratic
        information about your project. For example if some of
        your parts are only used for developing the project you
-       should mark them with the [`Dev] usage, this will allow
-       to mark their package dependencies as being developement only.}
-    {- {{!needs}Needs.} This is a list of parts it uses to
-       define its actions. The way needs are used depend
-       on the part kind. FIXME expand on that.}
+       should mark them with the [`Dev] usage, this will allow drivers
+       to understand that their dependencies are only needed for development.}
+    {- {{!needs}Needs.} This is a list of parts used by the part to
+       define its actions. The way a part uses its needs is entirely
+       up to the part itself, consult their documentation to understand
+       how needs are used.}
     {- A {{!cond}configuration condition} that indicates whether
        a part is available in a given configuration. For example
        the existence of a library may depends on the presence
        of an optional package.}
     {- An {{!args}argument bundle} which it applies to its
-       actions and to the part it swallows FIXME.}}
+       actions and to the part it swallows FIXME. See {!Args.basics} for
+       more information about argument bundles.}}
 
     Given all this information a part will give you
     {{!actions}build actions} which by themselves define build
@@ -2379,7 +2383,7 @@ module Bin : sig
       {- [`OCaml_toplevel], [true], [false], [false].}
       {- [`C], [false] (not applicable), [true], [false]}}
       Whether the products associated to a compilation target are
-      concretly build dependson the configuration keys {!Conf.ocaml_byte},
+      concretly build depends on the configuration keys {!Conf.ocaml_byte},
       {!Conf.ocaml_native}, {!Conf.ocaml_js} and {!Conf.c_js}. *)
 
   val of_base : ?byte:bool -> ?native:bool -> ?js:bool -> kind ->
@@ -3010,7 +3014,6 @@ module Private : sig
 
     include module type of Action with type t = Action.t
                                    and type cmd = Action.cmd
-                                   and type cmds = Action.cmds
 
     val cond : t -> bool Conf.value
     (** [cond a] is [a]'s condition. *)
@@ -3027,7 +3030,7 @@ module Private : sig
     val outputs : t -> Path.t list Conf.value
     (** [outputs a] is the list of products output by [a]'s action. *)
 
-    val cmds : t -> cmds
+    val cmds : t -> cmd list Conf.value
     (** [cmds a] is [a]'s commands to generate outputs from the inputs. *)
 
     val deps : t -> Conf.Key.Set.t

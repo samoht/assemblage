@@ -222,8 +222,6 @@ let file ?usage:usage ?cond p =
   in
   v ?usage ?cond ~actions (As_path.basename p)
 
-
-
 (* Part lists *)
 
 let list_products ?exts ps =

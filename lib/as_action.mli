@@ -34,44 +34,43 @@ val cmd_stdin : cmd -> As_path.t option
 val cmd_stdout : cmd -> As_path.t option
 val cmd_stderr : cmd -> As_path.t option
 
-type cmds = cmd list As_conf.value
-
 type cmd_gen =
   ?stdin:As_path.t -> ?stdout:As_path.t -> ?stderr:As_path.t ->
   string list -> cmd
 
 val cmd : string As_conf.key -> cmd_gen As_conf.value
 val cmd_exec : ?stdin:product -> ?stdout:product -> ?stderr:product ->
-  string As_conf.key -> string list As_conf.value -> cmds
+  string As_conf.key -> string list As_conf.value -> cmd list As_conf.value
 
-val seq : cmds -> cmds -> cmds
-val ( <*> ) : cmds -> cmds -> cmds
+(** Portable system utility invocations *)
+module Sys : sig
 
-(** {2 Portable system utility invocations} *)
+  (** {1 Portable system utility invocations} *)
 
-val dev_null : As_path.t As_conf.value
-
-val ln : (As_path.t -> As_path.t -> cmd) As_conf.value
-val ln_rel : (As_path.t -> As_path.t -> cmd) As_conf.value
-val cp : (As_path.t -> As_path.t -> cmd) As_conf.value
-val mv : (As_path.t -> As_path.t -> cmd) As_conf.value
-val rm_files : (?f:bool -> As_path.t list -> cmd) As_conf.value
-val rm_dirs : (?f:bool -> ?r:bool -> As_path.t list -> cmd) As_conf.value
-val mkdir : (As_path.t -> cmd) As_conf.value
+  val dev_null : As_path.t As_conf.value
+  val ln : (As_path.t -> As_path.t -> cmd) As_conf.value
+  val ln_rel : (As_path.t -> As_path.t -> cmd) As_conf.value
+  val cp : (As_path.t -> As_path.t -> cmd) As_conf.value
+  val mv : (As_path.t -> As_path.t -> cmd) As_conf.value
+  val rm_files : (?f:bool -> As_path.t list -> cmd) As_conf.value
+  val rm_dirs : (?f:bool -> ?r:bool -> As_path.t list -> cmd) As_conf.value
+  val mkdir : (As_path.t -> cmd) As_conf.value
+  val stamp : (As_path.t -> string -> cmd) As_conf.value
+end
 
 (** {1 Actions} *)
 
 type t
 
 val v : ?cond:bool As_conf.value -> ctx:As_ctx.t -> inputs:products ->
-  outputs:products -> cmds -> t
+  outputs:products -> cmd list As_conf.value -> t
 
 val cond : t -> bool As_conf.value
 val args : t -> As_args.t
 val ctx : t -> As_ctx.t
 val inputs : t -> products
 val outputs : t -> products
-val cmds : t -> cmds
+val cmds : t -> cmd list As_conf.value
 val deps : t -> As_conf.Key.Set.t
 
 val add_inputs : products -> t -> t
@@ -109,9 +108,10 @@ module Spec : sig
 
   val product : ?ext:As_path.ext -> product -> products
 
-  (* Commands *)
+  (* Sequencing *)
 
-  val ( <*> ) : cmds -> cmds -> cmds
+  val ( <*> ) : 'a list As_conf.value -> 'a list As_conf.value ->
+    'a list As_conf.value
 end
 
 val link : src:product -> dst:product -> unit -> t

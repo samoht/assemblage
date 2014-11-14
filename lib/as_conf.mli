@@ -227,6 +227,7 @@ val pkg_config : string key
 val docs_system_utilities : string
 val doc_system_utilities : string
 
+val echo : string key
 val ln : string key
 val cp : string key
 val mv : string key

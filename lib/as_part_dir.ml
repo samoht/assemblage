@@ -139,7 +139,7 @@ let link_part_action keep dir p =
   let ctx = As_ctx.v [ `Gen ] (* bof *) in
   let inputs = As_conf.List.map fst file_map in
   let outputs = As_conf.List.map snd file_map in
-  let cmds = As_conf.(const cmds $ As_action.ln_rel $ file_map) in
+  let cmds = As_conf.(const cmds $ As_action.Sys.ln_rel $ file_map) in
   As_action.v ~ctx ~inputs ~outputs cmds
 
 let actions keep p =

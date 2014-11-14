@@ -40,7 +40,6 @@ let cmd_args_with_ctx conf ctx args c =
   let injected = As_args.for_ctx conf (cmd_ctx ctx c) args in
   List.rev_append (List.rev injected) c.args
 
-type cmds = cmd list As_conf.value
 type cmd_gen =
   ?stdin:As_path.t -> ?stdout:As_path.t -> ?stderr:As_path.t ->
   string list -> cmd
@@ -61,100 +60,105 @@ let cmd_exec ?stdin ?stdout ?stderr c args =
   As_conf.(const build_cmds $ const c $ (value c) $ args $ stdin $ stdout $
            stderr)
 
-let seq cmds cmds' = As_conf.List.(rev_append (rev cmds) cmds')
-let (<*>) = seq
-
 (* Portable system utility invocations *)
 
-let add v acc = v :: acc
-let add_if b v acc = if b then v :: acc else acc
-let path_arg p = As_path.to_string p               (* FIXME quoting issues. *)
-let paths_args_rev ps = List.rev_map As_path.to_string ps
-let paths_args ps = List.rev (paths_args_rev ps)
+module Sys = struct
+  let add v acc = v :: acc
+  let add_if b v acc = if b then v :: acc else acc
+  let path_arg p = As_path.to_string p               (* FIXME quoting issues. *)
+  let paths_args_rev ps = List.rev_map As_path.to_string ps
+  let paths_args ps = List.rev (paths_args_rev ps)
 
-let dev_null =
-  let dev_null os = match os with
-  | "Win32" -> As_path.file "NUL"
-  | _ -> As_path.(root / "dev" / "null")
-  in
-  As_conf.(const dev_null $ value host_os)
-
-let ln =
-  let make_cmd os (exec : cmd_gen) = match os with
-  | "Win32" ->
-      As_log.warn "Symbolic@ links@ unsupported@ copying@ instead.";
-      fun src dst -> exec [ "/Y"; path_arg src; path_arg dst;]
-  | _ ->
-      fun src dst -> exec [ "-s"; "-f"; path_arg src; path_arg dst;]
-  in
-  As_conf.(const make_cmd $ (value host_os) $ (cmd As_conf.ln ))
-
-let ln_rel =
-  (* FIXME here we really mean link src to dst when seen from
-     the empty relative directory. We are using `..` but As_path.t are
-     not supposed to have such segments. Really need to sort out
-     paths. *)
-  let see src ~from:dst = (* src as seen from dst, as short as possible *)
-    let parent = Filename.parent_dir_name in
-    let rec loop src dst = match As_path.Rel.dirname dst with
-    | d when As_path.Rel.is_empty d -> src
-    | d -> loop (As_path.Rel.(base parent // src)) d
+  let dev_null =
+    let dev_null os = match os with
+    | "Win32" -> As_path.file "NUL"
+    | _ -> As_path.(root / "dev" / "null")
     in
-    match As_path.to_rel src, As_path.to_rel dst with
-    | Some src, Some dst ->
-        let pre = As_path.Rel.find_prefix src dst in
-        let rem p = match As_path.Rel.rem_prefix pre p with
-        | Some p -> p | None -> assert false
-        in
-        As_path.(of_rel (loop (rem src) (rem dst)))
-    | _ -> src
-  in
-  let make_cmd ln src dst = ln (see src ~from:dst) dst in
-  let ln_cmd = ln in
-  As_conf.(const make_cmd $ ln_cmd)
+    As_conf.(const dev_null $ value host_os)
 
-let cp =
-  let make_cmd os (exec : cmd_gen) = match os with
-  | "Win32" -> fun src dst -> exec [ "/Y"; path_arg src; path_arg dst;]
-  | _ -> fun src dst -> exec [ path_arg src; path_arg dst;]
-  in
-  As_conf.(const make_cmd $ value host_os $ cmd As_conf.cp)
+  let ln =
+    let make_cmd os (exec : cmd_gen) = match os with
+    | "Win32" ->
+        As_log.warn "Symbolic@ links@ unsupported@ copying@ instead.";
+        fun src dst -> exec [ "/Y"; path_arg src; path_arg dst;]
+    | _ ->
+        fun src dst -> exec [ "-s"; "-f"; path_arg src; path_arg dst;]
+    in
+    As_conf.(const make_cmd $ (value host_os) $ (cmd As_conf.ln ))
 
-let mv =
-  let make_cmd os (exec : cmd_gen) = match os with
-  | "Win32" -> fun src dst -> exec [ "/Y"; path_arg src; path_arg dst;]
-  | _ -> fun src dst -> exec [ path_arg src; path_arg dst;]
-  in
-  As_conf.(const make_cmd $ value host_os $ cmd As_conf.mv)
+  let ln_rel =
+    (* FIXME here we really mean link src to dst when seen from
+       the empty relative directory. We are using `..` but As_path.t are
+       not supposed to have such segments. Really need to sort out
+       paths. *)
+    let see src ~from:dst = (* src as seen from dst, as short as possible *)
+      let parent = Filename.parent_dir_name in
+      let rec loop src dst = match As_path.Rel.dirname dst with
+      | d when As_path.Rel.is_empty d -> src
+      | d -> loop (As_path.Rel.(base parent // src)) d
+      in
+      match As_path.to_rel src, As_path.to_rel dst with
+      | Some src, Some dst ->
+          let pre = As_path.Rel.find_prefix src dst in
+          let rem p = match As_path.Rel.rem_prefix pre p with
+          | Some p -> p | None -> assert false
+          in
+          As_path.(of_rel (loop (rem src) (rem dst)))
+      | _ -> src
+    in
+    let make_cmd ln src dst = ln (see src ~from:dst) dst in
+    let ln_cmd = ln in
+    As_conf.(const make_cmd $ ln_cmd)
 
-let rm_files =
-  let make_cmd os (exec : cmd_gen) = match os with
-  | "Win32" ->
-      fun ?(f = false) paths ->
-        exec (add_if f "/F" @@ add "/Q" @@ paths_args paths)
-  | _ ->
-      fun ?(f = false) paths ->
-        exec (add_if f "-f" @@ paths_args paths)
-  in
-  As_conf.(const make_cmd $ value host_os $ cmd As_conf.rm)
+  let cp =
+    let make_cmd os (exec : cmd_gen) = match os with
+    | "Win32" -> fun src dst -> exec [ "/Y"; path_arg src; path_arg dst;]
+    | _ -> fun src dst -> exec [ path_arg src; path_arg dst;]
+    in
+    As_conf.(const make_cmd $ value host_os $ cmd As_conf.cp)
 
-let rm_dirs =
-  let make_cmd os (exec : cmd_gen) = match os with
-  | "Win32" ->
-      fun ?(f = false) ?(r = false) paths ->
-        exec (add_if f "/F" @@ add_if r "/S" @@ add "/Q" @@ paths_args paths)
-  | _ ->
-      fun ?(f = false) ?(r = false) paths ->
-        exec (add_if f "-f" @@ add_if r "-r" @@ paths_args paths)
-  in
-  As_conf.(const make_cmd $ value host_os $ cmd As_conf.rmdir)
+  let mv =
+    let make_cmd os (exec : cmd_gen) = match os with
+    | "Win32" -> fun src dst -> exec [ "/Y"; path_arg src; path_arg dst;]
+    | _ -> fun src dst -> exec [ path_arg src; path_arg dst;]
+    in
+    As_conf.(const make_cmd $ value host_os $ cmd As_conf.mv)
 
-let mkdir =
-  let make_cmd os (exec : cmd_gen) = match os with
-  | "Win32" -> fun dir -> exec [ path_arg dir ]
-  | _ -> fun dir -> exec [ "-p"; path_arg dir ]
-  in
-  As_conf.(const make_cmd $ value host_os $ cmd As_conf.mkdir)
+  let rm_files =
+    let make_cmd os (exec : cmd_gen) = match os with
+    | "Win32" ->
+        fun ?(f = false) paths ->
+          exec (add_if f "/F" @@ add "/Q" @@ paths_args paths)
+    | _ ->
+        fun ?(f = false) paths ->
+          exec (add_if f "-f" @@ paths_args paths)
+    in
+    As_conf.(const make_cmd $ value host_os $ cmd As_conf.rm)
+
+  let rm_dirs =
+    let make_cmd os (exec : cmd_gen) = match os with
+    | "Win32" ->
+        fun ?(f = false) ?(r = false) paths ->
+          exec (add_if f "/F" @@ add_if r "/S" @@ add "/Q" @@ paths_args paths)
+    | _ ->
+        fun ?(f = false) ?(r = false) paths ->
+          exec (add_if f "-f" @@ add_if r "-r" @@ paths_args paths)
+    in
+    As_conf.(const make_cmd $ value host_os $ cmd As_conf.rmdir)
+
+  let mkdir =
+    let make_cmd os (exec : cmd_gen) = match os with
+    | "Win32" -> fun dir -> exec [ path_arg dir ]
+    | _ -> fun dir -> exec [ "-p"; path_arg dir ]
+    in
+    As_conf.(const make_cmd $ value host_os $ cmd As_conf.mkdir)
+
+  let stamp =
+    let make_cmds (echo : cmd_gen) file contents =
+      echo [contents] ~stdout:file
+    in
+    As_conf.(const make_cmds $ cmd As_conf.echo)
+end
 
 (* Actions *)
 
@@ -164,7 +168,7 @@ type t =
     ctx : As_ctx.t;                         (* context to use on evaluation. *)
     inputs : products;       (* inputs that need to exist and be up to date. *)
     outputs : products;          (* outputs that need to be touched by cmds. *)
-    cmds : cmds; }                                       (* action commands. *)
+    cmds : cmd list As_conf.value; }                     (* action commands. *)
 
 let v ?(cond = As_conf.true_) ~ctx ~inputs ~outputs cmds =
   { cond; args = As_args.empty; ctx; inputs; outputs; cmds }
@@ -237,8 +241,8 @@ module Spec = struct
     let p = match ext with None -> p | Some ext -> path p ~ext in
     As_conf.(const (fun p -> [p]) $ p)
 
-  (* Commands *)
-  let ( <*> ) = ( <*> )
+  (* Sequencing *)
+  let (<*>) a a' = As_conf.List.(rev_append (rev a) a')
 end
 
 let link ~src ~dst () =
@@ -246,5 +250,5 @@ let link ~src ~dst () =
   let ctx = As_ctx.v [ `Link ] in
   let inputs = product src in
   let outputs = product dst in
-  let cmd = As_conf.(List.singleton (ln_rel $ src $ dst)) in
+  let cmd = As_conf.(List.singleton (Sys.ln_rel $ src $ dst)) in
   v ~ctx ~inputs ~outputs cmd
