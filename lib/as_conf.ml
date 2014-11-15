@@ -77,6 +77,7 @@ and Kset : (Set.S with type elt = Def.t) = Set.Make (Def)
 type 'a value = 'a Def.value
 
 let const v = Kset.empty, fun _ -> v
+let manual_value deps v = deps, fun _ -> v
 let app (fdeps, f) (vdeps, v) = Kset.union fdeps vdeps, fun c -> (f c) (v c)
 let deps (deps, _) = deps
 let eval c (_, v) = v c
@@ -183,8 +184,7 @@ module Key = struct
 end
 
 let pp_key_dup ppf (Key.V k) = As_fmt.pp ppf
-    "Key name `%s'@ not unique@ in@ the@ configuration.@ \
-     This@ may@ lead@ to@ unexpected@ driver@ behaviour." (Key.name k)
+    "Key name `%s'@ not unique@ in@ the@ configuration." (Key.name k)
 
 let pp_miss_key ppf (Key.V k) = As_fmt.pp ppf
     "Key@ `%s'@ not@ found@ in@ configuration.@ \
@@ -271,13 +271,17 @@ let pp ppf c =
 (* Configuration schemes *)
 
 type scheme = string * (string * t)
-type def = D : 'a key * 'a -> def
-let def k v = D (k, v)
+type def = D : 'a key * [`Const of 'a | `Value of 'a value] -> def
+let def k v = D (k, `Const v)
+let defv k v = D (k, `Value v)
 
 let scheme ?doc ?base name defs =
   let doc = match doc with None -> str "The %s scheme." name | Some d -> d in
   let init = match base with None -> empty | Some (_, (_, conf)) -> conf in
-  let add acc (D (k, v)) = set acc k (const v) in
+  let add acc (D (k, v)) =
+    let v = match v with `Const v -> const v | `Value v -> v in
+    set acc k v
+  in
   name, (doc, List.fold_left add init defs)
 
 (* Bultin configuration value converters

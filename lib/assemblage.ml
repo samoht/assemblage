@@ -28,7 +28,7 @@ module Cmd = As_cmd
 module Conf = As_conf
 module Ctx = As_ctx
 module Args = As_args
-
+module Acmd = As_acmd
 module Action = struct
   include As_action
   module OCaml = As_action_ocaml
@@ -94,6 +94,10 @@ module Private = struct
   module Cmd = As_cmd
   module Conf = As_conf
   module Args = As_args
+  module Acmd = struct
+    type args = Args.t
+    include Acmd
+  end
   module Action = struct
     include As_action
     module OCaml = As_action_ocaml

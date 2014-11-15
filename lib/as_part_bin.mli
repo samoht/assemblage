@@ -41,9 +41,6 @@ val v :
   [< `Unit | `Lib | `Pkg ] As_part.t list ->
   [> `Bin] As_part.t
 
-val of_base : ?byte:bool -> ?native:bool -> ?js:bool -> kind ->
-  [< `Base] As_part.t -> [> `Bin] As_part.t
-
 (*
    TODO
   val cmd : ?args:As_args.t -> ?kind:[`Byte | `Native] -> [< `Bin] As_part.t ->

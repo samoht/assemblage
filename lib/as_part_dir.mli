@@ -46,6 +46,3 @@ val v : ?usage:As_part.usage -> ?cond:bool As_conf.value -> ?args:As_args.t ->
   ?keep:spec -> ?install:bool -> kind ->
   [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] As_part.t list ->
   [> `Dir ] As_part.t
-
-val of_base : ?install:bool -> kind -> [> `Base] As_part.t ->
-  [> `Dir] As_part.t

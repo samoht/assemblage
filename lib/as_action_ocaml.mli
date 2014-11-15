@@ -20,35 +20,67 @@
 
 (** {1 Types} *)
 
-type includes = As_path.t list As_conf.value
-type name = As_path.t As_conf.value
+type includes = As_path.t list
+type name = As_path.t
 
 (** {1 Preprocess} *)
 
-val compile_src_ast : [`Ml | `Mli ] -> src:As_action.product -> unit ->
+val compile_src_ast :
+  ?needs:As_path.t list -> ?args:string list ->
+  dumpast:As_acmd.bin ->
+  [`Ml | `Mli] -> src:As_path.t -> unit ->
   As_action.t
 
 (** {1 Compiling} *)
 
-val compile_mli : incs:includes -> src:As_action.product -> unit -> As_action.t
-val compile_ml_byte : has_mli:bool As_conf.value -> incs:includes ->
-  src:As_action.product -> unit -> As_action.t
+val compile_mli :
+  ?needs:As_path.t list -> ?args:string list ->
+  ocamlc:As_acmd.bin ->
+  annot:bool -> incs:includes -> src:As_path.t -> unit ->
+  As_action.t
 
-val compile_ml_native : has_mli:bool As_conf.value -> incs:includes ->
-  src:As_action.product -> unit -> As_action.t
+val compile_ml_byte :
+  ?needs:As_path.t list -> ?args:string list ->
+  ocamlc:As_acmd.bin ->
+  annot:bool -> has_mli:bool -> incs:includes -> src:As_path.t -> unit ->
+  As_action.t
 
-val compile_c : src:As_action.product -> unit -> As_action.t
+val compile_ml_native :
+  ?needs:As_path.t list -> ?args:string list ->
+  ocamlopt:As_acmd.bin ->
+  annot:bool -> has_mli:bool -> incs:includes -> src:As_path.t -> unit ->
+  As_action.t
+
+val compile_c :
+  ?needs:As_path.t list -> ?args:string list ->
+  ocamlc:As_acmd.bin ->
+  src:As_path.t -> unit ->
+  As_action.t
 
 (** {1 Archiving} *)
 
-val archive_byte : cmos:As_action.products -> name:name -> unit -> As_action.t
-val archive_native : cmx_s:As_action.products -> name:name -> unit ->
+val archive_byte :
+  ?needs:As_path.t list -> ?args:string list ->
+  ocamlc:As_acmd.bin ->
+  cmos:As_path.t list -> name:name -> unit ->
   As_action.t
 
-val archive_shared : cmx_s:As_action.products -> name:name -> unit ->
+val archive_native :
+  ?needs:As_path.t list -> ?args:string list ->
+  ocamlopt:As_acmd.bin ->
+  cmx_s:As_path.t list -> name:name -> unit ->
   As_action.t
 
-val archive_c : objs:As_action.products -> name:name -> unit ->
+val archive_shared :
+  ?needs:As_path.t list -> ?args:string list ->
+  ocamlopt:As_acmd.bin ->
+  cmx_s:As_path.t list -> name:name -> unit ->
+  As_action.t
+
+val archive_c :
+  ?needs:As_path.t list -> ?args:string list ->
+  ocamlmklib:As_acmd.bin ->
+  objs:As_path.t list -> name:name -> unit ->
   As_action.t
 
 (** {1 Linking} *)

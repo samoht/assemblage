@@ -32,6 +32,3 @@ val v : ?usage:As_part.usage -> ?cond:bool As_conf.value ->
 val of_bin : ?usage:As_part.usage -> ?cond:bool As_conf.value ->
   ?args:As_args.t -> ?dir:As_path.t As_conf.value ->
   [< `Bin] As_part.t -> (string list) As_conf.value -> [> `Run] As_part.t
-
-val of_base : ?dir:As_path.t As_conf.value ->
-  [< `Base] As_part.t -> [> `Run] As_part.t

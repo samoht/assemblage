@@ -59,7 +59,7 @@ let lookup_args = function
 let check p =
   let pkg = As_part.coerce `Pkg p in
   As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind pkg);
-  true
+  As_conf.true_
 
 (* Packages *)
 
@@ -67,8 +67,3 @@ let v ?usage ?cond ?args name kind =
   let lookup = lookup_args kind in
   let meta = meta kind lookup in
   As_part.v_kind ?usage ?cond ?args ~meta ~check name `Pkg
-
-let of_base kind p =
-  let lookup = lookup_args kind in
-  let meta = meta kind lookup in
-  As_part.with_kind_meta `Pkg meta p

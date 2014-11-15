@@ -40,6 +40,3 @@ val js : 'a As_part.t -> [> `Unit] As_part.t option
 val v : ?usage:As_part.usage -> ?cond:bool As_conf.value ->
   ?args:As_args.t -> ?needs:[< `Pkg | `Lib ] As_part.t list ->
   ?dir:As_path.t As_conf.value -> string -> kind -> [> `Unit] As_part.t
-
-val of_base : ?dir:As_path.t As_conf.value -> kind -> [< `Base] As_part.t ->
-  [> `Unit] As_part.t

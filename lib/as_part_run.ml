@@ -28,7 +28,7 @@ let dir p = (get_meta p).dir
 let check p =
   let run = As_part.coerce `Run p in
   As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind run);
-  true
+  As_conf.true_
 
 (* Run *)
 
@@ -37,7 +37,3 @@ let v ?usage ?cond ?args ?dir name cmds =
   As_part.v_kind ?usage ?cond ?args ~meta ~check name `Run
 
 let of_bin ?usage ?cond ?args ?dir bin cmds = failwith "TODO"
-
-let of_base ?dir p =
-  let meta = meta ?dir () in
-  As_part.with_kind_meta `Run meta p

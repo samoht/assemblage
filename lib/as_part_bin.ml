@@ -56,21 +56,17 @@ let ocaml_toplevel = is_kind `OCaml_toplevel
 let check p =
   let bin = As_part.coerce `Bin p in
   As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind bin);
-  true
+  As_conf.true_
 
 (* Actions *)
 
 let actions p =
   let bin = As_part.coerce `Bin p in
   As_log.warn "%a part actions are TODO" As_part.pp_kind (As_part.kind bin);
-  []
+  As_conf.const []
 
 (* Part *)
 
 let v ?usage ?cond ?args ?byte ?native ?js name kind needs =
   let meta = meta ?byte ?native ?js kind in
   As_part.v_kind ?usage ?cond ?args ~meta ~needs ~actions ~check name `Bin
-
-let of_base ?byte ?native ?js kind p =
-  let meta = meta ?byte ?native ?js kind in
-  As_part.with_kind_meta `Bin meta p

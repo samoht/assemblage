@@ -96,7 +96,16 @@ module String : sig
   module Set : sig
     include Set.S with type elt = string
     val of_list : string list -> t
+    (** [of_list ss] is a set from the list [ss]. *)
   end
+
+  val make_unique_in : ?suff:string -> Set.t -> string -> string option
+  (** [make_unique_in ~suff set elt] is a string that does not belong
+      [set].  If [elt] in not in [set] then this is [elt] itself
+      otherwise it is a string defined by [Printf.sprintf "%s%s%d" s
+      suff d] where [d] is a positive number starting from [1]. [suff]
+      defaults to ["~"].  [None] in the unlikely case that all
+      positive numbers were exhausted. *)
 
   module Map : Map.S with type key = string
 end
@@ -158,6 +167,12 @@ module Fmt : sig
   (** [pp_lines] formats lines by replacing newlines in the string
       with calls to {!Format.pp_force_newline}. *)
 
+  val pp_doomed : string formatter
+  (** [pp_doomed] should be used for printing a message when
+       reasonable assumptions are being violated. The string
+      should be a short description of what is going on. *)
+
+
   (** {1:utf8_cond Conditional UTF-8 formatting}
 
       {b Note.} Since {!Format} is not UTF-8 aware using UTF-8 output
@@ -197,10 +212,17 @@ end
 
 (** File system paths, path sets and maps.
 
-    {b Note.} Don't use {!Filename.current_dir_name} and
-    {!Filename.parent_dir_name} in path segments. FIXME/TODO should we
-    raise [Invalid_argument] ? We could also normalize via the constructors.
-    Cli interaction ? Path.of,to_string Path.quote define guidelines *)
+    [Path] provides three types for handling paths. Values of type
+    {!Path.t} are for paths that are either relative or absolute while
+    those of type {!Path.rel} and {!Path.abs} specialize to either
+    case.
+
+    Relative paths and absolute path each have corresponding modules
+    {!Rel} and {!Abs} with specialized functions. {{!conversions}Conversion}
+    between the three type of paths are explicit.
+
+    {b FIXME}. We need to properly handle {!Filename.current_dir_name} and
+    {!Filename.parent_dir_name} in path segments. *)
 module Path : sig
 
   (** {1:filepaths File paths} *)
@@ -263,7 +285,7 @@ module Path : sig
       or {!empty} and [None] is only returned if [p] and [p'] are of
       different kind. *)
 
-  (** {1 Predicates and comparison} *)
+  (** {1:predicates Predicates and comparison} *)
 
   val is_root : t -> bool
   (** [is_root p] is [true] iff [p] is {!root}. *)
@@ -289,7 +311,7 @@ module Path : sig
   val compare : t  -> t -> int
   (** [compare p p'] is [Pervasives.compare p p']. *)
 
-  (** {1 Conversions} *)
+  (** {1:conversions Conversions} *)
 
   val to_rel : t -> rel option
   (** [to_rel p] is [Some r] if [p] is a relative path. *)
@@ -324,7 +346,7 @@ module Path : sig
   val pp : Format.formatter -> t -> unit
   (** [pp ppf p] prints path [p] on [ppf] using {!to_string}. *)
 
-  (** {1 File extensions} *)
+  (** {1:file_exts File extensions} *)
 
   type ext =
     [ `A | `Byte | `C | `Cma | `Cmi | `Cmo | `Cmt | `Cmti | `Cmx | `Cmxa
@@ -375,7 +397,7 @@ module Path : sig
   (** [ext_matches exts p] is [true] iff [p]'s last segment has a file
       extension in [exts]. *)
 
-  (** {1 Relative paths} *)
+  (** {1:rel Relative paths} *)
 
   (** Relative paths. *)
   module Rel : sig
@@ -424,7 +446,7 @@ module Path : sig
     val find_prefix : rel -> rel -> rel
     (** See {!Path.find_prefix}. *)
 
-    (** {1 Predicates and comparison} *)
+    (** {1:predicates Predicates and comparison} *)
 
     val is_empty : rel -> bool
     (** See {!Path.is_empty}. *)
@@ -458,7 +480,7 @@ module Path : sig
     val pp : Format.formatter -> rel -> unit
     (** See {!Path.pp}. *)
 
-    (** {1 File extensions} *)
+    (** {1:file_exts File extensions} *)
 
     val ext : rel -> ext option
     (** See {!Path.ext}. *)
@@ -484,7 +506,7 @@ module Path : sig
     val ext_matches : ext list -> rel -> bool
     (** See {!Path.ext_matches}. *)
 
-    (** {1 Path sets and maps} *)
+    (** {1:sets_maps Path sets and maps} *)
 
     module Set : sig
       include Set.S with type elt = rel
@@ -495,7 +517,7 @@ module Path : sig
 
   end
 
-  (** {1 Absolute paths} *)
+  (** {1:abs Absolute paths} *)
 
   (** Absolute paths. *)
   module Abs : sig
@@ -535,7 +557,7 @@ module Path : sig
     val find_prefix : abs -> abs -> abs
     (** See {!Path.find_prefix}. *)
 
-    (** {1 Predicates and comparison} *)
+    (** {1:predicates Predicates and comparison} *)
 
     val is_root : abs -> bool
     (** See {!Path.is_root}. *)
@@ -549,7 +571,7 @@ module Path : sig
     val compare : abs  -> abs -> int
     (** See {!Path.compare}. *)
 
-    (** {1 Conversions} *)
+    (** {1:conversions Conversions} *)
 
     val to_segs : abs -> string list
     (** [to_segs a] is [a]'s segments. *)
@@ -566,7 +588,7 @@ module Path : sig
     val pp : Format.formatter -> abs -> unit
     (** See {!Path.pp}. *)
 
-    (** {1 File extensions} *)
+    (** {1:file_exts File extensions} *)
 
     val ext : abs -> ext option
     (** See {!Path.ext}. *)
@@ -592,7 +614,7 @@ module Path : sig
     val ext_matches : ext list -> abs -> bool
     (** See {!Path.ext_matches}. *)
 
-    (** {1 Path sets and maps} *)
+    (** {1:sets_maps Path sets and maps} *)
 
     module Set : sig
       include Set.S with type elt = abs
@@ -602,7 +624,7 @@ module Path : sig
     module Map : Map.S with type key = abs
   end
 
-  (** {1 Path sets and maps} *)
+  (** {1:sets_maps Path sets and maps} *)
 
   module Set : sig
     include Set.S with type elt = t
@@ -612,10 +634,14 @@ module Path : sig
   module Map : Map.S with type key = t
 end
 
-(** Assemblage log. *)
+(** Assemblage log.
+
+    [Log] provides functions to log messages from assemble files. It
+    is also used by the assemblage library itself. The log's output
+    is controlled by drivers. *)
 module Log : sig
 
-  (** {1 Log} *)
+  (** {1 Log level} *)
 
   (** The type for log levels. *)
   type level = Show | Error | Warning | Info | Debug
@@ -652,7 +678,11 @@ module Log : sig
 
 end
 
-(** Executing {e non-build} commands and IO operations. *)
+(** Executing {e non-build} commands and IO operations.
+
+    [Cmd] provides functions to execute {e non-build} commands
+    and perform IO operations. They can be used to define the default
+    value of {{!Conf}configuration keys} in assemble files. *)
 module Cmd : sig
 
   (** {1:command_results Command and IO results} *)
@@ -747,7 +777,7 @@ module Cmd : sig
     (** [dev_null] represents a file that discards all writes.
 
         {b Warning.} Do not use this value to define build actions,
-        use {!Action.dev_null}. *)
+        use {!Acmd.dev_null}. *)
 
     val delete : ?maybe:bool -> path -> unit result
     (** [delete ~maybe file] deletes file [file]. If [maybe] is [false]
@@ -910,41 +940,49 @@ end
 
 (** Build configuration.
 
-    TODO not good. Rephrase and say what a configuration is
-    (map from keys to value).
+    A configuration represents a concrete build environment for a
+    project. It allows to adjust a project's outcomes to the build
+    environment and desires of the end user.
 
-    Assemblage keeps tracks of the configuration keys needed to define
-    a project and its build system through configuration values. A
-    configuration value denotes a concrete OCaml value of a certain
-    type.
+    A {e configuration} is a map from named {{!type:key}keys} to
+    configuration {{!type:value}values}. The value associated to a key
+    is either determined automatically from the environment by the
+    key's default value or explicitly set by the end user of the build
+    system (e.g. from the command line or via an IDE).
 
-    Configuration {{!type:key}keys} are named configuration value that
-    are meant to be redefined by the end user of the build system
-    (e.g. from the command line or from an IDE). A configuration key
-    can be used to determine a configuration value or other
-    configuration keys.
+    A {e configuration value} denotes an OCaml value that depends on
+    the configuration. Configuration values are {{!values}transformed
+    and composed} into new values and keep track of the set of keys
+    that are needed to define them. Since they must be used to define
+    a project, it means that assemblage can (conservatively) determine
+    the configuration keys of a project.
 
     Configuration {{!type:scheme}schemes} are named, user defined,
-    configuration key presets. They allow the end user to quickly
-    setup a given configuration. Configuration schemes are meant to be
-    used for development, not distribution, where configuration setup
-    based on feature detection is more adapted.
+    partial configurations. They allow the ends user to quickly setup
+    a given configuration (even though they may have their use it
+    is a good practice not to use configuration schemes in the context
+    of package distribution).
 
-    Before {{!key}defining} your own keys you should prefer the
+    {b Important.} Before {{!key}defining} your own keys you should prefer the
     {{!builtin_keys}built-in ones}. *)
 module Conf : sig
 
-  (** {1 Configuration values} *)
+  (** {1:values Configuration values} *)
 
   type 'a value
-  (** The type for configuration values evaluating to values of type ['a]. *)
+  (** The type for configuration values evaluating to OCaml values of type ['a].
+
+      A value of this type means that it depends on the configuration:
+      its concrete value can not be determined without a
+      configuration. We say that we {e evaluate} a value when we take
+      a configuration and determine its OCaml value in that configuration. *)
 
   val const : 'a -> 'a value
   (** [const v] is a configuration value that evaluates to [v]. *)
 
   val app : ('a -> 'b) value -> 'a value -> 'b value
   (** [app f v] is a configuration value that evaluates to the result
-      of applying the evalaution of [v] to the one of [f]. *)
+      of applying the evaluation of [v] to the one of [f]. *)
 
   val ( $ ) : ('a -> 'b) value -> 'a value -> 'b value
   (** [f $ v] is [app f v]. *)
@@ -968,7 +1006,7 @@ module Conf : sig
   (** [pick_if c a b] is [a] if [c] evaluates to [true] and [b]
       otherwise. *)
 
-  (** Optional values. *)
+  (** Optional values. FIXME remove ? *)
   module Option : sig
 
     (** {1 Options} *)
@@ -986,7 +1024,7 @@ module Conf : sig
         there [none] is unspecified. *)
   end
 
-  (** List values. *)
+  (** List values. FIXME remove ? *)
   module List : sig
 
     (** {1 Lists} *)
@@ -1044,20 +1082,20 @@ module Conf : sig
         to some value by [f]. Tail recursive. *)
   end
 
-  (** {1 Configuration value converters}
+  (** {1 Configuration converters}
 
-      A configuration value converter transforms a string value
-      to an OCaml value. There are a few
-      {{!builtin_converters}built-in converters}. *)
+      A configuration converter transforms a string value to an OCaml
+      value and vice-versa. There are a few {{!builtin_converters}built-in
+      converters}. *)
 
   type 'a parser = string -> [ `Error of string | `Ok of 'a ]
-  (** The type for configuration value parsers. *)
+  (** The type for configuration converter parsers. *)
 
   type 'a printer = Format.formatter -> 'a -> unit
-  (** The type for configuration value printers. *)
+  (** The type for configuration converter printers. *)
 
   type 'a converter = 'a parser * 'a printer
-  (** The type for configuration value converters. *)
+  (** The type for configuration converters. *)
 
   val parser : 'a converter -> 'a parser
   (** [parser c] is [c]'s parser. *)
@@ -1068,33 +1106,39 @@ module Conf : sig
   (** {1 Configuration keys} *)
 
   type 'a key
-  (** The type for configuration keys. *)
+  (** The type for configuration keys that map to
+      {{!type:value}values} of type ['a]. *)
 
   val key : ?public:bool -> ?docs:string -> ?docv:string -> ?doc:string ->
     string -> 'a converter -> 'a value -> 'a key
   (** [key public docs docv doc name conv v] is a configuration key
-      named [name] converted using [converter] and that defaults to
-      [v] if unspecified by the build system user. The key is public
-      according to [public] (defaults to [true]) in which case [docs]
-      is a documentation section under which the key should be
-      documented according to the documentation string [doc] and the
-      value documentation meta-variable [docv].
+      named [name] that maps to value [v] by default. [converter] is
+      used to convert key values provided by end-users.
 
-      TODO add hints about how to write doc, docv, and docs.
-      docs defaults to {!docs_project}.
+      If [public] is [true] (default), the key is public which means
+      that it can be redefined by the end user. In this case [docs] is
+      the title of a documentation section under which the key is
+      documented (defaults to {!docs_project}). [doc] is a short
+      documentation string for the key, this should be a single
+      sentence or paragraph starting with a capital letter and ending
+      with a dot.  [docv] is a meta-variable for representing the
+      values of the key value (e.g. ["BOOL"] for a boolean).
 
-      TODO key name must be made of lowercase ASCII letters + dash or
-      underscore.
+      @raise Invalid_argument if the key name is not made of a
+      sequence of ASCII lowercase letter, digit, dash or underscore.
+      FIXME not implemented.
 
       {b Warning.} No two public keys should share the same [name] as
-      this may lead to difficulties in certain assemblage drivers
-      (like the inability to define the key on the command line).  In
-      particular do not reuse the {{!builtin_keys}built-in names}
-      (they have the same name as the key variables with underscores
-      replaced by dashes). *)
+      this may lead to difficulties in the UI of certain assemblage
+      drivers like the inability to be able to precisely refer to a
+      key.  In particular do not reuse the {{!builtin_keys}built-in
+      names} (they have the same name as the key variables with
+      underscores replaced by dashes). *)
 
   val value : 'a key -> 'a value
-  (** [value k] is [k]'s value. *)
+  (** [value k] is a value that evaluates to [k]'s binding in the
+      configuration. Note that this may be different from the value given in
+      {!key}, the latter is the default value. *)
 
   (** {1:scheme Configuration schemes} *)
 
@@ -1108,11 +1152,15 @@ module Conf : sig
   val def : 'a key -> 'a -> def
   (** [def k v] is a definition that binds key [k] to value [v]. *)
 
+  val defv : 'a key -> 'a value -> def
+  (** [defv k v] is a definition that binds key [k] to value [v]. *)
+
   val scheme : ?doc:string -> ?base:scheme -> string -> def list -> scheme
   (** [scheme base name defs] is a configuration scheme named [name]
       that has the key-value bindings of [base] together with those
       of [defs], the latter taking precedence. [doc] is a documentation
-      string for the scheme. *)
+      string for the scheme, it should be a single sentence or paragraph
+      starting with a capital letter and ending with a dot. *)
 
   (** {1:builtin_keys Built-in configuration keys} *)
 
@@ -1362,8 +1410,9 @@ module Conf : sig
 
   (** {2:system_utility_keys System utility keys}
 
-      {b Note.} Build actions should not use these utilities directly
-      but use {{!Action.Sys}portable system utility invocations}. *)
+      {b Note.} Action commands should not use these utilities directly
+      but use {{!Acmd.portable_invocations}portable system utility
+      invocations}. *)
 
   val echo : string key
   (** [echo] is the
@@ -1643,11 +1692,12 @@ let ocaml_debug =
     separate explanations, one for the casual user one
     for the part designer.
 
-    As a part/action designer we should never use the
-    bundle mecanism to define our actions internally.
-    It can be used though to provide an API to the part for
-    the end user. E.g. by providing appropriate and high-level
-    bundles that inject the right flags for a part.
+    As a part/action designer we should never use the bundle mecanism
+    to define our actions internally.  It can be used though to
+    provide an API to the part for the end user. E.g. by providing
+    appropriate and high-level bundles that inject the right flags for
+    a part. FIXME not sure we need that comment as this is now
+    enforced by the API.
 
     Which argument bundles are applied to an action:
 
@@ -1655,12 +1705,13 @@ let ocaml_debug =
     {- Each part has a user defined argument bundle, this bundle
        is automatically added to any of its actions (i.e. are
        in {!Part.actions})}
-    {- TODO find a good terminology. Each part has needs. In
-       these needs there are parts that {e swallowed} and other
-       that are {e tasted}. When a part is swallowed its build
-       actions are integrated into the swallowing part. In that
+    {- Each part has needs. In
+       these needs there are parts that {e integrated} and other
+       that are {e consulted}. When a part [i] is integrated by
+       a part [p] its build
+       actions are integrated into [p]. In that
        case these actions have both the argument bundle of the
-       swallowed and the swallowing part.}
+       integrated part [i] and the of the integrating part [p].}
     {- Finally the project's argument bundle is added to any
        action.}}
 
@@ -1669,7 +1720,135 @@ let ocaml_debug =
     it consults. *)
 end
 
+(** Action commands.
+
+    TODO doc.
+
+    One particular aspect of action commands is that the executing
+    program must be defined at some through a configuration key. This
+    ensures that the executions can be addressed via a
+    {{!Ctx.command}context element} and that the program can be
+    redefined by the build system end user. *)
+module Acmd : sig
+
+  (** {1 Action commands} *)
+
+  type bin
+  (** The type for action command programs. *)
+
+  type t
+  (** The type for action commands. *)
+
+  val bin : string Conf.key -> bin Conf.value
+  (** [bin name] is a program whose name is the value of [name].
+
+      {b Note.} This is the only way of creating a value of type
+      {!type:bin}. This means that an action command is always
+      eventually defined in a configuration value aswell. *)
+
+  val v : ?stdin:Path.t -> ?stdout:Path.t -> ?stderr:Path.t -> bin ->
+    string list -> t
+  (** [v bin args] is a command that executes the program [bin] with
+      argument list [args]. The optional [stdin], [stdout], and
+      [stderr] arguments allow to redirect the standard file
+      descriptors of the execution to files. *)
+
+  (** Action command argument combinators.
+
+      A few convience function to help in the definition
+      of command arguments. *)
+  module Args : sig
+
+    (** {1 Combinators} *)
+
+    val add : 'a -> 'a list -> 'a list
+    (** [add v l] is [v :: l]. *)
+
+    val adds : 'a list -> 'a list -> 'a list
+    (** [adds l l'] adds [l] in front of [l']. *)
+
+    val add_if : bool -> 'a -> 'a list -> 'a list
+    (** [add_if c v l] is [add v l] if [c] is true and [l] otherwise. *)
+
+    val adds_if : bool -> 'a list -> 'a list -> 'a list
+    (** [adds_if c l l'] if [adds l l'] if [c] is true and [l'] otherwise. *)
+
+    val fadd_if : bool -> ('b -> 'a) -> 'b -> 'a list -> 'a list
+    (** [add_if c f v l] is [add (f v) l] if [c] is true and [l] otherwise. *)
+
+    val fadds_if : bool -> ('b -> 'a list) -> 'b -> 'a list -> 'a list
+    (** [fadds_if c (f v) l] is [adds (f v) l] if [c] is true and [l]
+        otherwise. *)
+
+    val path_arg : ?opt:string -> Path.t -> string list -> string list
+    (** [path_arg p l] is [Path.to_string p :: l]. If [opt] is present
+        it is prepended in front of the path. *)
+
+    val path_args : ?opt:string ->  Path.t list -> string list -> string list
+    (** [path_args ?opt ps l] is like {!path_arg} but for each element
+        of [ps]. If [opt] is present it is prepended in front of each path. *)
+
+    val path : Path.t -> ext:Path.ext -> Path.t
+    (** [path ext] is {!Path.change_ext}[ path ext]. *)
+  end
+
+
+  (** {1:portable_invocations Portable system utility invocations}
+
+      Rather than using {{!Conf.system_utility_keys}system utility
+      configuration keys} directly you should use the following functions,
+      they will enforce portable behaviour.
+
+      {b Note.} Function arguments could support more labelling but
+      this doesn't blend well with {!Conf.app}. *)
+
+    val dev_null : Path.t Conf.value
+    (** [dev_null] is a file that discards all writes. *)
+
+    val ln : (Path.t -> Path.t -> t) Conf.value
+    (** [ln] has a command [exec src dst] to link symbolically file [src] to
+        [dst].
+
+        {b Warning.} On Windows this is a copy. *)
+
+    val ln_rel : (Path.t -> Path.t -> t) Conf.value
+    (** [ln_rel] has a command [exec src dst] to link symbolically file
+        [src] to [dst]. FIXME if [src] and [dst] are relative this links
+        [src] to [dst] as seen from the empty relative directory (is
+        that understandable ? is that really needed ? *)
+
+    val cp : (Path.t -> Path.t -> t) Conf.value
+    (** [cp] has a command [exec src dst] to copy file [src] to [dst]. *)
+
+    val mv : (Path.t -> Path.t -> t) Conf.value
+    (** [mv] has a command [exec src dst] to move path [src] to [dst]. *)
+
+    val rm_files : (?f:bool -> Path.t list -> t) Conf.value
+    (** [rm_files] has a command [exec ~f paths] to remove the {e file}
+        paths [paths]. If [f] is [true] files are removed regardless of
+        permissions (defaults to [false]). [paths] elements must be files,
+        for directories, see {!rm_dirs}. *)
+
+    val rm_dirs : (?f:bool -> ?r:bool -> Path.t list -> t) Conf.value
+    (** [rm_dirs] has a command [exec ~f ~r paths] to remove the {e
+        directory} paths [paths]. If [f] is [true] directories are
+        removed regardless of permissions (defaults to [false]).  If [r]
+        is [true] removes the file hierarchies rooted at the elements of
+        [paths]. Note that [paths] must be directories, for removing
+        files, see {!rm_files}. *)
+
+    val mkdir : (Path.t -> t) Conf.value
+    (** [mkdir] has a command [exec d] to create the directory [p].
+        Intermediate directories are created as required ([mkdir -p] in
+        Unix parlance). *)
+
+    val stamp : (Path.t -> string -> t) Conf.value
+    (** [stamp] has a command [execs f content] that writes [content] to [f]. *)
+end
+
 (** Build action.
+
+    TODO doc.
 
     A {e build product} is any existing file in the {!Conf.root_dir}
     hierarchy. A {e root} build product is a product for which there
@@ -1680,177 +1859,27 @@ end
     how to create a list of products using a sequence of build commands. *)
 module Action : sig
 
-  (** {1 Products} *)
-
-  type product = Path.t Conf.value
-  (** The type for build products. A configuration value holding
-      a file path. *)
-
-  type products = Path.t list Conf.value
-  (** The type for lists of build products. A configuration value holding
-      a list of file paths. *)
-
-  (** {1 Build commands}
-
-      One particular aspect of build commands is that the executing
-      program must be a configuration key. This ensures that the
-      executions can be addressed via a {{!Ctx.command}context element}
-      and that the program can be redefined by the build system end user. *)
-
-  type cmd
-  (** The type for command executions. *)
-
-  type cmd_gen =
-    ?stdin:Path.t -> ?stdout:Path.t -> ?stderr:Path.t -> string list ->
-    cmd
-  (** The type for command execution generators. The string list is
-      the arguments given to the program. If present the optional
-      arguments allow to redirect the standard file descriptors and *)
-
-  val cmd : string Conf.key -> cmd_gen Conf.value
-  (** [cmd cmd] is a value that allows to define an execution for the
-      program [cmd] with the given generator. *)
-
-  val cmd_exec : ?stdin:product -> ?stdout:product -> ?stderr:product ->
-    string Conf.key -> string list Conf.value -> cmd list Conf.value
-  (** [cmd_exec cmd args] is the a command sequence that executes
-      program [cmd] with argument [args]. The optional [stdin], [stdout],
-      and [stderr] arguments allow to redirect the standard file descriptors
-      of the execution to files. Convenience function built on top of {!cmd}. *)
-
-  (** Portable system utility invocations
-
-      Rather than using {{!Conf.system_utility_keys}system utility
-      configuration keys} directly you should use the following functions,
-      they will enforce portable behaviour.
-
-      {b Note.} Function arguments could support more labelling but
-      this doesn't blend well with {!Conf.app}. *)
-  module Sys : sig
-
-  (** {1:portable_invocations Portable system utility invocations} *)
-
-    val dev_null : Path.t Conf.value
-    (** [dev_null] is a file that discards all writes. *)
-
-    val ln : (Path.t -> Path.t -> cmd) Conf.value
-    (** [ln] has a command [exec src dst] to link symbolically file [src] to
-        [dst].
-
-        {b Warning.} On Windows this is a copy. *)
-
-    val ln_rel : (Path.t -> Path.t -> cmd) Conf.value
-    (** [ln_rel] has a command [exec src dst] to link symbolically file
-        [src] to [dst]. FIXME if [src] and [dst] are relative this links
-        [src] to [dst] as seen from the empty relative directory (is
-        that understandable ? is that really needed ? *)
-
-    val cp : (Path.t -> Path.t -> cmd) Conf.value
-    (** [cp] has a command [exec src dst] to copy file [src] to [dst]. *)
-
-    val mv : (Path.t -> Path.t -> cmd) Conf.value
-    (** [mv] has a command [exec src dst] to move path [src] to [dst]. *)
-
-    val rm_files : (?f:bool -> Path.t list -> cmd) Conf.value
-    (** [rm_files] has a command [exec ~f paths] to remove the {e file}
-        paths [paths]. If [f] is [true] files are removed regardless of
-        permissions (defaults to [false]). [paths] elements must be files,
-        for directories, see {!rm_dirs}. *)
-
-    val rm_dirs : (?f:bool -> ?r:bool -> Path.t list -> cmd) Conf.value
-    (** [rm_dirs] has a command [exec ~f ~r paths] to remove the {e
-        directory} paths [paths]. If [f] is [true] directories are
-        removed regardless of permissions (defaults to [false]).  If [r]
-        is [true] removes the file hierarchies rooted at the elements of
-        [paths]. Note that [paths] must be directories, for removing
-        files, see {!rm_files}. *)
-
-    val mkdir : (Path.t -> cmd) Conf.value
-    (** [mkdir] has a command [exec d] to create the directory [p].
-        Intermediate directories are created as required ([mkdir -p] in
-        Unix parlance). *)
-
-    val stamp : (Path.t -> string -> cmd) Conf.value
-    (** [stamp] has a command [execs f content] that writes [content] to [f]. *)
-  end
-
   (** {1 Build actions} *)
 
   type t
   (** The type for build actions. *)
 
-  val v : ?cond:bool Conf.value -> ctx:Ctx.t -> inputs:products ->
-    outputs:products -> cmd list Conf.value -> t
-   (** [v cond args ctx inputs outputs cmds] is the action that given the
-       existence of [inputs] creates the products [outputs] using the
-       sequence of command [cmds]. The action is only available if
-       [cond] evaluates to [true].
+  val v : ?log:string -> ctx:Ctx.t -> inputs:Path.t list ->
+    outputs:Path.t list -> Acmd.t list -> t
+  (** [v ctx inputs outputs cmds] is the action that given the
+      existence of [inputs] creates the products [outputs] using the
+      sequence of command [cmds].
 
-       {b Warning.} To ensure determinism and parallelism correctness [cmds]
-       must ensure that it only reads from the [inputs] and solely writes to
-       [outputs]. *)
-
-  (** Combinators to define build actions.
-
-      Open this module {e locally} to define your action. *)
-  module Spec : sig
-
-    (** {1 List configuration values} *)
-
-    type 'a list_v = 'a list Conf.value
-    (** The type for list configuration values. *)
-
-    val atom : 'a -> 'a list_v
-    (** [atom v] is [Conf.const [v]]. *)
-
-    val atoms : 'a list ->  'a list_v
-    (** [atoms l] is [Conf.const l]. *)
-
-    val add : 'a list_v -> 'a list_v -> 'a list_v
-    (** [add l l'] is [Conf.const ( @ ) l l'] but tail recursive. *)
-
-    val add_if : bool Conf.value -> 'a list_v -> 'a list_v -> 'a list_v
-    (** [add_if c l l'] is [add l l'] if [c] evaluates to [true] and [l']
-        otherwise. *)
-
-    val add_if_key : bool Conf.key -> 'a list_v -> 'a list_v -> 'a list_v
-    (** [add_if_key k l l'] is [add_if (Conf.value k) l l']. *)
-
-    (** {1 Paths and products} *)
-
-    val path : product -> ext:Path.ext -> Path.t Conf.value
-    (** [path p ~ext] is [p] with its extension (if any)
-        {{!Path.change_ext}changed} to [ext]. *)
-
-    val path_base : product -> string Conf.value
-    (** [path_base p] is the {{!Path.basename}basename} of [p]. *)
-
-    val path_dir : product -> Path.t Conf.value
-    (** [path_dir p] is the {{!Path.dirname}dirname} of [p]. *)
-
-    val path_arg : ?opt:string -> Path.t Conf.value -> string list_v
-    (** [path_arg p] is the list made of [p] {{!Path.quote}converted}
-        to a string. If [opt] is present it is added in front of the list. *)
-
-    val paths_args : ?opt:string -> Path.t list Conf.value ->
-      string list_v
-    (** [paths_args p] is  like {!path_arg} but for a list of paths.
-        If [opt] is present it is added in front of each path list element. *)
-
-    val product : ?ext:Path.ext -> product -> products
-    (** [product p] is the list made of [p]. If [ext] is present the suffix
-        of [p] is {{!Path.change_ext}changed} to [ext]. *)
-
-    (** {1 Commands} *)
-
-    val ( <*> ) : 'a list Conf.value -> 'a list Conf.value -> 'a list Conf.value
-  end
+      {b Warning.} To ensure determinism and parallelism correctness [cmds]
+      must ensure that it only reads from the [inputs] and solely writes to
+      [outputs]. *)
 
   (** {1 Built-in actions} *)
 
-  val link : src:product -> dst:product -> unit -> t
-  (** [link ~src ~dst ()] is an action that links [src] to [dst] using
+  val link : (Path.t -> Path.t -> t) Conf.value
+  (** [link] has an action [action src dst] that links [src] to [dst] using
       {!ln_rel}. *)
+(*
 
   (** Actions for handling OCaml products.
 
@@ -1875,54 +1904,55 @@ module Action : sig
 
     (** {1 Preprocessing} *)
 
-    val compile_src_ast : [`Ml | `Mli ] -> src:product -> unit -> t
+    val compile_src_ast : [`Ml | `Mli ] -> src:Path.t -> unit -> t
     (** [compile_src_ast kind src ()] treats [src] of the given [ml] type
         and builds its AST. FIXME needs arguments for
         applying pp on the way ? *)
 
     (** {1 Compiling} *)
 
-    val compile_mli : incs:includes -> src:product -> unit -> t
+    val compile_mli : incs:includes -> src:Path.t -> unit -> t
     (** [compile_mli ~incs ~src ()] compiles the mli file [src] (which can
         be an AST, see {!compile_src_ast}) with includes [incs]. *)
 
     val compile_ml_byte : has_mli:bool Conf.value -> incs:includes ->
-      src:product -> unit -> t
+      src:Path.t -> unit -> t
     (** [compile_ml_byte ~has_mli ~incs ~src ()] compiles to byte code the ml
         file [src] (which can be an AST, see {!compile_src_ast}) with
         includes [incs]. [has_mli] indicates whether the source has a
         corresponding mli file. *)
 
     val compile_ml_native : has_mli:bool Conf.value ->
-      incs:includes -> src:product -> unit -> t
+      incs:includes -> src:Path.t -> unit -> t
     (** [compile_ml_native ~has_mli ~incs ~src ()] is like {!compile_ml_byte}
         but compiles to native code. *)
 
-    val compile_c : src:product -> unit -> t
+    val compile_c : src:Path.t -> unit -> t
     (** [compile_c src ()] compiles the C [src] to native code through
         the OCaml compiler. *)
 
     (** {1 Archiving} *)
 
-    val archive_byte : cmos:products -> name:name -> unit -> t
+    val archive_byte : cmos:Path.t -> name:name -> unit -> t
     (** [archive_byte cmos name ()] archives the byte code files [cmos]
         to a byte code archive (cma) named by [name]. *)
 
-    val archive_native : cmx_s:products -> name:name -> unit -> t
+    val archive_native : cmx_s:Path.t -> name:name -> unit -> t
     (** [archive_native cmx_s name ()] archives the native code files [cmx_s]
         to a native code archive (cmxa) named by [name]. *)
 
-    val archive_shared : cmx_s:products -> name:name -> unit -> t
+    val archive_shared : cmx_s:Path.t -> name:name -> unit -> t
     (** [archive_shared cmx_s name ()] archives the native code files [cmx_s]
         to a native code shared archive (cmxs) named by [name]. *)
 
-    val archive_c : objs:products -> name:name -> unit -> t
+    val archive_c : objs:Path.t -> name:name -> unit -> t
     (** [archive_c cmx_s name ()] archives the C object files [objs]
         to a C archive and shared archived (a, so) named by [name]. *)
 
     (** {1 Linking} *)
 
   end
+*)
 end
 
 (** {1:parts Parts} *)
@@ -1933,42 +1963,44 @@ type part_kind = [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir ]
 type +'a part constraint 'a = [< part_kind ]
 (** The type for project parts. *)
 
-(** Parts, parts sets and maps.
+(** Parts, part sets and maps.
 
-    A part is a value that encapsulates a set of build actions. It
-    defines a higher-level logical build unit with specific metadata
-    that depends on its {{!type:part_kind}kind}. A part refers to that
-    metadata and possibliy to other parts to define its build actions.
-    The outputs of a part's build actions define the part's build
-    products.
+    Parts are the logical build units that define a project, they
+    define the project's outcomes for every possible configuration.
 
-    In addition to the metadata that is specific to a part, each part has the
-    following attributes that the user specifies:
+    A {e part} defines a coherent set of build actions. There are
+    different {{!type:part_kind}kinds} of part, each which specific
+    metadata that it uses to define its action. Parts may also refer to,
+    or integrate, other parts to define their actions.
+
+    A part can also be seen as defining the products its build actions
+    generate. These products depend on the configuration.
+
+    In addition to part specific metadata, each part has the following
+    attributes that the user specifies:
     {ul
-    {- A {{!name}name} used to identify the part. Note that it may not
-       be unique. The part's name is often used as metadata itself.
+    {- A {{!name}name} used to identify the part; note that it may not
+       be unique. The name is often used as metadata itself.
        For example it defines the library name for {{!Lib}library parts} or
        the name of a {{!Unit} compilation unit}, etc.}
-    {- A {{!type:kind}kind} that identifies the kind of metadata it needs
-       and the build actions it encapsulates and hence the kind of build
-       products it produces.}
+    {- A {{!type:kind}kind} that identifies the kind of metadata the part
+       uses and the build action it produces.}
     {- A {{!type:usage}usage}. This is a broad usage label to classify
-       your parts. It can be used by drivers to derive bureaucratic
-       information about your project. For example if some of
-       your parts are only used for developing the project you
-       should mark them with the [`Dev] usage, this will allow drivers
-       to understand that their dependencies are only needed for development.}
+       parts. It can be used by drivers to derive bureaucratic
+       information about a project. For example if some of parts
+       are only used for developing the project they should have
+       a [`Dev] usage; this will allow drivers to understand
+       that their dependencies are only needed for development.}
     {- {{!needs}Needs.} This is a list of parts used by the part to
-       define its actions. The way a part uses its needs is entirely
-       up to the part itself, consult their documentation to understand
-       how needs are used.}
+       define its actions. The way a part uses its needs depends
+       on its kind, consult their specific documentation.}
     {- A {{!cond}configuration condition} that indicates whether
-       a part is available in a given configuration. For example
+       a part is {e active} in a given configuration. For example
        the existence of a library may depends on the presence
        of an optional package.}
-    {- An {{!args}argument bundle} which it applies to its
-       actions and to the part it swallows FIXME. See {!Args.basics} for
-       more information about argument bundles.}}
+    {- An {{!args}argument bundle} applied to its actions.
+       See {!Args.basics} for more information about argument
+       bundles.}}
 
     Given all this information a part will give you
     {{!actions}build actions} which by themselves define build
@@ -2021,8 +2053,8 @@ module Part : sig
 
   val v : ?usage:usage -> ?cond:bool Conf.value -> ?args:Args.t ->
     ?meta:meta -> ?needs:'a part list -> ?root:Path.rel Conf.value ->
-    ?actions:(kind part -> Action.t list) ->
-    ?check:(kind part -> bool) -> string -> [> `Base] part
+    ?actions:(kind part -> Action.t list Conf.value) ->
+    ?check:(kind part -> bool Conf.value) -> string -> [> `Base] part
   (** [v ?usage ?cond ?meta ?needs ?args ?actions ?check name] defines
       a base part named [name].
       {ul
@@ -2035,13 +2067,16 @@ module Part : sig
       {- [meta] is the part's metadata, defaults to {!meta_nil}.}
       {- [needs] are the parts that are needed by the part, defaults to [[]],
          the given list is {!uniq}ified. }
-      {- [root] is a build root for the part. Note that this may be altered
-         later by swallowing parts. Usually best left unspecified unless
-         you know what you are doing.}
-      {- [actions] are the definition of the actions associated to the part
-         build products should be generated by consulting the {!root} of
-         part given to the function, not the [root] argument given to
-         the constructor.}
+      {- [root] is a build root for the part, usually best left unspecified.
+         Note that this value should not be used as a constant for defining
+         [actions] as it may be redefined by integrating parts. Use
+         {!root}[ p] instead.}
+      {- [actions] is the function that defines the actions associated to
+         the part. The function is given the part itself which allows
+         to access its metadata. Action outputs should be generated
+         in the directory returned by {!root}[ p], {b not} the [root]
+         argument given to the constructor. This will ensure that the
+         part adapts correctly if it is integrated by another.}
       {- [check] is a diagnostic function that should {!Log} information
          about potential problems with the part and return [true] if there
          is no problem.}} *)
@@ -2058,9 +2093,6 @@ module Part : sig
   val cond : 'a part -> bool Conf.value
   (** [cond p] determines if [p] is available. *)
 
-  val args : 'a part -> Args.t
-  (** [args p] is the argument bundle associated to part [p]. *)
-
   val meta : 'a part -> meta
   (** [meta p] is [p]'s metadata. *)
 
@@ -2073,15 +2105,19 @@ module Part : sig
   (** [needs p] is the (uniqified) list of parts needed by [p] to
       define itself. *)
 
-  val actions : 'a part -> Action.t list
-  (** [actions env p] are the actions to build part [p]. *)
+  val actions : 'a part -> Action.t list Conf.value
+  (** [actions p] are the actions to build part [p]. *)
 
   val products : ?exts:Path.ext list -> 'a part -> Path.t list Conf.value
   (** [products p] are the products of part [p]. If [exts] is present
       only those that have one of the extensions in the list are selected.
-      This is derived from {!rules}. *)
+      This is derived from {!actions}.
 
-  val check : 'a part -> bool
+      {b Warning.} FIXME What should we do ?
+      This returns a list of products regardless of whether the part
+      is active or not. *)
+
+  val check : 'a part -> bool Conf.value
   (** [check p] logs information about potential problems with [p]
       and returns [true] if there is no such problem. *)
 
@@ -2094,19 +2130,32 @@ module Part : sig
   val compare : 'a part -> 'b part -> int
   (** [compare p p'] is [compare (id p) (id p')]. *)
 
+  val redefine : ?check:(kind t -> bool Conf.value) ->
+    ?actions:(kind t -> Action.t list Conf.value) -> 'a t -> 'a t
+  (** [redefine check actions p] is [p] with check function [check]
+      and actions function [action] (both defaults to [p]'s one if
+      unspecified).
+
+      {b Warning.} As far as [Assemblage] is concerned
+      this is equivalent to Obj.magic. *)
+
   (** {1 Part root directory} *)
 
   val root : 'a t -> Path.rel Conf.value
   (** [root p] is [p]'s root build directory expressed relative
-      to {!Conf.root_dir}. *)
+      to {!Conf.root_dir}. Most of the time parts will generate
+      their products in this direcory. This directory may change
+      when a part is integrated in another, see {!with_root}. *)
 
-  val rooted : ?ext:Path.ext -> 'a t -> string -> Path.t As_conf.value
-  (** [rooted ext p name] is a file rooted at [root p] with name
+  val rooted : ?ext:Path.ext -> 'a t -> string -> Path.t Conf.value
+  (** [rooted ext p name] is a path rooted at {!root}[ p] with basename
       [name] and extension [ext] (if any). *)
 
   val with_root : Path.rel Conf.value -> 'a t -> 'a t
-  (** [with_root dir p] is [p] with root [dir] the part's actions
-      will be adapted to match the new root. *)
+  (** [with_root dir p] is [p] with root [dir]. If [p] used {!root} in
+      its {{!v}actions definition} function the resulting part's
+      action adapts to match the new root (by calling the part's
+      definition function again). *)
 
   (** {1 Coercions} *)
 
@@ -2240,10 +2289,6 @@ module Unit : sig
       project libraries and packages that are needed to compile the
       unit. The [args] bundle is used by the unit's product actions
       according to context. *)
-
-  val of_base : ?dir:Path.t Conf.value -> kind -> [`Base] part -> [> `Unit] part
-  (** [of_base kind p] is a compilation unit from [p]. [p]'s
-      name is the compilation unit name. See {!v}. *)
 end
 
 (** Library part.
@@ -2311,11 +2356,6 @@ module Lib : sig
       concretly build depends on the configuration keys
       {!Conf.ocaml_byte}, {!Conf.ocaml_native},
       {!Conf.ocaml_native_dynlink} and {!Conf.c_dynlink}. *)
-
-  val of_base : ?byte:bool -> ?native:bool -> ?native_dynlink:bool ->
-    kind -> [`Base] part -> [> `Lib] part
-  (** [of_base kind p] is a library from [p]. [p]'s name is the library name.
-      See {!v}. *)
 end
 
 (** Binary executable part.
@@ -2385,11 +2425,6 @@ module Bin : sig
       Whether the products associated to a compilation target are
       concretly build depends on the configuration keys {!Conf.ocaml_byte},
       {!Conf.ocaml_native}, {!Conf.ocaml_js} and {!Conf.c_js}. *)
-
-  val of_base : ?byte:bool -> ?native:bool -> ?js:bool -> kind ->
-    [< `Base] part -> [> `Bin] part
-  (** [of_base kind p] is a binary from [p]. [p]'s name is the binary name.
-      See {!v}. *)
 end
 
 (** Package part.
@@ -2442,10 +2477,6 @@ module Pkg : sig
 
       {b Note.} [args] is unused. FIXME should we add a context
       to ocamlfind and pkg-config invocations ? *)
-
-  val of_base : kind -> [< `Base] part -> [> `Pkg] part
-  (** [of_base kind p] is a package from [p]. [p]'s name is
-      package name. *)
 end
 
 (** Unit documentation set part.
@@ -2489,20 +2520,14 @@ module Doc : sig
       kept by [keep] and present in [needs] or part of the libraries
       and binaries listed in [needs]. [keep] defaults to {!dev} if
       [usage] is [`Dev] and {!default} otherwise. *)
-
-  val of_base : kind -> [< `Base] part -> [> `Doc ] part
-  (** [of_base kind p] is a documentation set from [p]. [p]'s name is
-      the documentation set name. *)
 end
 
 (** Directory part.
 
-    A directory part defines a clean directory in which a selection
-    of part products can be gathered.
-
-    By indicating directories to be {!install}able this gives a full and
-    declarative description to drivers of your project's outcome
-    installation. *)
+    A directory part defines a clean directory in which a selection of
+    part products can be gathered. Directory parts can be marked as
+    being {!install}able. Drivers can use this information to devise
+    an installation procedure for your project's outcomes. *)
 module Dir : sig
 
   (** {1 Metadata} *)
@@ -2522,12 +2547,7 @@ module Dir : sig
   (** [kind p] is [p]'s kind. *)
 
   val install : [< `Dir] part -> bool
-  (** [kind p] is [true] if the directory contents is meant to be installed.
-
-      FIXME should we rather derive that from the part's usage e.g. if
-      its [`Outcome] ? OTOH part's usage are abscribed no semantics in
-      the core assemblage library at the moment and maybe it's better
-      that way. *)
+  (** [kind p] is [true] if the directory contents is meant to be installed. *)
 
   (** {1 Directory specifiers}
 
@@ -2538,7 +2558,7 @@ module Dir : sig
       FIXME a few combinators to quickly devise spec values
       would be welcome, e.g. put a specific part in sub directory, etc.  *)
 
-  type spec = Part.kind Part.t -> (As_path.t ->
+  type spec = Part.kind Part.t -> (Path.t ->
     [ `Keep | `Rename of Path.rel | `Drop]) Conf.value
   (** The type for directory specifiers. Given a part it returns
       a value that has a function that given a product of the part
@@ -2600,9 +2620,6 @@ module Dir : sig
 
       {b Note.} Due to the way assemblage and ocamldoc work, trying
       to install a [`Doc] part will be disappointing. *)
-
-  val of_base : ?install:bool -> kind -> [> `Base] part -> [> `Dir] part
-  (** [of_base ?install kind p] is a directory from [p]. See {!v}. *)
 end
 
 (** Project runs.
@@ -2624,8 +2641,6 @@ module Run : sig
     ?dir:Path.t Conf.value -> string -> Action.t -> [> `Run] part
   (** [v dir name act] is the run that executes [act] in directory
       [dir] (defaults to {!Conf.root_dir}). *)
-
-  val of_base : ?dir:Path.t Conf.value -> [< `Base] part -> [> `Run] part
 end
 
 (** {1:spec Part specification combinators} *)
@@ -3003,6 +3018,46 @@ module Private : sig
         context [ctx] in configuration [conf]. *)
   end
 
+  (** Action commands. *)
+  module Acmd : sig
+
+    (** {1 Action commands} *)
+
+    type args = Args.t
+
+    include module type of Acmd with type t = Acmd.t
+                                 and type bin = Acmd.bin
+
+
+    val bin_key : t -> string Conf.key
+    (** [bin_key c] is [c]'s configuration key used to defin {!bin_name}. *)
+
+    val bin_name : t -> string
+    (** [bin_name c] is [c]'s binary name.  *)
+
+    val args : t -> string list
+    (** [args c] are [c]'s arguments. *)
+
+    val stdin : t -> Path.t option
+    (** [stdin c] is [c]'s stdin redirection (if any). *)
+
+    val stdout : t -> Path.t option
+    (** [stdout c] is [c]'s stdout redirection (if any). *)
+
+    val stderr : t -> Path.t option
+    (** [stderr c] is [c]'s stderr redirection (if any). *)
+
+    (** {1 Argument bundle injection} *)
+
+    val ctx : Ctx.t -> t -> Ctx.t
+    (** [ctx context c] is [context] augmented with [c]'s context. *)
+
+    val args_with_ctx : Conf.t -> Ctx.t -> args -> t -> string list
+    (** [args_with_ctx conf context args cmd] are [c]'s arguments
+        prepended with the arguments found in [args] for the
+        configuration [conf] and the context {!ctx}[context c]. *)
+  end
+
   (** Build actions.
 
       {b Important.} Actions commands produce {e file} paths. Build system
@@ -3013,10 +3068,9 @@ module Private : sig
     (** {1 Actions} *)
 
     include module type of Action with type t = Action.t
-                                   and type cmd = Action.cmd
 
-    val cond : t -> bool Conf.value
-    (** [cond a] is [a]'s condition. *)
+    val log : t -> string option
+    (** [log a] is [a]'s high-level logging string (if any). *)
 
     val args : t -> Args.t
     (** [args a] is [a]'s argument bundle. *)
@@ -3024,44 +3078,14 @@ module Private : sig
     val ctx : t -> Ctx.t
     (** [ctx a] is [a]'s context. *)
 
-    val inputs : t -> Path.t list Conf.value
+    val inputs : t -> Path.t list
     (** [inputs a] is the list of products input by [a]'s action. *)
 
-    val outputs : t -> Path.t list Conf.value
+    val outputs : t -> Path.t list
     (** [outputs a] is the list of products output by [a]'s action. *)
 
-    val cmds : t -> cmd list Conf.value
+    val cmds : t -> Acmd.t list
     (** [cmds a] is [a]'s commands to generate outputs from the inputs. *)
-
-    val deps : t -> Conf.Key.Set.t
-    (** [deps a] is the set of configuration keys which may be needed
-        for evaluating the constituents of [a]. *)
-
-    (** {1 Commands} *)
-
-    val cmd_cmd : cmd -> string
-    (** [cmd_cmd c] is [c]'s executable. *)
-
-    val cmd_args : cmd -> string list
-    (** [cmd_args cmd] are [c]'s arguments. *)
-
-    val cmd_ctx : Ctx.t -> cmd -> Ctx.t
-    (** [cmd_ctx ctx cmd] adds [cmd]'s context to [ctx]. *)
-
-    val cmd_args_with_ctx : Conf.t -> Ctx.t -> Args.t -> cmd ->
-      string list
-    (** [cmd_args_with_ctx conf ctx args cmd] are [c]'s arguments
-        prepended with the arguments found in [args] for the
-        configuration [conf] and a context that is [cmd_ctx ctx cmd]. *)
-
-    val cmd_stdin : cmd -> Path.t option
-    (** [cmd_stdin c] is [c]'s stdin redirection (if any). *)
-
-    val cmd_stdout : cmd -> Path.t option
-    (** [cmd_stdout c] is [c]'s stdout redirection (if any). *)
-
-    val cmd_stderr : cmd -> Path.t option
-    (** [cmd_stderr c] is [c]'s stderr redirection (if any). *)
   end
 
   (** Parts. *)
@@ -3073,6 +3097,9 @@ module Private : sig
                                  and type meta = Part.meta
                                  and type +'a t = 'a Part.t
                                    constraint 'a = [< part_kind ]
+
+    val args : 'a part -> Args.t
+    (** [args p] is [p]'s user defined argument bundle. *)
 
     val ctx : 'a t -> Ctx.t
     (** [ctx p] is a context that describes [p] using {{!type:Ctx.part}part
@@ -3176,7 +3203,6 @@ end
     let cond = Conf.(const Cmd.File.exists $ const (Path.file file)) in
      unit ~cond "src"
 ]}
-
     TODO the rule to hammer in people's mind is the following:
     don't do anything that doesn't make the set of configuration
     keys constant on *every* load of the [assemble.ml] file. Maybe
@@ -3188,7 +3214,18 @@ end
    The build model behind assemblage has the following limitation.
    {ul
    {- Doesn't work well with tools that are not able to determine
-      their output statically, e.g. ocamldoc. FIXME what about dep
-      discovery ? E.g. Dir parts need to know the products.}
+      their output statically, e.g. ocamldoc. FIXME dep
+      discovery ?}
    {- TODO}}
-*)
+
+   {1:replace_part Replacing the actions of existing part kind}
+
+   TODO. Warning can be tricky since other parts may have
+   build product expectations according to configuration.
+
+   {1:design_part Designing new part kind}
+
+   {ul
+   {- Tips about action def strategy. Where do we handle
+      what e.g. {!Conf.debug}.}
+   {- Explain the notion of integrating part.}} *)

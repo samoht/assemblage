@@ -33,7 +33,6 @@ let pp_usage = As_ctx.pp_usage
 (* Metadata *)
 
 type meta = As_univ.t
-
 let meta_key = As_univ.create
 let meta_nil = fst (meta_key ()) ()
 
@@ -49,23 +48,25 @@ type +'a t =
     meta : meta;                         (* part's metadata (kind specific). *)
     needs : kind t list;          (* part's need, n.b. unique and *ordered*. *)
     root : As_path.rel As_conf.value;        (* part's build root directory. *)
-    action_defs : kind t -> As_action.t list;          (* action definition. *)
-    actions : As_action.t list Lazy.t; (* part's actions (via actions_defs). *)
-    check : kind t -> bool; }               (* part's sanity check function. *)
+    action_defs :                                      (* action definition. *)
+      kind t -> As_action.t list As_conf.value ;
+    actions :                          (* part's actions (via actions_defs). *)
+      As_action.t list As_conf.value Lazy.t;
+    check : kind t -> bool As_conf.value; } (* part's sanity check function. *)
   constraint 'a = [< kind ]
 
-module Def = struct
+module Part = struct
   type part = kind t
   type t = part
   let compare p p' = (compare : int -> int -> int) p.id p'.id
 end
 
 module Set = struct
-  include Set.Make (Def)
+  include Set.Make (Part)
   let of_list = List.fold_left (fun acc s -> add s acc) empty
 end
 
-module Map = Map.Make (Def)
+module Map = Map.Make (Part)
 
 (* Part *)
 
@@ -74,26 +75,31 @@ let part_id =
   fun () -> incr count; !count
 
 let alloc_root =
-  (* We intercept and resolve duplicate *default* roots at the lowest level.
-     This is part of the strategy to avoid crazy graph rewriting operations. *)
+  (* We intercept and resolve duplicate default part directory roots
+     at part *creation* time. This allows two parts of the same
+     kind/name to coexist. We can't do it later e.g. at project
+     creation time by using [with_root] since if the part is being
+     consulted by others they won't refer to the part newly allocated
+     by [with_root]. The [with_root] mecanism can only be used for
+     parts that are integrated in others as in this case their build
+     products should not be referenced by other parts except through
+     the integrating part. *)
   let allocated = ref As_string.Set.empty in
   fun kind usage name ->
     let part_root =
-      let base = match usage with
+      let root = match usage with
       | `Outcome -> str "%a-%s" pp_kind kind name
       | u -> str "%a-%a-%s" pp_kind kind pp_usage u name
       in
-      let candidate = ref base in
-      try
-        for i = 1 to max_int do
-          if not (As_string.Set.mem !candidate !allocated) then raise Exit else
-          candidate := str "%s~%d" base i
-        done;
-        As_log.warn "You are being unreasonable, consider yourself doomed.";
-        !candidate
-      with Exit ->
-        allocated := As_string.Set.add !candidate !allocated;
-        !candidate
+      let root = match As_string.make_unique_in !allocated root with
+      | Some root -> root
+      | None ->
+          As_log.warn "%a" As_fmt.pp_doomed
+            (str "could not find a unique directory root for %s" root);
+          root
+      in
+      allocated := As_string.Set.add root !allocated;
+      root
     in
     let in_build_dir build = As_path.Rel.(build / part_root) in
     As_conf.(const in_build_dir $ (value As_conf.build_dir))
@@ -111,13 +117,20 @@ let ctx p =                                      (* a context for the part. *)
           empty)
 
 let compute_actions p = (* gets actions from defining fun, adds ctx and args *)
+  (* args contains values, we need to take their deps into account. *)
+  let args = As_conf.manual_value (As_args.deps p.args) p.args in
   let ctx = ctx p in
-  let add acc a = (As_action.add_ctx_args ctx p.args a) :: acc in
-  List.rev (List.fold_left add [] (p.action_defs p))
+  let actions args actions =
+    let add acc a = As_action.add_ctx_args ctx args a :: acc in
+    List.rev (List.fold_left add [] actions)
+  in
+  As_conf.(const actions $ args $ p.action_defs p)
+
+let no_action = fun _ -> As_conf.const []
 
 let v_kind ?(usage = `Outcome) ?(cond = As_conf.true_) ?(args = As_args.empty)
-    ?(meta = meta_nil) ?(needs = []) ?root ?(actions = fun _ -> [])
-    ?(check = fun _ -> true) name kind =
+    ?(meta = meta_nil) ?(needs = []) ?root ?(actions = no_action)
+    ?(check = fun _ -> As_conf.true_) name kind =
   (* Man it's coercion hell in there. *)
   let needs = list_uniq (needs :> Set.elt list) in
   let root = match root with
@@ -128,9 +141,9 @@ let v_kind ?(usage = `Outcome) ?(cond = As_conf.true_) ?(args = As_args.empty)
     { id = part_id (); kind = (kind :> kind);
       name; usage = usage; cond; args;
       meta; needs = (needs :> kind t list); root;
-      action_defs = (actions :> kind t -> As_action.t list);
+      action_defs = (actions :> kind t -> As_action.t list As_conf.value);
       actions = lazy (compute_actions (part :> kind t));
-      check = (check :> kind t -> bool); }
+      check = (check :> kind t -> bool As_conf.value); }
   in
   part
 
@@ -153,34 +166,41 @@ let get_meta proj p =  match proj p.meta with
 | None -> assert false | Some m -> m
 
 let deps p =
-  (* Note we don't add p.needs's deps. If they are really needed
-     they will have propagated in our action defs, same for p.meta,
-     p.args (when actions are requested) and p.root. *)
-  let union = As_conf.Key.Set.union in
-  let add_action acc a = union acc (As_action.deps a) in
-  List.fold_left add_action As_conf.Key.Set.empty (actions p)
-  |> union (As_conf.deps p.cond)
+  (* We don't add [p.needs], [p.meta] and [p.root]'s deps. If they are
+     really needed they will have propagated in the part's actions
+     value. We also don't add [p.args]'d deps, they were integrated
+     into the part's action value by the special handling performed
+     in [compute_actions] (see above). *)
+  As_conf.Key.Set.union (As_conf.deps (actions p)) (As_conf.deps p.cond)
 
-(* FIXME As_action doesn't thread condition, so this is not
-   accurate according to config and we should maybe also
-   directly thread p.cond (likely no, review that again). *)
 let products ?exts p =
-  let action_outputs = match exts with
-  | None -> As_action.outputs
-  | Some es ->
-      fun a -> As_conf.List.keep (As_path.ext_matches es) (As_action.outputs a)
+  let products actions = match exts with
+  | None ->
+      let add_action acc a = List.rev_append (As_action.outputs a) acc in
+      List.rev (List.fold_left add_action [] actions)
+  | Some exts ->
+      let add_action acc a =
+        let add_product acc p =
+          if As_path.ext_matches exts p then p :: acc else acc
+        in
+        List.fold_left add_product acc (As_action.outputs a)
+      in
+      List.rev (List.fold_left add_action [] actions)
   in
-  let rev_outputs = List.rev_map action_outputs (actions p) in
-  As_conf.List.(flatten (rev_wrap rev_outputs))
+  As_conf.(const products $ actions p)
 
 let equal p p' = p.id = p'.id
-let compare = Def.compare
+let compare = Part.compare
 
-(* FIXME we should make it clear in the {Bin,Unit,...}.of_base part
-   functions that their meta will be overwritten and that they should
-   not try to access it in their def function (that function
-   will get called again if there is a with_root call *)
-let with_kind_meta (#kind as k) meta p = { p with kind = k; meta; }
+let redefine ?check ?actions old =
+  let check = match check with None -> old.check | Some f -> f in
+  let action_defs = match actions with None -> old.action_defs | Some f -> f in
+  let rec newp =
+    { old with
+      action_defs; check;
+      actions = lazy (compute_actions (newp :> kind t)); }
+  in
+  newp
 
 (* Part root directory *)
 
@@ -205,7 +225,6 @@ let coerce (#kind as k) ({kind} as p) =
 let coerce_if (#kind as k) ({kind} as p) =
   if p.kind = k then Some p else None
 
-
 (* File part *)
 
 (* FIXME this may mean that we are missing something or at
@@ -215,10 +234,7 @@ let coerce_if (#kind as k) ({kind} as p) =
 let file ?usage:usage ?cond p =
   let actions _ =
     let ctx = As_ctx.empty in
-    let inputs = As_conf.List.empty in
-    let outputs = As_conf.const [p] in
-    let cmds = As_conf.List.empty in
-    [As_action.v ~ctx ~inputs ~outputs cmds]
+    As_conf.const ([As_action.v ~ctx ~inputs:[] ~outputs:[p] []])
   in
   v ?usage ?cond ~actions (As_path.basename p)
 

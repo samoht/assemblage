@@ -35,6 +35,7 @@ let lib_assemblage =
       unit "as_conf" ~needs:[pkg_cmdliner]; (* FIXME remove dep *)
       unit "as_ctx";
       unit "as_args";
+      unit "as_acmd";
       unit "as_action";
       unit "as_action_ocaml";
       unit "as_part";

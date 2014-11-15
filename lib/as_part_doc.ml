@@ -50,14 +50,14 @@ let dev p = match As_part_unit.kind p with `OCaml _ -> true | _ -> false
 let check p =
   let doc = As_part.coerce `Doc p in
   As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind doc);
-  true
+  As_conf.true_
 
 (* Actions *)
 
 let actions p =
   let doc = As_part.coerce `Doc p in
   As_log.warn "%a part actions are TODO" As_part.pp_kind (As_part.kind doc);
-  []
+  As_conf.const []
 
 (* Doc *)
 
@@ -68,7 +68,3 @@ let v ?usage ?cond ?args ?keep name kind needs =
   in
   let meta = meta kind in
   As_part.v_kind ?usage ?cond ?args ~meta ~needs ~actions ~check name `Doc
-
-let of_base kind p =
-  let meta = meta kind in
-  As_part.with_kind_meta `Doc meta p

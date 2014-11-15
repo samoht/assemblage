@@ -53,6 +53,10 @@ let pp_white_str ~spaces ppf s =
 let pp_text = pp_white_str ~spaces:true
 let pp_lines = pp_white_str ~spaces:false
 
+let pp_doomed ppf reason =
+  pp ppf "Something@ unreasonable@ is@ going@ on (%a).@ You@ are@ doomed."
+    pp_text reason
+
 (* Conditional UTF-8 formatting *)
 
 let utf8_enabled, set_utf8_enabled =

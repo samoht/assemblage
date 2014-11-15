@@ -164,4 +164,14 @@ module Set = struct
   let of_list = List.fold_left (fun acc s -> add s acc) empty
 end
 
+let make_unique_in ?(suff = "~") set elt =
+  let candidate = ref elt in
+  try
+    for i = 1 to max_int do
+      if not (Set.mem !candidate set) then raise Exit else
+      candidate := Printf.sprintf "%s%s%d" elt suff i
+    done;
+    None
+  with Exit -> Some !candidate
+
 module Map = Map.Make (String)

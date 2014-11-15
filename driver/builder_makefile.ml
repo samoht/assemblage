@@ -58,11 +58,11 @@ let mk_recipe conf ctx args cmds =
     | None -> acc | Some file -> (Path.to_string file) :: op :: acc
     in
     let cmdline =
-      [Action.cmd_cmd cmd]
-      |> List.rev_append (Action.cmd_args_with_ctx conf ctx args cmd)
-      |> redirect "<"  (Action.cmd_stdin cmd)
-      |> redirect "1>" (Action.cmd_stdout cmd)
-      |> redirect "2>" (Action.cmd_stderr cmd)
+      [Acmd.bin_name cmd]
+      |> List.rev_append (Acmd.args_with_ctx conf ctx args cmd)
+      |> redirect "<"  (Acmd.stdin cmd)
+      |> redirect "1>" (Acmd.stdout cmd)
+      |> redirect "2>" (Acmd.stderr cmd)
       |> List.rev
     in
     cmdline :: acc
@@ -71,18 +71,16 @@ let mk_recipe conf ctx args cmds =
 
 (* TODO check and warn about empty targets and cmds and skip *)
 let mk_action gen action =
-  if not (Project.eval gen.proj (Action.cond action)) then gen else
-  let inputs = Project.eval gen.proj (Action.inputs action) in
-  let outputs = Project.eval gen.proj (Action.outputs action) in
+  let inputs = Action.inputs action in
+  let outputs = Action.outputs action in
   let dirs = Path.(Set.elements (Set.of_list (List.rev_map dirname outputs))) in
   let order_only_prereqs = List.rev_map Path.to_string dirs in
-  let prereqs = List.rev_map Path.to_string (List.rev inputs) in
-  let targets = List.rev_map Path.to_string (List.rev outputs) in
+  let prereqs = List.(rev (rev_map Path.to_string inputs)) in
+  let targets = List.(rev (rev_map Path.to_string outputs)) in
   let recipe =
     let ctx = Action.ctx action in
     let args = Args.append (Project.args gen.proj) (Action.args action) in
-    let cmds = Project.eval gen.proj (Action.cmds action) in
-    mk_recipe (Project.conf gen.proj) ctx args cmds
+    mk_recipe (Project.conf gen.proj) ctx args (Action.cmds action)
   in
   let rule = Makefile.rule ~order_only_prereqs ~targets ~prereqs ~recipe () in
   let rmk = rule :: gen.rmk in
@@ -91,7 +89,7 @@ let mk_action gen action =
 
 let mk_part gen p =
   if not (Project.eval gen.proj (Part.cond p)) then gen else
-  match Part.actions p with
+  match (Project.eval gen.proj (Part.actions p)) with
   | [] -> gen
   | actions ->
       let name = Part.name p in
@@ -104,9 +102,9 @@ let mk_gen_dirs gen =
   let add_dir dir gen =
     let prereqs = [] in
     let targets = [Path.to_string dir] in
-    let cmd = Conf.(Action.Sys.mkdir $ const dir) in
+    let cmd = Conf.(Acmd.mkdir $ const dir) in
     let cmd = Project.eval gen.proj cmd in
-    let recipe = [ Action.cmd_cmd cmd :: Action.cmd_args cmd ] in
+    let recipe = [ Acmd.bin_name cmd :: Acmd.args cmd ] in
     let rule = Makefile.rule ~targets ~prereqs ~recipe () in
     let rmk = rule :: gen.rmk in
     { gen with rmk }

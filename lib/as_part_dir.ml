@@ -114,38 +114,31 @@ let lib p = match As_part.coerce_if `Lib p with
 let check p =
   let dir = As_part.coerce `Dir p in
   As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind dir);
-  true
+  As_conf.true_
 
 (* Actions *)
 
-let link_part_action keep dir p =
+let link_part_actions keep dir p =
   let keep = keep p in
-  let file_map keep part_root products =
+  let actions link part_root products =
     let part_root = As_path.of_rel part_root in
     let add acc product = match keep product with
     | `Drop -> acc
-    | `Keep -> (product, As_path.(part_root / basename product)) :: acc
-    | `Rename p -> (product, As_path.(part_root // p)) :: acc
+    | `Keep -> link product As_path.(part_root / basename product) :: acc
+    | `Rename p -> link product As_path.(part_root // p) :: acc
     in
     List.rev (List.fold_left add [] products)
   in
-  let file_map =
-    As_conf.(const file_map $ keep $ As_part.root dir $ As_part.products p)
-  in
-  let cmds ln file_map =
-    let add acc (src, dst) = ln src dst :: acc in
-    List.rev (List.fold_left add [] file_map)
-  in
-  let ctx = As_ctx.v [ `Gen ] (* bof *) in
-  let inputs = As_conf.List.map fst file_map in
-  let outputs = As_conf.List.map snd file_map in
-  let cmds = As_conf.(const cmds $ As_action.Sys.ln_rel $ file_map) in
-  As_action.v ~ctx ~inputs ~outputs cmds
+  As_conf.(const actions $ As_action.link $ As_part.root dir $
+           As_part.products p)
 
-let actions keep p =
+let actions keep p = As_conf.const []
+
+(*
   let dir = As_part.coerce `Dir p in
   let add acc p = link_part_action keep dir p :: acc in
   List.rev (List.fold_left add [] (As_part.needs p))
+*)
 
 (* Dir *)
 
@@ -163,7 +156,3 @@ let v ?usage ?cond ?args ?keep ?install kind needs =
   let meta = meta ?install kind in
   let name = name_of_kind kind in
   As_part.v_kind ?usage ?cond ?args ~meta ~needs ~actions ~check name `Dir
-
-let of_base ?install kind p =
-  let meta = meta ?install kind in
-  As_part.with_kind_meta `Dir meta p

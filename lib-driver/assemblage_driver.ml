@@ -39,17 +39,27 @@ module Conf_spec = struct
   let ui c =
     let add (Conf.Key.V k) (names, acc) =
       if not (Conf.Key.public k) then (names, acc) else
-      if As_string.Set.mem (Conf.Key.name k) names
-      then (Log.warn "%a" Conf.pp_key_dup (Conf.Key.V k); (names, acc))
-      else
-      let names' = As_string.Set.add (Conf.Key.name k) names in
+      let name =
+        let name = Conf.Key.name k in
+        if not (As_string.Set.mem name names) then name else
+        begin
+          Log.warn "%a" Conf.pp_key_dup (Conf.Key.V k);
+          match As_string.make_unique_in names name with
+          | Some name -> name
+          | None ->
+              Log.warn "%a" Fmt.pp_doomed
+                (str "could not find a unique key option name for %s" name);
+              name
+        end
+      in
+      let names' = As_string.Set.add name names in
       let c = value_converter_of_converter (Conf.Key.converter k) in
       (* We suffix the name to avoid end-user clashes with other options *)
-      let name = str "%s-key" (Conf.Key.name k) in
+      let opt_name = str "%s-key" name in
       let doc = Conf.Key.doc k in
       let docs = uppercase (Conf.Key.docs k) in
       let docv = Conf.Key.docv k in
-      let i = Arg.info [name] ?doc ?docv ?docs in
+      let i = Arg.info [opt_name] ?doc ?docv ?docs in
       let opt = Arg.(value (opt c None & i)) in
       let set acc k = function None -> acc | Some v -> Conf.set acc k v in
       let acc' = Term.(pure set $ acc $ pure k $ opt) in

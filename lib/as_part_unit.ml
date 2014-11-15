@@ -62,7 +62,7 @@ let src e unit =               (* source file for the unit with extention e *)
 let check p =
   let unit = As_part.coerce `Unit p in
   As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind unit);
-  true
+  As_conf.true_
 
 (* Actions *)
 
@@ -119,9 +119,10 @@ let add_if c f v acc = if c then (f v) :: acc else acc
 let js_actions unit =
   let src = src `Js unit in
   let dst = As_part.rooted unit (As_part.name unit) ~ext:`Js in
-  As_action.link ~src ~dst () :: []
+  As_conf.(As_action.link $ src $ dst)
 
-let c_actions spec unit =
+let c_actions spec unit = []
+(*
   (* FIXME for C I think we want to distinguish two backends
      one that goes through ocamlc and the other who goes to Conf.cc.
      This should be reflected in the metadata. *)
@@ -135,8 +136,10 @@ let c_actions spec unit =
   add_if has_h (As_action.link ~src:src_h ~dst:dst_h) () @@
   add_if has_c (As_action.link ~src:src_c ~dst:dst_c) () @@
   []
+*)
 
-let ocaml_actions spec unit =
+let ocaml_actions spec unit = []
+(*
   let has_mli, has_ml = match spec with
   | `Mli -> true, false | `Ml -> false, true | `Both -> true, true
   in
@@ -154,20 +157,18 @@ let ocaml_actions spec unit =
   add_if has_ml (As_action_ocaml.compile_ml_native
                    ~has_mli:has_mli_v ~incs ~src:ml) () @@
   []
+*)
 
-let actions p =
+let actions p = As_conf.const []
+(*
   let unit = As_part.coerce `Unit p in
   match kind unit with
   | `C spec -> c_actions spec unit
   | `Js -> js_actions unit
   | `OCaml (spec, _) -> ocaml_actions spec unit
-
+*)
 (* Create *)
 
 let v ?usage ?cond ?args ?needs ?dir name kind =
   let meta = meta ?dir kind in
   As_part.v_kind ?usage ?cond ?args ~meta ?needs ~actions ~check name `Unit
-
-let of_base ?dir kind p =
-  let meta = meta ?dir kind in
-  As_part.with_kind_meta `Unit meta p

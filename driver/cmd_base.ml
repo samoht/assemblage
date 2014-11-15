@@ -110,7 +110,10 @@ let project_conf p =
      overriden by command line options. The driver also uses keys
      that may not be used by the project's actions we also add them
      to the mix. *)
-  let driver_keys = Conf.(Key.Set.singleton (Key.hide_type mkdir)) in
+  let driver_keys =
+    Conf.Key.(Set.singleton (hide_type Conf.mkdir)
+              |> Set.add (hide_type Conf.build_dir))
+  in
   let base_keys = match p with
   | None -> driver_keys
   | Some p -> Conf.Key.Set.union (Project.deps p) driver_keys

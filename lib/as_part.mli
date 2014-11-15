@@ -32,7 +32,6 @@ val pp_usage : Format.formatter -> usage -> unit
 (** {1 Metadata} *)
 
 type meta
-
 val meta_key : unit -> ('a -> meta) * (meta -> 'a option)
 val meta_nil : meta
 
@@ -42,12 +41,14 @@ type +'a t constraint 'a = [< kind ]
 
 val v_kind : ?usage:usage -> ?cond:bool As_conf.value -> ?args:As_args.t ->
   ?meta:meta -> ?needs:'a t list -> ?root:As_path.rel As_conf.value ->
-  ?actions:(kind t -> As_action.t list) -> ?check:(kind t -> bool) ->
+  ?actions:(kind t -> As_action.t list As_conf.value) ->
+  ?check:(kind t -> bool As_conf.value) ->
   string -> ([< kind] as 'b) -> 'b t
 
 val v : ?usage:usage -> ?cond:bool As_conf.value -> ?args:As_args.t ->
   ?meta:meta -> ?needs:'a t list -> ?root:As_path.rel As_conf.value ->
-  ?actions:(kind t -> As_action.t list) -> ?check:(kind t -> bool) ->
+  ?actions:(kind t -> As_action.t list As_conf.value) ->
+  ?check:(kind t -> bool As_conf.value) ->
   string -> [> `Base] t
 
 val kind : 'a t -> kind
@@ -58,15 +59,17 @@ val meta : 'a t -> meta
 val get_meta : (meta -> 'a option) -> 'b t -> 'a
 val needs : 'a t -> kind t list
 val args : 'a t -> As_args.t
-val actions : 'a t -> As_action.t list
-val check : 'a t -> bool
+val actions : 'a t -> As_action.t list As_conf.value
+val check : 'a t -> bool As_conf.value
 val products : ?exts:As_path.ext list -> 'a t -> As_path.t list As_conf.value
 val id : 'a t -> int
 val equal : 'a t -> 'b t -> bool
 val compare : 'a t -> 'b t -> int
-val with_kind_meta : ([< kind] as 'b) -> meta -> 'a t -> 'b t
 val deps : 'a t -> As_conf.Key.Set.t
 val ctx : 'a t -> As_ctx.t
+val redefine :
+  ?check:(kind t -> bool As_conf.value) ->
+  ?actions:(kind t -> As_action.t list As_conf.value) -> 'a t -> 'a t
 
 (** {1 Part root directory} *)
 

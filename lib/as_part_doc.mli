@@ -39,5 +39,3 @@ val v : ?usage:As_part.usage -> ?cond:bool As_conf.value ->
   ?args:As_args.t -> ?keep:([< `Unit] As_part.t -> bool) ->
   string -> kind -> [< `Lib | `Unit | `Bin | `Pkg ] As_part.t list ->
   [> `Doc] As_part.t
-
-val of_base : kind -> [< `Base] As_part.t -> [> `Doc ] As_part.t

@@ -99,6 +99,7 @@ val key : ?public:bool -> ?docs:string -> ?docv:string -> ?doc:string ->
   string -> 'a converter -> 'a value -> 'a key
 
 val value : 'a key -> 'a value
+val manual_value : Key.Set.t -> 'a -> 'a value
 
 (** {2 Configuration key value converters} *)
 
@@ -134,6 +135,7 @@ val pp : Format.formatter -> t -> unit
 type scheme = string * (string * t)
 type def
 val def : 'a key -> 'a -> def
+val defv : 'a key -> 'a value -> def
 val scheme : ?doc:string -> ?base:scheme -> string -> def list -> scheme
 
 (** {1 Configuration error messages} *)

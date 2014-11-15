@@ -202,6 +202,7 @@ module Driver : sig
     This simple example shows how to output the version of a project
     as it could be configured on the command line.
 
+    FIXME.
 {[
   let main () = ()
 ]}

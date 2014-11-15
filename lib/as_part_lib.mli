@@ -42,7 +42,3 @@ val v :
   ?byte:bool -> ?native:bool -> ?native_dynlink:bool ->
   string -> kind -> [< `Unit | `Pkg | `Lib] As_part.t list ->
   [> `Lib] As_part.t
-
-val of_base :
-  ?byte:bool -> ?native:bool -> ?native_dynlink:bool -> kind ->
-  [`Base] As_part.t -> [> `Lib] As_part.t

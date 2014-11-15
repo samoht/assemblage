@@ -40,6 +40,7 @@ val pp_opt : ?pp_none:unit formatter -> 'a formatter -> 'a option formatter
 val pp_list : ?pp_sep:unit formatter -> 'a formatter -> 'a list formatter
 val pp_text : string formatter
 val pp_lines : string formatter
+val pp_doomed : string formatter
 
 (** {1 Conditional UTF-8 formatting} *)
 

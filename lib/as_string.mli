@@ -78,4 +78,6 @@ module Set : sig
   val of_list : string list -> t
 end
 
+val make_unique_in : ?suff:string -> Set.t -> string -> string option
+
 module Map : Map.S with type key = string
