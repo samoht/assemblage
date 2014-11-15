@@ -1593,7 +1593,7 @@ end
 (** Build argument bundles.
 
     Argument bundles are conditional bindings from {{!Ctx}build contexts}
-    to ordered lists of build command arguments. See {{!basics}argument
+    to ordered lists of action command arguments. See {{!basics}argument
     bundle basics} and {{!propagation}argument bundle propogation} for
     more details.  *)
 module Args : sig
@@ -1603,12 +1603,12 @@ module Args : sig
   type t
   (** The type for argument bundles. *)
 
-  val v : ?cond:bool Conf.value -> Ctx.t -> string list Conf.value -> t
-  (** [v ~cond ctx args] is the bundle that binds [ctx] to [args]
-      whenever [cond] evaluates to [true] (defaults to {!Conf.true_}). *)
+  val v : ?exists:bool Conf.value -> Ctx.t -> string list Conf.value -> t
+  (** [v ~exists ctx args] is the bundle that binds [ctx] to [args]
+      whenever [exists] evaluates to [true] (defaults to {!Conf.true_}). *)
 
-  val vc : ?cond:bool Conf.value -> Ctx.t -> string list -> t
-  (** [vc ~active ctx args] is [v ~active ctx (Conf.const args)]. *)
+  val vc : ?exists:bool Conf.value -> Ctx.t -> string list -> t
+  (** [vc ~exists ctx args] is [v ~exists ctx (Conf.const args)]. *)
 
   val empty : t
   (** [empty] is the empty bundle. *)
@@ -1617,11 +1617,11 @@ module Args : sig
   (** [is_empty a] is [true] if [a] is empty. *)
 
   val append : t -> t -> t
-  (** [append a a'] is the bundle that has the bindings of [a] and [a'].
-      If both [a] and [a'] have bindings for the same context, they
-      are preserved each with their condition and it is guaranteed
-      that the binding arguments of [a] will appear before those of
-      [a'] on the command line. *)
+  (** [append a a'] is the bundle that has the bindings of [a] and
+      [a'].  If both [a] and [a'] have bindings for the same context,
+      they are preserved each with their own condition of existence
+      and it is guaranteed that the binding arguments of [a] will
+      appear before those of [a'] on the command line. *)
 
   val (@@@) : t -> t -> t
   (** [a @@@ a'] is [append a a']. *)
@@ -1660,7 +1660,7 @@ module Args : sig
 {[
 let ocaml_debug =
   let ctx = Ctx.v [`OCaml; `Compile] in
-  Args.v ~cond:Conf.debug ctx (Conf.const ["-g"])
+  Args.v ~exists:Conf.debug ctx (Conf.const ["-g"])
 ]}
     when used with an action will, whenever the configuration value of
     {!Conf.debug} denotes [true], prepend the option [-g] to any
@@ -1672,8 +1672,8 @@ let ocaml_debug =
     The general mechanism when an action is executed with a given
     bundle is for each command to look up every binding in the
     bundle. If the context of a binding {{!Ctx.matches}matches} the
-    context of the command and the binding condition evaluates to [true]
-    the arguments of the binding are prepended to the command invocation.
+    context of the command and the binding exists the arguments of the
+    binding are prepended to the command invocation.
 
     {b Warning.} Do not rely on the order of context matches for your
     command lines to be valid. The argument bundle mechanism is a
@@ -1994,10 +1994,11 @@ type +'a part constraint 'a = [< part_kind ]
     {- {{!needs}Needs.} This is a list of parts used by the part to
        define its actions. The way a part uses its needs depends
        on its kind, consult their specific documentation.}
-    {- A {{!cond}configuration condition} that indicates whether
-       a part is {e active} in a given configuration. For example
-       the existence of a library may depends on the presence
-       of an optional package.}
+    {- An {{!exists}exists} configuration boolean that indicates
+       whether a part exists in a given configuration. If the
+       part doesn't exist it doesn't define any build action. For example
+       the existence of a library may depends on the presence of an
+       optional package.}
     {- An {{!args}argument bundle} applied to its actions.
        See {!Args.basics} for more information about argument
        bundles.}}
@@ -2051,17 +2052,17 @@ module Part : sig
   type +'a t = 'a part constraint 'a = [< kind]
   (** The type for parts. *)
 
-  val v : ?usage:usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  val v : ?usage:usage -> ?exists:bool Conf.value -> ?args:Args.t ->
     ?meta:meta -> ?needs:'a part list -> ?root:Path.rel Conf.value ->
     ?actions:(kind part -> Action.t list Conf.value) ->
     ?check:(kind part -> bool Conf.value) -> string -> [> `Base] part
-  (** [v ?usage ?cond ?meta ?needs ?args ?actions ?check name] defines
+  (** [v ?usage ?exists ?meta ?needs ?args ?actions ?check name] defines
       a base part named [name].
       {ul
       {- [usage] is the part's usage, default to
          [`Outcome].}
-      {- [cond] is configuration condition for the part to
-          exist, defaults to {!Conf.true_}.}
+      {- [exists] is a condition for the part to exist, defaults to
+         {!Conf.true_}.}
       {- [args] is an argument bundle added to the actions of the part,
          defaults to {!Args.empty}.}
       {- [meta] is the part's metadata, defaults to {!meta_nil}.}
@@ -2090,8 +2091,8 @@ module Part : sig
   val usage : 'a part -> usage
   (** [usage p] is [p]'s usage. *)
 
-  val cond : 'a part -> bool Conf.value
-  (** [cond p] determines if [p] is available. *)
+  val exists : 'a part -> bool Conf.value
+  (** [exists p] determines if [p] exists. *)
 
   val meta : 'a part -> meta
   (** [meta p] is [p]'s metadata. *)
@@ -2106,16 +2107,14 @@ module Part : sig
       define itself. *)
 
   val actions : 'a part -> Action.t list Conf.value
-  (** [actions p] are the actions to build part [p]. *)
+  (** [actions p] are the actions to build part [p]. If
+      {!exists}[ p] evaluates to [false] this evaluates to
+      the empty list. *)
 
   val products : ?exts:Path.ext list -> 'a part -> Path.t list Conf.value
   (** [products p] are the products of part [p]. If [exts] is present
       only those that have one of the extensions in the list are selected.
-      This is derived from {!actions}.
-
-      {b Warning.} FIXME What should we do ?
-      This returns a list of products regardless of whether the part
-      is active or not. *)
+      This is derived from {!actions}. *)
 
   val check : 'a part -> bool Conf.value
   (** [check p] logs information about potential problems with [p]
@@ -2170,7 +2169,7 @@ module Part : sig
 
   (** {1 File part} *)
 
-  val file : ?usage:usage -> ?cond:bool Conf.value -> Path.t -> [> `Base] part
+  val file : ?usage:usage -> ?exists:bool Conf.value -> Path.t -> [> `Base] part
   (** [file p] is a part whose product is [p]. *)
 
   (** {1 Part lists} *)
@@ -2280,7 +2279,7 @@ module Unit : sig
 
   (** {1 Units} *)
 
-  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  val v : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
     ?needs:[< `Lib | `Pkg] part list -> ?dir:Path.t Conf.value -> string ->
     kind -> [> `Unit] part
   (** [v ~needs ~dir name kind] is a compilation unit named [name],
@@ -2334,7 +2333,7 @@ module Lib : sig
 
   (**  {1 Libraries} *)
 
-  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  val v : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
     ?byte:bool -> ?native:bool -> ?native_dynlink:bool ->
     string -> kind -> [< `Unit | `Pkg | `Lib] part list -> [> `Lib] part
   (** [v ?byte ?native ?native_dynlink name kind needs] is a library
@@ -2404,7 +2403,7 @@ module Bin : sig
 
   val v :
     ?usage:Part.usage ->
-    ?cond:bool Conf.value ->
+    ?exists:bool Conf.value ->
     ?args:Args.t ->
     ?byte:bool -> ?native:bool -> ?js:bool ->
     string -> kind -> [< `Unit | `Lib | `Pkg ] part list -> [> `Bin] part
@@ -2470,7 +2469,7 @@ module Pkg : sig
 
   (** {1 Packages} *)
 
-  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  val v : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
     string -> kind -> [> `Pkg] part
   (** [v name kind] is a package named [name] of the given [kind].
       [name] is the name used for lookuping up the package system.
@@ -2512,7 +2511,7 @@ module Doc : sig
 
   (** {1 Unit documentation sets} *)
 
-  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  val v : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
     ?keep:([< `Unit] part -> bool) -> string -> kind ->
     [< `Unit | `Lib | `Bin]  part list -> [> `Doc] part
   (** [v keep name kind needs] is a documentation set named [name] of
@@ -2597,7 +2596,7 @@ module Dir : sig
 
   (** {1 Dir} *)
 
-  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  val v : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
     ?keep:spec -> ?install:bool -> kind ->
     [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] part list ->
     [> `Dir ] part
@@ -2637,7 +2636,7 @@ module Run : sig
 
   (** {1 Create} *)
 
-  val v : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+  val v : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
     ?dir:Path.t Conf.value -> string -> Action.t -> [> `Run] part
   (** [v dir name act] is the run that executes [act] in directory
       [dir] (defaults to {!Conf.root_dir}). *)
@@ -2655,43 +2654,43 @@ val root : path
 val ( / ) : path -> string -> path
 (** [path / seg] is [Conf.(const Path.( / ) $ path $ const seg)]. *)
 
-val unit : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+val unit : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
   ?needs:[< `Lib | `Pkg ] part list -> ?kind:Unit.kind -> ?dir:path -> string ->
   [> `Unit] part
 (** See {!Unit.v}. [kind] defaults to [`OCaml (`Both, `Normal)]. *)
 
-val lib : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+val lib : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
   ?byte:bool -> ?native:bool -> ?native_dynlink:bool -> ?kind:Lib.kind ->
   string -> [< `Unit | `Pkg | `Lib] part list -> [> `Lib] part
 (** See {!Lib.v}. [kind] defaults to [`OCaml]. *)
 
-val bin : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+val bin : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
   ?byte:bool -> ?native:bool -> ?js:bool -> ?kind:Bin.kind -> string ->
   [< `Unit | `Pkg | `Lib] part list -> [> `Bin] part
 (** See {!Bin.v}. [kind] defaults to [`OCaml]. *)
 
-val pkg : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+val pkg : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
   ?kind:Pkg.kind -> string -> [> `Pkg] part
 (** See {!Pkg.v}. [kind] defaults to [`OCaml `OCamlfind]. *)
 
-val doc : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+val doc : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
   ?keep:([< `Unit] part -> bool) -> ?kind:Doc.kind -> string ->
   [< `Bin | `Lib | `Unit ] part list -> [> `Doc] part
 (** See {!Doc.v}. [kind] defaults to [`OCamldoc]. *)
 
-val dir : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t->
+val dir : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t->
   ?keep:Dir.spec -> ?install:bool -> Dir.kind ->
   [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] part list -> [> `Dir ] part
 (** See {!Dir.v}. *)
 
-val file : ?usage:Part.usage -> ?cond:bool Conf.value -> Path.t ->
+val file : ?usage:Part.usage -> ?exists:bool Conf.value -> Path.t ->
   [> `Base] part
 (** See {!Base.file}. FIXME the only use I have for this is to be able
     to put files in {!dir}. Is there a better way ? Also the way
     it is implemented (action without cmds and inputs) means we need
     to clarify these edges cases for drivers. *)
 
-val run : ?usage:Part.usage -> ?cond:bool Conf.value -> ?args:Args.t ->
+val run : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
   ?dir:path -> string -> Action.t -> [> `Run] part
 (** See {!Run.v} *)
 
@@ -2708,10 +2707,10 @@ module Project : sig
   type t = project
   (** The type for describing projects. *)
 
-  val v : ?cond:bool Conf.value -> ?args:Args.t -> ?schemes:Conf.scheme list ->
-      string -> parts:'a part list -> project
-  (** [v cond args parts n] is the project named [n] with parts [parts].
-      [cond] determines if the project can exist in a build configuration. *)
+  val v : ?exists:bool Conf.value -> ?args:Args.t ->
+    ?schemes:Conf.scheme list -> string -> parts:'a part list -> project
+  (** [v exists args parts n] is the project named [n] with parts [parts].
+      [exists] determines if the project can exist in a build configuration. *)
 
   val name : project -> string
   (** [name p] is the [p]'s name. *)
@@ -2989,28 +2988,6 @@ module Private : sig
     (** [deps a] is the set of configuration keys which may be needed
         for evaluating the constituents of [a]. *)
 
-    (** {1 Conditonalized arguments} *)
-
-    type cargs
-    (** The type for conditionalized arguments. *)
-
-    val cargs_cond : cargs -> bool Conf.value
-    (** [cargs_cond args] is [args]'s condition. *)
-
-    val cargs_args : cargs -> string list Conf.value
-    (** [cargs_args cargs] is [args]'s arguments. *)
-
-    val cargs_deps : cargs -> Conf.Key.Set.t
-    (** [cargs_deps cargs] is the set of configuration keys which may be needed
-        for evaluating the constituents of [cargs]. *)
-
-    val bindings : t -> (Ctx.t * cargs list) list
-    (** [bindings args] is the list of bindings in [args]. *)
-
-    val cargs_for_ctx : Ctx.t -> t -> cargs list
-    (** [cargs_with_ctx ctx -> args] is the list of conditionalized arguments
-        in [args] for context [ctx]. *)
-
     (** {1 Argument lookup} *)
 
     val for_ctx : Conf.t -> Ctx.t -> t -> string list
@@ -3122,8 +3099,8 @@ module Private : sig
 
     include module type of Project with type t = Project.t
 
-    val cond : project -> bool Conf.value
-    (** [cond p] is [p]'s cond. *)
+    val exists : project -> bool Conf.value
+    (** [exists p] is [p]'s condition of existence. *)
 
     val args : project -> Args.t
     (** [args p] is [p]'s args. *)
@@ -3200,8 +3177,8 @@ end
 
     That's the way of doing it:
 {[
-    let cond = Conf.(const Cmd.File.exists $ const (Path.file file)) in
-     unit ~cond "src"
+    let exists = Conf.(const Cmd.File.exists $ const (Path.file file)) in
+     unit ~exists "src"
 ]}
     TODO the rule to hammer in people's mind is the following:
     don't do anything that doesn't make the set of configuration

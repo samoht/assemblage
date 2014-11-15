@@ -35,7 +35,7 @@ val dev : [< `Unit] As_part.t -> bool
 
 (** {1 Doc} *)
 
-val v : ?usage:As_part.usage -> ?cond:bool As_conf.value ->
+val v : ?usage:As_part.usage -> ?exists:bool As_conf.value ->
   ?args:As_args.t -> ?keep:([< `Unit] As_part.t -> bool) ->
   string -> kind -> [< `Lib | `Unit | `Bin | `Pkg ] As_part.t list ->
   [> `Doc] As_part.t

@@ -32,8 +32,8 @@ let check p =
 
 (* Run *)
 
-let v ?usage ?cond ?args ?dir name cmds =
+let v ?usage ?exists ?args ?dir name cmds =
   let meta = meta ?dir () in
-  As_part.v_kind ?usage ?cond ?args ~meta ~check name `Run
+  As_part.v_kind ?usage ?exists ?args ~meta ~check name `Run
 
-let of_bin ?usage ?cond ?args ?dir bin cmds = failwith "TODO"
+let of_bin ?usage ?exists ?args ?dir bin cmds = failwith "TODO"

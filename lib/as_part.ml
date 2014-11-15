@@ -43,7 +43,7 @@ type +'a t =
     kind : kind;                                         (* the part's kind. *)
     name : string;                      (* the part name, may not be unique. *)
     usage : usage;                                      (* the part's usage. *)
-    cond : bool As_conf.value;             (* [true] if available in config. *)
+    exists : bool As_conf.value;              (* [true] if exists in config. *)
     args : As_args.t;                           (* end user argument bundle. *)
     meta : meta;                         (* part's metadata (kind specific). *)
     needs : kind t list;          (* part's need, n.b. unique and *ordered*. *)
@@ -120,15 +120,16 @@ let compute_actions p = (* gets actions from defining fun, adds ctx and args *)
   (* args contains values, we need to take their deps into account. *)
   let args = As_conf.manual_value (As_args.deps p.args) p.args in
   let ctx = ctx p in
-  let actions args actions =
+  let actions exists args actions =
+    if not exists then [] else
     let add acc a = As_action.add_ctx_args ctx args a :: acc in
     List.rev (List.fold_left add [] actions)
   in
-  As_conf.(const actions $ args $ p.action_defs p)
+  As_conf.(const actions $ p.exists $ args $ p.action_defs p)
 
 let no_action = fun _ -> As_conf.const []
 
-let v_kind ?(usage = `Outcome) ?(cond = As_conf.true_) ?(args = As_args.empty)
+let v_kind ?(usage = `Outcome) ?(exists = As_conf.true_) ?(args = As_args.empty)
     ?(meta = meta_nil) ?(needs = []) ?root ?(actions = no_action)
     ?(check = fun _ -> As_conf.true_) name kind =
   (* Man it's coercion hell in there. *)
@@ -139,7 +140,7 @@ let v_kind ?(usage = `Outcome) ?(cond = As_conf.true_) ?(args = As_args.empty)
   in
   let rec part =
     { id = part_id (); kind = (kind :> kind);
-      name; usage = usage; cond; args;
+      name; usage = usage; exists; args;
       meta; needs = (needs :> kind t list); root;
       action_defs = (actions :> kind t -> As_action.t list As_conf.value);
       actions = lazy (compute_actions (part :> kind t));
@@ -147,14 +148,14 @@ let v_kind ?(usage = `Outcome) ?(cond = As_conf.true_) ?(args = As_args.empty)
   in
   part
 
-let v ?usage ?cond ?args ?meta ?needs ?root ?actions ?check name =
-  v_kind ?usage ?cond ?args ?meta ?needs ?root ?actions ?check name `Base
+let v ?usage ?exists ?args ?meta ?needs ?root ?actions ?check name =
+  v_kind ?usage ?exists ?args ?meta ?needs ?root ?actions ?check name `Base
 
 let id p = p.id
 let kind p = p.kind
 let name p = p.name
 let usage p = p.usage
-let cond p = p.cond
+let exists p = p.exists
 let args p = p.args
 let meta p = p.meta
 let needs p = p.needs
@@ -166,12 +167,13 @@ let get_meta proj p =  match proj p.meta with
 | None -> assert false | Some m -> m
 
 let deps p =
-  (* We don't add [p.needs], [p.meta] and [p.root]'s deps. If they are
-     really needed they will have propagated in the part's actions
-     value. We also don't add [p.args]'d deps, they were integrated
-     into the part's action value by the special handling performed
-     in [compute_actions] (see above). *)
-  As_conf.Key.Set.union (As_conf.deps (actions p)) (As_conf.deps p.cond)
+  (* Only p.actions' dependencies need to be consulted:
+     - For [p.needs], [p.meta] and [p.root]'s deps. If they are
+       really needed they will have propagated in the part's actions.
+     - [p.exists] enters in the definition of p.actions (see [compute_actions]).
+     - [p.args] deps were integrated into p.actions by the special handling
+       peformed in [compute_actions]. *)
+  As_conf.deps (actions p)
 
 let products ?exts p =
   let products actions = match exts with
@@ -231,12 +233,12 @@ let coerce_if (#kind as k) ({kind} as p) =
    least we should say something about actions whose list of
    commands is empty.
 *)
-let file ?usage:usage ?cond p =
+let file ?usage:usage ?exists p =
   let actions _ =
     let ctx = As_ctx.empty in
     As_conf.const ([As_action.v ~ctx ~inputs:[] ~outputs:[p] []])
   in
-  v ?usage ?cond ~actions (As_path.basename p)
+  v ?usage ?exists ~actions (As_path.basename p)
 
 (* Part lists *)
 

@@ -21,6 +21,11 @@ open Assemblage.Private
 
 let str = Format.asprintf
 
+let warn_no_actions = format_of_string
+    "%s@ %a@ part@ exists@ in@ configuration@ but@ has@ no@ action."
+
+(* Makefile generation *)
+
 type gen =
   { proj : Project.t;   (* The project to generate. *)
     dirs : Path.Set.t;  (* Set of directories that need to exist. *)
@@ -88,9 +93,11 @@ let mk_action gen action =
   { gen with dirs; rmk; }
 
 let mk_part gen p =
-  if not (Project.eval gen.proj (Part.cond p)) then gen else
+  if not (Project.eval gen.proj (Part.exists p)) then gen else
   match (Project.eval gen.proj (Part.actions p)) with
-  | [] -> gen
+  | [] ->
+      Log.warn warn_no_actions (Part.name p) Part.pp_kind (Part.kind p);
+      gen
   | actions ->
       let name = Part.name p in
       let kind = Part.kind p in

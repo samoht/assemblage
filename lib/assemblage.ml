@@ -55,30 +55,31 @@ type path = Path.t Conf.value
 let root = Conf.(const As_path.empty)
 let ( / ) p seg = Conf.(const Path.add $ p $ const seg)
 
-let unit ?usage ?cond ?args ?needs ?(kind = `OCaml (`Both, `Normal)) ?dir name =
-  Unit.v ?usage ?cond ?args ?needs ?dir name kind
+let unit ?usage ?exists ?args ?needs ?(kind = `OCaml (`Both, `Normal))
+    ?dir name =
+  Unit.v ?usage ?exists ?args ?needs ?dir name kind
 
-let lib ?usage ?cond ?args ?byte ?native ?native_dynlink ?(kind = `OCaml) name
-    needs =
-  Lib.v ?usage ?cond ?args ?byte ?native ?native_dynlink name kind needs
+let lib ?usage ?exists ?args ?byte ?native ?native_dynlink ?(kind = `OCaml)
+    name needs =
+  Lib.v ?usage ?exists ?args ?byte ?native ?native_dynlink name kind needs
 
-let bin ?usage ?cond ?args ?byte ?native ?js ?(kind = `OCaml) name needs =
-  Bin.v ?usage ?cond ?args ?byte ?native ?js name kind needs
+let bin ?usage ?exists ?args ?byte ?native ?js ?(kind = `OCaml) name needs =
+  Bin.v ?usage ?exists ?args ?byte ?native ?js name kind needs
 
-let pkg ?usage ?cond ?args ?(kind = `OCaml `OCamlfind) name =
-  Pkg.v ?usage ?cond ?args name kind
+let pkg ?usage ?exists ?args ?(kind = `OCaml `OCamlfind) name =
+  Pkg.v ?usage ?exists ?args name kind
 
-let doc ?usage ?cond ?args ?keep ?(kind = `OCamldoc) name needs =
-  Doc.v ?usage ?cond ?args ?keep name kind needs
+let doc ?usage ?exists ?args ?keep ?(kind = `OCamldoc) name needs =
+  Doc.v ?usage ?exists ?args ?keep name kind needs
 
-let dir ?usage ?cond ?args ?keep ?install kind needs =
-  Dir.v ?usage ?cond ?args ?keep ?install kind needs
+let dir ?usage ?exists ?args ?keep ?install kind needs =
+  Dir.v ?usage ?exists ?args ?keep ?install kind needs
 
-let file ?usage ?cond p =
-  Part.file ?usage ?cond p
+let file ?usage ?exists p =
+  Part.file ?usage ?exists p
 
-let run ?usage ?cond ?args ?dir name action =
-  Run.v ?usage ?cond ?args ?dir name action
+let run ?usage ?exists ?args ?dir name action =
+  Run.v ?usage ?exists ?args ?dir name action
 
 (* Projects *)
 

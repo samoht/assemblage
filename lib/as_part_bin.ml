@@ -67,6 +67,6 @@ let actions p =
 
 (* Part *)
 
-let v ?usage ?cond ?args ?byte ?native ?js name kind needs =
+let v ?usage ?exists ?args ?byte ?native ?js name kind needs =
   let meta = meta ?byte ?native ?js kind in
-  As_part.v_kind ?usage ?cond ?args ~meta ~needs ~actions ~check name `Bin
+  As_part.v_kind ?usage ?exists ?args ~meta ~needs ~actions ~check name `Bin

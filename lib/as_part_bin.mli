@@ -35,7 +35,7 @@ val c : 'a As_part.t -> [> `Bin] As_part.t option
 
 val v :
   ?usage:As_part.usage ->
-  ?cond:bool As_conf.value ->
+  ?exists:bool As_conf.value ->
   ?args:As_args.t ->
   ?byte:bool -> ?native:bool -> ?js:bool -> string -> kind ->
   [< `Unit | `Lib | `Pkg ] As_part.t list ->

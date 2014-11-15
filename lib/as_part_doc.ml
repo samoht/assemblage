@@ -61,10 +61,10 @@ let actions p =
 
 (* Doc *)
 
-let v ?usage ?cond ?args ?keep name kind needs =
+let v ?usage ?exists ?args ?keep name kind needs =
   let _keep = match keep with
   | Some k -> k
   | None -> if usage = Some `Dev then dev else default
   in
   let meta = meta kind in
-  As_part.v_kind ?usage ?cond ?args ~meta ~needs ~actions ~check name `Doc
+  As_part.v_kind ?usage ?exists ?args ~meta ~needs ~actions ~check name `Doc

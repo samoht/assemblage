@@ -21,7 +21,7 @@ let str = Printf.sprintf
 
 type t =
   { name : string;                               (* The name of the project. *)
-    cond : bool As_conf.value;             (* [true] if available in config. *)
+    exists : bool As_conf.value;              (* [true] if exists in config. *)
     args : As_args.t;            (* argument bundle appended to all actions. *)
     schemes : As_conf.scheme list;    (* user-defined configuration schemes. *)
     parts : As_part.kind As_part.t list;(* project's toplevel parts, unique. *)
@@ -35,16 +35,16 @@ let deps p =
   |> add_key As_conf.project_version
   |> add_key As_conf.root_dir
 
-let v ?(cond = As_conf.true_) ?(args = As_args.empty) ?(schemes = []) name
+let v ?(exists = As_conf.true_) ?(args = As_args.empty) ?(schemes = []) name
     ~parts =
   let parts = As_part.list_uniq (parts :> As_part.kind As_part.t list) in
   let rec p =
-    { name; cond; args; schemes; parts; deps = lazy (deps p); conf = None; }
+    { name; exists; args; schemes; parts; deps = lazy (deps p); conf = None; }
   in
   p
 
 let name p = p.name
-let cond p = p.cond
+let exists p = p.exists
 let args p = p.args
 let schemes p = p.schemes
 let parts p = p.parts

@@ -63,7 +63,7 @@ let check p =
 
 (* Packages *)
 
-let v ?usage ?cond ?args name kind =
+let v ?usage ?exists ?args name kind =
   let lookup = lookup_args kind in
   let meta = meta kind lookup in
-  As_part.v_kind ?usage ?cond ?args ~meta ~check name `Pkg
+  As_part.v_kind ?usage ?exists ?args ~meta ~check name `Pkg

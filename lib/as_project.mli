@@ -23,11 +23,11 @@
 
 type t
 
-val v : ?cond:bool As_conf.value -> ?args:As_args.t ->
+val v : ?exists:bool As_conf.value -> ?args:As_args.t ->
   ?schemes:As_conf.scheme list -> string -> parts:'a As_part.t list -> t
 
 val name : t -> string
-val cond : t -> bool As_conf.value
+val exists : t -> bool As_conf.value
 val args : t -> As_args.t
 val schemes : t -> As_conf.scheme list
 val parts : t -> As_part.kind As_part.t list

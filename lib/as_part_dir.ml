@@ -150,9 +150,9 @@ let default_keep kind keep = match keep with
     | `Lib -> lib
     | _ -> all
 
-let v ?usage ?cond ?args ?keep ?install kind needs =
+let v ?usage ?exists ?args ?keep ?install kind needs =
   let keep = default_keep kind keep in
   let actions = actions keep in
   let meta = meta ?install kind in
   let name = name_of_kind kind in
-  As_part.v_kind ?usage ?cond ?args ~meta ~needs ~actions ~check name `Dir
+  As_part.v_kind ?usage ?exists ?args ~meta ~needs ~actions ~check name `Dir

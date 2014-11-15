@@ -117,7 +117,7 @@ let mk_test ?(example = false) name =
   let action = Action.v ~ctx:Ctx.empty ~inputs:(Conf.value assemblage_cmd)
       cmds
   in
-  run ~usage:`Test ~cond action
+  run ~usage:`Test action
 
 
 let mk_example = mk_test ~example:true

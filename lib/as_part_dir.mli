@@ -42,7 +42,7 @@ val lib : spec
 
 (** {1 Dir} *)
 
-val v : ?usage:As_part.usage -> ?cond:bool As_conf.value -> ?args:As_args.t ->
+val v : ?usage:As_part.usage -> ?exists:bool As_conf.value -> ?args:As_args.t ->
   ?keep:spec -> ?install:bool -> kind ->
   [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] As_part.t list ->
   [> `Dir ] As_part.t

@@ -105,7 +105,7 @@ module Install = struct
       List.fold_left add_product acc products
     in
     let add_dir acc dir =
-      if not (Dir.install dir && Project.eval proj (Part.cond dir))
+      if not (Dir.install dir && Project.eval proj (Part.exists dir))
       then acc else
       let dir_root = Project.eval proj (Part.root dir) in
       let products = Project.eval proj (Part.products dir) in

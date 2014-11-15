@@ -39,13 +39,13 @@ val meta_nil : meta
 
 type +'a t constraint 'a = [< kind ]
 
-val v_kind : ?usage:usage -> ?cond:bool As_conf.value -> ?args:As_args.t ->
+val v_kind : ?usage:usage -> ?exists:bool As_conf.value -> ?args:As_args.t ->
   ?meta:meta -> ?needs:'a t list -> ?root:As_path.rel As_conf.value ->
   ?actions:(kind t -> As_action.t list As_conf.value) ->
   ?check:(kind t -> bool As_conf.value) ->
   string -> ([< kind] as 'b) -> 'b t
 
-val v : ?usage:usage -> ?cond:bool As_conf.value -> ?args:As_args.t ->
+val v : ?usage:usage -> ?exists:bool As_conf.value -> ?args:As_args.t ->
   ?meta:meta -> ?needs:'a t list -> ?root:As_path.rel As_conf.value ->
   ?actions:(kind t -> As_action.t list As_conf.value) ->
   ?check:(kind t -> bool As_conf.value) ->
@@ -54,7 +54,7 @@ val v : ?usage:usage -> ?cond:bool As_conf.value -> ?args:As_args.t ->
 val kind : 'a t -> kind
 val name : 'a t -> string
 val usage : 'a t -> usage
-val cond : 'a t -> bool As_conf.value
+val exists : 'a t -> bool As_conf.value
 val meta : 'a t -> meta
 val get_meta : (meta -> 'a option) -> 'b t -> 'a
 val needs : 'a t -> kind t list
@@ -84,7 +84,8 @@ val coerce_if : ([< kind] as 'b) -> 'a t -> 'b t option
 
 (** {1 File part} *)
 
-val file : ?usage:usage -> ?cond:bool As_conf.value -> As_path.t -> [> `Base] t
+val file : ?usage:usage -> ?exists:bool As_conf.value -> As_path.t ->
+  [> `Base] t
 
 (** {1 Part lists} *)
 

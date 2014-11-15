@@ -110,6 +110,6 @@ let actions p = As_conf.const []
 
 (* Lib *)
 
-let v ?usage ?cond ?args ?byte ?native ?native_dynlink name kind needs  =
+let v ?usage ?exists ?args ?byte ?native ?native_dynlink name kind needs  =
   let meta = meta ?byte ?native ?native_dynlink kind in
-  As_part.v_kind ?usage ?cond ?args ~meta ~needs ~actions ~check name `Lib
+  As_part.v_kind ?usage ?exists ?args ~meta ~needs ~actions ~check name `Lib

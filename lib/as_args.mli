@@ -19,29 +19,17 @@
 
     For documentation see {!Assemblage.Args}. *)
 
-(** {1 Arguments with conditions} *)
-
-type cargs
-val cargs_cond : cargs -> bool As_conf.value
-val cargs_args : cargs -> string list As_conf.value
-val cargs_deps : cargs -> As_conf.Key.Set.t
-
-
-
-
 (** {1 Argument bundles} *)
 
 type t
-val v : ?cond:bool As_conf.value -> As_ctx.t -> string list As_conf.value -> t
-val vc : ?cond:bool As_conf.value -> As_ctx.t -> string list -> t
+val v : ?exists:bool As_conf.value -> As_ctx.t -> string list As_conf.value -> t
+val vc : ?exists:bool As_conf.value -> As_ctx.t -> string list -> t
 val empty : t
 val is_empty : t -> bool
 val append : t -> t -> t
 val ( @@@ ) : t -> t -> t
 val concat : t list -> t
-val bindings : t -> (As_ctx.t * cargs list) list
 val deps : t -> As_conf.Key.Set.t
-val cargs_for_ctx : As_ctx.t -> t -> cargs list
 val for_ctx : As_conf.t -> As_ctx.t -> t -> string list
 
 (** {1 Built-in argument bundles} *)

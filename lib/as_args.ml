@@ -19,13 +19,10 @@ let str = Printf.sprintf
 
 (* Arguments with conditions *)
 
-(* FIXME here again it's unclear whether we should prefer to
-   thread the condition in the evaluation of args. *)
-
-type cargs = { cond : bool As_conf.value; args : string list As_conf.value }
-let cargs_cond ca = ca.cond
+type cargs = { exists : bool As_conf.value; args : string list As_conf.value }
+let cargs_exists ca = ca.exists
 let cargs_args ca = ca.args
-let cargs_deps ca = As_conf.(Key.Set.union (deps ca.cond) (deps ca.args))
+let cargs_deps ca = As_conf.(Key.Set.union (deps ca.exists) (deps ca.args))
 
 (* Argument bundles *)
 
@@ -33,8 +30,8 @@ module Cmap = Map.Make (As_ctx)
 
 type t = cargs list Cmap.t
 
-let v ?(cond = As_conf.true_) ctx args = Cmap.singleton ctx [{ cond; args }]
-let vc ?cond ctx args = v ?cond ctx (As_conf.const args)
+let v ?(exists = As_conf.true_) ctx args = Cmap.singleton ctx [{exists; args}]
+let vc ?exists ctx args = v ?exists ctx (As_conf.const args)
 let empty = Cmap.empty
 let is_empty = Cmap.is_empty
 let append a0 a1 =
@@ -64,7 +61,7 @@ let cargs_for_ctx ctx a =
 let for_ctx conf ctx a =
   let cargs = cargs_for_ctx ctx a in
   let add acc cargs =
-    if not (As_conf.eval conf cargs.cond) then acc else
+    if not (As_conf.eval conf cargs.exists) then acc else
     let args = As_conf.eval conf cargs.args in
     List.rev_append args acc
   in
@@ -116,6 +113,6 @@ let ccopt args =
 let stub s =
   concat
     [ v (As_ctx.v [`OCaml; `Link; `Target `Byte])
-        (As_conf.const [str "-cclib -l%s -dllib -l%s" s s]);
+        (As_conf.const ["-cclib"; (str "-l%s" s); "-dllib "; (str "-l%s" s)]);
       v (As_ctx.v [`OCaml; `Link; `Target `Native])
         (As_conf.const [str "-cclib -l%s" s]); ]

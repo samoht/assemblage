@@ -34,5 +34,5 @@ val c : 'a As_part.t -> [> `Pkg] As_part.t option
 (** {1 Packages} *)
 
 val v :
-  ?usage:As_part.usage -> ?cond:bool As_conf.value -> ?args:As_args.t ->
+  ?usage:As_part.usage -> ?exists:bool As_conf.value -> ?args:As_args.t ->
   string -> kind -> [> `Pkg] As_part.t

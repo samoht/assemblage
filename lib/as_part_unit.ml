@@ -169,6 +169,6 @@ let actions p = As_conf.const []
 *)
 (* Create *)
 
-let v ?usage ?cond ?args ?needs ?dir name kind =
+let v ?usage ?exists ?args ?needs ?dir name kind =
   let meta = meta ?dir kind in
-  As_part.v_kind ?usage ?cond ?args ~meta ?needs ~actions ~check name `Unit
+  As_part.v_kind ?usage ?exists ?args ~meta ?needs ~actions ~check name `Unit

@@ -37,7 +37,7 @@ val find_unit : string -> 'a As_part.t -> [> `Unit] As_part.t option
 
 val v :
   ?usage:As_part.usage ->
-  ?cond:bool As_conf.value ->
+  ?exists:bool As_conf.value ->
   ?args:As_args.t ->
   ?byte:bool -> ?native:bool -> ?native_dynlink:bool ->
   string -> kind -> [< `Unit | `Pkg | `Lib] As_part.t list ->

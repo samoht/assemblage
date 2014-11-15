@@ -37,6 +37,6 @@ val js : 'a As_part.t -> [> `Unit] As_part.t option
 
 (** {1 Unit} *)
 
-val v : ?usage:As_part.usage -> ?cond:bool As_conf.value ->
+val v : ?usage:As_part.usage -> ?exists:bool As_conf.value ->
   ?args:As_args.t -> ?needs:[< `Pkg | `Lib ] As_part.t list ->
   ?dir:As_path.t As_conf.value -> string -> kind -> [> `Unit] As_part.t
