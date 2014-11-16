@@ -22,11 +22,12 @@
 
 type includes = As_path.t list
 type name = As_path.t
+type pkgs = As_ctx.t -> string list
 
 (** {1 Preprocess} *)
 
 val compile_src_ast :
-  ?needs:As_path.t list -> ?args:string list ->
+  ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
   dumpast:As_acmd.bin ->
   [`Ml | `Mli] -> src:As_path.t -> unit ->
   As_action.t
@@ -34,25 +35,25 @@ val compile_src_ast :
 (** {1 Compiling} *)
 
 val compile_mli :
-  ?needs:As_path.t list -> ?args:string list ->
+  ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
   ocamlc:As_acmd.bin ->
   annot:bool -> incs:includes -> src:As_path.t -> unit ->
   As_action.t
 
 val compile_ml_byte :
-  ?needs:As_path.t list -> ?args:string list ->
+  ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
   ocamlc:As_acmd.bin ->
   annot:bool -> has_mli:bool -> incs:includes -> src:As_path.t -> unit ->
   As_action.t
 
 val compile_ml_native :
-  ?needs:As_path.t list -> ?args:string list ->
+  ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
   ocamlopt:As_acmd.bin ->
   annot:bool -> has_mli:bool -> incs:includes -> src:As_path.t -> unit ->
   As_action.t
 
 val compile_c :
-  ?needs:As_path.t list -> ?args:string list ->
+  ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
   ocamlc:As_acmd.bin ->
   src:As_path.t -> unit ->
   As_action.t
@@ -60,25 +61,25 @@ val compile_c :
 (** {1 Archiving} *)
 
 val archive_byte :
-  ?needs:As_path.t list -> ?args:string list ->
+  ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
   ocamlc:As_acmd.bin ->
   cmos:As_path.t list -> name:name -> unit ->
   As_action.t
 
 val archive_native :
-  ?needs:As_path.t list -> ?args:string list ->
+  ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
   ocamlopt:As_acmd.bin ->
   cmx_s:As_path.t list -> name:name -> unit ->
   As_action.t
 
 val archive_shared :
-  ?needs:As_path.t list -> ?args:string list ->
+  ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
   ocamlopt:As_acmd.bin ->
   cmx_s:As_path.t list -> name:name -> unit ->
   As_action.t
 
 val archive_c :
-  ?needs:As_path.t list -> ?args:string list ->
+  ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
   ocamlmklib:As_acmd.bin ->
   objs:As_path.t list -> name:name -> unit ->
   As_action.t
@@ -86,13 +87,13 @@ val archive_c :
 (** {1 Linking} *)
 
 val link_byte :
-  ?needs:As_path.t list -> ?args:string list ->
+  ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
   ocamlc:As_acmd.bin ->
   objs:As_path.t list -> name:name -> unit ->
   As_action.t
 
 val link_native :
-  ?needs:As_path.t list -> ?args:string list ->
+  ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
   ocamlopt:As_acmd.bin ->
   objs:As_path.t list -> name:name -> unit ->
   As_action.t

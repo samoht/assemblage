@@ -20,11 +20,16 @@ open As_acmd.Args
 
 type includes = As_path.t list
 type name = As_path.t
+type pkgs = As_ctx.t -> string list
+
+let nop _ = []
 
 (* Preprocess *)
 
-let compile_src_ast ?(needs = []) ?(args = []) ~dumpast src_kind ~src () =
+let compile_src_ast
+    ?(needs = []) ?(pkgs = nop) ?(args = []) ~dumpast src_kind ~src () =
   let ctx = As_ctx.v [ `OCaml; `Pp; `Src (src_kind :> As_path.ext)] in
+  let args = adds args @@ pkgs ctx in
   let ext = match src_kind with `Ml -> `Ml_pp | `Mli -> `Mli_pp in
   let out = path src ~ext in
   let inputs = add src @@ needs  in
@@ -35,8 +40,9 @@ let compile_src_ast ?(needs = []) ?(args = []) ~dumpast src_kind ~src () =
 (* Compile *)
 
 let compile_mli
-    ?(needs = []) ?(args = []) ~ocamlc ~annot ~incs ~src () =
+    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlc ~annot ~incs ~src () =
   let ctx = As_ctx.v [`OCaml; `Compile; `Src `Mli] in
+  let args = adds args @@ pkgs ctx in
   let inputs = add src @@ needs in
   let outputs = add_if annot (path src ~ext:`Cmti) @@ [path src ~ext:`Cmi] in
   let args =
@@ -46,8 +52,10 @@ let compile_mli
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlc args]
 
 let compile_ml_byte
-    ?(needs = []) ?(args = []) ~ocamlc ~annot ~has_mli ~incs ~src () =
+    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlc ~annot ~has_mli ~incs
+    ~src () =
   let ctx = As_ctx.v [`OCaml; `Compile; `Src `Ml; `Target `Byte] in
+  let args = adds args @@ pkgs ctx in
   let cmi = path src ~ext:`Cmi in
   let inputs = add src @@ add_if has_mli cmi @@ needs in
   let outputs =
@@ -62,8 +70,10 @@ let compile_ml_byte
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlc args]
 
 let compile_ml_native
-    ?(needs = []) ?(args = []) ~ocamlopt ~annot ~has_mli ~incs ~src () =
+    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlopt ~annot ~has_mli ~incs
+    ~src () =
   let ctx = As_ctx.v [`OCaml; `Compile; `Src `Ml; `Target `Native] in
+  let args = adds args @@ pkgs ctx in
   let cmi = path src ~ext:`Cmi in
   let inputs = add src @@ add_if has_mli cmi @@ needs in
   let outputs =
@@ -78,8 +88,9 @@ let compile_ml_native
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlopt args]
 
 let compile_c
-    ?(needs = []) ?(args = []) ~ocamlc ~src () =
+    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlc ~src () =
   let ctx = As_ctx.v [`OCaml; `C; `Compile; `Src `C] in
+  let args = adds args @@ pkgs ctx in
   let inputs = add src @@ needs in
   let outputs = [path src ~ext:`O] in
   let args = adds args @@ add "-c" @@ path_arg src @@ [] in
@@ -88,8 +99,9 @@ let compile_c
 (* Archive *)
 
 let archive_byte
-    ?(needs = []) ?(args = []) ~ocamlc ~cmos ~name () =
+    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlc ~cmos ~name () =
   let ctx = As_ctx.v [`OCaml; `Archive `Static; `Target `Byte] in
+  let args = adds args @@ pkgs ctx in
   let cma = path name ~ext:`Cma in
   let inputs = adds cmos @@ needs in
   let outputs = [cma] in
@@ -100,8 +112,9 @@ let archive_byte
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlc args]
 
 let archive_native
-    ?(needs = []) ?(args = []) ~ocamlopt ~cmx_s ~name () =
+    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlopt ~cmx_s ~name () =
   let ctx = As_ctx.v [`OCaml; `Archive `Static; `Target `Native] in
+  let args = adds args @@ pkgs ctx in
   let cmxa = path name ~ext:`Cmxa in
   let inputs = adds cmx_s @@ needs in
   let outputs = add (path name ~ext:`A) @@ [cmxa] in
@@ -112,8 +125,9 @@ let archive_native
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlopt args]
 
 let archive_shared
-  ?(needs = []) ?(args = []) ~ocamlopt ~cmx_s ~name () =
+  ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlopt ~cmx_s ~name () =
   let ctx = As_ctx.v [`OCaml; `Archive `Shared; `Target `Native] in
+  let args = adds args @@ pkgs ctx in
   let cmxs = path name ~ext:`Cmxs in
   let inputs = adds cmx_s @@ needs in
   let outputs = [cmxs] in
@@ -124,8 +138,9 @@ let archive_shared
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlopt args]
 
 let archive_c
-    ?(needs = []) ?(args = []) ~ocamlmklib ~objs ~name () =
+    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlmklib ~objs ~name () =
   let ctx = As_ctx.v [`OCaml; `C; `Archive `Shared; `Target `Native] in
+  let args = adds args @@ pkgs ctx in
   let inputs = adds objs @@ needs in
   let outputs = add (path name ~ext:`A) @@ [path name ~ext:`So] in
   let args = adds args @@ add "-o" @@ path_arg name @@ path_args objs @@ [] in
@@ -134,16 +149,18 @@ let archive_c
 (* Link *)
 
 let link_byte
-    ?(needs = []) ?(args = []) ~ocamlc ~objs ~name () =
+    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlc ~objs ~name () =
   let ctx = As_ctx.v [`OCaml; `Link; `Target `Byte] in
+  let args = adds args @@ pkgs ctx in
   let inputs = adds objs @@ needs in
   let outputs = [path name ~ext:`Byte] in
   let args = adds args @@ add "-o" @@ path_arg name @@ path_args objs @@ [] in
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlc args]
 
 let link_native
-    ?(needs = []) ?(args = []) ~ocamlopt ~objs ~name () =
+    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlopt ~objs ~name () =
   let ctx = As_ctx.v [`OCaml; `Link; `Target `Native] in
+  let args = adds args @@ pkgs ctx in
   let inputs = adds objs @@ needs in
   let outputs = [path name ~ext:`Native] in
   let args = adds args @@ add "-o" @@ path_arg name @@ path_args objs @@ [] in

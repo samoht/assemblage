@@ -48,7 +48,7 @@ let to_string m =
 
 let project_ocamlfind_pkgs proj =
   let add pkgs p = match Pkg.kind p with
-  | `OCaml `OCamlfind -> String.Set.add (Part.name p) pkgs
+  | `OCamlfind -> String.Set.add (Part.name p) pkgs
   | _ -> pkgs
   in
   let init = (String.Set.singleton "assemblage") in

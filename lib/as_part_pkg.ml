@@ -19,40 +19,39 @@ let str = Printf.sprintf
 
 (* Metadata *)
 
-type other = [ `Other of string * As_args.t ]
-type kind = [ `OCaml of [`OCamlfind | other ]
-              | `C of [ `Pkg_config | other ]]
+type lookup = As_ctx.t -> string list
+type kind =
+  [ `OCamlfind
+  | `Pkg_config
+  | `Other of string * lookup As_conf.value ]
 
 let pp_kind ppf = function
-| `OCaml `OCamlfind -> As_fmt.pp_str ppf "OCaml (ocamlfind)"
-| `OCaml (`Other (n, _)) -> As_fmt.pp ppf "OCaml (%s)" n
-| `C `Pkg_config -> As_fmt.pp_str ppf "C (pkg-config)"
-| `C (`Other (n, _)) -> As_fmt.pp ppf "C (%s)" n
+| `OCamlfind -> As_fmt.pp_str ppf "ocamlfind"
+| `Pkg_config -> As_fmt.pp_str ppf "pkg-config"
+| `Other (n, _) -> As_fmt.pp ppf "%s" n
 
-type meta = { kind : kind; lookup : As_args.t; }
+type meta = { kind : kind; lookup : lookup As_conf.value; opt : bool }
+
 let inj, proj = As_part.meta_key ()
 let get_meta p = As_part.get_meta proj p
-let meta kind lookup = inj { kind; lookup }
+let meta ?(opt = false) kind lookup = inj { kind; lookup; opt }
 
 let kind p = (get_meta p).kind
 let lookup p = (get_meta p).lookup
+let opt p = (get_meta p).opt
 
 let is_kind k p = match As_part.coerce_if `Pkg p with
 | None -> None
 | Some p as r ->
     match kind p with
-    | `OCaml _ when k = `OCaml -> r
-    | `C _ when k = `C -> r
+    | `OCamlfind when k = `OCamlfind -> r
+    | `Pkg_config when k = `Pkg_config -> r
+    | `Other _ when k = `Other -> r
     | _ -> None
 
-let ocaml = is_kind `OCaml
-let c = is_kind `C
-
-let lookup_args = function
-| `OCaml (`Other (_, args)) -> args
-| `C (`Other (_, args)) -> args
-| `OCaml `OCamlfind -> As_args.empty (* TODO *)
-| `C `Pkg_config -> As_args.empty (* TODO *)
+let ocamlfind = is_kind `OCamlfind
+let pkg_config = is_kind `Pkg_config
+let other = is_kind `Other
 
 (* Checks *)
 
@@ -63,7 +62,25 @@ let check p =
 
 (* Packages *)
 
-let v ?usage ?exists ?args name kind =
-  let lookup = lookup_args kind in
-  let meta = meta kind lookup in
-  As_part.v_kind ?usage ?exists ?args ~meta ~check name `Pkg
+let lookup_value name = function
+| `OCamlfind -> As_ocamlfind.lookup name
+| `Pkg_config -> As_ocamlfind.lookup name (*As_pkg_config.lookup name*)
+| `Other (_, lookup) -> lookup
+
+let v ?usage ?exists ?opt name kind =
+  let lookup = lookup_value name kind in
+  let meta = meta ?opt kind lookup in
+  As_part.v_kind ?usage ?exists ~meta ~check name `Pkg
+
+
+let list_lookup ps =
+  let add_pkg acc p = match As_part.coerce_if `Pkg p with
+  | None -> acc
+  | Some pkg ->
+      let lookup = lookup p in
+      let combine lookup acc ctx =
+        List.rev_append (List.rev (lookup ctx)) (acc ctx)
+      in
+      As_conf.(const combine $ lookup $ acc)
+  in
+  List.fold_left add_pkg (As_conf.const (fun _ -> [])) (List.rev ps)

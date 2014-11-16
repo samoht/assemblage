@@ -14,8 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Assemblage
-
 let str = Printf.sprintf
 type syntax = [ `Shell | `Makefile ]
 type mode = [ `Static | `Dynamic of [`Shell | `Makefile] ]
@@ -28,7 +26,7 @@ let query_static =
   let cache = Hashtbl.create 124 in
   let run (cmd, args as l) = try Hashtbl.find cache l with
   | Not_found ->
-      let r = Cmd.(on_error ~use:[] @@ read_lines cmd args) in
+      let r = As_cmd.(on_error ~use:[] @@ read_lines cmd args) in
       Hashtbl.add cache l r;
       r
   in
@@ -59,9 +57,10 @@ let libs_L ?wrap ~mode pkgs = query ~mode ?wrap ~opts:["-libs-only-L"] pkgs
 let libs_other ?wrap ~mode pkgs =
   query ~mode ?wrap ~opts:["-libs-only-other"] pkgs
 
+
 let pkgs_args ~mode = function
-| [] -> Args.empty
-| pkgs -> Args.empty
+| [] -> As_args.empty
+| pkgs -> As_args.empty
 (*
     let ocaml_clink_flags =
       (libs_l ~wrap:"-cclib" ~mode pkgs) @
@@ -85,3 +84,5 @@ let pkgs_args ~mode = function
       Args.v (`Archive `Native) (ocaml_clink_flags);
       Args.v (`Archive `Shared) (ocaml_clink_flags); ]
 *)
+
+let lookup name = As_conf.(const (fun ctx -> [])) (* TODO *)

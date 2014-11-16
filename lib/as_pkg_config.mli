@@ -14,18 +14,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** pkg-config invocations. *)
+(** pkg-config lookup. *)
 
-type syntax = [ `Shell | `Makefile ]
-(** The type for invocation syntax. [`Shell] returns a [sh] command
-    to run while [`Makefile] wraps it in $(shell ...). *)
-
-type mode = [ `Static | `Dynamic of syntax ]
-(** The type for invocation modes.
-    {ul
-    {- [`Static], calls [pkg-config] directly and returns the result.}
-    {- [`Dynamic], returns the [pkg-config] invocation to run to get
-       the results.}} *)
-
-val pkgs_args : mode:mode -> string list -> Assemblage.Args.t
-(** [pkgs_args mode pkgs] returns the args for packages [pkgs]. *)
+val lookup : string -> (As_ctx.t -> string list) As_conf.value

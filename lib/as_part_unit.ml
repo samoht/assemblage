@@ -43,11 +43,11 @@ let dir unit = (get_meta unit).dir
 let is_kind k p = match As_part.coerce_if `Unit p with
 | None -> None
 | Some p as r ->
-  match kind p with
-  | `OCaml _ when k = `OCaml -> r
-  | `C _ when k = `C -> r
-  | `Js when k = `Js -> r
-  | _ -> None
+    match kind p with
+    | `OCaml _ when k = `OCaml -> r
+    | `C _ when k = `C -> r
+    | `Js when k = `Js -> r
+    | _ -> None
 
 let ocaml = is_kind `OCaml
 let js = is_kind `Js
@@ -61,54 +61,6 @@ let check p =
   As_conf.true_
 
 (* Actions *)
-
-(*
-  let unit_file fext env u =
-    As_path.(as_rel (As_env.build_dir env // (file (name u)) + fext))
-
-  let unit_args u =
-    let pkgs = keep_kind `Pkg (deps u) in
-    let pkgs_args = As_args.concat (List.map args pkgs) in
-    let libs = keep_kind `Lib (deps u) in
-    let lib_args lib =
-      let cma = List.filter (As_product.has_ext `Cma) (products lib) in
-      let cmxa = List.filter (As_product.has_ext `Cmxa) (products lib) in
-      match lib_kind lib with
-      | `OCaml ->
-          let inc ctxs a = As_product.dirname_to_args ~pre:["-I"] ctxs a in
-          let prod ctxs a = As_product.target_to_args ctxs a in
-          let cma_inc = List.map (inc [`Compile `Byte; `Link `Byte]) cma in
-          let cma_prod = List.map (prod [`Link `Byte]) cma in
-          let cmxa_inc = List.map (inc [`Compile `Native;`Link `Native]) cmxa in
-          let cmxa_prod = List.map (prod [`Link `Native]) cmxa in
-          As_args.concat (cma_inc @ cma_prod @ cmxa_inc @ cmxa_prod)
-      | `OCaml_pp ->
-          let prod a = As_product.target_to_args [`Pp `Byte; `Pp `Native] a in
-          As_args.concat (List.map prod cma)
-      | `C ->
-          As_args.empty
-    in
-    As_args.(args env u @@@ pkgs_args @@@ concat (List.map lib_args libs))
-
-  let ocamlpp_ext fext ctx =
-    let kind = match fext with `Ml -> "cml" | `Mli -> "cmli" in
-    let ctx = match ctx with `Byte -> "byte" | `Native -> "native" in
-    `Ext (str "%s-%s" kind ctx)
-
-  let rec ocaml_rules unit env u = match unit with
-  | `Mli ->
-      [ link_src `Mli env u;
-        ocaml_pp `Mli `Byte env u;
-        ocaml_compile_mli env u; ]
-  | `Ml ->
-      [ link_src `Ml env u;
-        ocaml_pp `Ml `Byte env u;
-        ocaml_pp `Ml `Native env u;
-        ocaml_compile_ml_byte env u;
-        ocaml_compile_ml_native env u; ]
-  | `Both ->
-      ocaml_rules `Mli env u @ ocaml_rules `Ml env u
-*)
 
 let js_actions unit src_dir dst_dir =
   let actions symlink src_dir dst_dir =
@@ -151,7 +103,7 @@ let c_actions spec unit src_dir dst_dir =
 
 let ocaml_actions spec unit src_dir dst_dir =
   let actions symlink ocamlc ocamlopt debug profile warn_error annot
-      byte native libs_pp_actions libs_actions src_dir dst_dir =
+      byte native pkgs libs_pp_actions libs_actions src_dir dst_dir =
     let open As_acmd.Args in
     let has_mli, has_ml = match spec with
     | `Mli -> true, false | `Ml -> false, true | `Both -> true, true
@@ -181,25 +133,26 @@ let ocaml_actions spec unit src_dir dst_dir =
     add_if has_ml (symlink src_ml ml) @@
     fadd_if has_mli
       (As_action_ocaml.compile_mli
-         ~ocamlc:mlicomp ~args ~annot
+         ~ocamlc:mlicomp ~pkgs ~args ~annot
          ~incs:(if native then incs_native else incs_byte) ~src:mli) () @@
     fadd_if (has_ml && byte)
       (As_action_ocaml.compile_ml_byte
-         ~ocamlc ~args ~annot:(byte && not native)
+         ~ocamlc ~pkgs ~args ~annot:(byte && not native)
          ~has_mli ~incs:incs_byte ~src:ml) () @@
     fadd_if (has_ml && native)
       (As_action_ocaml.compile_ml_native
-         ~ocamlopt ~args:(add_if profile "-p" @@ args)
+         ~ocamlopt ~pkgs ~args:(add_if profile "-p" @@ args)
          ~annot ~has_mli ~incs:incs_native ~src:ml) () @@ []
   in
   let needs = As_part.needs unit in
   let libs_pp = As_part.list_keep_map As_part_lib.ocaml_pp needs in
   let libs = As_part.list_keep_map As_part_lib.ocaml needs in
+  let pkgs = As_part_pkg.list_lookup needs in
   As_conf.(const actions $
            As_action.symlink $ As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $
            value debug $ value profile $ value warn_error $
            value ocaml_annot $ value ocaml_byte $ value ocaml_native $
-           As_part.list_actions libs_pp $ As_part.list_actions libs $
+           pkgs $ As_part.list_actions libs_pp $ As_part.list_actions libs $
            src_dir $ dst_dir)
 
 let actions p =

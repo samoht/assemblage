@@ -15,8 +15,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Assemblage
-
 let str = Printf.sprintf
 
 let (|>) x f = f x
@@ -46,7 +44,7 @@ let query_static =
   let cache = Hashtbl.create 124 in
   let run (cmd, args as l) = try Hashtbl.find cache l with
   | Not_found ->
-      let r = Cmd.(on_error ~use:[] @@ read_lines cmd args) in
+      let r = As_cmd.(on_error ~use:[] @@ read_lines cmd args) in
       Hashtbl.add cache l r;
       r
   in
@@ -89,8 +87,8 @@ let pp_byte ~mode pkgs =
     ~format:"-I %d %a" pkgs
 
 let pkgs_args ~mode = function
-| [] -> Args.empty
-| pkgs -> Args.empty
+| [] -> As_args.empty
+| pkgs -> As_args.empty
 (*
     Args.concat
       [ Args.create (`Pp `Byte) (pp_byte ~mode pkgs);
@@ -100,3 +98,5 @@ let pkgs_args ~mode = function
         Args.create (`Link `Byte) (link_byte ~mode pkgs);
         Args.create (`Link `Native) (link_native ~mode pkgs) ]
 *)
+
+let lookup name = As_conf.(const (fun ctx -> [])) (* TODO *)

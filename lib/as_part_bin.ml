@@ -62,7 +62,7 @@ let check p =
 
 let ocaml_actions bin dst_dir unit_actions =
   let actions ocamlc ocamlopt debug profile ocaml_byte ocaml_native
-      libs_actions dst_dir unit_actions =
+      pkgs libs_actions dst_dir unit_actions =
     let open As_acmd.Args in
     let name = As_path.(dst_dir / As_part.name bin) in
     let unit_outputs = As_action.list_outputs unit_actions in
@@ -79,16 +79,20 @@ let ocaml_actions bin dst_dir unit_actions =
     let native = native bin && ocaml_native in
     let args = add_if debug "-g" @@ [] in
     fadd_if byte
-      (As_action_ocaml.link_byte ~args ~ocamlc ~objs:byte_objs ~name) () @@
+      (As_action_ocaml.link_byte
+         ~ocamlc ~pkgs ~args ~objs:byte_objs ~name) () @@
     fadd_if native
       (As_action_ocaml.link_native
-         ~args:(add_if profile "-p" @@ args)
-         ~ocamlopt ~objs:native_objs ~name) () @@ []
+         ~ocamlopt ~pkgs ~args:(add_if profile "-p" @@ args)
+         ~objs:native_objs ~name) () @@ []
   in
-  let libs = As_part.list_keep_map As_part_lib.ocaml (As_part.needs bin) in
+  let needs = As_part.needs bin in
+  let libs = As_part.list_keep_map As_part_lib.ocaml needs in
+  let pkgs = As_part_pkg.list_lookup needs in
   As_conf.(const actions $ As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $
            value debug $ value profile $
-           value ocaml_byte $ value ocaml_native $ As_part.list_actions libs $
+           value ocaml_byte $ value ocaml_native $
+           pkgs $ As_part.list_actions libs $
            dst_dir $ unit_actions)
 
 let integrated_unit_actions bin = (* integrated actions of bin's `Unit needs  *)

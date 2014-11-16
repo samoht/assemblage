@@ -2404,28 +2404,29 @@ end
 
 (** Package part.
 
-    Packages are named entities that provide an argument bundle via
-    the {!Pkg.lookup} function. This bundle is usually determined by
-    an an external lookup mecanism.  Certain parts
-    (e.g. {{!Unit}units}) use these arguments when packages are
-    specified in their needs. *)
+    Packages are named entities that provide action command arguments
+    in certain {{!Ctx}contexts}. Some parts query and use these arguments
+    when packages are specified in their needs. *)
 module Pkg : sig
 
   (** {1 Metadata} *)
 
-  type other = [ `Other of string * Args.t ]
-  (** The type for other package lookup mecanisms. The string is a
-      name for the mecanism. The argument bundle defines what the
-      mecanism yields. *)
+  type lookup = Ctx.t -> string list
+  (** The type for lookups. Given a context the package answers
+      with a list of command arguments. *)
 
-  type kind = [ `OCaml of [`OCamlfind | other ]
-              | `C of [ `Pkg_config | other ]]
+  type kind = [ `OCamlfind
+              | `Pkg_config
+              | `Other of string * lookup Conf.value ]
   (** The type for package kinds.
       {ul
-      {- [`OCaml] is for OCaml packages looked up either through
-         [`OCamlfind] or an [`Other] mecanism.}
-      {- [`C] is for C packages looked up either through [`Pkg_config]
-         or an [`Other] mecanism.}} *)
+      {- [`OCamlfind] is for
+         {{:http://projects.camlcity.org/projects/findlib.html}Findlib}
+         packages.}
+      {- [`Pkg_config] is for
+         {{:http://pkg-config.freedesktop.org/}[pkg-config]} packages.}
+      {- [`Other (n,lookup)] is for an other mecanism named [n] and
+         that uses the function [lookup].}} *)
 
   val pp_kind : Format.formatter -> kind -> unit
   (** [pp_kind ppf k] prints an unspecified representation of [k] on
@@ -2434,24 +2435,34 @@ module Pkg : sig
   val kind : [< `Pkg] part -> kind
   (** [kind p] is [p]'s package kind. *)
 
-  val lookup : [< `Pkg] part -> Args.t
-  (** [lookup p] is [p]'s package lookup argument. *)
+  val lookup : [< `Pkg] part -> lookup Conf.value
+  (** [query p q] is [p]'s lookup function. *)
 
-  val ocaml : 'a part -> [> `Pkg] part option
-  (** [ocaml p] is [Some p] iff [p] is an OCaml package. *)
+  val opt : [< `Pkg] part -> bool
+  (** [opt p] is [true] if the package is optional. *)
 
-  val c : 'a part -> [> `Pkg] part option
+  val ocamlfind : 'a part -> [> `Pkg] part option
+  (** [ocamlfind p] is [Some p] iff [p] is an [`OCamlfind] package. *)
+
+  val pkg_config : 'a part -> [> `Pkg] part option
+  (** [pkg_config p] is [Some p] iff [p] is a [`Pkg_config] package. *)
+
+  val other : 'a part -> [> `Pkg] part option
   (** [c p] is [Some p] iff [p] is a C package. *)
 
   (** {1 Packages} *)
 
-  val v : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
-    string -> kind -> [> `Pkg] part
-  (** [v name kind] is a package named [name] of the given [kind].
-      [name] is the name used for lookuping up the package system.
+  val v : ?usage:Part.usage -> ?exists:bool Conf.value ->
+    ?opt:bool -> string -> kind -> [> `Pkg] part
+  (** [v opt name kind] is a package named [name] of the given [kind].
+      [name] is the name used for looking up the package system if
+      [kind] is not [`Other]. [opt] should be [true] if the package is
+      optional. *)
 
-      {b Note.} [args] is unused. FIXME should we add a context
-      to ocamlfind and pkg-config invocations ? *)
+  val list_lookup : 'a part list -> lookup Conf.value
+  (** [list_lookup ps] is a lookup function that looks up all
+      package in [ps] and returns the aggregated result. The arguments
+      are in order of package appearance. *)
 end
 
 (** Unit documentation set part.
@@ -2656,9 +2667,9 @@ val bin : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
   [< `Unit | `Pkg | `Lib] part list -> [> `Bin] part
 (** See {!Bin.v}. [kind] defaults to [`OCaml]. *)
 
-val pkg : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
+val pkg : ?usage:Part.usage -> ?exists:bool Conf.value -> ?opt:bool ->
   ?kind:Pkg.kind -> string -> [> `Pkg] part
-(** See {!Pkg.v}. [kind] defaults to [`OCaml `OCamlfind]. *)
+(** See {!Pkg.v}. [kind] defaults to [`OCamlfind]. *)
 
 val doc : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
   ?keep:([< `Unit] part -> bool) -> ?kind:Doc.kind -> string ->

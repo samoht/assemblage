@@ -21,18 +21,24 @@
 
 (** {1 Metadata} *)
 
-type other = [ `Other of string * As_args.t ]
-type kind = [ `OCaml of [`OCamlfind | other ]
-              | `C of [ `Pkg_config | other ]]
+type lookup = As_ctx.t -> string list
+type kind =
+  [ `OCamlfind
+  | `Pkg_config
+  | `Other of string * lookup As_conf.value ]
 
 val pp_kind : Format.formatter -> kind -> unit
 val kind : [< `Pkg] As_part.t -> kind
-val lookup : [< `Pkg] As_part.t -> As_args.t
-val ocaml : 'a As_part.t -> [> `Pkg] As_part.t option
-val c : 'a As_part.t -> [> `Pkg] As_part.t option
+val lookup : [< `Pkg] As_part.t -> lookup As_conf.value
+val opt : [< `Pkg] As_part.t -> bool
+val ocamlfind : 'a As_part.t -> [> `Pkg] As_part.t option
+val pkg_config : 'a As_part.t -> [> `Pkg] As_part.t option
+val other : 'a As_part.t -> [> `Pkg] As_part.t option
 
 (** {1 Packages} *)
 
 val v :
-  ?usage:As_part.usage -> ?exists:bool As_conf.value -> ?args:As_args.t ->
+  ?usage:As_part.usage -> ?exists:bool As_conf.value -> ?opt:bool ->
   string -> kind -> [> `Pkg] As_part.t
+
+val list_lookup : 'a As_part.t list -> lookup As_conf.value

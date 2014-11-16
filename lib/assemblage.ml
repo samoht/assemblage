@@ -66,8 +66,8 @@ let lib ?usage ?exists ?args ?byte ?native ?native_dynlink ?(kind = `OCaml)
 let bin ?usage ?exists ?args ?byte ?native ?js ?(kind = `OCaml) name needs =
   Bin.v ?usage ?exists ?args ?byte ?native ?js name kind needs
 
-let pkg ?usage ?exists ?args ?(kind = `OCaml `OCamlfind) name =
-  Pkg.v ?usage ?exists ?args name kind
+let pkg ?usage ?exists ?opt ?(kind = `OCamlfind) name =
+  Pkg.v ?usage ?exists ?opt name kind
 
 let doc ?usage ?exists ?args ?keep ?(kind = `OCamldoc) name needs =
   Doc.v ?usage ?exists ?args ?keep name kind needs
