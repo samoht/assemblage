@@ -61,26 +61,34 @@ let check p =
 (* Actions *)
 
 let ocaml_actions bin dst_dir unit_actions =
-  let actions ocamlc ocamlopt debug profile ocaml_byte ocaml_native dst_dir
-      unit_actions =
+  let actions ocamlc ocamlopt debug profile ocaml_byte ocaml_native
+      libs_actions dst_dir unit_actions =
     let open As_acmd.Args in
     let name = As_path.(dst_dir / As_part.name bin) in
     let unit_outputs = As_action.list_outputs unit_actions in
+    let cmas, cmxas =
+      let outs = As_action.list_outputs libs_actions in
+      List.filter (As_path.has_ext `Cma) outs,
+      List.filter (As_path.has_ext `Cmxa) outs
+    in
     let cmos = List.filter (As_path.ext_matches [`Cmo; `O]) unit_outputs in
     let cmx_s = List.filter (As_path.ext_matches [`Cmx; `O]) unit_outputs in
+    let byte_objs = List.rev_append (List.rev cmas) cmos in
+    let native_objs = List.rev_append (List.rev cmxas) cmx_s in
     let byte = byte bin && ocaml_byte in
     let native = native bin && ocaml_native in
     let args = add_if debug "-g" @@ [] in
     fadd_if byte
-      (As_action_ocaml.link_byte ~args ~ocamlc ~objs:cmos ~name) () @@
+      (As_action_ocaml.link_byte ~args ~ocamlc ~objs:byte_objs ~name) () @@
     fadd_if native
       (As_action_ocaml.link_native
          ~args:(add_if profile "-p" @@ args)
-         ~ocamlopt ~objs:cmx_s ~name) () @@ []
+         ~ocamlopt ~objs:native_objs ~name) () @@ []
   in
+  let libs = As_part.list_keep_map As_part_lib.ocaml (As_part.needs bin) in
   As_conf.(const actions $ As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $
            value debug $ value profile $
-           value ocaml_byte $ value ocaml_native $
+           value ocaml_byte $ value ocaml_native $ As_part.list_actions libs $
            dst_dir $ unit_actions)
 
 let integrated_unit_actions bin = (* integrated actions of bin's `Unit needs  *)

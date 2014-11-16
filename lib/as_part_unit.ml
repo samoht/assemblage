@@ -151,11 +151,22 @@ let c_actions spec unit src_dir dst_dir =
 
 let ocaml_actions spec unit src_dir dst_dir =
   let actions symlink ocamlc ocamlopt debug profile warn_error annot
-      byte native src_dir dst_dir =
+      byte native libs_pp_actions libs_actions src_dir dst_dir =
     let open As_acmd.Args in
     let has_mli, has_ml = match spec with
     | `Mli -> true, false | `Ml -> false, true | `Both -> true, true
     in
+    let _pp =
+      let outs = As_action.list_outputs libs_pp_actions in
+      List.filter (As_path.has_ext `Cma) outs
+    in
+    let incs_byte, incs_native =
+      let outs = As_action.list_outputs libs_actions in
+      List.map As_path.dirname (List.filter (As_path.has_ext `Cma) outs),
+      List.map As_path.dirname (List.filter (As_path.has_ext `Cmxa) outs)
+    in
+    let incs_byte = adds incs_byte @@ [dst_dir]in
+    let incs_native = adds incs_native @@ [dst_dir]in
     let name = As_part.name unit in
     let src_mli = As_path.(src_dir / name + `Mli) in
     let src_ml = As_path.(src_dir / name + `Ml) in
@@ -163,28 +174,32 @@ let ocaml_actions spec unit src_dir dst_dir =
     let ml = As_path.(dst_dir / name + `Ml) in
     (* mlicomp is here so that we don't fail if we don't have ocamlc *)
     let mlicomp = if native then ocamlopt else ocamlc in
-    let byte_annot = byte && not native (* otherwise it trips make *) in
     let args =
       add_if debug "-g" @@ adds_if warn_error [ "-warn_error"; "+a" ] @@ []
     in
-    let incs = [] in (* FIXME *)
     add_if has_mli (symlink src_mli mli) @@
     add_if has_ml (symlink src_ml ml) @@
     fadd_if has_mli
       (As_action_ocaml.compile_mli
-         ~ocamlc:mlicomp ~args ~annot ~incs ~src:mli) () @@
+         ~ocamlc:mlicomp ~args ~annot
+         ~incs:(if native then incs_native else incs_byte) ~src:mli) () @@
     fadd_if (has_ml && byte)
       (As_action_ocaml.compile_ml_byte
-         ~ocamlc ~args ~annot:byte_annot ~has_mli ~incs ~src:ml) () @@
+         ~ocamlc ~args ~annot:(byte && not native)
+         ~has_mli ~incs:incs_byte ~src:ml) () @@
     fadd_if (has_ml && native)
       (As_action_ocaml.compile_ml_native
          ~ocamlopt ~args:(add_if profile "-p" @@ args)
-         ~annot ~has_mli ~incs ~src:ml) () @@ []
+         ~annot ~has_mli ~incs:incs_native ~src:ml) () @@ []
   in
+  let needs = As_part.needs unit in
+  let libs_pp = As_part.list_keep_map As_part_lib.ocaml_pp needs in
+  let libs = As_part.list_keep_map As_part_lib.ocaml needs in
   As_conf.(const actions $
            As_action.symlink $ As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $
            value debug $ value profile $ value warn_error $
            value ocaml_annot $ value ocaml_byte $ value ocaml_native $
+           As_part.list_actions libs_pp $ As_part.list_actions libs $
            src_dir $ dst_dir)
 
 let actions p =

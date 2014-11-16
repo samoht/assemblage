@@ -69,7 +69,7 @@ module Args = struct
   let path_args ?opt ps al = match opt with
   | None -> List.rev_append (List.rev_map As_path.to_string ps) al
   | Some opt ->
-      let add acc p = opt :: (As_path.to_string p) :: acc in
+      let add acc p = (As_path.to_string p) :: opt :: acc in
       List.rev_append (List.fold_left add [] ps) al
 
   let path p ~ext = As_path.change_ext p ext

@@ -2318,10 +2318,9 @@ module Lib : sig
     string -> kind -> [< `Unit | `Pkg | `Lib] part list -> [> `Lib] part
   (** [v ?byte ?native ?native_dynlink name kind needs] is a library
       named [name] of the given [kind]. [needs] has the compilation
-      units [us] that define the libary. The package and libraries
-      that are in [needs] are automatically added to [us] needs.  The
-      [args] bundle is used both by the library's actions and by [us]
-      actions according to context.
+      units [us] that define the libary, they are integrated. The
+      package and libraries that are in [needs] are automatically
+      added to [us] needs.
 
       The library's {e ability} to compile to different targets is
       specified by the arguments [?byte], [?native] and
@@ -2340,9 +2339,7 @@ end
 (** Binary executable part.
 
     Defines a program executable's build products by gathering a set of
-    {{!Unit}unit parts}.
-
-    FIXME should we really call this Bin ? maybe Exec ? Prog ? *)
+    {{!Unit}unit parts}. *)
 module Bin : sig
 
   (** {1 Metadata} *)
@@ -2389,10 +2386,9 @@ module Bin : sig
     string -> kind -> [< `Unit | `Lib | `Pkg ] part list -> [> `Bin] part
   (** [v ?byte ?native ?js name kind needs] is a binary named [name]
       of the given [kind]. [needs] has the compilation units [us] that
-      define the binary. The package and libraries that are in [needs]
-      are automatically added to [us] needs and used at link time. The
-      [args] bundle is used both by the binary's actions and by [us]'
-      actions according to context.
+      define the binary, they are integrated. The package and
+      libraries that are in [needs] are added to [us] needs and used
+      at link time.
 
       The binary's {e ability} to compile to different targets is specified
       by the arguments [?byte], [?native] and [?js] whose defaults
@@ -2480,7 +2476,10 @@ module Doc : sig
   (** [ocamldoc p] is [Some p] iff [p] is an [`OCamldoc] documentation
       generator. *)
 
-  (** {1 Unit filters} *)
+  (** {1 Unit filters}
+
+      TODO we need something more general along the lines of
+      {!Dir} parts. This will allow to cope with e.g. static files. *)
 
   val default : [< `Unit] part -> bool
   (** [default] is a part filter that selects only OCaml units whose

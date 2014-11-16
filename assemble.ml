@@ -57,7 +57,8 @@ let lib_assemblage_tools =
   let kind = `OCaml (`Both, `Hidden) in
   let unit ?needs ?(kind = kind) name = unit ?needs ~kind name ~dir in
   lib "assemblage_tools"
-    [ unit "ast_merlin";
+    [ lib_assemblage;
+      unit "ast_merlin";
       unit "ast_meta";
       unit "ast_opam";
       unit "assemblage_tools" ~kind:(`OCaml (`Both, `Normal))]
@@ -67,6 +68,7 @@ let lib_assemblage_driver =
   lib "assemblage_driver"
     [ pkg_cmdliner;
       pkg_toplevel;
+      lib_assemblage;
       unit ~dir "assemblage_driver" ]
 
 (* The default assemblage driver *)
