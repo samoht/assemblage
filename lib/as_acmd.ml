@@ -43,7 +43,7 @@ let pp ppf c =
   | None -> ()
   | Some p -> As_fmt.pp ppf "%s %s" fdname (As_path.to_string p)
   in
-  As_fmt.pp ppf "@[%s: @[%s @[%a%a%a%a@]@]@]"
+  As_fmt.pp ppf "@[%s:%s @[%a%a%a%a@]@]"
     (As_conf.Key.name c.bin_key) c.bin
     As_fmt.(pp_list ~pp_sep:pp_sp pp_str) c.args
     (pp_redir "<") c.stdin

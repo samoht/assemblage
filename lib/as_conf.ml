@@ -31,16 +31,25 @@ let printer (_, p) = p
 
 module rec Def : sig
 
-  type conf = As_univ.t Kmap.t
-  (* A configuration maps existential keys to their concrete value. *)
+  type conf = { cid : int; map : As_univ.t Kmap.t }
+  (* A configuration maps existential keys to their concrete value.
+     The id is there for caching purposes on evaluation. *)
 
-  type 'a value = Kset.t * (conf -> 'a)
+  type 'a value =
+    { deps : Kset.t;                        (* Dependencies of the value. *)
+      def : conf -> 'a;           (* Definition in a given configuration. *)
+      mutable cache :       (* cache, config id and value in that config. *)
+        (int * 'a) option; }
   (* A value is made of a key set that tracks the configuration keys
      that are accessed and a function that returns the value for a
      configuration. Invariant: the key set should be included in the
      domain of the configuration passed to the function. Drivers are
      responsible for maintaing that when they use [eval], otherwise
-     warnings are reported see the [value] function. *)
+     warnings are reported see the [value] function.
+
+     The caching mechanism remembers only the last evaluation. But that
+     seems sufficient for now since usually once a config is setup for
+     a project we no longer touch it. *)
 
   type 'a key =                          (* typed keys to any kind of value. *)
     { id : int;                                  (* a unique id for the key. *)
@@ -57,8 +66,11 @@ module rec Def : sig
   type t = V : 'a key -> t         (* Existential to hide the key parameter. *)
   val compare : t -> t -> int
 end = struct
-  type conf = As_univ.t Kmap.t
-  type 'a value = Kset.t * (conf -> 'a)
+  type conf = { cid : int; map : As_univ.t Kmap.t }
+
+  type 'a value =
+    { deps : Kset.t; def : conf -> 'a; mutable cache : (int * 'a) option; }
+
   type 'a key =
     { id : int; name : string; public : bool;
       converter : 'a converter; default : 'a value;
@@ -74,13 +86,24 @@ and Kset : (Set.S with type elt = Def.t) = Set.Make (Def)
 
 (* Configuration values *)
 
-type 'a value = 'a Def.value
+type 'a value = 'a Def.value =
+  { deps : Kset.t; def : Def.conf -> 'a; mutable cache : (int * 'a) option; }
 
-let const v = Kset.empty, fun _ -> v
-let manual_value deps v = deps, fun _ -> v
-let app (fdeps, f) (vdeps, v) = Kset.union fdeps vdeps, fun c -> (f c) (v c)
-let deps (deps, _) = deps
-let eval c (_, v) = v c
+let const v = { deps = Kset.empty; def = (fun _ -> v); cache = None }
+let manual_value deps v = { deps; def = (fun _ -> v); cache = None }
+let app f v =
+  { deps = Kset.union f.deps v.deps;
+    def = (fun c -> (f.def c) (v.def c));
+    cache = None }
+
+let deps v = v.deps
+let eval c v = match v.cache with
+| Some (cid, v) when cid = c.Def.cid -> v
+| _ ->
+    let cv = v.def c in
+    v.cache <- Some (c.Def.cid, cv);
+    cv
+
 let ( $ ) = app
 
 let true_ = const true
@@ -151,40 +174,69 @@ let key ?(public = true) ?(docs = docs_project) ?docv ?doc name
     to_univ; of_univ }
 
 let value k =
-  let deps, _ = Key.default k in
+  let deps = (Key.default k).deps in
   let deps = Kset.add (Key.V k) deps in
-  let v c = match try Some (Kmap.find (Key.V k) c) with Not_found -> None with
+  let def c =
+    match try Some (Kmap.find (Key.V k) c.Def.map) with Not_found -> None with
   | None ->
       As_log.msg_driver_fault As_log.Warning  "%a" pp_miss_key (Key.V k);
-      (snd (Key.default k)) c
+      eval c (Key.default k)
   | Some u ->
       match Key.of_univ k u with
-      | Some (_, v) -> v c
+      | Some v -> eval c v
       | None -> assert false
   in
-  deps, v
+  { deps; def; cache = None }
 
 (* Configurations *)
 
+(* FIXME at the moment we generate a new conf id even when we just add
+   a key to a config. This seems ok since usually we more or less
+   simply generate a config from the Key.Set of the project deps in a
+   single shot plus a few overrides from the command lin,e plus the
+   user's configuration scheme additions, seems unlikely that the ids
+   would roll over and even in that case it seems hard to confuse the
+   evaluation cache since those configuration are never used for
+   evaluation per se.
+
+   To do it cleanly it should be done in two stages, a [pre_config]
+   type which is just the map used for specifying the configuration
+   and a [config] type which is map + id, only used for
+   evalation. Under that regime configuration schemes would become
+   [pre_configs]. Note that this is only of concern to the driver api,
+   end users don't see the notion of configuration. *)
+
 type t = Def.conf
 
-let empty = Kmap.empty
-let is_empty = Kmap.is_empty
-let mem c k = Kmap.mem (Key.V k) c
-let add c k = Kmap.add (Key.V k) Key.(to_univ k (default k)) c
-let set c k v = Kmap.add (Key.V k) (Key.to_univ k v) c
-let rem c k = Kmap.remove (Key.V k) c
-let merge =
+let conf_id =
+  let count = ref (min_int) in
+  fun () -> incr count; !count (* FIXME should we warn if we roll over ? *)
+
+let empty = { Def.cid = conf_id (); map = Kmap.empty }
+let is_empty c = Kmap.is_empty c.Def.map
+let mem c k = Kmap.mem (Key.V k) c.Def.map
+let add c k =
+  { Def.cid = conf_id ();
+    map = Kmap.add (Key.V k) Key.(to_univ k (default k)) c.Def.map }
+
+let set c k v =
+  { Def.cid = conf_id ();
+    map = Kmap.add (Key.V k) (Key.to_univ k v) c.Def.map }
+
+let rem c k = { Def.cid = conf_id (); map = Kmap.remove (Key.V k) c.Def.map }
+
+let merge l r =
   let choose _ l r = match l, r with
   | (Some _ as v), None | None, (Some _ as v) -> v
   | Some _, (Some _ as v) -> v
   | None, None -> None
   in
-  Kmap.merge choose
+  { Def.cid = conf_id (); map = Kmap.merge choose l.Def.map r.Def.map }
 
 let find c k =
-  try match Key.of_univ k (Kmap.find (Key.V k) c) with
-  | Some (deps, v) -> Some (Kset.add (Key.V k) deps, v)
+  try match Key.of_univ k (Kmap.find (Key.V k) c.Def.map) with
+  | Some v -> Some ({ deps = Kset.add (Key.V k) v.deps; def = v.def;
+                      cache = v.cache; })
   | None -> assert false
   with Not_found -> None
 
@@ -192,18 +244,18 @@ let get c k = match find c k with
 | None -> invalid_arg (str "no key named %s in configuration" (Key.name k))
 | Some v -> v
 
-let domain c = Key.Map.dom c
+let domain c = Key.Map.dom c.Def.map
 
 let of_keys s =
   let add (Key.V kt as k) acc =
     let u = Key.(to_univ kt (default kt)) in
     Kmap.add k u acc
   in
-  Kset.fold add s Kmap.empty
+  { Def.cid = conf_id (); map = Kset.fold add s Kmap.empty }
 
 let pp ppf c =
   let cmp (Key.V k0, _) (Key.V k1, _) = compare (Key.name k0) (Key.name k1) in
-  let defs = List.sort cmp (Kmap.bindings c) in
+  let defs = List.sort cmp (Kmap.bindings c.Def.map) in
   let pp_binding ppf (Key.V k, v) =
     let v = match Key.of_univ k v with None -> assert false | Some v -> v in
     let v = eval c v in
@@ -228,7 +280,7 @@ let scheme ?doc ?base name defs =
   in
   name, (doc, List.fold_left add init defs)
 
-(* Bultin configuration value converters
+(* Builtin configuration value converters
    FIXME remove Cmdliner dep *)
 
 let bool = Cmdliner.Arg.bool
