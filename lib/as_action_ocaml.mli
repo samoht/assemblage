@@ -84,3 +84,15 @@ val archive_c :
   As_action.t
 
 (** {1 Linking} *)
+
+val link_byte :
+  ?needs:As_path.t list -> ?args:string list ->
+  ocamlc:As_acmd.bin ->
+  objs:As_path.t list -> name:name -> unit ->
+  As_action.t
+
+val link_native :
+  ?needs:As_path.t list -> ?args:string list ->
+  ocamlopt:As_acmd.bin ->
+  objs:As_path.t list -> name:name -> unit ->
+  As_action.t

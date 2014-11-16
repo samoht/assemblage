@@ -130,3 +130,21 @@ let archive_c
   let outputs = add (path name ~ext:`A) @@ [path name ~ext:`So] in
   let args = adds args @@ add "-o" @@ path_arg name @@ path_args objs @@ [] in
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlmklib args]
+
+(* Link *)
+
+let link_byte
+    ?(needs = []) ?(args = []) ~ocamlc ~objs ~name () =
+  let ctx = As_ctx.v [`OCaml; `Link; `Target `Byte] in
+  let inputs = adds objs @@ needs in
+  let outputs = [path name ~ext:`Byte] in
+  let args = adds args @@ add "-o" @@ path_arg name @@ path_args objs @@ [] in
+  As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlc args]
+
+let link_native
+    ?(needs = []) ?(args = []) ~ocamlopt ~objs ~name () =
+  let ctx = As_ctx.v [`OCaml; `Link; `Target `Native] in
+  let inputs = adds objs @@ needs in
+  let outputs = [path name ~ext:`Native] in
+  let args = adds args @@ add "-o" @@ path_arg name @@ path_args objs @@ [] in
+  As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlopt args]
