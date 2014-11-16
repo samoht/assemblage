@@ -2152,6 +2152,10 @@ module Part : sig
 
   (** {1 Part lists} *)
 
+  val list_actions : kind part list -> Action.t list Conf.value
+  (** [list_actions ps] is the list of actions of the parts [ps].
+      The list order is preserved. *)
+
   val list_uniq : kind part list -> kind part list
   (** [list_uniq ps] is [ps] with duplicates as determined by {!equal} removed.
       The list order is preserved. *)

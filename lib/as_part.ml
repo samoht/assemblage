@@ -223,6 +223,12 @@ let coerce_if (#kind as k) ({kind} as p) =
 
 (* Part lists *)
 
+let list_actions ps =
+  let add_actions acc p =
+    As_conf.(const List.rev_append $ (const List.rev $ actions p) $ acc)
+  in
+  List.fold_left add_actions (As_conf.const []) (List.rev ps)
+
 let list_keep pred ps =
   let keep acc p = if pred p then p :: acc else acc in
   List.rev (List.fold_left keep [] ps)

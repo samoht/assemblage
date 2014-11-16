@@ -60,10 +60,48 @@ let check p =
 
 (* Actions *)
 
+let ocaml_actions bin dst_dir unit_actions =
+  let actions ocamlc ocamlopt debug profile ocaml_byte ocaml_native dst_dir
+      unit_actions =
+    let open As_acmd.Args in
+    let name = As_path.(dst_dir / As_part.name bin) in
+    let unit_outputs = As_action.list_outputs unit_actions in
+    let cmos = List.filter (As_path.ext_matches [`Cmo; `O]) unit_outputs in
+    let cmx_s = List.filter (As_path.ext_matches [`Cmx; `O]) unit_outputs in
+    let byte = byte bin && ocaml_byte in
+    let native = native bin && ocaml_native in
+    let args = add_if debug "-g" @@ [] in
+    fadd_if byte
+      (As_action_ocaml.link_byte ~args ~ocamlc ~objs:cmos ~name) () @@
+    fadd_if native
+      (As_action_ocaml.link_native
+         ~args:(add_if profile "-p" @@ args)
+         ~ocamlopt ~objs:cmx_s ~name) () @@ []
+  in
+  As_conf.(const actions $ As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $
+           value debug $ value profile $
+           value ocaml_byte $ value ocaml_native $
+           dst_dir $ unit_actions)
+
+let integrated_unit_actions bin = (* integrated actions of bin's `Unit needs  *)
+  let integrate acc p = match As_part.coerce_if `Unit p with
+  | None -> acc
+  | Some u ->
+      let add_need n = As_part.(kind n = `Pkg || kind n = `Lib) in
+      As_part.integrate ~add_need u bin :: acc
+  in
+  As_part.list_actions (List.fold_left integrate [] (As_part.needs bin))
+
 let actions p =
   let bin = As_part.coerce `Bin p in
-  As_log.warn "%a part actions are TODO" As_part.pp_kind (As_part.kind bin);
-  As_conf.const []
+  let dst_dir = As_part.root_path bin in
+  let unit_actions = integrated_unit_actions bin in
+  match kind p with
+  | `OCaml -> ocaml_actions bin dst_dir unit_actions
+  | k ->
+      As_log.warn "%a %a part actions are TODO"
+        As_part.pp_kind (As_part.kind bin) pp_kind k;
+      As_conf.const []
 
 (* Part *)
 

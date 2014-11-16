@@ -107,18 +107,14 @@ let ocaml_actions kind lib dst_dir unit_actions =
            value debug $ value ocaml_byte $ value ocaml_native $
            value ocaml_native_dynlink $ dst_dir $ unit_actions)
 
-let integrated_unit_actions lib = (* integrated actions of lib's unit needs  *)
-  let integrate acc u =
-    let add_need n = As_part.(kind n = `Pkg || kind n = `Lib) in
-    As_part.integrate ~add_need u lib :: acc
+let integrated_unit_actions lib = (* integrated actions of lib's `Unit needs  *)
+  let integrate acc p = match As_part.coerce_if `Unit p with
+  | None -> acc
+  | Some u ->
+      let add_need n = As_part.(kind n = `Pkg || kind n = `Lib) in
+      As_part.integrate ~add_need u lib :: acc
   in
-  let needs = As_part.needs lib in
-  let rev_units = As_part.list_fold_kind `Unit integrate [] needs in
-  let add_actions acc u =
-    As_conf.(const List.rev_append $
-             (const List.rev $ (As_part.actions u)) $ acc)
-  in
-  List.fold_left add_actions (As_conf.const []) rev_units
+  As_part.list_actions (List.fold_left integrate [] (As_part.needs lib))
 
 let actions p =
   let lib = As_part.coerce `Lib p in
