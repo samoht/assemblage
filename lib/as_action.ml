@@ -50,7 +50,7 @@ let list_products acts = list_field inputs (list_field outputs [] acts) acts
 
 (* Build actions *)
 
-let link =
+let symlink =
   let action ln_rel src dst =
     v ~ctx:As_ctx.empty ~inputs:[src] ~outputs:[dst] [ln_rel src dst]
   in

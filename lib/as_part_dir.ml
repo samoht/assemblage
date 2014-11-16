@@ -117,20 +117,20 @@ let check p =
 
 (* Actions *)
 
-let part_links acc link exists dir_root keep part_actions =
+let part_links acc symlink exists dir_root keep part_actions =
   if not exists then acc else
   let outputs = As_action.list_outputs part_actions in
   let add acc output = match keep output with
   | `Drop -> acc
-  | `Keep -> link output As_path.(dir_root / basename output) :: acc
-  | `Rename p -> link output As_path.(dir_root // p) :: acc
+  | `Keep -> symlink output As_path.(dir_root / basename output) :: acc
+  | `Rename p -> symlink output As_path.(dir_root // p) :: acc
   in
   List.fold_left add acc outputs
 
 let actions keep p =
   let dir = As_part.coerce `Dir p in
   let add_part acc p =
-    As_conf.(const part_links $ acc $ As_action.link $ As_part.exists p $
+    As_conf.(const part_links $ acc $ As_action.symlink $ As_part.exists p $
              As_part.root_path dir $ keep p $ As_part.actions p)
   in
   let actions = List.fold_left add_part (As_conf.const []) (As_part.needs p) in

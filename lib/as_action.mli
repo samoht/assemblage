@@ -46,4 +46,4 @@ val list_products : t list -> As_path.t list
 
 (** {1 Build actions} *)
 
-val link : (As_path.t -> As_path.t -> t) As_conf.value
+val symlink : (As_path.t -> As_path.t -> t) As_conf.value

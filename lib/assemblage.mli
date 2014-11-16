@@ -1843,8 +1843,8 @@ module Action : sig
 
   (** {1 Built-in actions} *)
 
-  val link : (Path.t -> Path.t -> t) Conf.value
-  (** [link] has an action [action src dst] that links [src] to [dst] using
+  val symlink : (Path.t -> Path.t -> t) Conf.value
+  (** [symlink] has an action [action src dst] that links [src] to [dst] using
       {!ln_rel}. *)
 (*
 

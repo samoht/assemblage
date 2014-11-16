@@ -111,19 +111,19 @@ let check p =
 *)
 
 let js_actions unit src_dir dst_dir =
-  let actions link src_dir dst_dir =
+  let actions symlink src_dir dst_dir =
     let name = As_part.name unit in
     let src = As_path.(src_dir / name + `Js) in
     let dst = As_path.(dst_dir / name + `Js) in
-    [link src dst]
+    [symlink src dst]
   in
-  As_conf.(const actions $ As_action.link $ src_dir $ dst_dir)
+  As_conf.(const actions $ As_action.symlink $ src_dir $ dst_dir)
 
 let c_actions spec unit src_dir dst_dir =
   (* FIXME for C I think we want to distinguish two backends
      one that goes through ocamlc and the other who goes to Conf.cc.
      Maybe this should be reflected in the metadata. *)
-  let actions link ocamlc ocamlopt native debug warn_error src_dir dst_dir =
+  let actions symlink ocamlc ocamlopt native debug warn_error src_dir dst_dir =
     let open As_acmd.Args in
     As_log.warn "Full C unit part support is TODO";
     let has_h, has_c = match spec with
@@ -139,19 +139,19 @@ let c_actions spec unit src_dir dst_dir =
     let args =
       add_if debug "-g" @@ adds_if warn_error [ "-ccopt"; "-Werror" ] @@ []
     in
-    add_if has_h (link src_h h) @@
-    add_if has_c (link src_c c) @@
+    add_if has_h (symlink src_h h) @@
+    add_if has_c (symlink src_c c) @@
     fadd_if has_c
       (As_action_ocaml.compile_c ~args ~ocamlc:ccomp ~src:c) () @@ []
   in
-  As_conf.(const actions $ As_action.link $
-           As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $ value ocaml_native $
-           value debug $ value warn_error $
+  As_conf.(const actions $
+           As_action.symlink $ As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $
+           value ocaml_native $ value debug $ value warn_error $
            src_dir $ dst_dir)
 
 let ocaml_actions spec unit src_dir dst_dir =
-  let actions link ocamlc ocamlopt debug warn_error annot byte native src_dir
-      dst_dir =
+  let actions symlink ocamlc ocamlopt debug profile warn_error annot
+      byte native src_dir dst_dir =
     let open As_acmd.Args in
     let has_mli, has_ml = match spec with
     | `Mli -> true, false | `Ml -> false, true | `Both -> true, true
@@ -168,8 +168,8 @@ let ocaml_actions spec unit src_dir dst_dir =
       add_if debug "-g" @@ adds_if warn_error [ "-warn_error"; "+a" ] @@ []
     in
     let incs = [] in (* FIXME *)
-    add_if has_mli (link src_mli mli) @@
-    add_if has_ml (link src_ml ml) @@
+    add_if has_mli (symlink src_mli mli) @@
+    add_if has_ml (symlink src_ml ml) @@
     fadd_if has_mli
       (As_action_ocaml.compile_mli
          ~ocamlc:mlicomp ~args ~annot ~incs ~src:mli) () @@
@@ -178,12 +178,12 @@ let ocaml_actions spec unit src_dir dst_dir =
          ~ocamlc ~args ~annot:byte_annot ~has_mli ~incs ~src:ml) () @@
     fadd_if (has_ml && native)
       (As_action_ocaml.compile_ml_native
-         ~ocamlopt ~args ~annot ~has_mli ~incs ~src:ml) () @@
-    []
+         ~ocamlopt ~args:(add_if profile "-p" @@ args)
+         ~annot ~has_mli ~incs ~src:ml) () @@ []
   in
-  As_conf.(const actions $ As_action.link $
-           As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $
-           value debug $ value warn_error $
+  As_conf.(const actions $
+           As_action.symlink $ As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $
+           value debug $ value profile $ value warn_error $
            value ocaml_annot $ value ocaml_byte $ value ocaml_native $
            src_dir $ dst_dir)
 
