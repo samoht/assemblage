@@ -32,32 +32,6 @@ val ( &&& ) : bool value -> bool value -> bool value
 val ( ||| ) : bool value -> bool value -> bool value
 val pick_if : bool value -> 'a value -> 'a value -> 'a value
 
-module Option : sig
-  val wrap : 'a value option -> 'a option value
-  val some : 'a value -> 'a option value
-  val get : ?none:'a value -> 'a option value -> 'a value
-end
-
-module List : sig
-  val wrap : 'a value list -> 'a list value
-  val rev_wrap : 'a value list -> 'a list value
-  val is_empty : 'a list value -> bool value
-  val empty : 'a list value
-  val singleton : 'a value -> 'a list value
-  val add : 'a value -> 'a list value -> 'a list value
-  val add_if : bool value -> 'a value -> 'a list value -> 'a list value
-  val rev : 'a list value -> 'a list value
-  val append : 'a list value -> 'a list value -> 'a list value
-  val rev_append : 'a list value -> 'a list value -> 'a list value
-  val flatten : 'a list list value -> 'a list value
-  val map : ('a -> 'b) -> 'a list value -> 'b list value
-  val rev_map : ('a -> 'b) -> 'a list value -> 'b list value
-  val fold : ('b -> 'a -> 'b) -> 'b value -> 'a list value -> 'b value
-  val exists : ('a -> bool) -> 'a list value -> bool value
-  val keep : ('a -> bool) -> 'a list value -> 'a list value
-  val keep_map : ('a -> 'b option) -> 'a list value -> 'b list value
-end
-
 (** {1 Configuration value converters} *)
 
 type 'a parser = string -> [ `Error of string | `Ok of 'a ]

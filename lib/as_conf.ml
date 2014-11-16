@@ -90,63 +90,6 @@ let ( ||| ) a b = const ( || ) $ a $ b
 let ( &&& ) a b = const ( && ) $ a $ b
 let pick_if c a b = const (fun c a b -> if c then a else b) $ c $ a $ b
 
-module Option = struct
-  let wrap = function
-  | None -> const None
-  | Some v -> const (fun v -> Some v) $ v
-
-  let some v = const (fun v -> Some v) $ v
-
-  let get ?none v = match none with
-  | None ->
-      let get v = match v with
-      | Some v -> v
-      | None -> invalid_arg "option is None and no ~none argument provided"
-      in
-      const get $ v
-  | Some none ->
-      let get none v = match v with
-      | Some v -> v
-      | None -> none
-      in
-      const get $ none $ v
-end
-
-module VList = struct
-  (* N.B. we do module List = VList at the end. *)
-
-  let is_empty vs = const (fun l -> l = []) $ vs
-  let empty = const []
-  let singleton v = const (fun v -> [v]) $ v
-  let add v vs = const (fun v vs -> v :: vs) $ v $ vs
-  let add_if c v vs =
-    const (fun c v vs -> if c then v :: vs else vs) $ c $ v $ vs
-
-  let rev_wrap vs = List.fold_left (fun vs v -> add v vs) (const []) vs
-  let rev vs = const List.rev $ vs
-  let wrap vs = rev (rev_wrap vs)
-  let append vs vs' = const List.append $ vs $ vs'
-  let rev_append vs vs' = const List.rev_append $ vs $ vs'
-  let flatten vs = const List.flatten $ vs
-  let map f vs = const (List.map f) $ vs
-  let rev_map f vs = const (List.rev_map f) $ vs
-  let fold f acc vs = const (List.fold_left f) $ acc $ vs
-  let exists pred vs = const (List.exists pred) $ vs
-  let keep pred vs =
-    let keep f l =
-      let add acc v = if f v then v :: acc else acc in
-      List.rev (List.fold_left add [] l)
-    in
-    const (keep pred) $ vs
-
-  let keep_map f vs =
-    let keep f l =
-      let add acc v = match f v with Some v -> v :: acc | None -> acc in
-      List.rev (List.fold_left add [] l)
-    in
-    const (keep f) $ vs
-end
-
 (* Configuration keys *)
 
 type 'a key = 'a Def.key
@@ -657,7 +600,3 @@ let rmdir = system_utilities_utility "rmdir"
 let mkdir = system_utilities_utility "mkdir"
 let cat = system_utilities_utility "cat" ~win32:"type"
 let make = system_utilities_utility "make"
-
-(* List Definition *)
-
-module List = VList

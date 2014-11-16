@@ -115,7 +115,8 @@ let integrated_unit_actions lib = (* integrated actions of lib's unit needs  *)
   let needs = As_part.needs lib in
   let rev_units = As_part.list_fold_kind `Unit integrate [] needs in
   let add_actions acc u =
-    As_conf.(List.rev_append (List.rev (As_part.actions u)) acc)
+    As_conf.(const List.rev_append $
+             (const List.rev $ (As_part.actions u)) $ acc)
   in
   List.fold_left add_actions (As_conf.const []) rev_units
 

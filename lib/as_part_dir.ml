@@ -129,11 +129,12 @@ let part_links acc link exists dir_root keep part_actions =
 
 let actions keep p =
   let dir = As_part.coerce `Dir p in
-  let add acc p =
+  let add_part acc p =
     As_conf.(const part_links $ acc $ As_action.link $ As_part.exists p $
              As_part.root_path dir $ keep p $ As_part.actions p)
   in
-  As_conf.List.rev (List.fold_left add (As_conf.const []) (As_part.needs p))
+  let actions = List.fold_left add_part (As_conf.const []) (As_part.needs p) in
+  As_conf.(const List.rev $ actions)
 
 (* Dir *)
 
