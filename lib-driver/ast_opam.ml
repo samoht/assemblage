@@ -79,49 +79,50 @@ module Install = struct
 
   (* For an assemblage project *)
 
-  let err_abs_product = format_of_string
-      "`Dir@ part@ has@ an@ absolute@ product@ (%a)@ (custom@ `Dir@ part ?)."
+  let err_abs_output = format_of_string
+      "`Dir@ part@ has@ an@ absolute@ output@ (%a)@ (custom@ `Dir@ part ?)."
 
   let err_no_prefix = format_of_string
       "`Dir@ part@ product@ (%a) is@ not@ a@ prefix@ of@ part@ directory\
        @ root (%a) (custom `Dir@ part ?)."
 
   let of_project ?(add = []) proj =
-    let add_products ?prefix dir_root acc products elt =
-      let add_product acc product = match Path.to_rel product with
-      | None -> Log.err err_abs_product Path.pp product; acc
-      | Some product ->
-          match Path.Rel.rem_prefix dir_root product with
+    let add_outputs ?prefix dir_root acc outputs elt =
+      let add_output acc output = match Path.to_rel output with
+      | None -> Log.err err_abs_output Path.pp output; acc
+      | Some output ->
+          match Path.Rel.rem_prefix dir_root output with
           | None ->
-              Log.err err_no_prefix Path.Rel.pp product Path.Rel.pp dir_root;
+              Log.err err_no_prefix Path.Rel.pp output Path.Rel.pp dir_root;
               acc
           | Some dst ->
               let dst = match prefix with
               | None -> Path.of_rel dst
               | Some other -> Path.(other // dst)
               in
-              elt (move (Path.of_rel product) ~dst) :: acc
+              elt (move (Path.of_rel output) ~dst) :: acc
       in
-      List.fold_left add_product acc products
+      List.fold_left add_output acc outputs
     in
     let add_dir acc dir =
       if not (Dir.install dir && Project.eval proj (Part.exists dir))
       then acc else
       let dir_root = Project.eval proj (Part.root dir) in
-      let products = Project.eval proj (Part.products dir) in
-      let add_products ?prefix = add_products ?prefix dir_root acc products in
+      let actions = Project.eval proj (Part.actions dir) in
+      let outputs = Action.list_outputs actions in
+      let add_outputs ?prefix = add_outputs ?prefix dir_root acc outputs in
       match Dir.kind dir with
-      | `Bin -> add_products (fun m -> `Bin m)
-      | `Doc -> add_products (fun m -> `Doc m)
-      | `Etc -> add_products (fun m -> `Etc m)
-      | `Lib -> add_products (fun m -> `Lib m)
-      | `Man -> add_products (fun m -> `Man m)
-      | `Other o -> add_products ~prefix:o (fun m -> `Misc m)
-      | `Sbin -> add_products (fun m -> `Sbin m)
-      | `Share -> add_products (fun m -> `Share m)
-      | `Share_root -> add_products (fun m -> `Share_root m)
-      | `Stublibs -> add_products (fun m -> `Stublibs m)
-      | `Toplevel -> add_products (fun m -> `Toplevel m)
+      | `Bin -> add_outputs (fun m -> `Bin m)
+      | `Doc -> add_outputs (fun m -> `Doc m)
+      | `Etc -> add_outputs (fun m -> `Etc m)
+      | `Lib -> add_outputs (fun m -> `Lib m)
+      | `Man -> add_outputs (fun m -> `Man m)
+      | `Other o -> add_outputs ~prefix:o (fun m -> `Misc m)
+      | `Sbin -> add_outputs (fun m -> `Sbin m)
+      | `Share -> add_outputs (fun m -> `Share m)
+      | `Share_root -> add_outputs (fun m -> `Share_root m)
+      | `Stublibs -> add_outputs (fun m -> `Stublibs m)
+      | `Toplevel -> add_outputs (fun m -> `Toplevel m)
     in
     let header = `Header (Some (Project.watermark_string proj)) in
     let init = add in

@@ -23,12 +23,15 @@ type cargs = { exists : bool As_conf.value; args : string list As_conf.value }
 let cargs_exists ca = ca.exists
 let cargs_args ca = ca.args
 let cargs_deps ca = As_conf.(Key.Set.union (deps ca.exists) (deps ca.args))
+let cargs_pp conf ppf ca =
+  As_fmt.pp ppf "@[<1>[exists:%b %a]@]" (As_conf.eval conf ca.exists)
+    As_fmt.(pp_list ~pp_sep:pp_sp pp_str) (As_conf.eval conf ca.args)
 
 (* Argument bundles *)
 
 module Cmap = Map.Make (As_ctx)
 
-type t = cargs list Cmap.t
+type t = cargs list Cmap.t  (* maps ctxs to list of conditionalized args *)
 
 let v ?(exists = As_conf.true_) ctx args = Cmap.singleton ctx [{exists; args}]
 let vc ?exists ctx args = v ?exists ctx (As_conf.const args)
@@ -66,6 +69,13 @@ let for_ctx conf ctx a =
     List.rev_append args acc
   in
   List.rev (List.fold_left add [] cargs)
+
+let pp conf ppf args =
+  let pp_binding ppf (ctx, cargs) =
+    As_fmt.pp ppf "@[<2>%a %a@]"
+      As_ctx.pp ctx As_fmt.(pp_list ~pp_sep:pp_sp (cargs_pp conf)) cargs
+  in
+  As_fmt.pp ppf "@[<v>%a@]" As_fmt.(pp_list pp_binding) (Cmap.bindings args)
 
 (* Built-in argument bundles *)
 

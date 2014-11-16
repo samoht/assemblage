@@ -71,6 +71,9 @@ val tokens : string -> string list
     [s], the order of character appearance in the list is the same as
     in [s]. *)
 
+val list_uniq : string list -> string list
+(** [list_uniq ss] is [ss] without duplicates, the list order is preserved. *)
+
 (** {1 Sets of strings} *)
 
 module Set : sig
@@ -79,5 +82,11 @@ module Set : sig
 end
 
 val make_unique_in : ?suff:string -> Set.t -> string -> string option
+(** [make_unique_in ~suff set elt] is a string that does not belong
+    [set].  If [elt] in not in [set] then this is [elt] itself
+    otherwise it is a string defined by [Printf.sprintf "%s%s%d" s
+    suff d] where [d] is a positive number starting from [1]. [suff]
+    defaults to ["~"].  [None] in the unlikely case that all positive
+    numbers were exhausted. *)
 
 module Map : Map.S with type key = string

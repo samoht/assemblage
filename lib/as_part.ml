@@ -160,6 +160,7 @@ let args p = p.args
 let meta p = p.meta
 let needs p = p.needs
 let root p = p.root
+let root_path p = As_conf.(const As_path.of_rel $ p.root)
 let actions p = Lazy.force (p.actions)
 let check p = p.check (p :> kind t)
 
@@ -175,22 +176,6 @@ let deps p =
        peformed in [compute_actions]. *)
   As_conf.deps (actions p)
 
-let products ?exts p =
-  let products actions = match exts with
-  | None ->
-      let add_action acc a = List.rev_append (As_action.outputs a) acc in
-      List.rev (List.fold_left add_action [] actions)
-  | Some exts ->
-      let add_action acc a =
-        let add_product acc p =
-          if As_path.ext_matches exts p then p :: acc else acc
-        in
-        List.fold_left add_product acc (As_action.outputs a)
-      in
-      List.rev (List.fold_left add_action [] actions)
-  in
-  As_conf.(const products $ actions p)
-
 let equal p p' = p.id = p'.id
 let compare = Part.compare
 
@@ -204,20 +189,17 @@ let redefine ?check ?actions old =
   in
   newp
 
-(* Part root directory *)
+(* Part integration *)
 
-let with_root root old =
+let integrate ?(add_need = fun _ -> false) i p =
+  let needs = List.(rev_append (rev (filter add_need (needs p))) (needs i)) in
+  let usage = usage p in
+  let root = root p in
   let rec newp =
-    { old with root; actions = lazy (compute_actions (newp :> kind t)) }
+    { i with usage; root; needs = (needs :> kind t list);
+             actions = lazy (compute_actions (newp :> kind t)) }
   in
   newp
-
-let rooted ?ext p name =
-  let mk_file r = match ext with
-  | None -> As_path.(of_rel (Rel.(r / name)))
-  | Some e -> As_path.(of_rel (Rel.(r / name + e)))
-  in
-  As_conf.(const mk_file $ p.root)
 
 (* Coercing *)
 
@@ -241,10 +223,6 @@ let file ?usage:usage ?exists p =
   v ?usage ?exists ~actions (As_path.basename p)
 
 (* Part lists *)
-
-let list_products ?exts ps =
-  let rev_products = List.rev_map (products ?exts) ps in
-  As_conf.List.(flatten (rev_wrap rev_products))
 
 let list_keep pred ps =
   let keep acc p = if pred p then p :: acc else acc in

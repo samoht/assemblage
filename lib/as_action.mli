@@ -31,14 +31,18 @@ val ctx : t -> As_ctx.t
 val inputs : t -> As_path.t list
 val outputs : t -> As_path.t list
 val cmds : t -> As_acmd.t list
-
-val add_inputs : As_path.t list -> t -> t
-(** [add_inputs ps a] add [ps] to the inputs of [a]. *)
+val products : t -> As_path.t list
 
 val add_ctx_args : As_ctx.t -> As_args.t -> t -> t
 (** [add_ctx_args ctx args t] adds context [ctx] and argument bundle [args]
     to [t]. This is used by parts to watermark their actions
     on {!As_part.actions}. *)
+
+(** {1 Action lists} *)
+
+val list_inputs : t list -> As_path.t list
+val list_outputs : t list -> As_path.t list
+val list_products : t list -> As_path.t list
 
 (** {1 Build actions} *)
 

@@ -49,9 +49,8 @@ let install p = (get_meta p).install
 
 (* Directory specifiers *)
 
-type spec =
-    As_part.kind As_part.t ->
-    (As_path.t -> [ `Keep | `Rename of As_path.rel | `Drop]) As_conf.value
+type spec = As_part.kind As_part.t ->
+  (As_path.t -> [ `Keep | `Rename of As_path.rel | `Drop]) As_conf.value
 
 let all _ = As_conf.(const (fun _ -> `Keep))
 
@@ -118,27 +117,23 @@ let check p =
 
 (* Actions *)
 
-let link_part_actions keep dir p =
-  let keep = keep p in
-  let actions link part_root products =
-    let part_root = As_path.of_rel part_root in
-    let add acc product = match keep product with
-    | `Drop -> acc
-    | `Keep -> link product As_path.(part_root / basename product) :: acc
-    | `Rename p -> link product As_path.(part_root // p) :: acc
-    in
-    List.rev (List.fold_left add [] products)
+let part_links acc link exists dir_root keep part_actions =
+  if not exists then acc else
+  let outputs = As_action.list_outputs part_actions in
+  let add acc output = match keep output with
+  | `Drop -> acc
+  | `Keep -> link output As_path.(dir_root / basename output) :: acc
+  | `Rename p -> link output As_path.(dir_root // p) :: acc
   in
-  As_conf.(const actions $ As_action.link $ As_part.root dir $
-           As_part.products p)
+  List.fold_left add acc outputs
 
-let actions keep p = As_conf.const []
-
-(*
+let actions keep p =
   let dir = As_part.coerce `Dir p in
-  let add acc p = link_part_action keep dir p :: acc in
-  List.rev (List.fold_left add [] (As_part.needs p))
-*)
+  let add acc p =
+    As_conf.(const part_links $ acc $ As_action.link $ As_part.exists p $
+             As_part.root_path dir $ keep p $ As_part.actions p)
+  in
+  As_conf.List.rev (List.fold_left add (As_conf.const []) (As_part.needs p))
 
 (* Dir *)
 

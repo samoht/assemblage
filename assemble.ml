@@ -98,8 +98,8 @@ let mk_test ?(example = false) name =
   let open Action.Spec in
   let dir = root / (if example then "examples" else "test") / name in
   let lib_dir =
-    let get_dir prods = Path.dirname (List.hd prods) in
-    Conf.(const get_dir $ Part.products lib_assemblage)
+    let get_dir acts = Path.dirname (List.hd (Action.list_outputs acts)) in
+    Conf.(const get_dir $ Part.actions lib_assemblage)
   in
   let assemblage_cmd = Bin.cmd bin_assemblage in
   let assemblage cmd args =

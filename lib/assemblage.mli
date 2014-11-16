@@ -91,6 +91,9 @@ module String : sig
       [s], the order of character appearance in the list is the same as
       in [s]. *)
 
+  val list_uniq : string list -> string list
+  (** [list_uniq ss] is [ss] without duplicates, the list order is preserved. *)
+
   (** {1 String sets and maps} *)
 
   module Set : sig
@@ -1516,12 +1519,13 @@ module Ctx : sig
   (** The type for user defined tags. *)
 
   type language = [ `OCaml | `C | `Js | `Lang of string ]
-  (** The type for informing about the broad type of input build products.
+  (** The type for informing about the broad type of products being
+      handled by an {{!Action}action}.
       {ul
-      {- [`OCaml] working on OCaml related build products.}
-      {- [`C] working on C releated build products.}
-      {- [`Js] working on JavaScript related build products.}
-      {- [`Other l] working on language [l] related build products.}} *)
+      {- [`OCaml] working on OCaml related products.}
+      {- [`C] working on C releated products.}
+      {- [`Js] working on JavaScript related products.}
+      {- [`Other l] working on language [l] related products.}} *)
 
   type build_phase = [ `Gen | `Dep | `Pp | `Compile
                      | `Archive of [ `Static | `Shared ]
@@ -1848,15 +1852,22 @@ end
 
 (** Build action.
 
-    TODO doc.
+    A {e build action} determines how to output a list of build
+    products from a list of existing input products using a sequence
+    of {{!Acmd} action commands}.
 
-    A {e build product} is any existing file in the {!Conf.root_dir}
-    hierarchy. A {e root} build product is a product for which there
-    exists no build action to create it; typically the source code you
-    write.
-
-    Given a list of existing products, a {e build action} determines
-    how to create a list of products using a sequence of build commands. *)
+    In order to be productive it is important to understand the following
+    terminology:
+    {ul
+    {- A {e product} is any existing file in the {!Conf.root_dir}
+       hierarchy.}
+    {- A {e source product} is a product for which there
+       exists no build action to create it; typically the source code you
+       write, a product from your brain.}
+    {- A {e build product} is a product that is output from a build action.}
+    {- An {e input product} is a product that is used as input
+       to a build action, this can be a source product or a build product.}
+    {- An {e output product} is synonym with build product}} *)
 module Action : sig
 
   (** {1 Build actions} *)
@@ -1867,12 +1878,44 @@ module Action : sig
   val v : ?log:string -> ctx:Ctx.t -> inputs:Path.t list ->
     outputs:Path.t list -> Acmd.t list -> t
   (** [v ctx inputs outputs cmds] is the action that given the
-      existence of [inputs] creates the products [outputs] using the
-      sequence of command [cmds].
+      existence of [inputs] creates [outputs] using the sequence of
+      command [cmds].
 
       {b Warning.} To ensure determinism and parallelism correctness [cmds]
       must ensure that it only reads from the [inputs] and solely writes to
       [outputs]. *)
+
+  val log : t -> string option
+  (** [log a] is [a]'s high-level logging string (if any). *)
+
+  val ctx : t -> Ctx.t
+  (** [ctx a] is [a]'s context. *)
+
+  val inputs : t -> Path.t list
+  (** [inputs a] is the list of products input by [a]'s action. *)
+
+  val outputs : t -> Path.t list
+  (** [outputs a] is the list of products output by [a]'s action. *)
+
+  val cmds : t -> Acmd.t list
+  (** [cmds a] is [a]'s commands to generate outputs from the inputs. *)
+
+  val products : t -> Path.t list
+  (** [products a] is [inputs a @ outputs a] but tail recursive. *)
+
+  (** {1 Action lists} *)
+
+  val list_inputs : t list -> Path.t list
+  (** [list_inputs l] is the list of inputs of the actions in [l].
+      Ordered but may contain duplicates. *)
+
+  val list_outputs : t list -> Path.t list
+  (** [list_outputs l] is the list of outputs of the actions in [l].
+      Ordered but may contain duplicates. *)
+
+  val list_products : t list -> Path.t list
+  (** [list_products l] is [list_inputs l @ list_outputs l]
+      but tail-recursive. *)
 
   (** {1 Built-in actions} *)
 
@@ -1881,7 +1924,7 @@ module Action : sig
       {!ln_rel}. *)
 (*
 
-  (** Actions for handling OCaml products.
+  (** Actions for handling OCaml build products.
 
       All the actions have appropriate support for the {!Conf.debug},
       {!Conf.profile}, {!Conf.warn_error}, {!Conf.ocaml_annot}
@@ -1898,7 +1941,7 @@ module Action : sig
         holding a list of directory paths. *)
 
     type name = Path.t Conf.value
-    (** The type for product names. A product names defines a build
+    (** The type for build product names. A name defines a build
         location through its {{!Path.dirname}dirname} and a name through its
         {e suffix-less} {{!Path.basename}basename}. *)
 
@@ -1973,8 +2016,8 @@ type +'a part constraint 'a = [< part_kind ]
     metadata that it uses to define its action. Parts may also refer to,
     or integrate, other parts to define their actions.
 
-    A part can also be seen as defining the products its build actions
-    generate. These products depend on the configuration.
+    A part can also be seen as defining the outputs of its build
+    actions. These build products depend on the configuration.
 
     In addition to part specific metadata, each part has the following
     attributes that the user specifies:
@@ -2004,8 +2047,8 @@ type +'a part constraint 'a = [< part_kind ]
        bundles.}}
 
     Given all this information a part will give you
-    {{!actions}build actions} which by themselves define build
-    {{!products}build products}. *)
+    {{!actions}build actions} whose outputs define
+    a part's build products. *)
 module Part : sig
 
   (** {1 Kinds} *)
@@ -2070,8 +2113,8 @@ module Part : sig
          the given list is {!uniq}ified. }
       {- [root] is a build root for the part, usually best left unspecified.
          Note that this value should not be used as a constant for defining
-         [actions] as it may be redefined by integrating parts. Use
-         {!root}[ p] instead.}
+         [actions] as it may be redefined by {{!integrate}integrating} parts.
+         Use {!root}[ p] instead.}
       {- [actions] is the function that defines the actions associated to
          the part. The function is given the part itself which allows
          to access its metadata. Action outputs should be generated
@@ -2102,6 +2145,15 @@ module Part : sig
 
       @raise Invalid_argument if [proj] returns [None]. *)
 
+  val root : 'a part -> Path.rel Conf.value
+  (** [root p] is [p]'s root build directory expressed relative to
+      {!Conf.root_dir}. Most of the time the actions of a part will
+      output their build products in this direcory. This directory may
+      change when a part is {{!integrate}integrated} in another. *)
+
+  val root_path : 'a part -> Path.t Conf.value
+  (** [root_path] is like {!root} but as a generic path. *)
+
   val needs : 'a part -> kind t list
   (** [needs p] is the (uniqified) list of parts needed by [p] to
       define itself. *)
@@ -2110,11 +2162,6 @@ module Part : sig
   (** [actions p] are the actions to build part [p]. If
       {!exists}[ p] evaluates to [false] this evaluates to
       the empty list. *)
-
-  val products : ?exts:Path.ext list -> 'a part -> Path.t list Conf.value
-  (** [products p] are the products of part [p]. If [exts] is present
-      only those that have one of the extensions in the list are selected.
-      This is derived from {!actions}. *)
 
   val check : 'a part -> bool Conf.value
   (** [check p] logs information about potential problems with [p]
@@ -2129,8 +2176,8 @@ module Part : sig
   val compare : 'a part -> 'b part -> int
   (** [compare p p'] is [compare (id p) (id p')]. *)
 
-  val redefine : ?check:(kind t -> bool Conf.value) ->
-    ?actions:(kind t -> Action.t list Conf.value) -> 'a t -> 'a t
+  val redefine : ?check:(kind part -> bool Conf.value) ->
+    ?actions:(kind part -> Action.t list Conf.value) -> 'a part -> 'a part
   (** [redefine check actions p] is [p] with check function [check]
       and actions function [action] (both defaults to [p]'s one if
       unspecified).
@@ -2138,23 +2185,15 @@ module Part : sig
       {b Warning.} As far as [Assemblage] is concerned
       this is equivalent to Obj.magic. *)
 
-  (** {1 Part root directory} *)
+  (** {1 Part integration} *)
 
-  val root : 'a t -> Path.rel Conf.value
-  (** [root p] is [p]'s root build directory expressed relative
-      to {!Conf.root_dir}. Most of the time parts will generate
-      their products in this direcory. This directory may change
-      when a part is integrated in another, see {!with_root}. *)
-
-  val rooted : ?ext:Path.ext -> 'a t -> string -> Path.t Conf.value
-  (** [rooted ext p name] is a path rooted at {!root}[ p] with basename
-      [name] and extension [ext] (if any). *)
-
-  val with_root : Path.rel Conf.value -> 'a t -> 'a t
-  (** [with_root dir p] is [p] with root [dir]. If [p] used {!root} in
-      its {{!v}actions definition} function the resulting part's
-      action adapts to match the new root (by calling the part's
-      definition function again). *)
+  val integrate : ?add_need:(kind part -> bool) -> 'a part -> 'b part -> 'a part
+  (** [integrate ?add_need i p] is [i] as integrated in [p]. This is
+      [i] except its root and usage now match those of [p] and the
+      needs of [p] that returned [true] on [add_need] were added to the
+      new part. [add_need] defaults to [fun _ -> false]. The new part
+      will adapt to the new parameters by recomputing actions using
+      the part's action definition function. *)
 
   (** {1 Coercions} *)
 
@@ -2167,18 +2206,15 @@ module Part : sig
   (** [coerce_if k p] is [Some] if [p] is of kind [k] and
       [None] otherwise. *)
 
-  (** {1 File part} *)
+  (** {1 File part}
+
+      FIXME this part is semantically wrong.
+  *)
 
   val file : ?usage:usage -> ?exists:bool Conf.value -> Path.t -> [> `Base] part
-  (** [file p] is a part whose product is [p]. *)
+  (** [file p] is a part whose output is [p]. *)
 
   (** {1 Part lists} *)
-
-  val list_products : ?exts:Path.ext list -> 'a t list ->
-    Path.t list Conf.value
-  (** [list_products ?exts ps] is the list of products defined by
-      parts [ps]. If [exts] is present only those products with extensions
-      in [exts] are kept. *)
 
   val list_uniq : kind part list -> kind part list
   (** [list_uniq ps] is [ps] with duplicates as determined by {!equal} removed.
@@ -2286,8 +2322,8 @@ module Unit : sig
       the name of the file without the suffix located in directory
       [dir] (defaults to {!root}) of kind [kind]. [needs] indicate the
       project libraries and packages that are needed to compile the
-      unit. The [args] bundle is used by the unit's product actions
-      according to context. *)
+      unit. The [args] bundle is used by the unit's actions according
+      to context. *)
 end
 
 (** Library part.
@@ -2340,8 +2376,8 @@ module Lib : sig
       named [name] of the given [kind]. [needs] has the compilation
       units [us] that define the libary. The package and libraries
       that are in [needs] are automatically added to [us] needs.  The
-      [args] bundle is used both by the library's product actions and
-      by [us] product actions according to context.
+      [args] bundle is used both by the library's actions and by [us]
+      actions according to context.
 
       The library's {e ability} to compile to different targets is
       specified by the arguments [?byte], [?native] and
@@ -2351,7 +2387,7 @@ module Lib : sig
       {- [`OCaml], [true], [true], [true]}
       {- [`OCaml_pp], [true], [false], [false]}
       {- [`C], [false] (not applicable), [true], [true]}}
-      Whether the products associated to a compilation target are
+      Whether the outputs associated to a compilation target are
       concretly build depends on the configuration keys
       {!Conf.ocaml_byte}, {!Conf.ocaml_native},
       {!Conf.ocaml_native_dynlink} and {!Conf.c_dynlink}. *)
@@ -2411,8 +2447,8 @@ module Bin : sig
       of the given [kind]. [needs] has the compilation units [us] that
       define the binary. The package and libraries that are in [needs]
       are automatically added to [us] needs and used at link time. The
-      [args] bundle is used both by the binary's product actions
-      and by [us] product actions according to context.
+      [args] bundle is used both by the binary's actions and by [us]'
+      actions according to context.
 
       The binary's {e ability} to compile to different targets is specified
       by the arguments [?byte], [?native] and [?js] whose defaults
@@ -2421,7 +2457,7 @@ module Bin : sig
       {- [`OCaml], [true], [true], [false].}
       {- [`OCaml_toplevel], [true], [false], [false].}
       {- [`C], [false] (not applicable), [true], [false]}}
-      Whether the products associated to a compilation target are
+      Whether the outputs associated to a compilation target are
       concretly build depends on the configuration keys {!Conf.ocaml_byte},
       {!Conf.ocaml_native}, {!Conf.ocaml_js} and {!Conf.c_js}. *)
 end
@@ -2524,7 +2560,7 @@ end
 (** Directory part.
 
     A directory part defines a clean directory in which a selection of
-    part products can be gathered. Directory parts can be marked as
+    part outputs can be gathered. Directory parts can be marked as
     being {!install}able. Drivers can use this information to devise
     an installation procedure for your project's outcomes. *)
 module Dir : sig
@@ -2550,8 +2586,8 @@ module Dir : sig
 
   (** {1 Directory specifiers}
 
-      Directory specifiers take a part and a product that belong
-      to that part and indicate whether the product should be
+      Directory specifiers take a part and an output that belong
+      to that part and indicate whether the output should be
       part of the directory and under which name (or path).
 
       FIXME a few combinators to quickly devise spec values
@@ -2560,7 +2596,7 @@ module Dir : sig
   type spec = Part.kind Part.t -> (Path.t ->
     [ `Keep | `Rename of Path.rel | `Drop]) Conf.value
   (** The type for directory specifiers. Given a part it returns
-      a value that has a function that given a product of the part
+      a value that has a function that given an output of the part
       returns:
       {ul
       {- [`Drop] to drop the product from the directory.}
@@ -2601,7 +2637,7 @@ module Dir : sig
     [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] part list ->
     [> `Dir ] part
   (** [v keep install kind needs] is a directory of type [kind] that
-      gathers the products of [needs] as filtered by [keep].
+      gathers the products of existing [needs] as filtered by [keep].
 
       If [install] is [true] the directory structure is meant to be
       installed at a root location defined by [kind]. [install]
@@ -2988,6 +3024,10 @@ module Private : sig
     (** [deps a] is the set of configuration keys which may be needed
         for evaluating the constituents of [a]. *)
 
+    val pp : Conf.t -> Format.formatter -> t -> unit
+    (** [pp conf ppf args] prints an unspecified representation of
+        [args] in context [conf] on [ppf]. *)
+
     (** {1 Argument lookup} *)
 
     val for_ctx : Conf.t -> Ctx.t -> t -> string list
@@ -3046,23 +3086,8 @@ module Private : sig
 
     include module type of Action with type t = Action.t
 
-    val log : t -> string option
-    (** [log a] is [a]'s high-level logging string (if any). *)
-
     val args : t -> Args.t
     (** [args a] is [a]'s argument bundle. *)
-
-    val ctx : t -> Ctx.t
-    (** [ctx a] is [a]'s context. *)
-
-    val inputs : t -> Path.t list
-    (** [inputs a] is the list of products input by [a]'s action. *)
-
-    val outputs : t -> Path.t list
-    (** [outputs a] is the list of products output by [a]'s action. *)
-
-    val cmds : t -> Acmd.t list
-    (** [cmds a] is [a]'s commands to generate outputs from the inputs. *)
   end
 
   (** Parts. *)
@@ -3078,11 +3103,11 @@ module Private : sig
     val args : 'a part -> Args.t
     (** [args p] is [p]'s user defined argument bundle. *)
 
-    val ctx : 'a t -> Ctx.t
+    val ctx : 'a part -> Ctx.t
     (** [ctx p] is a context that describes [p] using {{!type:Ctx.part}part
         context elements}. *)
 
-    val deps : 'a t -> Conf.Key.Set.t
+    val deps : 'a part -> Conf.Key.Set.t
     (** [deps a] is the set of configuration keys which may be needed
         for evaluating [a]. *)
   end
@@ -3138,9 +3163,10 @@ module Private : sig
     val version : project -> string
     (** [version p] evaluates {!Conf.project_version} *)
 
-    val products : ?root:bool -> project -> Path.Set.t
-    (** [products p] is the set of build products. If [root]
-        is [true] (default) includes root build products. *)
+    val products : ?kind:[`Src | `Build | `Both] -> project -> Path.Set.t
+    (** [products kind p] is the set of products known to the project
+        in the current configuration. [kind] can be used to select
+        source, build or both kind of products, defaults to [`Both]. *)
 
     val watermark_string : ?suffix:string -> t -> string
     (** [watermark_string suffix p] is a watermark that can be used in
@@ -3195,14 +3221,19 @@ end
       discovery ?}
    {- TODO}}
 
-   {1:replace_part Replacing the actions of existing part kind}
-
-   TODO. Warning can be tricky since other parts may have
-   build product expectations according to configuration.
-
    {1:design_part Designing new part kind}
 
-   {ul
-   {- Tips about action def strategy. Where do we handle
-      what e.g. {!Conf.debug}.}
-   {- Explain the notion of integrating part.}} *)
+   {ol
+   {- Define configuration keys for the utilities.}
+   {- Make non lifted action creators for the main
+      operations. Don't use the keys yet, use a bin type to represent
+      them. Arguments to the creators should be those that allow to
+      correctly determine the inputs and outputs of the operation
+      (e.g. for OCaml annot is handled in the creator). Add an
+      [?args] optional argument.}
+   {- In the part action definition function lift the utilities
+      and common build configuration keys (debug, warn_error, etc).
+      Handle the command argument for those at that level an pass
+      them to actions using the [?args] optional argument of creators.}
+   {- Don't support all command line flags, the user can use argument
+      bundles. You may want to provide some of them already created.}} *)

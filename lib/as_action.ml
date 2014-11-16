@@ -33,13 +33,20 @@ let ctx a = a.ctx
 let inputs a = a.inputs
 let outputs a = a.outputs
 let cmds a = a.cmds
-
-let add_inputs ps a =
-  let inputs = List.rev_append (List.rev ps) a.inputs in
-  { a with inputs }
+let products a = List.(rev_append (rev (inputs a)) (outputs a))
 
 let add_ctx_args ctx args a =
   { a with ctx = As_ctx.union ctx a.ctx; args = As_args.append args a.args }
+
+(* Action lists *)
+
+let list_field field acc acts =
+  let add_action acc a = List.rev_append (field a) acc in
+  List.rev (List.fold_left add_action acc acts)
+
+let list_inputs acts = list_field inputs [] acts
+let list_outputs acts = list_field outputs [] acts
+let list_products acts = list_field inputs (list_field outputs [] acts) acts
 
 (* Build actions *)
 

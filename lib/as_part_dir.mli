@@ -31,9 +31,8 @@ val install : [< `Dir] As_part.t -> bool
 
 (** {1 Directory specifiers} *)
 
-type spec =
-    As_part.kind As_part.t ->
-    (As_path.t -> [ `Keep | `Rename of As_path.rel | `Drop]) As_conf.value
+type spec = As_part.kind As_part.t ->
+  (As_path.t -> [ `Keep | `Rename of As_path.rel | `Drop]) As_conf.value
 
 val all : spec
 val file_exts : As_path.ext list -> spec

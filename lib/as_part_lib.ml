@@ -75,38 +75,57 @@ let check p =
 
 (* Actions *)
 
-let add_if c f v acc = if c then (f v) :: acc else acc
-
 (* FIXME here we should add rules for ocamldep for each unit. And
    add the dep as an input to its actions. *)
 
-let ocaml_actions kind lib = []
-(*
-  let name = As_part.rooted lib (As_part.name lib) in
-  let not_pp = kind <> `OCaml_pp in
-  let reroot acc u = As_part.with_root (As_part.root lib) u :: acc in
-  let rev_units = As_part.list_fold_kind `Unit reroot [] (As_part.needs lib) in
-  let units = List.rev rev_units in
-  let units_prods = As_part.list_products units in
-  let cmos = As_conf.List.keep (As_path.has_ext `Cmo) units_prods in
-  let cmx_s = As_conf.List.keep (As_path.has_ext `Cmx) units_prods in
-  let add_actions acc u = List.rev_append (List.rev (As_part.actions u)) acc in
-  let byte = byte lib in
-  let native = native lib && not_pp in
-  let shared = native_dynlink lib && not_pp in
-  add_if byte (As_action_ocaml.archive_byte ~cmos ~name) () @@
-  add_if native (As_action_ocaml.archive_native ~cmx_s ~name) () @@
-  add_if shared (As_action_ocaml.archive_shared ~cmx_s ~name) () @@
-  As_part.list_fold add_actions [] rev_units
-*)
+let c_actions lib dst_dir unit_actions =
+  As_log.warn "C library part support is TODO";
+  As_conf.const []
 
-let actions p = As_conf.const []
-(*
-  let l = As_part.coerce `Lib p in
+let ocaml_actions kind lib dst_dir unit_actions =
+  let actions ocamlc ocamlopt debug ocaml_byte ocaml_native ocaml_native_dynlink
+      dst_dir unit_actions =
+    let open As_acmd.Args in
+    let not_pp = kind <> `OCaml_pp in
+    let name = As_path.(dst_dir / As_part.name lib) in
+    let unit_outputs = As_action.list_outputs unit_actions in
+    let cmos = List.filter (As_path.has_ext `Cmo) unit_outputs in
+    let cmx_s = List.filter (As_path.has_ext `Cmx) unit_outputs in
+    let byte = byte lib && ocaml_byte in
+    let native = native lib && ocaml_native && not_pp in
+    let shared = native_dynlink lib && ocaml_native_dynlink && not_pp in
+    let args = add_if debug "-g" @@ [] in
+    fadd_if byte
+      (As_action_ocaml.archive_byte ~args ~ocamlc ~cmos ~name) () @@
+    fadd_if native
+      (As_action_ocaml.archive_native ~args ~ocamlopt ~cmx_s ~name) () @@
+    fadd_if shared
+      (As_action_ocaml.archive_shared ~args ~ocamlopt ~cmx_s ~name) () @@
+    unit_actions
+  in
+  As_conf.(const actions $ As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $
+           value debug $ value ocaml_byte $ value ocaml_native $
+           value ocaml_native_dynlink $ dst_dir $ unit_actions)
+
+let integrated_unit_actions lib = (* integrated actions of lib's unit needs  *)
+  let integrate acc u =
+    let add_need n = As_part.(kind n = `Pkg || kind n = `Lib) in
+    As_part.integrate ~add_need u lib :: acc
+  in
+  let needs = As_part.needs lib in
+  let rev_units = As_part.list_fold_kind `Unit integrate [] needs in
+  let add_actions acc u =
+    As_conf.(List.rev_append (List.rev (As_part.actions u)) acc)
+  in
+  List.fold_left add_actions (As_conf.const []) rev_units
+
+let actions p =
+  let lib = As_part.coerce `Lib p in
+  let dst_dir = As_part.root_path lib in
+  let unit_actions = integrated_unit_actions lib in
   match kind p with
-  | `OCaml | `OCaml_pp as k -> ocaml_actions k l
-  | `C -> As_log.warn "Damned the C library part is TODO"; []
-*)
+  | `OCaml | `OCaml_pp as k -> ocaml_actions k lib dst_dir unit_actions
+  | `C -> c_actions lib dst_dir unit_actions
 
 (* Lib *)
 

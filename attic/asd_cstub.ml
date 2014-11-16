@@ -18,8 +18,7 @@
 
 let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
     name ~dir
-  = failwith "TODO"
-(*
+  =
   let name_bindings = name ^ "_bindings" in
   let name_stubs = name ^ "_stubs" in
 
@@ -73,4 +72,3 @@ let cstubs ?available ?(deps = []) ?(headers = []) ?(cflags = []) ?(clibs = [])
     As_flags.(cclib link_flags @@@ stub name_stubs) in
   (* FIXME: which action ? *)
   lib name ~flags ?available (`Units [bindings; ml_stubs; c_stubs; main])
-*)

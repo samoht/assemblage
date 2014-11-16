@@ -63,7 +63,7 @@ let cmd =
   let man =
     [ `S "DESCRIPTION";
       `P "The $(b,setup) command generates a build system to build the
-          products defined in an assemble.ml file. An initial configuration
+          parts defined in an assemble.ml file. An initial configuration
           for the build system can be specified on the command line by
           specifying configuration keys using the flags described below."; ]
   in

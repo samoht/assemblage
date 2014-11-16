@@ -506,7 +506,7 @@ let warn_error =
   build_properties_key "warn-error" bool (const false) ~doc ~docv:"BOOL"
 
 let test =
-  let doc = "Build test build products." in
+  let doc = "Build test parts." in
   build_properties_key "test" bool (const false) ~doc ~docv:"BOOL"
 
 let doc =

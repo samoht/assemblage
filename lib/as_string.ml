@@ -174,4 +174,10 @@ let make_unique_in ?(suff = "~") set elt =
     None
   with Exit -> Some !candidate
 
+let list_uniq ss =
+  let add (seen, ss as acc) v =
+    if Set.mem v seen then acc else (Set.add v seen, v :: ss)
+  in
+  List.rev (snd (List.fold_left add (Set.empty, []) ss))
+
 module Map = Map.Make (String)

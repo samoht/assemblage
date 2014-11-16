@@ -44,8 +44,7 @@ val eval_key : t -> 'a As_conf.key -> 'a
 (** {1 Configuration dependent value} *)
 
 val version : t -> string
-val products : ?root:bool -> t -> As_path.Set.t
-
+val products : ?kind:[`Src | `Build | `Both] -> t -> As_path.Set.t
 val watermark_string : ?suffix:string -> t -> string
 val pp_signature : Format.formatter -> t -> unit
 

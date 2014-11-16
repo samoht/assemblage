@@ -17,17 +17,14 @@
 let str = Printf.sprintf
 open Asd_ocaml_incl
 
-let init args = [] (* TODO *)
-(*
+let init args =
   match As_args.get (`Pp `Byte) args with
   | [] -> Clflags.preprocessor := None;
   | pp ->
     let pp = String.concat " " pp in
     Clflags.preprocessor := Some (str "camlp4o %s" pp)
-*)
 
-let modules ~build_dir unit = [] (* TODO *)
-(*
+let modules ~build_dir unit = []
   let r = As_ocamlfind.resolver `Direct  ~build_dir () in
   let () = init (As_part.flags (`Unit unit) r) in
   let aux ext =
@@ -52,4 +49,3 @@ let modules ~build_dir unit = [] (* TODO *)
     else if As_part.Unit.has `Ml unit then aux `Ml
     else As_string.Set.empty in
     As_string.Set.elements set
-*)

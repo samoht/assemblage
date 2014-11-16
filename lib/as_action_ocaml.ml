@@ -21,36 +21,6 @@ open As_acmd.Args
 type includes = As_path.t list
 type name = As_path.t
 
-(* Global options
-
-let debug_opt =
-  let opt debug = add_if debug "-g" [] in
-  As_conf.(const opt $ (value debug))
-
-let compile_common =
-  let opts warn_error ocaml_annot debug =
-    adds_if warn_error [ "-warn-error"; "+a" ] @@
-    add_if ocaml_annot "-bin_annot" @@
-    debug
-  in
-  As_conf.(const opts $ (value warn_error) $ (value ocaml_annot) $ debug_opt)
-
-let compile_with_incs incs rest =
-  add compile_common @@ add (paths_args ~opt:"-I" incs) @@ rest
-
-let mli_compiler = (* don't fail if ocamlc is not available *)
-  let open As_conf in
-  let comp = pick_if (value ocaml_native) (value ocamlopt) (value ocamlc) in
-  key ~public:false "ocamlc-mli" string comp
-
-let c_compiler = (* don't fail if ocamlc is not available *)
-  let open As_conf in
-  let comp = pick_if (value ocaml_native) (value ocamlopt) (value ocamlc) in
-  key ~public:false "ocamlc-c" string comp
-
-*)
-
-
 (* Preprocess *)
 
 let compile_src_ast ?(needs = []) ?(args = []) ~dumpast src_kind ~src () =

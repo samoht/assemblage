@@ -31,6 +31,7 @@ val ( @@@ ) : t -> t -> t
 val concat : t list -> t
 val deps : t -> As_conf.Key.Set.t
 val for_ctx : As_conf.t -> As_ctx.t -> t -> string list
+val pp : As_conf.t -> Format.formatter -> t -> unit
 
 (** {1 Built-in argument bundles} *)
 

@@ -58,10 +58,11 @@ val exists : 'a t -> bool As_conf.value
 val meta : 'a t -> meta
 val get_meta : (meta -> 'a option) -> 'b t -> 'a
 val needs : 'a t -> kind t list
+val root : 'a t -> As_path.rel As_conf.value
+val root_path : 'a t -> As_path.t As_conf.value
 val args : 'a t -> As_args.t
 val actions : 'a t -> As_action.t list As_conf.value
 val check : 'a t -> bool As_conf.value
-val products : ?exts:As_path.ext list -> 'a t -> As_path.t list As_conf.value
 val id : 'a t -> int
 val equal : 'a t -> 'b t -> bool
 val compare : 'a t -> 'b t -> int
@@ -71,11 +72,9 @@ val redefine :
   ?check:(kind t -> bool As_conf.value) ->
   ?actions:(kind t -> As_action.t list As_conf.value) -> 'a t -> 'a t
 
-(** {1 Part root directory} *)
+(** {1 Part integration} *)
 
-val root : 'a t -> As_path.rel As_conf.value
-val rooted : ?ext:As_path.ext -> 'a t -> string -> As_path.t As_conf.value
-val with_root : As_path.rel As_conf.value -> 'a t -> 'a t
+val integrate : ?add_need:(kind t -> bool) -> 'a t -> 'b t -> 'a t
 
 (** {1 Coercions} *)
 
@@ -89,8 +88,6 @@ val file : ?usage:usage -> ?exists:bool As_conf.value -> As_path.t ->
 
 (** {1 Part lists} *)
 
-val list_products : ?exts:As_path.ext list -> 'a t list ->
-  As_path.t list As_conf.value
 val list_uniq : kind t list -> kind t list
 val list_keep : ('a t -> bool) -> 'a t list -> 'a t list
 val list_keep_map : ('a t -> 'b option) -> 'a t list -> 'b list

@@ -53,10 +53,6 @@ let ocaml = is_kind `OCaml
 let js = is_kind `Js
 let c = is_kind `C
 
-let src e unit =               (* source file for the unit with extention e *)
-  let mk_file d = As_path.(d / (As_part.name unit) + e) in
-  As_conf.(const mk_file $ dir unit)
-
 (* Check *)
 
 let check p =
@@ -114,59 +110,92 @@ let check p =
       ocaml_rules `Mli env u @ ocaml_rules `Ml env u
 *)
 
-let add_if c f v acc = if c then (f v) :: acc else acc
+let js_actions unit src_dir dst_dir =
+  let actions link src_dir dst_dir =
+    let name = As_part.name unit in
+    let src = As_path.(src_dir / name + `Js) in
+    let dst = As_path.(dst_dir / name + `Js) in
+    [link src dst]
+  in
+  As_conf.(const actions $ As_action.link $ src_dir $ dst_dir)
 
-let js_actions unit =
-  let src = src `Js unit in
-  let dst = As_part.rooted unit (As_part.name unit) ~ext:`Js in
-  As_conf.(As_action.link $ src $ dst)
-
-let c_actions spec unit = []
-(*
+let c_actions spec unit src_dir dst_dir =
   (* FIXME for C I think we want to distinguish two backends
      one that goes through ocamlc and the other who goes to Conf.cc.
-     This should be reflected in the metadata. *)
-  let has_h, has_c = match spec with
-  | `H -> true, false | `C -> false, true | `Both -> true, true
+     Maybe this should be reflected in the metadata. *)
+  let actions link ocamlc ocamlopt native debug warn_error src_dir dst_dir =
+    let open As_acmd.Args in
+    As_log.warn "Full C unit part support is TODO";
+    let has_h, has_c = match spec with
+    | `H -> true, false | `C -> false, true | `Both -> true, true
+    in
+    let name = As_part.name unit in
+    let src_h = As_path.(src_dir / name + `H) in
+    let src_c = As_path.(src_dir / name + `C) in
+    let h = As_path.(dst_dir / name + `H) in
+    let c = As_path.(dst_dir / name + `C) in
+    (* ccomp is here so that we don't fail if we don't have ocamlc *)
+    let ccomp = if native then ocamlopt else ocamlc in
+    let args =
+      add_if debug "-g" @@ adds_if warn_error [ "-ccopt"; "-Werror" ] @@ []
+    in
+    add_if has_h (link src_h h) @@
+    add_if has_c (link src_c c) @@
+    fadd_if has_c
+      (As_action_ocaml.compile_c ~args ~ocamlc:ccomp ~src:c) () @@ []
   in
-  let src_h = src `H unit in
-  let src_c = src `C unit in
-  let dst_h = As_part.rooted unit (As_part.name unit) ~ext:`H in
-  let dst_c = As_part.rooted unit (As_part.name unit) ~ext:`C in
-  add_if has_h (As_action.link ~src:src_h ~dst:dst_h) () @@
-  add_if has_c (As_action.link ~src:src_c ~dst:dst_c) () @@
-  []
-*)
+  As_conf.(const actions $ As_action.link $
+           As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $ value ocaml_native $
+           value debug $ value warn_error $
+           src_dir $ dst_dir)
 
-let ocaml_actions spec unit = []
-(*
-  let has_mli, has_ml = match spec with
-  | `Mli -> true, false | `Ml -> false, true | `Both -> true, true
+let ocaml_actions spec unit src_dir dst_dir =
+  let actions link ocamlc ocamlopt debug warn_error annot byte native src_dir
+      dst_dir =
+    let open As_acmd.Args in
+    let has_mli, has_ml = match spec with
+    | `Mli -> true, false | `Ml -> false, true | `Both -> true, true
+    in
+    let name = As_part.name unit in
+    let src_mli = As_path.(src_dir / name + `Mli) in
+    let src_ml = As_path.(src_dir / name + `Ml) in
+    let mli = As_path.(dst_dir / name + `Mli) in
+    let ml = As_path.(dst_dir / name + `Ml) in
+    (* mlicomp is here so that we don't fail if we don't have ocamlc *)
+    let mlicomp = if native then ocamlopt else ocamlc in
+    let byte_annot = byte && not native (* otherwise it trips make *) in
+    let args =
+      add_if debug "-g" @@ adds_if warn_error [ "-warn_error"; "+a" ] @@ []
+    in
+    let incs = [] in (* FIXME *)
+    add_if has_mli (link src_mli mli) @@
+    add_if has_ml (link src_ml ml) @@
+    fadd_if has_mli
+      (As_action_ocaml.compile_mli
+         ~ocamlc:mlicomp ~args ~annot ~incs ~src:mli) () @@
+    fadd_if (has_ml && byte)
+      (As_action_ocaml.compile_ml_byte
+         ~ocamlc ~args ~annot:byte_annot ~has_mli ~incs ~src:ml) () @@
+    fadd_if (has_ml && native)
+      (As_action_ocaml.compile_ml_native
+         ~ocamlopt ~args ~annot ~has_mli ~incs ~src:ml) () @@
+    []
   in
-  let has_mli_v = As_conf.(const has_mli) in
-  let incs = As_conf.(const []) in (* FIXME *)
-  let src_mli = src `Mli unit in
-  let src_ml = src `Ml unit in
-  let mli = As_part.rooted unit (As_part.name unit) ~ext:`Mli in
-  let ml = As_part.rooted unit (As_part.name unit) ~ext:`Ml in
-  add_if has_mli (As_action.link ~src:src_mli ~dst:mli) () @@
-  add_if has_ml (As_action.link ~src:src_ml ~dst:ml) () @@
-  add_if has_mli (As_action_ocaml.compile_mli ~incs ~src:mli) () @@
-  add_if has_ml (As_action_ocaml.compile_ml_byte
-                   ~has_mli:has_mli_v ~incs ~src:ml) () @@
-  add_if has_ml (As_action_ocaml.compile_ml_native
-                   ~has_mli:has_mli_v ~incs ~src:ml) () @@
-  []
-*)
+  As_conf.(const actions $ As_action.link $
+           As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $
+           value debug $ value warn_error $
+           value ocaml_annot $ value ocaml_byte $ value ocaml_native $
+           src_dir $ dst_dir)
 
-let actions p = As_conf.const []
-(*
+let actions p =
   let unit = As_part.coerce `Unit p in
+  let src_dir = dir unit in
+  let dst_dir = As_part.root_path unit in
   match kind unit with
-  | `C spec -> c_actions spec unit
-  | `Js -> js_actions unit
-  | `OCaml (spec, _) -> ocaml_actions spec unit
-*)
+  | `C spec -> c_actions spec unit src_dir dst_dir
+  | `Js -> js_actions unit src_dir dst_dir
+  | `OCaml (spec, _) -> ocaml_actions spec unit src_dir dst_dir
+
 (* Create *)
 
 let v ?usage ?exists ?args ?needs ?dir name kind =
