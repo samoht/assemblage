@@ -79,6 +79,7 @@ val list_uniq : string list -> string list
 module Set : sig
   include Set.S with type elt = string
   val of_list : string list -> t
+  (** [of_list ss] is a set from the list [ss]. *)
 end
 
 val make_unique_in : ?suff:string -> Set.t -> string -> string option
@@ -89,4 +90,8 @@ val make_unique_in : ?suff:string -> Set.t -> string -> string option
     defaults to ["~"].  [None] in the unlikely case that all positive
     numbers were exhausted. *)
 
-module Map : Map.S with type key = string
+module Map : sig
+  include Map.S with type key = string
+  val dom : 'a t -> Set.t
+  (** [dom m] is the domain of [m]. *)
+end

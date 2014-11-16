@@ -108,4 +108,7 @@ module Set : sig
   val of_list : elt list -> t
 end
 
-module Map : Map.S with type key = kind t
+module Map : sig
+  include Map.S with type key = kind t
+  val dom : 'a t -> Set.t
+end

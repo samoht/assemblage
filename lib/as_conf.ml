@@ -123,7 +123,10 @@ module Key = struct
     let of_list = List.fold_left (fun acc s -> add s acc) empty
   end
 
-  module Map = Kmap
+  module Map = struct
+    include Kmap
+    let dom m = fold (fun k _ acc -> Set.add k acc) m Set.empty
+  end
 end
 
 let pp_key_dup ppf (Key.V k) = As_fmt.pp ppf
@@ -189,9 +192,7 @@ let get c k = match find c k with
 | None -> invalid_arg (str "no key named %s in configuration" (Key.name k))
 | Some v -> v
 
-let domain c =
-  let add key _ acc = Kset.add key acc in
-  Kmap.fold add c Kset.empty
+let domain c = Key.Map.dom c
 
 let of_keys s =
   let add (Key.V kt as k) acc =

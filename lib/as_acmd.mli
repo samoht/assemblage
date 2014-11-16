@@ -35,6 +35,7 @@ val stdin : t -> As_path.t option
 val stdout : t -> As_path.t option
 val stderr : t -> As_path.t option
 
+val pp : Format.formatter -> t -> unit
 val ctx : As_ctx.t -> t -> As_ctx.t
 val args_with_ctx : As_conf.t -> As_ctx.t -> As_args.t -> t -> string list
 

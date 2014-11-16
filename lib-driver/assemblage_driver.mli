@@ -125,7 +125,7 @@ module Loader : sig
 
   val load : ?level:Log.level -> t -> unit Cmd.result
   (** [load l] loads according to settings [l]. [level] indicates
-      with which level file loads are logged, defaults to {!Level.Show}. *)
+      with which level file loads are logged, defaults to {!Level.Info}. *)
 
   val pp : Format.formatter -> t -> unit
   (** [pp ppf l] prints an unspecified representation of [l] on [ppf]. *)

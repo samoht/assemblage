@@ -66,7 +66,11 @@ module Set = struct
   let of_list = List.fold_left (fun acc s -> add s acc) empty
 end
 
-module Map = Map.Make (Part)
+module Map = struct
+  include Map.Make (Part)
+  let dom m = fold (fun k _ acc -> Set.add k acc) m Set.empty
+end
+
 
 (* Part *)
 

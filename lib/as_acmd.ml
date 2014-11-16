@@ -38,6 +38,18 @@ let stdin c = c.stdin
 let stdout c = c.stdout
 let stderr c = c.stderr
 
+let pp ppf c =
+  let pp_redir fdname ppf = function
+  | None -> ()
+  | Some p -> As_fmt.pp ppf "%s %s" fdname (As_path.to_string p)
+  in
+  As_fmt.pp ppf "@[%s: @[%s @[%a%a%a%a@]@]@]"
+    (As_conf.Key.name c.bin_key) c.bin
+    As_fmt.(pp_list ~pp_sep:pp_sp pp_str) c.args
+    (pp_redir "<") c.stdin
+    (pp_redir "1>") c.stdout
+    (pp_redir "2>") c.stderr
+
 let ctx context c = As_ctx.add (`Cmd c.bin_key) context
 let args_with_ctx conf context args c =
   let injected = As_args.for_ctx conf (ctx context c) args in
@@ -64,14 +76,6 @@ module Args = struct
 end
 
 (** {1 Portable system utility invocations} *)
-
-(*
-let add v acc = v :: acc
-let add_if b v acc = if b then v :: acc else acc
-let path_arg p = As_path.to_string p               (* FIXME quoting issues. *)
-let paths_args_rev ps = List.rev_map As_path.to_string ps
-let paths_args ps = List.rev (paths_args_rev ps)
-*)
 
 open Args
 

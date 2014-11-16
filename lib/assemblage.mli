@@ -110,7 +110,11 @@ module String : sig
       defaults to ["~"].  [None] in the unlikely case that all
       positive numbers were exhausted. *)
 
-  module Map : Map.S with type key = string
+  module Map : sig
+    include Map.S with type key = string
+    val dom : 'a t -> Set.t
+    (** [dom m] is the domain of [m]. *)
+  end
 end
 
 (** Formatters. *)
@@ -516,8 +520,11 @@ module Path : sig
       val of_list : elt list -> t
     end
 
-    module Map : Map.S with type key = rel
-
+    module Map : sig
+      include Map.S with type key = rel
+      val dom : 'a t -> Set.t
+      (** [dom m] is the domain of [m]. *)
+    end
   end
 
   (** {1:abs Absolute paths} *)
@@ -624,7 +631,11 @@ module Path : sig
       val of_list : elt list -> t
     end
 
-    module Map : Map.S with type key = abs
+    module Map : sig
+      include Map.S with type key = abs
+      val dom : 'a t -> Set.t
+      (** [dom m] is the domain of [m]. *)
+    end
   end
 
   (** {1:sets_maps Path sets and maps} *)
@@ -634,7 +645,11 @@ module Path : sig
     val of_list : elt list -> t
   end
 
-  module Map : Map.S with type key = t
+  module Map : sig
+    include Map.S with type key = t
+    val dom : 'a t -> Set.t
+    (** [dom m] is the domain of [m]. *)
+  end
 end
 
 (** Assemblage log.
@@ -1809,9 +1824,6 @@ module Action : sig
       must ensure that it only reads from the [inputs] and solely writes to
       [outputs]. *)
 
-  val log : t -> string option
-  (** [log a] is [a]'s high-level logging string (if any). *)
-
   val ctx : t -> Ctx.t
   (** [ctx a] is [a]'s context. *)
 
@@ -1823,6 +1835,9 @@ module Action : sig
 
   val cmds : t -> Acmd.t list
   (** [cmds a] is [a]'s commands to generate outputs from the inputs. *)
+
+  val log : t -> string option
+  (** [log a] is [a]'s high-level logging string (if any). *)
 
   val products : t -> Path.t list
   (** [products a] is [inputs a @ outputs a] but tail recursive. *)
@@ -2186,7 +2201,11 @@ module Part : sig
     val of_list : kind part list -> t
   end
 
-  module Map : Map.S with type key = kind part
+  module Map : sig
+    include Map.S with type key = kind part
+    val dom : 'a t -> Set.t
+    (** [dom m] is the domain of [m]. *)
+  end
 end
 
 (** Compilation unit part.
@@ -2863,7 +2882,11 @@ module Private : sig
         val of_list : elt list -> t
       end
 
-      module Map : Map.S with type key = t
+      module Map : sig
+        include Map.S with type key = t
+        val dom : 'a t -> Set.t
+        (** [dom m] is the domain of [m]. *)
+      end
     end
 
     (** {1:configurations Configurations} *)
@@ -2988,6 +3011,9 @@ module Private : sig
     val stderr : t -> Path.t option
     (** [stderr c] is [c]'s stderr redirection (if any). *)
 
+    val pp : Format.formatter -> t -> unit
+    (** [pp ppf c] prints an unspecified representation of [c] on [ppf]. *)
+
     (** {1 Argument bundle injection} *)
 
     val ctx : Ctx.t -> t -> Ctx.t
@@ -3012,6 +3038,10 @@ module Private : sig
 
     val args : t -> Args.t
     (** [args a] is [a]'s argument bundle. *)
+
+    val pp : Conf.t -> Format.formatter -> t -> unit
+    (** [pp conf ppf a] prints an unspecified representation of
+        [a] in context [conf] on [ppf]. *)
   end
 
   (** Parts. *)
@@ -3087,10 +3117,11 @@ module Private : sig
     val version : project -> string
     (** [version p] evaluates {!Conf.project_version} *)
 
-    val products : ?kind:[`Src | `Build | `Both] -> project -> Path.Set.t
+    val products : ?kind:[`Source | `Input | `Output | `Any ] -> project ->
+      Path.Set.t
     (** [products kind p] is the set of products known to the project
         in the current configuration. [kind] can be used to select
-        source, build or both kind of products, defaults to [`Both]. *)
+        source, input, output or all kind of products, defaults to [`Any]. *)
 
     val watermark_string : ?suffix:string -> t -> string
     (** [watermark_string suffix p] is a watermark that can be used in

@@ -334,7 +334,7 @@ module Loader = struct
     Toploop.set_paths ();
     all_incs l >>= fun incs -> List.iter add_include incs; loop l.files
 
-  let load ?(level = Log.Show) l =
+  let load ?(level = Log.Info) l =
     Log.info ~header "%a with auto-lib: %b" pp_kind l.kind l.auto_lib;
     match l.kind with `Toplevel -> toplevel_load level l
 
@@ -394,9 +394,8 @@ module Driver = struct
     match Term.eval_peek_opts ~version_opt t with
     | None, _ -> None, ret (`Ok ())
     | Some (lib_prefs, loader as v), res ->
-        let level = if res = `Help then Log.Info else Log.Show in
         Lib_prefs.set lib_prefs;
-        match Loader.load ~level loader with
+        match Loader.load loader with
         | `Ok () as r -> Some v, ret r
         | `Error msg -> None, ret (`Error (false, msg))
 

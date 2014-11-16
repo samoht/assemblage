@@ -66,7 +66,10 @@ module Key : sig
     val of_list : elt list -> t
   end
 
-  module Map : Map.S with type key = t
+  module Map : sig
+    include Map.S with type key = t
+    val dom : 'a t -> Set.t
+  end
 end
 
 val key : ?public:bool -> ?docs:string -> ?docv:string -> ?doc:string ->

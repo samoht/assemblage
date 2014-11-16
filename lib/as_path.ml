@@ -286,7 +286,10 @@ module Rel = struct
     let of_list = List.fold_left (fun acc s -> add s acc) empty
   end
 
-  module Map = Map.Make (Path)
+  module Map = struct
+    include Map.Make (Path)
+    let dom m = fold (fun k _ acc -> Set.add k acc) m Set.empty
+  end
 end
 
 module Abs = struct
@@ -342,7 +345,10 @@ module Abs = struct
     let of_list = List.fold_left (fun acc s -> add s acc) empty
   end
 
-  module Map = Map.Make (Path)
+  module Map = struct
+    include Map.Make (Path)
+    let dom m = fold (fun k _ acc -> Set.add k acc) m Set.empty
+  end
 end
 
 (** {1 Sets and maps} *)
@@ -358,4 +364,7 @@ module Set = struct
   let of_list = List.fold_left (fun acc s -> add s acc) empty
 end
 
-module Map = Map.Make (Path)
+module Map = struct
+  include Map.Make (Path)
+  let dom m = fold (fun k _ acc -> Set.add k acc) m Set.empty
+end

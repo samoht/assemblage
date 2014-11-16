@@ -69,21 +69,22 @@ let eval_key p k = eval p (As_conf.value k)
 
 let version p = eval_key p As_conf.project_version
 
-let products ?(kind = `Both) proj =
+let products ?(kind = `Any) proj =
   let add_path acc p = As_path.Set.add p acc in
   let add_part acc part =
-    let add_action (i, o) acts =
-      List.fold_left add_path i (As_action.inputs acts),
-      List.fold_left add_path o (As_action.outputs acts)
+    let add_action (i, o) act =
+      List.fold_left add_path i (As_action.inputs act),
+      List.fold_left add_path o (As_action.outputs act)
     in
     List.fold_left add_action acc (eval proj (As_part.actions part))
   in
   let init = As_path.Set.empty, As_path.Set.empty in
   let i, o = As_part.list_fold add_part init (parts proj) in
   match kind with
-  | `Both -> As_path.Set.union i o
-  | `Src -> As_path.Set.diff i o
-  | `Build -> o
+  | `Any -> As_path.Set.union i o
+  | `Source -> As_path.Set.diff i o
+  | `Input -> i
+  | `Output -> o
 
 let watermark_string ?suffix p =
   let suffix = match suffix with

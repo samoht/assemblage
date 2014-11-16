@@ -142,7 +142,10 @@ module Rel : sig
     val of_list : elt list -> t
   end
 
-  module Map : Map.S with type key = rel
+  module Map : sig
+    include Map.S with type key = rel
+    val dom : 'a t -> Set.t
+  end
 end
 
 (** {1 Absolute paths} *)
@@ -197,7 +200,10 @@ module Abs : sig
     val of_list : elt list -> t
   end
 
-  module Map : Map.S with type key = abs
+  module Map : sig
+    include Map.S with type key = abs
+    val dom : 'a t -> Set.t
+  end
 end
 
 (** {1 Path sets and maps} *)
@@ -207,4 +213,7 @@ module Set : sig
   val of_list : elt list -> t
 end
 
-module Map : Map.S with type key = t
+module Map : sig
+  include Map.S with type key = t
+  val dom : 'a t -> Set.t
+end

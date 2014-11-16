@@ -83,6 +83,7 @@ let bin_assemblage =
       unit "cmd_base";
       unit "cmd_build";
       unit "cmd_describe";
+      unit "cmd_product";
       unit "cmd_help";
       unit "cmd_setup";
       unit "main" ~kind:(`OCaml (`Ml, `Normal));

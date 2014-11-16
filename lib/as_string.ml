@@ -180,4 +180,7 @@ let list_uniq ss =
   in
   List.rev (snd (List.fold_left add (Set.empty, []) ss))
 
-module Map = Map.Make (String)
+module Map = struct
+  include Map.Make (String)
+  let dom m = fold (fun k _ acc -> Set.add k acc) m Set.empty
+end

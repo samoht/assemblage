@@ -59,7 +59,7 @@ let of_project p : t =
   let pkgs = project_ocamlfind_pkgs p in
   let rev_pkgs = String.Set.fold (fun pkg acc -> `PKG pkg :: acc) pkgs [] in
   let rev_ss =
-    let srcs = Project.products ~kind:`Src p in
+    let srcs = Project.products ~kind:`Source p in
     let add_dir p acc = match Path.ext p with
     | Some (`Ml | `Mli) -> Path.Set.add (Path.dirname p) acc
     | _ -> acc
@@ -68,7 +68,7 @@ let of_project p : t =
     Path.(Set.fold (fun p acc -> `S (to_string p) :: acc) ss [])
   in
   let rev_bs =
-    let builds = Project.products ~kind:`Build p in
+    let builds = Project.products ~kind:`Output p in
     let add_dir p acc = match Path.ext p with
     | Some (`Cmi | `Cmti | `Cmt) -> Path.Set.add (Path.dirname p) acc
     | _ -> acc
