@@ -72,8 +72,8 @@ let pkg ?usage ?exists ?args ?(kind = `OCaml `OCamlfind) name =
 let doc ?usage ?exists ?args ?keep ?(kind = `OCamldoc) name needs =
   Doc.v ?usage ?exists ?args ?keep name kind needs
 
-let dir ?usage ?exists ?args ?keep ?install kind needs =
-  Dir.v ?usage ?exists ?args ?keep ?install kind needs
+let dir ?usage ?exists ?args ?spec ?install kind needs =
+  Dir.v ?usage ?exists ?args ?spec ?install kind needs
 
 let file ?usage ?exists p =
   Part.file ?usage ?exists p

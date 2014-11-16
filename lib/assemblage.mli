@@ -2124,6 +2124,11 @@ module Part : sig
       {b Warning.} As far as [Assemblage] is concerned
       this is equivalent to Obj.magic. *)
 
+  (** {1 File part} *)
+
+  val file : ?usage:usage -> ?exists:bool Conf.value -> Path.t -> [> `Base] part
+  (** [file p] is a part with a noop action that inputs [p]. *)
+
   (** {1 Part integration} *)
 
   val integrate : ?add_need:(kind part -> bool) -> 'a part -> 'b part -> 'a part
@@ -2144,14 +2149,6 @@ module Part : sig
   val coerce_if : ([< kind] as 'b) -> 'a part -> 'b part option
   (** [coerce_if k p] is [Some] if [p] is of kind [k] and
       [None] otherwise. *)
-
-  (** {1 File part}
-
-      FIXME this part is semantically wrong.
-  *)
-
-  val file : ?usage:usage -> ?exists:bool Conf.value -> Path.t -> [> `Base] part
-  (** [file p] is a part whose output is [p]. *)
 
   (** {1 Part lists} *)
 
@@ -2503,9 +2500,10 @@ end
 (** Directory part.
 
     A directory part defines a clean directory in which a selection of
-    part outputs can be gathered. Directory parts can be marked as
-    being {!install}able. Drivers can use this information to devise
-    an installation procedure for your project's outcomes. *)
+    part products (both source and build) can be gathered and
+    renamed. Directory parts can be marked as being
+    {!install}able; drivers can use this information to devise an
+    installation procedure for your project's outcomes. *)
 module Dir : sig
 
   (** {1 Metadata} *)
@@ -2529,33 +2527,33 @@ module Dir : sig
 
   (** {1 Directory specifiers}
 
-      Directory specifiers take a part and an output that belong
-      to that part and indicate whether the output should be
-      part of the directory and under which name (or path).
-
       FIXME a few combinators to quickly devise spec values
       would be welcome, e.g. put a specific part in sub directory, etc.  *)
 
-  type spec = Part.kind Part.t -> (Path.t ->
-    [ `Keep | `Rename of Path.rel | `Drop]) Conf.value
-  (** The type for directory specifiers. Given a part it returns
-      a value that has a function that given an output of the part
-      returns:
-      {ul
-      {- [`Drop] to drop the product from the directory.}
-      {- [`Keep] to keep the product in the directory with its basename.}
-      {- [`Rename p] to keep the product in the directory but rename it
-         to [p], where [p] is a file path relative to the directory.}} *)
+  type spec = Part.kind Part.t -> (Path.t * Path.rel option) list Conf.value
+  (** The type for directory specifier.
+
+      Given a part [p] it returns a list of tuples [(prod, path)],
+      where [prod] is a product of [p] to add to the directory and
+      [path] specifies under which name, relative to the directory, it
+      should be added. If [path] is [None] and [prod] is in [p]'s
+      build root directory, the path relative to this directory is used. *)
 
   val all : spec
-  (** [all] is a specifier that [`Keep]s any product of any part. *)
+  (** [all] is a specifier that keeps any product of any part. *)
+
+  val all_output : spec
+  (** [all_output] is a specifier that keeps any output product of any part. *)
+
+  val all_input : spec
+  (** [all_input] is a specifier that keeps any input product of any part. *)
 
   val file_exts : Path.ext list -> spec
-  (** [file_exts exts] is a specifiers that keeps, in any part,
+  (** [file_exts exts] is a specifier that keeps, in any part,
       products that have an extension in [exts]. *)
 
   val bin : spec
-  (** [bin] is {!all} except in the following cases:
+  (** [bin] is {!all_output} except in the following cases:
       {ul
       {- For [`Bin] parts of kind [`OCaml] keeps only one of the
          byte and native code executable without its extension. If
@@ -2564,7 +2562,7 @@ module Dir : sig
          executable.}} *)
 
   val lib : spec
-  (** [lib] is {!all} except in the following cases:
+  (** [lib] is {!all_output} except in the following cases:
       {ul
       {- For [`Lib] parts of kind [`OCaml], keeps only the library's
          archives and the library's unit's [cmx], [cmi] and [cmti]
@@ -2573,14 +2571,20 @@ module Dir : sig
       {- For [`Lib] parts of kind [`C], keeps only the library's
          archives.}} *)
 
+  val doc : spec
+  (** [doc] is {!all} except in the following cases:
+      {ul
+      {- For [`Doc] parts of kind [`OCamldoc] it is {!any_output}.}} *)
+
   (** {1 Dir} *)
 
   val v : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
-    ?keep:spec -> ?install:bool -> kind ->
+    ?spec:spec -> ?install:bool -> kind ->
     [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] part list ->
     [> `Dir ] part
-  (** [v keep install kind needs] is a directory of type [kind] that
-      gathers the products of existing [needs] as filtered by [keep].
+  (** [v spec install kind needs] is a directory of type [kind] that
+      gathers the products of existing [needs] as determined by
+      the directory specifier [spec].
 
       If [install] is [true] the directory structure is meant to be
       installed at a root location defined by [kind]. [install]
@@ -2590,10 +2594,11 @@ module Dir : sig
       in the obvious way. For [`Other p] the name is the basename of
       [p].
 
-      The default for [keep] depends in [kind] as follows:
+      The default for [spec] depends in [kind] as follows:
       {ul
       {- [`Bin], {!bin} is used.}
       {- [`Lib], {!lib} is used.}
+      {- [`Doc], {!doc} is used.}
       {- Otherwise, {!all} is used.}}
 
       {b Note.} Due to the way assemblage and ocamldoc work, trying
@@ -2658,16 +2663,13 @@ val doc : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
 (** See {!Doc.v}. [kind] defaults to [`OCamldoc]. *)
 
 val dir : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t->
-  ?keep:Dir.spec -> ?install:bool -> Dir.kind ->
+  ?spec:Dir.spec -> ?install:bool -> Dir.kind ->
   [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] part list -> [> `Dir ] part
 (** See {!Dir.v}. *)
 
 val file : ?usage:Part.usage -> ?exists:bool Conf.value -> Path.t ->
   [> `Base] part
-(** See {!Base.file}. FIXME the only use I have for this is to be able
-    to put files in {!dir}. Is there a better way ? Also the way
-    it is implemented (action without cmds and inputs) means we need
-    to clarify these edges cases for drivers. *)
+(** See {!Part.file}. *)
 
 val run : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
   ?dir:path -> string -> Action.t -> [> `Run] part

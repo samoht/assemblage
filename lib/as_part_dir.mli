@@ -29,19 +29,22 @@ val pp_kind : Format.formatter -> kind -> unit
 val kind : [< `Dir] As_part.t -> kind
 val install : [< `Dir] As_part.t -> bool
 
-(** {1 Directory specifiers} *)
+(** {1 Product selectors} *)
 
 type spec = As_part.kind As_part.t ->
-  (As_path.t -> [ `Keep | `Rename of As_path.rel | `Drop]) As_conf.value
+  (As_path.t * As_path.rel option) list As_conf.value
 
 val all : spec
+val all_output : spec
+val all_input : spec
 val file_exts : As_path.ext list -> spec
 val bin : spec
 val lib : spec
+val doc : spec
 
 (** {1 Dir} *)
 
 val v : ?usage:As_part.usage -> ?exists:bool As_conf.value -> ?args:As_args.t ->
-  ?keep:spec -> ?install:bool -> kind ->
+  ?spec:spec -> ?install:bool -> kind ->
   [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] As_part.t list ->
   [> `Dir ] As_part.t

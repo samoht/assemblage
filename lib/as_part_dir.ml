@@ -50,105 +50,143 @@ let install p = (get_meta p).install
 (* Directory specifiers *)
 
 type spec = As_part.kind As_part.t ->
-  (As_path.t -> [ `Keep | `Rename of As_path.rel | `Drop]) As_conf.value
+  (As_path.t * As_path.rel option) list As_conf.value
 
-let all _ = As_conf.(const (fun _ -> `Keep))
+let keep_if kind pred p =
+  let keep_if acts =
+    let add acc p = if pred p then (p, None) :: acc else acc in
+    List.(rev (fold_left add [] (kind acts)))
+  in
+  As_conf.(const keep_if $ As_part.actions p)
 
-let keep_if pred = As_conf.const (fun f -> if pred f then `Keep else `Drop)
-let file_exts exts _ = keep_if (As_path.ext_matches exts)
+let keep_map kind f p =
+  let keep_map f acts =
+    let add acc p = match f p with None -> acc | Some spec -> spec :: acc in
+    List.(rev (fold_left add [] (kind acts)))
+  in
+  As_conf.(const keep_map $ f $ As_part.actions p)
+
+let all kind p =
+  let all acts = List.(rev (rev_map (fun p -> p, None) (kind acts))) in
+  As_conf.(const all $ As_part.actions p)
+
+let all_input = all As_action.list_inputs
+let all_output = all As_action.list_outputs
+let all = all As_action.list_products
+
+let file_exts exts = keep_if As_action.list_products (As_path.ext_matches exts)
+
+let relativize root p = match As_path.rem_prefix root p with
+| None -> As_path.Rel.file (As_path.basename p)
+| Some p -> p
 
 let bin p = match As_part.coerce_if `Bin p with
-| None -> all p
+| None -> all_output p
 | Some bin ->
     match As_part_bin.kind bin with
-    | `OCaml_toplevel -> (* FIXME *) all p
+    | `OCaml_toplevel -> all_output p (* FIXME *)
     | `OCaml ->
-        let rename ocaml_native f =
-          let rename f = `Rename As_path.(Rel.file (basename (rem_ext f))) in
+        let spec ocaml_native root f =
+          let rename f = f, Some (As_path.Rel.rem_ext (relativize root f)) in
           match As_path.ext f with
-          | Some `Byte when As_part_bin.native bin && ocaml_native -> `Drop
-          | Some `Byte -> rename f
-          | Some `Native -> rename f
-          | _ -> `Drop
+          | Some `Byte when As_part_bin.native bin && ocaml_native -> None
+          | Some `Byte -> Some (rename f)
+          | Some `Native -> Some (rename f)
+          | _ -> None
         in
-        As_conf.(const rename $ value ocaml_native)
+        keep_map As_action.list_outputs
+          As_conf.(const spec $ value ocaml_native $ As_part.root_path bin)
+          bin
     | `C ->
-        let is_exec f = As_path.(basename (rem_ext f)) = As_part.name bin in
-        keep_if is_exec
+      let is_exec f = As_path.(basename (rem_ext f)) = As_part.name bin in
+      keep_if As_action.list_outputs is_exec bin
+
 
 let warn_miss_unit = format_of_string
     "Library@ part@ %s:@ no@ compilation@ unit@ found@ for@ product@ %s"
 
 let lib_ocaml lib f = match As_path.ext f with
-| None -> `Drop
-| Some (`Cma | `Cmxa | `Cmxs | `A | `So | `Dll) -> `Keep
+| None -> None
+| Some (`Cma | `Cmxa | `Cmxs | `A | `So | `Dll) -> Some (f, None)
 | Some (`Cmx | `Cmi | `Cmti as ext) ->
     let unit_name = As_path.(basename (rem_ext f)) in
     begin match As_part_lib.find_unit unit_name lib with
     | None ->
         As_log.warn warn_miss_unit (As_part.name lib) (As_path.to_string f);
-        `Drop
+        None
     | Some u ->
         begin match As_part_unit.kind u with
         | `OCaml (_, interface) ->
             begin match ext, interface with
-            | `Cmx, `Normal -> `Keep
-            | (`Cmi | `Cmti), (`Normal | `Opaque) -> `Keep
-            | _ -> `Drop
+            | `Cmx, `Normal -> Some (f, None)
+            | (`Cmi | `Cmti), (`Normal | `Opaque) -> Some (f, None)
+            | _ -> None
             end
-        | _ -> `Drop
+        | _ -> None
         end
     end
-| _ -> `Drop
+| _ -> None
 
 let lib p = match As_part.coerce_if `Lib p with
-| None -> all p
+| None -> all_output p
 | Some lib ->
     match As_part_lib.kind lib with
     | `C -> file_exts [`Dll; `So; `A] lib
-    | `OCaml | `OCaml_pp -> As_conf.(const (lib_ocaml lib))
+    | `OCaml | `OCaml_pp ->
+        keep_map As_action.list_outputs As_conf.(const (lib_ocaml lib)) lib
+
+let doc p = match As_part.coerce_if `Doc p with
+| None -> all p
+| Some doc when As_part_doc.kind doc = `OCamldoc -> all_output p
+| _ -> all p
 
 (* Checks *)
 
-let check p =
+let check spec p =
   let dir = As_part.coerce `Dir p in
+  (* Here we could check for example that the directory specifier
+     returns only products that belong to the part itself. *)
   As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind dir);
   As_conf.true_
 
 (* Actions *)
 
-let part_links acc symlink exists dir_root keep part_actions =
+let part_links acc symlink exists part_root specs dir_root =
   if not exists then acc else
-  let outputs = As_action.list_outputs part_actions in
-  let add acc output = match keep output with
-  | `Drop -> acc
-  | `Keep -> symlink output As_path.(dir_root / basename output) :: acc
-  | `Rename p -> symlink output As_path.(dir_root // p) :: acc
+  let add acc (src, dst) =
+    let dst = match dst with
+    | Some dst -> dst
+    | None -> relativize part_root src
+    in
+    symlink src As_path.(dir_root // dst) :: acc
   in
-  List.fold_left add acc outputs
+  List.fold_left add acc specs
 
-let actions keep p =
+let actions spec p =
   let dir = As_part.coerce `Dir p in
-  let add_part acc p =
-    As_conf.(const part_links $ acc $ As_action.symlink $ As_part.exists p $
-             As_part.root_path dir $ keep p $ As_part.actions p)
+  let add_part acc part =
+    As_conf.(const part_links $ acc $ As_action.symlink $
+             As_part.exists part $ As_part.root_path part $
+             spec part $ As_part.root_path dir)
   in
   let actions = List.fold_left add_part (As_conf.const []) (As_part.needs p) in
   As_conf.(const List.rev $ actions)
 
 (* Dir *)
 
-let default_keep kind keep = match keep with
-| Some keep -> keep
+let default_spec kind spec = match spec with
+| Some spec -> spec
 | None ->
     match kind with
     | `Bin -> bin
     | `Lib -> lib
+    | `Doc -> doc
     | _ -> all
 
-let v ?usage ?exists ?args ?keep ?install kind needs =
-  let keep = default_keep kind keep in
-  let actions = actions keep in
+let v ?usage ?exists ?args ?spec ?install kind needs =
+  let spec = default_spec kind spec in
+  let actions = actions spec in
+  let check = check spec in
   let meta = meta ?install kind in
   let name = name_of_kind kind in
   As_part.v_kind ?usage ?exists ?args ~meta ~needs ~actions ~check name `Dir
