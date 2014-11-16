@@ -58,17 +58,24 @@ let of_project p : t =
   let add v acc = v :: acc in
   let pkgs = project_ocamlfind_pkgs p in
   let rev_pkgs = String.Set.fold (fun pkg acc -> `PKG pkg :: acc) pkgs [] in
-  let products = Project.products p in
-  let ss, bs =
-    let add p (ss, bs as acc) = match Path.ext p with
-    | Some (`Ml | `Mli) -> Path.Set.add (Path.dirname p) ss, bs
-    | Some (`Cmi | `Cmti | `Cmt) -> ss, Path.Set.add (Path.dirname p) bs
+  let rev_ss =
+    let srcs = Project.products ~kind:`Src p in
+    let add_dir p acc = match Path.ext p with
+    | Some (`Ml | `Mli) -> Path.Set.add (Path.dirname p) acc
     | _ -> acc
     in
-    Path.Set.fold add products (Path.Set.empty, Path.Set.empty)
+    let ss = Path.Set.fold add_dir srcs Path.Set.empty in
+    Path.(Set.fold (fun p acc -> `S (to_string p) :: acc) ss [])
   in
-  let rev_ss = Path.(Set.fold (fun p acc -> `S (to_string p) :: acc) ss []) in
-  let rev_bs = Path.(Set.fold (fun p acc -> `B (to_string p) :: acc) bs []) in
+  let rev_bs =
+    let builds = Project.products ~kind:`Build p in
+    let add_dir p acc = match Path.ext p with
+    | Some (`Cmi | `Cmti | `Cmt) -> Path.Set.add (Path.dirname p) acc
+    | _ -> acc
+    in
+    let bs = Path.Set.fold add_dir builds Path.Set.empty in
+    Path.(Set.fold (fun p acc -> `B (to_string p) :: acc) bs [])
+  in
   add (`Comment (Project.watermark_string p)) @@
   add `Blank @@
   List.rev_append rev_pkgs (List.rev_append rev_ss (List.rev rev_bs))

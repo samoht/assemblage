@@ -38,6 +38,8 @@ let lib_assemblage =
       unit "as_acmd";
       unit "as_action";
       unit "as_action_ocaml";
+      unit "as_ocamlfind";
+      unit "as_pkg_config";
       unit "as_part";
       unit "as_part_bin";
       unit "as_part_custom";
@@ -48,7 +50,7 @@ let lib_assemblage =
       unit "as_part_run";
       unit "as_part_unit";
       unit "as_project";
-      unit "assemblage" ~kind:(`OCaml (`Both, `Normal));]
+      unit "assemblage" ~kind:(`OCaml (`Both, `Normal)) ]
 
 let lib_assemblage_tools =
   let dir = root / "lib-driver" in
@@ -58,14 +60,14 @@ let lib_assemblage_tools =
     [ unit "ast_merlin";
       unit "ast_meta";
       unit "ast_opam";
-      unit "assemblage_tools" ~kind:(`OCaml (`Both, `Normal));]
+      unit "assemblage_tools" ~kind:(`OCaml (`Both, `Normal))]
 
 let lib_assemblage_driver =
   let dir = root / "lib-driver" in
   lib "assemblage_driver"
     [ pkg_cmdliner;
       pkg_toplevel;
-      unit ~dir "assemblage_driver";]
+      unit ~dir "assemblage_driver" ]
 
 (* The default assemblage driver *)
 
@@ -84,13 +86,13 @@ let bin_assemblage =
       unit "cmd_help";
       unit "cmd_setup";
       unit "main" ~kind:(`OCaml (`Ml, `Normal));
-      unit "makefile"; ]
+      unit "makefile" ]
 
 (* Tests & examples *)
 
 let assemble_assemble =
   (* Sanity check, can we compile assemble.ml ? *)
-  bin "assemble" [ lib_assemblage; unit "assemble" ~dir:root]
+  bin "assemble" [ lib_assemblage; unit "assemble" ~dir:root ]
 
 (*
 
@@ -137,13 +139,13 @@ let tests = []
 
 (* Docs *)
 
-let dev_doc = doc ~usage:`Dev "dev" [lib_assemblage]
-let api_doc = doc "api" [lib_assemblage]
+let dev_doc = doc ~usage:`Dev "dev" [ lib_assemblage ]
+let api_doc = doc "api" [ lib_assemblage ]
 
 let install =
-  [ dir `Lib [ lib_assemblage; lib_assemblage_tools; lib_assemblage_driver;];
-    dir `Bin [ bin_assemblage];
-    dir `Doc [ file (Path.file "README.md"); file (Path.file "CHANGES.md");]]
+  [ dir `Lib [ lib_assemblage; lib_assemblage_tools; lib_assemblage_driver ];
+    dir `Bin [ bin_assemblage ];
+    dir `Doc [ file (Path.file "README.md"); file (Path.file "CHANGES.md") ]]
 
 (* The project *)
 
