@@ -15,6 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+let str = Printf.sprintf
+
 (* Metadata *)
 
 type kind = [ `OCaml | `OCaml_toplevel | `C ]
@@ -84,7 +86,8 @@ let ocaml_actions bin dst_dir unit_actions =
     fadd_if native
       (As_action_ocaml.link_native
          ~ocamlopt ~pkgs ~args:(add_if profile "-p" @@ args)
-         ~objs:native_objs ~name) () @@ []
+         ~objs:native_objs ~name) () @@
+    unit_actions
   in
   let needs = As_part.needs bin in
   let libs = As_part.list_keep_map As_part_lib.ocaml needs in
