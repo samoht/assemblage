@@ -89,20 +89,21 @@ and Kset : (Set.S with type elt = Def.t) = Set.Make (Def)
 type 'a value = 'a Def.value =
   { deps : Kset.t; def : Def.conf -> 'a; mutable cache : (int * 'a) option; }
 
-let const v = { deps = Kset.empty; def = (fun _ -> v); cache = None }
-let manual_value deps v = { deps; def = (fun _ -> v); cache = None }
-let app f v =
-  { deps = Kset.union f.deps v.deps;
-    def = (fun c -> (f.def c) (v.def c));
-    cache = None }
-
-let deps v = v.deps
 let eval c v = match v.cache with
 | Some (cid, v) when cid = c.Def.cid -> v
 | _ ->
     let cv = v.def c in
     v.cache <- Some (c.Def.cid, cv);
     cv
+
+let const v = { deps = Kset.empty; def = (fun _ -> v); cache = None }
+let manual_value deps v = { deps; def = (fun _ -> v); cache = None }
+let app f v =
+  { deps = Kset.union f.deps v.deps;
+    def = (fun c -> (eval c f) (eval c v));
+    cache = None }
+
+let deps v = v.deps
 
 let ( $ ) = app
 
