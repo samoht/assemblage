@@ -27,13 +27,13 @@ type build_phase =
 
 type source = [ `Src of As_path.ext ]
 type target = [ `Target of [`Src | `Byte | `Native | `Js | `Other of string ]]
-type command = [ `Cmd of string As_conf.key ]
+type cmd = [ `Cmd of string As_conf.key | `Cmd_static of string ]
 type part_usage = [ `Build | `Dev | `Doc | `Other of string | `Outcome | `Test ]
 type part_kind = [ `Base | `Bin | `Dir | `Doc | `Lib | `Pkg | `Run | `Unit ]
 type part = [ `Part of [ part_usage | part_kind | `Name of string ]]
 
 module Elt = struct
-  type t = [ tag | language | build_phase | source | target | command | part ]
+  type t = [ tag | language | build_phase | source | target | cmd | part ]
 
   let compare (e : t) (e' : t) = match e, e' with
   | `Cmd k0, `Cmd k1 -> As_conf.Key.(compare (V k0) (V k1))
@@ -70,6 +70,7 @@ module Elt = struct
   | `Archive `Static -> As_fmt.pp_str ppf "archive:static"
   | `C -> As_fmt.pp_str ppf "c"
   | `Cmd k -> As_fmt.pp ppf "cmd:%s" (As_conf.Key.name k)
+  | `Cmd_static n -> As_fmt.pp ppf "cmd-static:%s" n
   | `Compile -> As_fmt.pp_str ppf "compile"
   | `Dep -> As_fmt.pp_str ppf "dep"
   | `Doc -> As_fmt.pp_str ppf "doc"

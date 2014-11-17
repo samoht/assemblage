@@ -876,7 +876,8 @@ module Cmd : sig
       'a -> string list -> 'a result
     (** [fold_files_rec skip f acc paths] folds [f] over the files
         found in [paths]. Files and directories whose suffix matches an
-        element of [skip] are skipped. *)
+        element of [skip] are skipped. {b FIXME} this should be using
+        {!Path.t} and {!Path.ext}. *)
   end
 
   (** Version control system operations.
@@ -966,7 +967,7 @@ end
     configuration {{!type:value}values}. The value associated to a key
     is either determined automatically from the environment by the
     key's default value or explicitly set by the end user of the build
-    system (e.g. from the command line or via an IDE).
+    system (e.g. manually from the command line or via an IDE).
 
     A {e configuration value} denotes an OCaml value that depends on
     the configuration. Configuration values are {{!values}transformed
@@ -977,9 +978,9 @@ end
 
     Configuration {{!type:scheme}schemes} are named, user defined,
     partial configurations. They allow the ends user to quickly setup
-    a given configuration (even though they may have their use it
-    is a good practice not to use configuration schemes in the context
-    of package distribution).
+    a given configuration (in general it's a good practice not to
+    use them in the context of package distribution, try to rely on
+    the defaults as much as possible).
 
     {b Important.} Before {{!key}defining} your own keys you should prefer the
     {{!builtin_keys}built-in ones}. *)
@@ -1055,7 +1056,7 @@ module Conf : sig
     string -> 'a converter -> 'a value -> 'a key
   (** [key public docs docv doc name conv v] is a configuration key
       named [name] that maps to value [v] by default. [converter] is
-      used to convert key values provided by end-users.
+      used to convert key values provided by end users.
 
       If [public] is [true] (default), the key is public which means
       that it can be redefined by the end user. In this case [docs] is
@@ -1064,7 +1065,7 @@ module Conf : sig
       documentation string for the key, this should be a single
       sentence or paragraph starting with a capital letter and ending
       with a dot.  [docv] is a meta-variable for representing the
-      values of the key value (e.g. ["BOOL"] for a boolean).
+      values of the key (e.g. ["BOOL"] for a boolean).
 
       @raise Invalid_argument if the key name is not made of a
       sequence of ASCII lowercase letter, digit, dash or underscore.
@@ -1080,7 +1081,7 @@ module Conf : sig
   val value : 'a key -> 'a value
   (** [value k] is a value that evaluates to [k]'s binding in the
       configuration. Note that this may be different from the value given in
-      {!key}, the latter is the default value. *)
+      {!key}. *)
 
   (** {1:scheme Configuration schemes} *)
 
@@ -1441,14 +1442,15 @@ module Conf : sig
 
 end
 
-(** Build contexts.
+(** Command execution contexts.
 
-    Build contexts define an indirect addressing mechanism used to
-    inject {{!Args}arguments} on the command lines of build
-    {{!Action}Actions}. The concrete build context associated to an
-    action's command depends on the the end-user (via the
-    {{!Part.name}part name}), the action designer (the [context] argument
-    of {!Action.v}), and the {{!Action.cmd}key name} of the command being
+    Execution contexts define an indirect addressing mechanism used to
+    inject {{!Args}arguments} on the command lines of {{!Acmd}action
+    commands}.
+
+    The exact context associated to a command execution depends on the
+    {{!type:part}part}, the action (via the [ctx] argument of
+    {!Action.v}), and the {{!command}name} of the command being
     executed. *)
 module Ctx : sig
 
@@ -1491,10 +1493,11 @@ module Ctx : sig
       {- [`Js] working on JavaScript code generation.}
       {- [`Other o] working on other kind of generation.}} *)
 
-  type command = [ `Cmd of string Conf.key ]
+  type cmd = [ `Cmd of string Conf.key | `Cmd_static of string ]
   (** The type for informing about the command being executed.
       {ul
-      {- [`Cmd k], the command [k] is being executed.}} *)
+      {- [`Cmd k], the command denoted by [k] is being executed.}
+      {- [`Cmd n], the command statically named [n] is being executed.}} *)
 
   type part_usage = [ `Build | `Dev | `Doc | `Other of string
                     | `Outcome | `Test ]
@@ -1507,7 +1510,7 @@ module Ctx : sig
   (** The type for informing about a part. Its name,
       {{!type:Part.kind}kind} and {{!type:Part.usage}usages}. *)
 
-  type elt = [ tag | language | build_phase | source | target | command
+  type elt = [ tag | language | build_phase | source | target | cmd
              | part ]
   (** The type for context elements. *)
 
@@ -1517,7 +1520,7 @@ module Ctx : sig
   (** {1:context Contexts} *)
 
   type t
-  (** The type for contexts, sets of context elements. *)
+  (** The type for contexts. A context is a set of context elements. *)
 
   val v : elt list -> t
   (** [v els] is the context with elements [els]. *)
@@ -1533,12 +1536,14 @@ module Ctx : sig
                  and type t := t
 end
 
-(** Build argument bundles.
+(** Command argument bundles.
 
-    Argument bundles are conditional bindings from {{!Ctx}build contexts}
-    to ordered lists of action command arguments. See {{!basics}argument
-    bundle basics} and {{!propagation}argument bundle propogation} for
-    more details.  *)
+    Argument bundles are conditional bindings from {{!Ctx}execution contexts}
+    to lists of command arguments. They provide a simply mechanism
+    to allow the end user to inject flags on the command lines of
+    {{!Action}actions}.
+
+    See {!basics} and {!propagation} for more details. *)
 module Args : sig
 
   (** {1:argument_bundles Argument bundles} *)
@@ -1596,27 +1601,26 @@ module Args : sig
 
   (** {1:basics Argument bundles basics}
 
-    Argument bundles allow to tweak build actions by prepending additional
-    arguments to their {{!Action.cmd}command} invocations whenever a
-    particular configuration value is [true]. For example the
+    Argument bundles allow to tweak actions by prepending additional
+    arguments to their command invocations. For example the
     following bundle:
 {[
 let ocaml_debug =
-  let ctx = Ctx.v [`OCaml; `Compile] in
-  Args.v ~exists:Conf.debug ctx (Conf.const ["-g"])
+  let debug ctx = Args.vc ~exists:Conf.debug ctx ["-g"] in
+  Args.(debug [`OCaml; `Compile] @@@ debug [`OCaml; `Link])
 ]}
-    when used with an action will, whenever the configuration value of
-    {!Conf.debug} denotes [true], prepend the option [-g] to any
-    command of the action that operates in a context that contains the
-    [`OCaml] and [`Compile] elements (note you don't need to do that,
-    assemblage's OCaml built-in actions know how to handle the
-    {!Conf.debug} key for you.)
+    used with a part will, whenever the configuration value of
+    {!Conf.debug} evaluates to [true], prepend the option [-g] to any
+    command of its actions that operates in a context that contains
+    the [`OCaml] and [`Compile] or [`Link] elements. Note, you don't
+    need the above definition, assemblage's OCaml built-in actions
+    know how to handle the {!Conf.debug} key for you.
 
-    The general mechanism when an action is executed with a given
-    bundle is for each command to look up every binding in the
-    bundle. If the context of a binding {{!Ctx.matches}matches} the
-    context of the command and the binding exists the arguments of the
-    binding are prepended to the command invocation.
+    Given an argument bundle and a command to execute, every binding
+    in the bundle is considered, if the context of the binding
+    {{!Ctx.matches}matches} the context of the command and the binding
+    exists, the arguments of the binding are prepended to the command
+    invocation.
 
     {b Warning.} Do not rely on the order of context matches for your
     command lines to be valid. The argument bundle mechanism is a
@@ -1624,82 +1628,75 @@ let ocaml_debug =
     useful for injecting command line {e options}, not {e positional}
     arguments. The final bundle given to actions is the concatenation
     of many bundle sources (project, parts, action implementation)
-    that may be applied in arbitrary order. FIXME this is not exactly
-    true we need to say something about {!append} and e.g. libs order,
-    FIX the FIXME, bundles should not be used for libs order.
-
+    that may be applied in arbitrary order.
 
     {1:propagation Argument bundle propagation model}
 
-    FIXME explain that better. Maybe also we want two
-    separate explanations, one for the casual user one
-    for the part designer.
-
-    As a part/action designer we should never use the bundle mecanism
-    to define our actions internally.  It can be used though to
-    provide an API to the part for the end user. E.g. by providing
-    appropriate and high-level bundles that inject the right flags for
-    a part. FIXME not sure we need that comment as this is now
-    enforced by the API.
-
-    Which argument bundles are applied to an action:
-
+    Which argument bundles are applied to an action (and its commands):
     {ol
     {- Each part has a user defined argument bundle, this bundle
-       is automatically added to any of its actions (i.e. are
-       in {!Part.actions})}
+       is automatically applied to any of its actions.}
     {- Each part has needs. In
        these needs there are parts that {e integrated} and other
        that are {e consulted}. When a part [i] is integrated by
        a part [p] its build
        actions are integrated into [p]. In that
        case these actions have both the argument bundle of the
-       integrated part [i] and the of the integrating part [p].}
-    {- Finally the project's argument bundle is added to any
-       action.}}
-
-    {b Note.} From a the driver implementation perspective the only thing
-    one needs to care is to add the project's flags to the actions
-    it consults. *)
+       integrated part [i] and that of the integrating part [p].}
+    {- Finally the {{!Project.v}project's argument} bundle is added to any
+       action.}} *)
 end
 
 (** Action commands.
 
-    TODO doc.
+    An action command {e represents} the invocation of a program and
+    the possible redirection of its standard file descriptors. Lists
+    of action commands are the building block of {{!Action}actions}.
 
-    One particular aspect of action commands is that the executing
-    program must be defined at some through a configuration key. This
-    ensures that the executions can be addressed via a
-    {{!Ctx.command}context element} and that the program can be
-    redefined by the build system end user. *)
+    Program executables are represented by the {!type:cmd}
+    type. Values of this type can be created either with a
+    configuration key or directly with a static string. If
+    you are defining build actions you should use a configuration key
+    and {!val:cmd} as it ensures the program can be redefined at
+    configuration time thus making the build system more portable for
+    end users.
+
+    The module also provides a few system utility
+    {{!portable_invocations}invocations} that enforce portable
+    behaviour. *)
 module Acmd : sig
 
   (** {1 Action commands} *)
 
-  type bin
-  (** The type for action command programs. *)
+  type cmd
+  (** The type for program executables. *)
+
+  val cmd : string Conf.key -> cmd Conf.value
+  (** [cmd name] is a program whose name is the value of [name]. *)
+
+  val static : string -> cmd
+  (** [static name] is a program whose name is [name].
+
+      {b Important.} For build commands, {!cmd} should be used.
+      {!static} is best used for defining test {{!Run}runs} and other
+      convenience development runs. *)
 
   type t
-  (** The type for action commands. *)
+  (** The type for command runs. *)
 
-  val bin : string Conf.key -> bin Conf.value
-  (** [bin name] is a program whose name is the value of [name].
-
-      {b Note.} This is the only way of creating a value of type
-      {!type:bin}. This means that an action command is always
-      eventually defined in a configuration value aswell. *)
-
-  val v : ?stdin:Path.t -> ?stdout:Path.t -> ?stderr:Path.t -> bin ->
+  val v : ?stdin:Path.t -> ?stdout:Path.t -> ?stderr:Path.t -> cmd ->
     string list -> t
-  (** [v bin args] is a command that executes the program [bin] with
-      argument list [args]. The optional [stdin], [stdout], and
-      [stderr] arguments allow to redirect the standard file
-      descriptors of the execution to files. *)
+  (** [v cmd args] represents the execution of program [cmd] with
+      argument [args] and standard file descriptors redirected to
+      [stdin], [stdout], and [stderr] (if specified). *)
 
   (** Action command argument combinators.
 
       A few convience function to help in the definition
-      of command arguments. *)
+      of command arguments.
+
+      {b FIXME.} Not really happy about this module, its name
+      and contents. *)
   module Args : sig
 
     (** {1 Combinators} *)
@@ -1734,7 +1731,6 @@ module Acmd : sig
     val path : Path.t -> ext:Path.ext -> Path.t
     (** [path ext] is {!Path.change_ext}[ path ext]. *)
   end
-
 
   (** {1:portable_invocations Portable system utility invocations}
 
@@ -1791,22 +1787,42 @@ end
 
 (** Build action.
 
-    A {e build action} determines how to output a list of build
-    products from a list of existing input products using a sequence
-    of {{!Acmd} action commands}.
+    An {e action} determines how to output a list of build products
+    from a list of existing input products using a sequence of
+    {{!Acmd}commands}.
+
+    Given a notion of product identity (e.g. hash, timestamp, etc.) an
+    action defines a pure function from its input to its outputs, it
+    is assumed that identical inputs yield identical outputs.
 
     In order to be productive it is important to understand the following
-    terminology:
+    terminology. With respect to a project:
     {ul
     {- A {e product} is any existing file in the {!Conf.root_dir}
        hierarchy.}
-    {- A {e source product} is a product for which there
-       exists no build action to create it; typically the source code you
-       write, a product from your brain.}
+    {- A {e source product} is a product for which there exists no
+       action to create it; typically the source code you write, a
+       product from your brain.}
     {- A {e build product} is a product that is output from a build action.}
     {- An {e input product} is a product that is used as input
        to a build action, this can be a source product or a build product.}
-    {- An {e output product} is synonym with build product}} *)
+    {- An {e output product} is synonym with build product}}
+
+    A build driver is an assemblage driver that given a specification
+    of the project's products yielded by a configuration ensures that
+    all the products exists and are up-to-date according to the project's
+    actions.
+
+    {b FIXME.} The following need to clarified
+    {ul
+    {- Empty inputs, empty outputs, empty cmds or any combination there of.}
+    {- {!Part.file} uses empty outputs and empty inputs. This allows
+       {!Dir} which works on products regardless (i.e., input and
+       output) to be made aware of their existence.}
+    {- {!Run} use {e build} actions but they are not build per se as we
+       run the command inconditionally.}
+    {- The model is too weak. How need a way to account for
+       [ocamldep], [gcc -MD -MP], etc.}} *)
 module Action : sig
 
   (** {1 Build actions} *)
@@ -1845,6 +1861,12 @@ module Action : sig
   val products : t -> Path.t list
   (** [products a] is [inputs a @ outputs a] but tail recursive. *)
 
+  (** {1 Built-in actions} *)
+
+  val symlink : (Path.t -> Path.t -> t) Conf.value
+  (** [symlink] has an action [action src dst] that links [src] to [dst] using
+      {!Acmd.ln_rel}. *)
+
   (** {1 Action lists} *)
 
   val list_inputs : t list -> Path.t list
@@ -1859,12 +1881,11 @@ module Action : sig
   (** [list_products l] is [list_inputs l @ list_outputs l]
       but tail-recursive. *)
 
-  (** {1 Built-in actions} *)
-
-  val symlink : (Path.t -> Path.t -> t) Conf.value
-  (** [symlink] has an action [action src dst] that links [src] to [dst] using
-      {!ln_rel}. *)
-(*
+(* FIXME this is outdated. It's unclear whether we want to expose that.
+   It could be nice for users who want to develop their own OCaml
+   parts, but OTOH if people start to do so it means that we are
+   failing at providing the right things.  Having
+   that would be one more thing to maintain and design with care.
 
   (** Actions for handling OCaml build products.
 
@@ -2979,7 +3000,11 @@ module Private : sig
     val doc_system_utilities : string
   end
 
-  (** Build argument bundles. *)
+  (** Build argument bundles.
+
+    {b Note.} From a driver implementation perspective the only thing
+    one needs to care is to add the project's flags to the actions
+    it consults. *)
   module Args : sig
 
     (** {1 Argument bundles} *)
@@ -3006,17 +3031,18 @@ module Private : sig
 
     (** {1 Action commands} *)
 
-    type args = Args.t
+    type args = Args.t (* because of the Args module in Acmd. *)
 
     include module type of Acmd with type t = Acmd.t
-                                 and type bin = Acmd.bin
+                                 and type cmd = Acmd.cmd
 
 
-    val bin_key : t -> string Conf.key
-    (** [bin_key c] is [c]'s configuration key used to defin {!bin_name}. *)
+    val cmd_key : t -> string Conf.key option
+    (** [cmd_key c] is [c]'s configuration key used to define {!cmd_name}
+        (if any). *)
 
-    val bin_name : t -> string
-    (** [bin_name c] is [c]'s binary name.  *)
+    val cmd_name : t -> string
+    (** [cmd_name c] is [c]'s command name.  *)
 
     val args : t -> string list
     (** [args c] are [c]'s arguments. *)

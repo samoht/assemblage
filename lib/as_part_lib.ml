@@ -103,7 +103,7 @@ let ocaml_actions kind lib dst_dir unit_actions =
       (As_action_ocaml.archive_shared ~args ~ocamlopt ~cmx_s ~name) () @@
     unit_actions
   in
-  As_conf.(const actions $ As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $
+  As_conf.(const actions $ As_acmd.cmd ocamlc $ As_acmd.cmd ocamlopt $
            value debug $ value ocaml_byte $ value ocaml_native $
            value ocaml_native_dynlink $ dst_dir $ unit_actions)
 

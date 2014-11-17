@@ -89,7 +89,7 @@ let ocaml_actions bin dst_dir unit_actions =
   let needs = As_part.needs bin in
   let libs = As_part.list_keep_map As_part_lib.ocaml needs in
   let pkgs = As_part_pkg.list_lookup needs in
-  As_conf.(const actions $ As_acmd.bin ocamlc $ As_acmd.bin ocamlopt $
+  As_conf.(const actions $ As_acmd.cmd ocamlc $ As_acmd.cmd ocamlopt $
            value debug $ value profile $
            value ocaml_byte $ value ocaml_native $
            pkgs $ As_part.list_actions libs $

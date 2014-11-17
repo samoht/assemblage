@@ -29,12 +29,11 @@ type build_phase =
 
 type source = [ `Src of As_path.ext ]
 type target = [ `Target of [`Src | `Byte | `Native | `Js | `Other of string ]]
-type command = [ `Cmd of string As_conf.key ]
+type cmd = [ `Cmd of string As_conf.key | `Cmd_static of string ]
 type part_usage = [ `Build | `Dev | `Doc | `Other of string | `Outcome | `Test ]
 type part_kind = [ `Base | `Bin | `Dir | `Doc | `Lib | `Pkg | `Run | `Unit ]
-
 type part = [ `Part of [ part_usage | part_kind | `Name of string ]]
-type elt = [ tag | language | build_phase | source | target | command | part ]
+type elt = [ tag | language | build_phase | source | target | cmd | part ]
 
 val pp_elt : Format.formatter -> elt -> unit
 val pp_kind : Format.formatter -> part_kind -> unit

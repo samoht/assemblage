@@ -17,22 +17,23 @@
 
 (* Action commands *)
 
-type bin = string As_conf.key * string
-let bin b = As_conf.(const (fun k v -> k, v) $ const b $ (value b))
+type cmd = string As_conf.key option * string
+
+let cmd k = As_conf.(const (fun k v -> Some k, v) $ const k $ value k)
+let static n = None, n
 
 type t =
-  { bin_key : string As_conf.key;      (* Remember the key for the context. *)
-    bin : string;                                      (* value of bin_key. *)
+  { cmd : cmd;                                                  (* command. *)
     args : string list;                               (* command arguments. *)
     stdin : As_path.t option;                (* stdin redirection (if any). *)
     stdout : As_path.t option;              (* stdout redirection (if any). *)
     stderr : As_path.t option; }            (* stderr redirection (if any). *)
 
-let v ?stdin ?stdout ?stderr (bin_key, bin) args =
-  { bin_key; bin; args; stdin; stdout; stderr }
+let v ?stdin ?stdout ?stderr cmd args =
+  { cmd; args; stdin; stdout; stderr }
 
-let bin_key c = c.bin_key
-let bin_name c = c.bin
+let cmd_key c = fst c.cmd
+let cmd_name c = snd c.cmd
 let args c = c.args
 let stdin c = c.stdin
 let stdout c = c.stdout
@@ -43,14 +44,21 @@ let pp ppf c =
   | None -> ()
   | Some p -> As_fmt.pp ppf "%s %s" fdname (As_path.to_string p)
   in
-  As_fmt.pp ppf "@[%s:%s @[%a%a%a%a@]@]"
-    (As_conf.Key.name c.bin_key) c.bin
+  As_fmt.pp ppf "@[%a%s @[%a%a%a%a@]@]"
+    As_fmt.(pp_opt (fun ppf k -> pp ppf "%s:" (As_conf.Key.name k))) (cmd_key c)
+    (cmd_name c)
     As_fmt.(pp_list ~pp_sep:pp_sp pp_str) c.args
     (pp_redir "<") c.stdin
     (pp_redir "1>") c.stdout
     (pp_redir "2>") c.stderr
 
-let ctx context c = As_ctx.add (`Cmd c.bin_key) context
+let ctx context c =
+  let elt = match fst c.cmd with
+  | None -> `Cmd_static (snd c.cmd)
+  | Some k -> `Cmd k
+  in
+  As_ctx.add elt context
+
 let args_with_ctx conf context args c =
   let injected = As_args.for_ctx conf (ctx context c) args in
   List.rev_append (List.rev injected) c.args
@@ -87,16 +95,16 @@ let dev_null =
   As_conf.(const dev_null $ value host_os)
 
 let ln =
-  let make_cmd os bin = match os with
+  let make_cmd os cmd = match os with
   | "Win32" ->
       As_log.warn "Symbolic@ links@ unsupported@ copying@ instead.";
-      fun src dst -> v bin (add "/Y" @@ path_arg src @@ path_arg dst @@ [])
+      fun src dst -> v cmd (add "/Y" @@ path_arg src @@ path_arg dst @@ [])
   | _ ->
       fun src dst ->
         let args = adds ["-s"; "-f"] @@ path_arg src @@ path_arg dst @@ [] in
-        v bin args
+        v cmd args
   in
-  As_conf.(const make_cmd $ (value host_os) $ (bin As_conf.ln ))
+  As_conf.(const make_cmd $ (value host_os) $ (cmd As_conf.ln ))
 
 let ln_rel =
   (* FIXME here we really mean link src to dst when seen from
@@ -123,53 +131,53 @@ let ln_rel =
   As_conf.(const make_cmd $ ln_cmd)
 
 let cp =
-  let make_cmd os bin = match os with
+  let make_cmd os cmd = match os with
   | "Win32" ->
-      fun src dst -> v bin (add "/Y" @@ path_arg src @@ path_arg dst @@ [])
+      fun src dst -> v cmd (add "/Y" @@ path_arg src @@ path_arg dst @@ [])
   | _ ->
-      fun src dst -> v bin (path_arg src @@ path_arg dst @@ [])
+      fun src dst -> v cmd (path_arg src @@ path_arg dst @@ [])
   in
-  As_conf.(const make_cmd $ value host_os $ bin As_conf.cp)
+  As_conf.(const make_cmd $ value host_os $ cmd As_conf.cp)
 
 let mv =
-  let make_cmd os bin = match os with
+  let make_cmd os cmd = match os with
   | "Win32" ->
-      fun src dst -> v bin (add "/Y" @@ path_arg src @@ path_arg dst @@ [])
+      fun src dst -> v cmd (add "/Y" @@ path_arg src @@ path_arg dst @@ [])
   | _ ->
-      fun src dst -> v bin (path_arg src @@ path_arg dst @@ [])
+      fun src dst -> v cmd (path_arg src @@ path_arg dst @@ [])
   in
-  As_conf.(const make_cmd $ value host_os $ bin As_conf.mv)
+  As_conf.(const make_cmd $ value host_os $ cmd As_conf.mv)
 
 let rm_files =
-  let make_cmd os bin = match os with
+  let make_cmd os cmd = match os with
   | "Win32" ->
       fun ?(f = false) paths ->
-        v bin (add_if f "/F" @@ add "/Q" @@ path_args paths @@ [])
+        v cmd (add_if f "/F" @@ add "/Q" @@ path_args paths @@ [])
   | _ ->
       fun ?(f = false) paths ->
-        v bin (add_if f "-f" @@ path_args paths @@ [])
+        v cmd (add_if f "-f" @@ path_args paths @@ [])
   in
-  As_conf.(const make_cmd $ value host_os $ bin As_conf.rm)
+  As_conf.(const make_cmd $ value host_os $ cmd As_conf.rm)
 
 let rm_dirs =
-  let make_cmd os bin = match os with
+  let make_cmd os cmd = match os with
   | "Win32" ->
       fun ?(f = false) ?(r = false) paths ->
-        v bin (add_if f "/F" @@ add_if r "/S" @@ add "/Q" @@
+        v cmd (add_if f "/F" @@ add_if r "/S" @@ add "/Q" @@
                path_args paths @@ [])
   | _ ->
       fun ?(f = false) ?(r = false) paths ->
-        v bin (add_if f "-f" @@ add_if r "-r" @@ path_args paths @@ [])
+        v cmd (add_if f "-f" @@ add_if r "-r" @@ path_args paths @@ [])
   in
-  As_conf.(const make_cmd $ value host_os $ bin As_conf.rmdir)
+  As_conf.(const make_cmd $ value host_os $ cmd As_conf.rmdir)
 
 let mkdir =
-  let make_cmd os bin = match os with
-  | "Win32" -> fun dir -> v bin (path_arg dir @@ [])
-  | _ -> fun dir -> v bin (add "-p" @@ path_arg dir @@ [])
+  let make_cmd os cmd = match os with
+  | "Win32" -> fun dir -> v cmd (path_arg dir @@ [])
+  | _ -> fun dir -> v cmd (add "-p" @@ path_arg dir @@ [])
   in
-  As_conf.(const make_cmd $ value host_os $ bin As_conf.mkdir)
+  As_conf.(const make_cmd $ value host_os $ cmd As_conf.mkdir)
 
 let stamp =
-  let make_cmds bin file contents = v bin [contents] ~stdout:file in
-  As_conf.(const make_cmds $ bin As_conf.echo)
+  let make_cmds cmd file contents = v cmd [contents] ~stdout:file in
+  As_conf.(const make_cmds $ cmd As_conf.echo)

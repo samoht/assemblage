@@ -20,16 +20,17 @@
 
 (** {1 Action commands} *)
 
-type bin
-val bin : string As_conf.key -> bin As_conf.value
+type cmd
+val cmd : string As_conf.key -> cmd As_conf.value
+val static : string -> cmd
 
 type t
 
-val v : ?stdin:As_path.t -> ?stdout:As_path.t -> ?stderr:As_path.t -> bin ->
+val v : ?stdin:As_path.t -> ?stdout:As_path.t -> ?stderr:As_path.t -> cmd ->
     string list -> t
 
-val bin_key : t -> string As_conf.key
-val bin_name : t -> string
+val cmd_key : t -> string As_conf.key option
+val cmd_name : t -> string
 val args : t -> string list
 val stdin : t -> As_path.t option
 val stdout : t -> As_path.t option

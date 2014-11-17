@@ -63,7 +63,7 @@ let mk_recipe conf ctx args cmds =
     | None -> acc | Some file -> (Path.to_string file) :: op :: acc
     in
     let cmdline =
-      [Acmd.bin_name cmd]
+      [Acmd.cmd_name cmd]
       |> List.rev_append (Acmd.args_with_ctx conf ctx args cmd)
       |> redirect "<"  (Acmd.stdin cmd)
       |> redirect "1>" (Acmd.stdout cmd)
@@ -111,7 +111,7 @@ let mk_gen_dirs gen =
     let targets = [Path.to_string dir] in
     let cmd = Conf.(Acmd.mkdir $ const dir) in
     let cmd = Project.eval gen.proj cmd in
-    let recipe = [ Acmd.bin_name cmd :: Acmd.args cmd ] in
+    let recipe = [ Acmd.cmd_name cmd :: Acmd.args cmd ] in
     let rule = Makefile.rule ~targets ~prereqs ~recipe () in
     let rmk = rule :: gen.rmk in
     { gen with rmk }

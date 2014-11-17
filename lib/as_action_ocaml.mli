@@ -16,7 +16,10 @@
 
 (** Built-in actions for OCaml.
 
-    See {!Assemblage.Action.OCaml}. *)
+    The strategy is the following. At this level we only deal
+    with unlifted actions and we are concerned about the command
+    options that deal with inputs and output specification (e.g.
+    [-bin-annot] or packages, but not [-g]). *)
 
 (** {1 Types} *)
 
@@ -28,7 +31,7 @@ type pkgs = As_ctx.t -> string list
 
 val compile_src_ast :
   ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
-  dumpast:As_acmd.bin ->
+  dumpast:As_acmd.cmd ->
   [`Ml | `Mli] -> src:As_path.t -> unit ->
   As_action.t
 
@@ -36,25 +39,25 @@ val compile_src_ast :
 
 val compile_mli :
   ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
-  ocamlc:As_acmd.bin ->
+  ocamlc:As_acmd.cmd ->
   annot:bool -> incs:includes -> src:As_path.t -> unit ->
   As_action.t
 
 val compile_ml_byte :
   ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
-  ocamlc:As_acmd.bin ->
+  ocamlc:As_acmd.cmd ->
   annot:bool -> has_mli:bool -> incs:includes -> src:As_path.t -> unit ->
   As_action.t
 
 val compile_ml_native :
   ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
-  ocamlopt:As_acmd.bin ->
+  ocamlopt:As_acmd.cmd ->
   annot:bool -> has_mli:bool -> incs:includes -> src:As_path.t -> unit ->
   As_action.t
 
 val compile_c :
   ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
-  ocamlc:As_acmd.bin ->
+  ocamlc:As_acmd.cmd ->
   src:As_path.t -> unit ->
   As_action.t
 
@@ -62,25 +65,25 @@ val compile_c :
 
 val archive_byte :
   ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
-  ocamlc:As_acmd.bin ->
+  ocamlc:As_acmd.cmd ->
   cmos:As_path.t list -> name:name -> unit ->
   As_action.t
 
 val archive_native :
   ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
-  ocamlopt:As_acmd.bin ->
+  ocamlopt:As_acmd.cmd ->
   cmx_s:As_path.t list -> name:name -> unit ->
   As_action.t
 
 val archive_shared :
   ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
-  ocamlopt:As_acmd.bin ->
+  ocamlopt:As_acmd.cmd ->
   cmx_s:As_path.t list -> name:name -> unit ->
   As_action.t
 
 val archive_c :
   ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
-  ocamlmklib:As_acmd.bin ->
+  ocamlmklib:As_acmd.cmd ->
   objs:As_path.t list -> name:name -> unit ->
   As_action.t
 
@@ -88,12 +91,12 @@ val archive_c :
 
 val link_byte :
   ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
-  ocamlc:As_acmd.bin ->
+  ocamlc:As_acmd.cmd ->
   objs:As_path.t list -> name:name -> unit ->
   As_action.t
 
 val link_native :
   ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
-  ocamlopt:As_acmd.bin ->
+  ocamlopt:As_acmd.cmd ->
   objs:As_path.t list -> name:name -> unit ->
   As_action.t
