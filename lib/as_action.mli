@@ -22,8 +22,8 @@
 
 type t
 
-val v : ?log:string -> ctx:As_ctx.t -> inputs:As_path.t list ->
-  outputs:As_path.t list -> As_acmd.t list -> t
+val v : ?log:string -> ?ctx:As_ctx.t -> ?inputs:As_path.t list ->
+  ?outputs:As_path.t list -> As_acmd.t list -> t
 
 val ctx : t -> As_ctx.t
 val inputs : t -> As_path.t list

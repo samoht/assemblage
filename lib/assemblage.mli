@@ -1814,11 +1814,14 @@ module Action : sig
   type t
   (** The type for build actions. *)
 
-  val v : ?log:string -> ctx:Ctx.t -> inputs:Path.t list ->
-    outputs:Path.t list -> Acmd.t list -> t
+  val v : ?log:string -> ?ctx:Ctx.t -> ?inputs:Path.t list ->
+    ?outputs:Path.t list -> Acmd.t list -> t
   (** [v ctx inputs outputs cmds] is the action that given the
       existence of [inputs] creates [outputs] using the sequence of
-      command [cmds].
+      command [cmds]. [ctx] defaults to {!Ctx.empty}, [inputs] and
+      [outputs] to the empty list. [log] is a high-level logging
+      string about the action that may be used by drivers when the
+      action is invoked.
 
       {b Warning.} To ensure determinism and parallelism correctness [cmds]
       must ensure that it only reads from the [inputs] and solely writes to

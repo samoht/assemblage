@@ -24,7 +24,7 @@ type t =
     args : As_args.t;               (* argument bundle to use on evaluation. *)
     log : string option; }    (* a high-level logging string for the action. *)
 
-let v ?log ~ctx ~inputs ~outputs cmds =
+let v ?log ?(ctx = As_ctx.empty) ?(inputs = []) ?(outputs = []) cmds =
   { args = As_args.empty; log; ctx; inputs; outputs; cmds }
 
 let ctx a = a.ctx
