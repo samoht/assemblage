@@ -114,6 +114,29 @@ let ( ||| ) a b = const ( || ) $ a $ b
 let ( &&& ) a b = const ( && ) $ a $ b
 let pick_if c a b = const (fun c a b -> if c then a else b) $ c $ a $ b
 
+module Option = struct
+  let wrap = function
+  | None -> const None
+  | Some v -> const (fun v -> Some v) $ v
+
+  let some v = const (fun v -> Some v) $ v
+
+  let get ?none v = match none with
+  | None ->
+      let get v = match v with
+      | Some v -> v
+      | None -> invalid_arg "option is None and no ~none argument provided"
+      in
+      const get $ v
+  | Some none ->
+      let get none v = match v with
+      | Some v -> v
+      | None -> none
+      in
+      const get $ none $ v
+end
+
+
 (* Configuration keys *)
 
 type 'a key = 'a Def.key

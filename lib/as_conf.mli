@@ -32,6 +32,12 @@ val ( &&& ) : bool value -> bool value -> bool value
 val ( ||| ) : bool value -> bool value -> bool value
 val pick_if : bool value -> 'a value -> 'a value -> 'a value
 
+module Option : sig
+  val wrap : 'a value option -> 'a option value
+  val some : 'a value -> 'a option value
+  val get : ?none:'a value -> 'a option value -> 'a value
+end
+
 (** {1 Configuration value converters} *)
 
 type 'a parser = string -> [ `Error of string | `Ok of 'a ]

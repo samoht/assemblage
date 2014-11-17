@@ -1025,6 +1025,23 @@ module Conf : sig
   (** [pick_if c a b] is [a] if [c] evaluates to [true] and [b]
       otherwise. *)
 
+  module Option : sig
+
+    (** {1 Options} *)
+
+    val wrap : 'a value option -> 'a option value
+    (** [wrap o] is [o] as an optional value. *)
+
+    val some : 'a value -> 'a option value
+    (** [some v] is the value of [v] as a [Some] value. *)
+
+    val get : ?none:'a value -> 'a option value -> 'a value
+    (** [get none v] is the value of the option [v].
+
+        @raise Invalid_argument if the value of [v] is [None] and
+        there [none] is unspecified. *)
+  end
+
   (** {1 Configuration converters}
 
       A configuration converter transforms a string value to an OCaml
