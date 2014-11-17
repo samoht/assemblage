@@ -61,18 +61,19 @@ type t = [ statement | `Comment of string | `Blank ] list
 
 let buf_add_strings ?(max = 76) ?(nl = "\\\n") ?(indent = "    ") b count ss =
   let indent_len = String.length indent in
-  let rec loop count = function
+  let rec loop first count = function
   | [] -> ()
   | d :: ds as defs ->
       let new_len = String.length d + count + 1 in
-      if new_len > max && count > indent_len
-      then (Buffer.add_string b (str "%s%s" nl indent); loop indent_len defs)
-      else begin
+      if new_len > max && count > indent_len && not first
+      then begin
+        Buffer.add_string b (str "%s%s" nl indent); loop false indent_len defs
+      end else begin
         Buffer.add_string b d;
-        if ds <> [] then (Buffer.add_char b ' '; loop new_len ds)
+        if ds <> [] then (Buffer.add_char b ' '; loop false new_len ds)
       end
   in
-  loop count ss
+  loop true count ss
 
 let buf_add_var b { name; op; def } =
   Buffer.add_string b name;

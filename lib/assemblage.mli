@@ -91,8 +91,8 @@ module String : sig
       [s], the order of character appearance in the list is the same as
       in [s]. *)
 
-  val list_uniq : string list -> string list
-  (** [list_uniq ss] is [ss] without duplicates, the list order is preserved. *)
+  val uniquify : string list -> string list
+  (** [uniquify ss] is [ss] without duplicates, the list order is preserved. *)
 
   (** {1 String sets and maps} *)
 
@@ -1379,6 +1379,11 @@ module Conf : sig
       {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/echo.html}
       echo} utility (defaults to ["echo"]). *)
 
+  val cd : string key
+  (** [cd] is the
+      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/cd.html}[cd]}
+      utility (defaults to ["cd"]). *)
+
   val ln : string key
   (** [ln] is the
       {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/ln.html}ln}
@@ -1393,11 +1398,6 @@ module Conf : sig
   (** [mv] is the
       {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/mv.html}[mv]}
       utility (defaults to ["mv"] on Unix and ["move"] on Windows). *)
-
-  val cd : string key
-  (** [cd] is the
-      {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/cd.html}[cd]}
-      utility (defaults to ["cd"]). *)
 
   val rm : string key
   (** [rm] is the
@@ -1423,7 +1423,7 @@ module Conf : sig
   val make : string key
   (** [make] is the
       {{:http://pubs.opengroup.org/onlinepubs/009695399/utilities/make.html}
-      [make]} utility (defaults to ["make"]). *)
+      [make]} utility (defaults to ["make"]). {b FIXME} remove that. *)
 
   val docs_system_utilities : string
   (** [docs_system_utilities] is the name of the documentation section
@@ -1760,6 +1760,9 @@ module Acmd : sig
 
     val dev_null : Path.t Conf.value
     (** [dev_null] is a file that discards all writes. *)
+
+    val cd : (Path.t -> t) Conf.value
+    (** [cd] has a command [exec dir] to change directory to [dir]. *)
 
     val ln : (Path.t -> Path.t -> t) Conf.value
     (** [ln] has a command [exec src dst] to link symbolically file [src] to
@@ -2197,9 +2200,9 @@ module Part : sig
   (** [list_actions ps] is the list of actions of the parts [ps].
       The list order is preserved. *)
 
-  val list_uniq : kind part list -> kind part list
-  (** [list_uniq ps] is [ps] with duplicates as determined by {!equal} removed.
-      The list order is preserved. *)
+  val list_uniquify : kind part list -> kind part list
+  (** [list_uniquify ps] is [ps] with duplicates as determined by {!equal}
+      removed. The list order is preserved. *)
 
   val list_keep : ('a part -> bool) -> 'a part list -> 'a part list
   (** [list_keep pred ps] is the elements of [ps] that satisfy [pred].
@@ -2441,6 +2444,29 @@ module Bin : sig
       Whether the outputs associated to a compilation target are
       concretly build depends on the configuration keys {!Conf.ocaml_byte},
       {!Conf.ocaml_native}, {!Conf.ocaml_js} and {!Conf.c_js}. *)
+
+  val to_cmd : ?ext:Path.ext -> [< `Bin] part -> Acmd.cmd Conf.value
+  (** [to_cmd ext bin] is an {{!type:Acmd.cmd}action command} for
+      using the part's binary. [ext] specifies the binary to use if
+      there are multiple of them; default favors native code over byte
+      code if available and as per configuration.
+
+      {b Warning.} When you use the resulting command in
+      {{!Action}actions} make sure to specify it as an input product
+      of the action using {!Bin.to_cmd_path} otherwise the binary may not
+      exist when the action is executed. Also make sure to use the
+      command in configurations in which [bin] exists, see
+      {!exists}. For simple use cases {!Run.with_bin} and {!Run.bin}
+      will take care of these details. *)
+
+  val to_cmd_path : ?abs:bool -> ?ext:Path.ext -> [< `Bin] part ->
+    Path.t Conf.value
+  (** [to_cmd_path ext bin] is [to_cmd ext bin] as a path. If [abs] is
+      true (default to [false]) returns an absolute path. *)
+
+  val exists : ?ext:Path.ext -> [< `Bin] part -> bool Conf.value
+  (** [exists ?ext bin] is [true] if the [to_cmd bin] command
+      exists. *)
 end
 
 (** Package part.
@@ -2660,25 +2686,52 @@ module Dir : sig
       to install a [`Doc] part will be disappointing. *)
 end
 
-(** Project runs.
+(** Runs.
 
-    Project runs are build actions whose commands are always run
-    even if the actions inputs are up to date. Strictly speaking
-    they are not part of the build system but they may depend
-    on elements that need to be built by the build system. *)
+    A run is an {{!Action}action} whose commands are always run even if
+    the inputs are up to date. Runs are typically used to run the
+    project's test suites or other convenience development executions.
+
+    Strictly speaking a run action is not part of the build system but
+    it can input products of the build system to ensure they exist
+    when the run is executed. The run part gives us an explicit name
+    to invoke the run.
+
+    {b Important.} Since runs always execute their action you should
+    usually not use them for generating build products.
+
+
+    {b FIXME} What's the semantics of outputs for a Run ? *)
 module Run : sig
 
-  (** {1 Metadata} *)
-
-  val dir : [< `Run] part -> Path.t Conf.value
-  (** [[dir p] is the directory in which the run should occur.] *)
-
-  (** {1 Create} *)
+  (** {1 Runs} *)
 
   val v : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
-    ?dir:Path.t Conf.value -> string -> Action.t -> [> `Run] part
-  (** [v dir name act] is the run that executes [act] in directory
-      [dir] (defaults to {!Conf.root_dir}). *)
+    ?dir:Path.t Conf.value -> string -> Action.t Conf.value -> [> `Run] part
+  (** [v dir name action] is a run that executes the action
+      [action]. If [dir] is specified an {!Acmd.cd} command to that
+      directory is added in front of [action]'s commands. Otherwise
+      the commands are executed from the {!Conf.root_dir} directory. *)
+
+  val with_bin : ?usage:Part.usage -> ?exists:bool Conf.value ->
+    ?args:Args.t -> ?dir:Path.t Conf.value -> ?name:string ->
+    ?ext:Path.ext -> [< `Bin] part -> (Acmd.cmd -> Acmd.t list) Conf.value ->
+    [> `Run] part
+  (** [with_bin dir ext bin cmds] is a run that executes the sequence
+      of commands [Conf.(cmds $ Bin.of_cmd ext bin)]. [name] is the
+      name of the run; if unspecified this is derived from the [bin]
+      part.  [ext] is the binary to select see {!Bin.to_cmd}.
+
+      The binary is automatically added to the inputs of run's action
+      and the resulting part only exists if the executable does. *)
+
+  val bin : ?usage:Part.usage -> ?exists:bool Conf.value ->
+    ?args:Args.t -> ?dir:Path.t Conf.value -> ?name:string ->
+    ?ext:Path.ext -> ?stdin:Path.t Conf.value -> ?stdout:Path.t Conf.value ->
+    ?stderr:Path.t Conf.value -> [< `Bin] part ->
+    string list Conf.value -> [> `Run] part
+  (** [bin bin args] is like {!with_bin} but directly executes the binary
+      with [args] and redirects its outputs as specified. *)
 end
 
 (** {1:spec Part specification combinators} *)
@@ -2692,6 +2745,9 @@ val root : path
 
 val ( / ) : path -> string -> path
 (** [path / seg] is [Conf.(const Path.( / ) $ path $ const seg)]. *)
+
+val ( // ) : path -> Path.rel Conf.value -> path
+(** [path // rel] is [Conf.(const Path.( // ) $ path $ rel)]. *)
 
 val unit : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
   ?needs:[< `Lib | `Pkg ] part list -> ?kind:Unit.kind -> ?dir:path -> string ->
@@ -2727,8 +2783,8 @@ val file : ?usage:Part.usage -> ?exists:bool Conf.value -> Path.t ->
 (** See {!Part.file}. *)
 
 val run : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
-  ?dir:path -> string -> Action.t -> [> `Run] part
-(** See {!Run.v} *)
+  ?dir:path -> string -> Action.t Conf.value -> [> `Run] part
+(** See {!Run.v}. FIXME maybe removed that one from the toplevel.  *)
 
 (** {1:projects Projects} *)
 

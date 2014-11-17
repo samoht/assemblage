@@ -33,6 +33,7 @@ val args : t -> As_args.t
 val log : t -> string option
 val products : t -> As_path.t list
 
+val add_cmds : [`Before | `After] -> As_acmd.t list -> t -> t
 val add_ctx_args : As_ctx.t -> As_args.t -> t -> t
 (** [add_ctx_args ctx args t] adds context [ctx] and argument bundle [args]
     to [t]. This is used by parts to watermark their actions

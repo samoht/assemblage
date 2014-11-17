@@ -108,7 +108,7 @@ let alloc_root =
     let in_build_dir build = As_path.Rel.(build / part_root) in
     As_conf.(const in_build_dir $ (value As_conf.build_dir))
 
-let list_uniq ps =               (* uniquify part list while keeping order. *)
+let list_uniquify ps =           (* uniquify part list while keeping order. *)
   let add (seen, ps as acc) p =
     if Set.mem p seen then acc else (Set.add p seen), (p :: ps)
   in
@@ -137,7 +137,7 @@ let v_kind ?(usage = `Outcome) ?(exists = As_conf.true_) ?(args = As_args.empty)
     ?(meta = meta_nil) ?(needs = []) ?root ?(actions = no_action)
     ?(check = fun _ -> As_conf.true_) name kind =
   (* Man it's coercion hell in there. *)
-  let needs = list_uniq (needs :> Set.elt list) in
+  let needs = list_uniquify (needs :> Set.elt list) in
   let root = match root with
   | None -> alloc_root (kind :> kind) (usage :> usage) name
   | Some r -> r

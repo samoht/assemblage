@@ -29,10 +29,11 @@ let warn_no_actions = format_of_string
 type gen =
   { proj : Project.t;   (* The project to generate. *)
     dirs : Path.Set.t;  (* Set of directories that need to exist. *)
+    phony : string list;
     rmk : Makefile.t;   (* Reversed makefile definition. *) }
 
 let generator proj =
-  { proj; dirs = Path.Set.empty;
+  { proj; dirs = Path.Set.empty; phony = [];
     rmk =
       `Blank ::
       (`Comment "Run `make help` to get the list of targets.") ::
@@ -43,7 +44,9 @@ let keys gen =
      but I'm not sure whether doing this is actually a good idea
      since it could potentially trip other derived configuration values
      that are e.g. testing strings. Also if we keep this it should be
-     done in dep order. *)
+     done in dep order. N.B. this is the reason why at the moment
+     config discovery commands like `uname -s` are executed twice as it
+     invalidates the value's cache. *)
   let alter k var (rmk, conf as no_alter) =
     if not (Conf.mem conf k) then no_alter else
     let v = Conf.(eval conf (get conf k)) in
@@ -57,7 +60,11 @@ let keys gen =
   in
   { gen with proj = Project.with_conf gen.proj conf; rmk }
 
-let mk_recipe conf ctx args cmds =
+let mk_recipe gen action =
+  let conf = Project.conf gen.proj in
+  let ctx = Action.ctx action in
+  let args = Args.append (Project.args gen.proj) (Action.args action) in
+  let cmds = Action.cmds action in
   let add_cmd acc cmd =
     let redirect op file acc = match file with
     | None -> acc | Some file -> (Path.to_string file) :: op :: acc
@@ -74,6 +81,16 @@ let mk_recipe conf ctx args cmds =
   in
   List.rev (List.fold_left add_cmd [] cmds)
 
+let mk_run_action name gen action = (* treated specially, phony *)
+  let inputs = Action.inputs action in
+  let prereqs = List.(rev (rev_map Path.to_string inputs)) in
+  let target = str "run-%s" name in
+  let phony = target :: gen.phony in
+  let recipe = mk_recipe gen action in
+  let rule = Makefile.rule ~targets:[target] ~prereqs ~recipe () in
+  let rmk = rule :: gen.rmk in
+  { gen with phony; rmk; }
+
 (* TODO check and warn about empty targets and cmds and skip *)
 let mk_action gen action =
   let inputs = Action.inputs action in
@@ -82,11 +99,7 @@ let mk_action gen action =
   let order_only_prereqs = List.rev_map Path.to_string dirs in
   let prereqs = List.(rev (rev_map Path.to_string inputs)) in
   let targets = List.(rev (rev_map Path.to_string outputs)) in
-  let recipe =
-    let ctx = Action.ctx action in
-    let args = Args.append (Project.args gen.proj) (Action.args action) in
-    mk_recipe (Project.conf gen.proj) ctx args (Action.cmds action)
-  in
+  let recipe = mk_recipe gen action in
   let rule = Makefile.rule ~order_only_prereqs ~targets ~prereqs ~recipe () in
   let rmk = rule :: gen.rmk in
   let dirs = List.fold_left (fun set d -> Path.Set.add d set) gen.dirs dirs in
@@ -103,6 +116,7 @@ let mk_part gen p =
       let kind = Part.kind p in
       let comment = str "%a-%s rules" Part.pp_kind kind name in
       let rmk = `Blank :: `Comment comment :: `Blank :: gen.rmk in
+      let mk_action = if kind = `Run then mk_run_action name else mk_action in
       List.fold_left mk_action { gen with rmk } actions
 
 let mk_gen_dirs gen =
@@ -120,9 +134,18 @@ let mk_gen_dirs gen =
   let rmk = `Blank :: `Comment header :: `Blank :: gen.rmk in
   Path.Set.fold add_dir gen.dirs { gen with rmk }
 
+let mk_phony gen =
+  let rule =
+    let targets = [".PHONY"] in
+    let prereqs = gen.phony in
+    Makefile.rule ~targets ~prereqs ~recipe:[] ()
+  in
+  { gen with rmk = rule :: `Blank :: gen.rmk }
+
 let of_project ~setup_files proj =
   let gen = generator proj in
   let gen = keys gen in
   let gen = List.fold_left mk_part gen (Project.parts gen.proj) in
   let gen = mk_gen_dirs gen in
+  let gen = mk_phony gen in
   List.rev gen.rmk

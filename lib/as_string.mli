@@ -71,8 +71,8 @@ val tokens : string -> string list
     [s], the order of character appearance in the list is the same as
     in [s]. *)
 
-val list_uniq : string list -> string list
-(** [list_uniq ss] is [ss] without duplicates, the list order is preserved. *)
+val uniquify : string list -> string list
+(** [uniquify ss] is [ss] without duplicates, the list order is preserved. *)
 
 (** {1 Sets of strings} *)
 

@@ -37,7 +37,7 @@ let deps p =
 
 let v ?(exists = As_conf.true_) ?(args = As_args.empty) ?(schemes = []) name
     ~parts =
-  let parts = As_part.list_uniq (parts :> As_part.kind As_part.t list) in
+  let parts = As_part.list_uniquify (parts :> As_part.kind As_part.t list) in
   let rec p =
     { name; exists; args; schemes; parts; deps = lazy (deps p); conf = None; }
   in

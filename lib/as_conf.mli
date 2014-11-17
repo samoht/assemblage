@@ -213,10 +213,10 @@ val docs_system_utilities : string
 val doc_system_utilities : string
 
 val echo : string key
+val cd : string key
 val ln : string key
 val cp : string key
 val mv : string key
-val cd : string key
 val rm : string key
 val rmdir : string key
 val mkdir : string key

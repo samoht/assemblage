@@ -41,8 +41,10 @@ val v :
   [< `Unit | `Lib | `Pkg ] As_part.t list ->
   [> `Bin] As_part.t
 
-(*
-   TODO
-  val cmd : ?args:As_args.t -> ?kind:[`Byte | `Native] -> [< `Bin] As_part.t ->
-    (string list -> string list) -> As_action.cmd
-*)
+val to_cmd : ?ext:As_path.ext -> [< `Bin] As_part.t ->
+  As_acmd.cmd As_conf.value
+
+val to_cmd_path : ?abs:bool -> ?ext:As_path.ext -> [< `Bin] As_part.t ->
+  As_path.t As_conf.value
+
+val exists : ?ext:As_path.ext -> [< `Bin] As_part.t -> bool As_conf.value

@@ -61,8 +61,8 @@ let parse_lines (byte, native, pp) =
   in
   let parse lines =
     let i, o, f = List.fold_left add_line ([], [], []) lines in
-    List.rev (As_string.list_uniq i),
-    List.rev (As_string.list_uniq o),
+    List.rev (As_string.uniquify i),
+    List.rev (As_string.uniquify o),
     List.rev f
   in
   let byte_incs, byte_objs, byte_link = parse byte in

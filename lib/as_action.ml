@@ -35,6 +35,13 @@ let args a = a.args
 let log a = a.log
 let products a = List.(rev_append (rev (inputs a)) (outputs a))
 
+let add_cmds loc cmds a =
+  let cmds = match loc with
+  | `Before -> List.rev_append (List.rev cmds) a.cmds
+  | `After -> List.rev_append (List.rev a.cmds) cmds
+  in
+  {a with cmds = cmds }
+
 let add_ctx_args ctx args a =
   { a with ctx = As_ctx.union ctx a.ctx; args = As_args.append args a.args }
 

@@ -19,16 +19,19 @@
 
     See {!Assemblage.Run}. *)
 
-(** {1 Metadata} *)
-
-val dir : [< `Run] As_part.t -> As_path.t As_conf.value
-
 (** {1 Run} *)
 
 val v : ?usage:As_part.usage -> ?exists:bool As_conf.value ->
   ?args:As_args.t -> ?dir:As_path.t As_conf.value ->
-  string -> As_action.t -> [> `Run] As_part.t
+  string -> As_action.t As_conf.value -> [> `Run] As_part.t
 
-val of_bin : ?usage:As_part.usage -> ?exists:bool As_conf.value ->
-  ?args:As_args.t -> ?dir:As_path.t As_conf.value ->
-  [< `Bin] As_part.t -> (string list) As_conf.value -> [> `Run] As_part.t
+val with_bin : ?usage:As_part.usage -> ?exists:bool As_conf.value ->
+  ?args:As_args.t -> ?dir:As_path.t As_conf.value -> ?name:string ->
+  ?ext:As_path.ext -> [< `Bin] As_part.t ->
+  (As_acmd.cmd -> As_acmd.t list) As_conf.value -> [> `Run] As_part.t
+
+val bin : ?usage:As_part.usage -> ?exists:bool As_conf.value ->
+  ?args:As_args.t -> ?dir:As_path.t As_conf.value -> ?name:string ->
+  ?ext:As_path.ext -> ?stdin:As_path.t As_conf.value ->
+  ?stdout:As_path.t As_conf.value -> ?stderr:As_path.t As_conf.value ->
+  [< `Bin] As_part.t -> string list As_conf.value -> [> `Run] As_part.t

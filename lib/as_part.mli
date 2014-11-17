@@ -89,7 +89,7 @@ val file : ?usage:usage -> ?exists:bool As_conf.value -> As_path.t ->
 (** {1 Part lists} *)
 
 val list_actions : kind t list -> As_action.t list As_conf.value
-val list_uniq : kind t list -> kind t list
+val list_uniquify : kind t list -> kind t list
 val list_keep : ('a t -> bool) -> 'a t list -> 'a t list
 val list_keep_map : ('a t -> 'b option) -> 'a t list -> 'b list
 val list_keep_kind : ([< kind] as 'b) -> 'a t list -> 'b t list

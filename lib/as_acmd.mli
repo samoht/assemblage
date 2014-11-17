@@ -56,6 +56,7 @@ end
 (** {1 Portable system utility invocations} *)
 
 val dev_null : As_path.t As_conf.value
+val cd : (As_path.t -> t) As_conf.value
 val ln : (As_path.t -> As_path.t -> t) As_conf.value
 val ln_rel : (As_path.t -> As_path.t -> t) As_conf.value
 val cp : (As_path.t -> As_path.t -> t) As_conf.value

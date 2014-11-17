@@ -97,39 +97,27 @@ let assemble_assemble =
   (* Sanity check, can we compile assemble.ml ? *)
   bin "assemble" [ lib_assemblage; unit "assemble" ~dir:root ]
 
-(*
-
 let mk_test ?(example = false) name =
-  let open Action.Spec in
   let dir = root / (if example then "examples" else "test") / name in
-  let lib_dir =
-    let get_dir acts = Path.dirname (List.hd (Action.list_outputs acts)) in
-    Conf.(const get_dir $ Part.actions lib_assemblage)
-  in
-  let assemblage_cmd = Bin.cmd bin_assemblage in
-  let assemblage cmd args =
-    let args = add (atom cmd) :: add (atom "--auto-lib=false") ::
-               path_arg ~opt:"-I" lib_dir :: args
+  let lib_dir = Conf.(value root_dir) // Part.root lib_assemblage in
+  let make args = Acmd.v (Acmd.static "make") args in
+  let cmds lib_dir assemblage =
+    let assemblage sub args =
+      let args = "--auto-lib=false" :: "-I" :: Path.to_string lib_dir :: args in
+      Acmd.v assemblage (sub :: args)
     in
-    Action.cmd assemblage_cmd args
+    [ assemblage "describe" [];
+      assemblage "setup" [];
+      make [];
+      make ["distclean"]]
   in
-  let cmds =
-    Action.(assemblage "describe" <*>
-            assemblage "setup" <*>
-            cmd Conf.make (atom []) <*>
-            cmd Conf.make (atom "distclean"))
-  in
-  let action = Action.v ~ctx:Ctx.empty ~inputs:(Conf.value assemblage_cmd)
-      cmds
-  in
-  run ~usage:`Test action
-
+  let cmds = Conf.(const cmds $ lib_dir) in
+  Run.with_bin ~usage:`Test ~dir ~name bin_assemblage cmds
 
 let mk_example = mk_test ~example:true
-*)
-let tests = []
-(*
-  [ mk_test "builtin-keys"
+
+let tests =
+  [ mk_test "builtin-keys";
     mk_example "hello";
     mk_example "camlp4";
     mk_example "multi-libs";
@@ -138,7 +126,6 @@ let tests = []
     mk_example "threads";
     mk_example "threads-lib";
     mk_example "ctypes-libffi"; ]
-*)
 
 (* Docs *)
 

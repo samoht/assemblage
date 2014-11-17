@@ -51,6 +51,7 @@ type path = Path.t Conf.value
 
 let root = Conf.(const As_path.empty)
 let ( / ) p seg = Conf.(const Path.add $ p $ const seg)
+let ( // ) p rel = Conf.(const Path.concat $ p $ rel)
 
 let unit ?usage ?exists ?args ?needs ?(kind = `OCaml (`Both, `Normal))
     ?dir name =

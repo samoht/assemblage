@@ -120,3 +120,40 @@ let actions p =
 let v ?usage ?exists ?args ?byte ?native ?js name kind needs =
   let meta = meta ?byte ?native ?js kind in
   As_part.v_kind ?usage ?exists ?args ~meta ~needs ~actions ~check name `Bin
+
+let to_cmd_path ?(abs = false) ?ext bin =
+  let mk_path ocaml_native proj_root part_root =
+    let ext = match kind bin with
+    | `OCaml_toplevel | `C -> ext
+    | `OCaml ->
+        match ext with
+        | Some _ as ext -> ext
+        | None ->
+            if ocaml_native && native bin then Some `Native else Some `Byte
+    in
+    let p = As_path.Rel.(part_root / As_part.name bin) in
+    let p = if abs then As_path.(proj_root // p) else As_path.of_rel p in
+    match ext with None -> p | Some e -> As_path.(p + e)
+  in
+  As_conf.(const mk_path $ value ocaml_native $ value root_dir $
+           As_part.root bin)
+
+(* FIXME this is the only place where we have absolute paths
+   in the resulting build system (see e.g. the generated Makefile).
+   The problem is for runs with ~dir argument specified. *)
+let to_cmd ?ext bin =
+  let mk_cmd path = As_acmd.static (As_path.to_string path) in
+  As_conf.(const mk_cmd $ to_cmd_path ~abs:true ?ext bin)
+
+let exists ?ext bin =
+  let exists part_exists nat byt = match kind bin with
+  | `C -> part_exists
+  | `OCaml_toplevel -> part_exists && byt
+  | `OCaml ->
+      match ext with
+      | Some `Byte -> part_exists && byt && byte bin
+      | Some `Native -> part_exists && nat && native bin
+      | _ -> part_exists && (nat && native bin || byt && byte bin)
+  in
+  As_conf.(const exists $ As_part.exists bin $ value ocaml_native $
+           value ocaml_byte)

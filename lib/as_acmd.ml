@@ -94,15 +94,19 @@ let dev_null =
   in
   As_conf.(const dev_null $ value host_os)
 
+let cd =
+  let make_cmd cd = fun dir -> v cd (path_arg dir @@ []) in
+  As_conf.(const make_cmd $ cmd As_conf.cd)
+
 let ln =
-  let make_cmd os cmd = match os with
+  let make_cmd os ln = match os with
   | "Win32" ->
       As_log.warn "Symbolic@ links@ unsupported@ copying@ instead.";
-      fun src dst -> v cmd (add "/Y" @@ path_arg src @@ path_arg dst @@ [])
+      fun src dst -> v ln (add "/Y" @@ path_arg src @@ path_arg dst @@ [])
   | _ ->
       fun src dst ->
         let args = adds ["-s"; "-f"] @@ path_arg src @@ path_arg dst @@ [] in
-        v cmd args
+        v ln args
   in
   As_conf.(const make_cmd $ (value host_os) $ (cmd As_conf.ln ))
 
@@ -131,50 +135,50 @@ let ln_rel =
   As_conf.(const make_cmd $ ln_cmd)
 
 let cp =
-  let make_cmd os cmd = match os with
+  let make_cmd os cp = match os with
   | "Win32" ->
-      fun src dst -> v cmd (add "/Y" @@ path_arg src @@ path_arg dst @@ [])
+      fun src dst -> v cp (add "/Y" @@ path_arg src @@ path_arg dst @@ [])
   | _ ->
-      fun src dst -> v cmd (path_arg src @@ path_arg dst @@ [])
+      fun src dst -> v cp (path_arg src @@ path_arg dst @@ [])
   in
   As_conf.(const make_cmd $ value host_os $ cmd As_conf.cp)
 
 let mv =
-  let make_cmd os cmd = match os with
+  let make_cmd os mv = match os with
   | "Win32" ->
-      fun src dst -> v cmd (add "/Y" @@ path_arg src @@ path_arg dst @@ [])
+      fun src dst -> v mv (add "/Y" @@ path_arg src @@ path_arg dst @@ [])
   | _ ->
-      fun src dst -> v cmd (path_arg src @@ path_arg dst @@ [])
+      fun src dst -> v mv (path_arg src @@ path_arg dst @@ [])
   in
   As_conf.(const make_cmd $ value host_os $ cmd As_conf.mv)
 
 let rm_files =
-  let make_cmd os cmd = match os with
+  let make_cmd os rm = match os with
   | "Win32" ->
       fun ?(f = false) paths ->
-        v cmd (add_if f "/F" @@ add "/Q" @@ path_args paths @@ [])
+        v rm (add_if f "/F" @@ add "/Q" @@ path_args paths @@ [])
   | _ ->
       fun ?(f = false) paths ->
-        v cmd (add_if f "-f" @@ path_args paths @@ [])
+        v rm (add_if f "-f" @@ path_args paths @@ [])
   in
   As_conf.(const make_cmd $ value host_os $ cmd As_conf.rm)
 
 let rm_dirs =
-  let make_cmd os cmd = match os with
+  let make_cmd os rmdir = match os with
   | "Win32" ->
       fun ?(f = false) ?(r = false) paths ->
-        v cmd (add_if f "/F" @@ add_if r "/S" @@ add "/Q" @@
+        v rmdir (add_if f "/F" @@ add_if r "/S" @@ add "/Q" @@
                path_args paths @@ [])
   | _ ->
       fun ?(f = false) ?(r = false) paths ->
-        v cmd (add_if f "-f" @@ add_if r "-r" @@ path_args paths @@ [])
+        v rmdir (add_if f "-f" @@ add_if r "-r" @@ path_args paths @@ [])
   in
   As_conf.(const make_cmd $ value host_os $ cmd As_conf.rmdir)
 
 let mkdir =
-  let make_cmd os cmd = match os with
-  | "Win32" -> fun dir -> v cmd (path_arg dir @@ [])
-  | _ -> fun dir -> v cmd (add "-p" @@ path_arg dir @@ [])
+  let make_cmd os mkdir = match os with
+  | "Win32" -> fun dir -> v mkdir (path_arg dir @@ [])
+  | _ -> fun dir -> v mkdir (add "-p" @@ path_arg dir @@ [])
   in
   As_conf.(const make_cmd $ value host_os $ cmd As_conf.mkdir)
 

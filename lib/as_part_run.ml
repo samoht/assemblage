@@ -15,13 +15,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* Metadata *)
-
-type meta = { dir : As_path.t As_conf.value }
-let inj, proj = As_part.meta_key ()
-let get_meta p = As_part.get_meta proj p
-let meta ?(dir = As_conf.(value root_dir)) () = inj { dir }
-let dir p = (get_meta p).dir
 
 (* Checks *)
 
@@ -30,10 +23,38 @@ let check p =
   As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind run);
   As_conf.true_
 
+(* Actions *)
+
+let actions ?dir action _ =
+  let actions action cd dir = match dir with
+  | None -> [ action ]
+  | Some dir -> [ As_action.add_cmds `Before [ cd dir ] action ]
+  in
+  As_conf.(const actions $ action $ As_acmd.cd $ Option.wrap dir)
+
 (* Run *)
 
-let v ?usage ?exists ?args ?dir name cmds =
-  let meta = meta ?dir () in
-  As_part.v_kind ?usage ?exists ?args ~meta ~check name `Run
+let v ?usage ?exists ?args ?dir name action =
+  let actions = actions ?dir action in
+  As_part.v_kind ?usage ?exists ?args ~actions ~check name `Run
 
-let of_bin ?usage ?exists ?args ?dir bin cmds = failwith "TODO"
+let with_bin ?usage ?exists ?args ?dir ?name ?ext bin cmds =
+  let name = match name with None -> As_part.name bin | Some n -> n in
+  let exists = match exists with
+  | None -> As_part_bin.exists ?ext bin
+  | Some exists -> As_conf.(exists &&& As_part_bin.exists ?ext bin)
+  in
+  let cpath = As_part_bin.to_cmd_path ?ext bin in
+  let bin = As_part_bin.to_cmd ?ext bin in
+  let action path bin cmds = As_action.v ~inputs:[ path ] (cmds bin) in
+  v ?usage ~exists ?args ?dir name As_conf.(const action $ cpath $ bin $ cmds)
+
+let bin ?usage ?exists ?args ?dir ?name ?ext ?stdin ?stdout ?stderr bin cargs =
+  let cmds stdin stdout stderr cargs bin =
+    [ As_acmd.v bin cargs ?stdin ?stdout ?stderr ]
+  in
+  let cmds =
+    As_conf.(const cmds $ Option.wrap stdin $ Option.wrap stdout $
+             Option.wrap stderr $ cargs)
+  in
+  with_bin ?usage ?exists ?args ?dir ?name ?ext bin cmds
