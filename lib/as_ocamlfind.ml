@@ -17,86 +17,76 @@
 
 let str = Printf.sprintf
 
-let (|>) x f = f x
-let conmap f l = List.concat (List.map f l)
-
-type syntax = [ `Shell | `Makefile ]
-type mode = [ `Static | `Dynamic of [ `Shell | `Makefile ] ]
-
-let query_args ?predicates ?format ?(uniq = false) ?(recursive = false) pkgs =
-  let predicates = match predicates with
-  | None   -> ""
-  | Some p ->
-      let has pkg = List.mem pkg pkgs in
-      let p = if has "threads.posix" then "mt" :: "mt_posix" ::p else p in
-      let p = if has "threads.vm" then "mt" :: "mt_vm" :: p else p in
-      str "-predicates %s " (String.concat "," p)
+let run_ocamlfind ocamlfind name =
+  let open As_cmd.Infix in
+  let err pkg = str "Could not lookup ocamlfind package %s" name in
+  let args preds =
+    let preds = String.concat "," @@ match name with
+      | "threads.posix" -> "mt" :: "mt_posix" :: preds
+      | "threads.vm" -> "mt" :: "mt_vm" :: preds
+      | _ -> preds
+    in
+    [ "query"; "-predicates"; preds; "-r"; "-format"; "\"%d|%A|%O\"" ] @ [name]
   in
-  let format = match format with
-  | None   -> ""
-   | Some f -> str "-format \"%s\" " f
+  begin
+    As_cmd.read_lines ocamlfind (args ["byte"]) >>= fun byte ->
+    As_cmd.read_lines ocamlfind (args ["native"]) >>= fun native ->
+    As_cmd.read_lines ocamlfind (args ["syntax"; "preprocessor"]) >>= fun pp ->
+    As_cmd.ret (byte, native, pp)
+  end
+  |> As_cmd.reword_error (err name)
+  |> As_cmd.on_error ~use:([],[],[])
+
+type pkg =
+  { byte_incs : string list;
+    byte_objs : string list; (* full path *)
+    byte_link : string list;
+    native_incs : string list;
+    native_objs : string list;
+    native_link : string list;
+    pp_incs : string list;
+    pp_objs : string list; }
+
+let parse_lines (byte, native, pp) =
+  let add_line (i, o, f as acc) l =
+    match As_string.split ~sep:"|" l with
+    | [dir; objs; flags] ->
+        let objs = As_string.split ~sep:" " objs in
+        let objs = List.map (fun obj -> str "%s/%s" dir obj) objs in
+        let flags = As_string.split ~sep:" " flags in
+        dir :: "-I" :: i, List.rev_append objs o, List.rev_append flags f
+    | _ ->
+        As_log.err "ocamlfind lookup could not parse line (%s)" l;
+        acc
   in
-  let recursive = if recursive then "-r " else "" in
-  let uniq = if uniq then [" | uniq"] else [] in
-  "ocamlfind", (["query"; recursive; predicates; format ] @ pkgs @ uniq)
-
-let query_static =
-  let cache = Hashtbl.create 124 in
-  let run (cmd, args as l) = try Hashtbl.find cache l with
-  | Not_found ->
-      let r = As_cmd.(on_error ~use:[] @@ read_lines cmd args) in
-      Hashtbl.add cache l r;
-      r
+  let parse lines =
+    let i, o, f = List.fold_left add_line ([], [], []) lines in
+    List.rev (As_string.list_uniq i),
+    List.rev (As_string.list_uniq o),
+    List.rev f
   in
-  fun ?predicates ?format ?(uniq=false) ?(recursive=false) pkgs ->
-    run (query_args ?predicates ?format ~uniq ~recursive pkgs)
+  let byte_incs, byte_objs, byte_link = parse byte in
+  let native_incs, native_objs, native_link = parse native in
+  let pp_incs, pp_objs, _ = parse pp in
+  { byte_incs; byte_objs; byte_link;
+    native_incs; native_objs; native_link;
+    pp_incs; pp_objs; }
 
-let query_makefile ?predicates ?format ?uniq:_ ?(recursive=false) pkgs =
-  let cmd, args = query_args ?predicates ?format ~recursive:true pkgs in
-  [ "$(shell" ] @  (cmd :: args) @ [ ")" ]
+let pkg_lookups ocamlfind name =
+  let p = run_ocamlfind ocamlfind name |> parse_lines in
+  [ As_ctx.v [`OCaml; `Pp], p.pp_incs @ p.pp_objs;
+    As_ctx.v [`OCaml; `Compile; `Target `Byte], p.byte_incs;
+    As_ctx.v [`OCaml; `Compile; `Target `Native], p.native_incs;
+    As_ctx.v [`OCaml; `Link; `Target `Byte], p.byte_objs @ p.byte_link;
+    As_ctx.v [`OCaml; `Link; `Target `Native], p.native_objs @ p.native_link; ]
 
-let query ~mode = match mode with
-  | `Static -> query_static
-  | `Dynamic `Shell ->
-      fun ?predicates ?format ?uniq ?recursive pkgs ->
-        let cmd, args = query_args ?predicates ?format ?uniq ?recursive pkgs in
-        cmd :: args
-  | `Dynamic `Makefile -> query_makefile
-
-let includes ~mode ~recursive ~predicates pkgs =
-  query ~mode ~recursive ~predicates ~format:"-I %d" ~uniq:true pkgs
-
-let comp_byte ~mode pkgs =
-  includes ~mode ~recursive:true ~predicates:["byte"] pkgs
-
-let comp_native ~mode pkgs =
-  includes ~mode ~recursive:true ~predicates:["native"] pkgs
-
-let link_byte ~mode pkgs =
-  includes ~mode ~recursive:true ~predicates:["byte"] pkgs @
-  query ~mode ~predicates:["byte"] ~format:"%d/%a" ~recursive:true pkgs
-
-let link_native ~mode pkgs =
-  includes ~mode ~recursive:true ~predicates:["native"] pkgs @
-  query ~mode ~predicates:["native"] ~format:"%d/%a" ~recursive:true pkgs
-
-let pp_byte ~mode pkgs =
-  (* https://github.com/samoht/assemblage/pull/119 *)
-  link_byte ~mode pkgs @
-  query ~mode ~predicates:["syntax"; "preprocessor"] ~recursive:true
-    ~format:"-I %d %a" pkgs
-
-let pkgs_args ~mode = function
-| [] -> As_args.empty
-| pkgs -> As_args.empty
-(*
-    Args.concat
-      [ Args.create (`Pp `Byte) (pp_byte ~mode pkgs);
-        Args.create (`Pp `Native) (pp_byte ~mode pkgs);
-        Args.create (`Compile `Byte) (comp_byte ~mode pkgs);
-        Args.create (`Compile `Native) (comp_native ~mode pkgs);
-        Args.create (`Link `Byte) (link_byte ~mode pkgs);
-        Args.create (`Link `Native) (link_native ~mode pkgs) ]
-*)
-
-let lookup name = As_conf.(const (fun ctx -> [])) (* TODO *)
+let lookup name =
+  let lookups = As_conf.(const pkg_lookups $ (value ocamlfind) $ const name) in
+  let lookup lookups ctx =
+      let add acc (pkg_ctx, args) =
+        if not (As_ctx.matches pkg_ctx ctx) then acc else
+        List.rev_append (List.rev args) acc
+      in
+      List.fold_left add [] lookups
+  in
+  As_conf.(const lookup $ lookups)

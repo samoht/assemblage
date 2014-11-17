@@ -64,7 +64,7 @@ let check p =
 
 let lookup_value name = function
 | `OCamlfind -> As_ocamlfind.lookup name
-| `Pkg_config -> As_ocamlfind.lookup name (*As_pkg_config.lookup name*)
+| `Pkg_config -> As_pkg_config.lookup name
 | `Other (_, lookup) -> lookup
 
 let v ?usage ?exists ?opt name kind =
@@ -72,7 +72,9 @@ let v ?usage ?exists ?opt name kind =
   let meta = meta ?opt kind lookup in
   As_part.v_kind ?usage ?exists ~meta ~check name `Pkg
 
-
+(* FIXME the following wont work if two packages depend
+   on the same package we will get double linking. What
+   strategy for uniq ? *)
 let list_lookup ps =
   let add_pkg acc p = match As_part.coerce_if `Pkg p with
   | None -> acc

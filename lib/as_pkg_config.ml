@@ -85,4 +85,5 @@ let pkgs_args ~mode = function
       Args.v (`Archive `Shared) (ocaml_clink_flags); ]
 *)
 
-let lookup name = As_conf.(const (fun ctx -> [])) (* TODO *)
+let lookup name = (* TODO, copycat on As_ocamlfind *)
+  As_conf.(const (fun ctx -> []))
