@@ -44,9 +44,9 @@ let with_bin ?usage ?exists ?args ?dir ?name ?ext bin cmds =
   | None -> As_part_bin.exists ?ext bin
   | Some exists -> As_conf.(exists &&& As_part_bin.exists ?ext bin)
   in
+  let action path bin cmds = As_action.v ~inputs:[ path ] (cmds bin) in
   let cpath = As_part_bin.to_cmd_path ?ext bin in
   let bin = As_part_bin.to_cmd ?ext bin in
-  let action path bin cmds = As_action.v ~inputs:[ path ] (cmds bin) in
   v ?usage ~exists ?args ?dir name As_conf.(const action $ cpath $ bin $ cmds)
 
 let bin ?usage ?exists ?args ?dir ?name ?ext ?stdin ?stdout ?stderr bin cargs =

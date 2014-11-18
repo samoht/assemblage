@@ -2467,6 +2467,22 @@ module Bin : sig
   val exists : ?ext:Path.ext -> [< `Bin] part -> bool Conf.value
   (** [exists ?ext bin] is [true] if the [to_cmd bin] command
       exists. *)
+
+  (** {1 Binaries as product generators}  *)
+
+  val gen : ?usage:Part.usage -> ?exists:bool Conf.value ->
+    ?args:Args.t -> ?dir:Path.t Conf.value -> ?name:string ->
+    ?ext:Path.ext -> ?stdin:Path.t Conf.value ->
+    ?stdout:Path.t Conf.value -> ?stderr:Path.t Conf.value ->
+    [< `Bin] Part.t -> string list Conf.value -> [> `Base] Part.t
+  (** [gen ext bin args] is a part that uses {!to_cmd} to generate
+      a product on [stdout].
+
+      {b FIXME} This API is a proof of concept, it was quickly derived
+      from {!Run.bin}, it's not designed. We need to devise sensitive
+      things with [dir] and relative to what we express paths. Also
+      want to specify the action's outputs explicitely.  See the
+      gen-quine example. *)
 end
 
 (** Package part.

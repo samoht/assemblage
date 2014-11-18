@@ -160,3 +160,44 @@ let exists ?ext bin =
   in
   As_conf.(const exists $ As_part.exists bin $ value ocaml_native $
            value ocaml_byte)
+
+(* Run *)
+
+let gen ?usage ?exists:exs ?args ?dir ?name ?ext ?stdin ?stdout ?stderr
+    bin cargs
+  =
+  let name = match name with
+  | None -> str "gen-%s" (As_part.name bin)
+  | Some n -> n
+  in
+  let exists = match exs with
+  | None -> exists ?ext bin
+  | Some exs -> As_conf.(exs &&& exists ?ext bin)
+  in
+  let actions _ =
+    let open As_acmd.Args in
+    let actions cd dir cpath bin cargs stdin stdout stderr =
+      let ctx = As_ctx.v [`Gen] in
+      let inputs = match stdin with
+      | None -> [ cpath ]
+      | Some p -> [ p; cpath ]
+      in
+      let outputs = match stdout, stderr with
+      | Some p, Some p' -> [p; p']
+      | Some p, _ | _, Some p -> [p]
+      | None, None -> []
+      in
+      let gen_cmd = As_acmd.v bin cargs ?stdin ?stdout ?stderr in
+      let cmds = match dir with
+      | None -> [ gen_cmd ]
+      | Some dir -> [ cd dir; gen_cmd ]
+      in
+      [As_action.v ~ctx ~inputs ~outputs cmds]
+    in
+    let cpath = to_cmd_path ?ext bin in
+    let bin = to_cmd ?ext bin in
+    As_conf.(const actions $ As_acmd.cd $ Option.wrap dir $ cpath $ bin $
+             cargs $ Option.wrap stdin $ Option.wrap stdout $
+             Option.wrap stderr)
+  in
+  As_part.v_kind ?usage ~exists ?args ~actions name `Base

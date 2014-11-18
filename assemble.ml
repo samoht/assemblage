@@ -119,6 +119,7 @@ let mk_example = mk_test ~example:true
 let tests =
   [ mk_test "builtin-keys";
     mk_example "hello";
+    mk_example "gen-quine";
     mk_example "camlp4";
     mk_example "multi-libs";
     mk_example "containers";
