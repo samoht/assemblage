@@ -4,3 +4,4 @@ META
 assemblage.install
 Makefile
 .merlin
+*~
