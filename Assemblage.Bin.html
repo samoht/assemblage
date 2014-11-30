@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.Lib.html">
+<link rel="next" href="Assemblage.Pkg.html">
+<link rel="Up" href="Assemblage.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Metadata" rel="Section" href="#1_Metadata">
+<link title="Binaries" rel="Section" href="#1_Binaries">
+<link title="Binaries as product generators" rel="Section" href="#1_Binariesasproductgenerators">
+<title>Assemblage.Bin</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.Lib.html" title="Assemblage.Lib">Previous</a>
+&nbsp;<a class="up" href="Assemblage.html" title="Assemblage">Up</a>
+&nbsp;<a class="post" href="Assemblage.Pkg.html" title="Assemblage.Pkg">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Bin.html">Assemblage.Bin</a></h1>
+
+<pre><span class="keyword">module</span> Bin: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Bin.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Binary executable part.
+<p>
+
+    Defines a program executable's build products by gathering a set of
+    <a href="Assemblage.Unit.html">unit parts</a>.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Metadata">Metadata</h1><br>
+
+<pre><span id="TYPEkind"><span class="keyword">type</span> <code class="type"></code>kind</span> = <code class="type">[ `C | `OCaml | `OCaml_toplevel ]</code> </pre>
+<div class="info ">
+The type for kinds of binaries.
+      <ul>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code> is a OCaml executable.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml_toplevel</span></code> is an OCaml toplevel.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">C</span></code> is a C executable.</li>
+</ul>
+<br>
+</div>
+
+
+<pre><span id="VALpp_kind"><span class="keyword">val</span> pp_kind</span> : <code class="type">Format.formatter -> <a href="Assemblage.Bin.html#TYPEkind">kind</a> -> unit</code></pre><div class="info ">
+<code class="code">pp_kind ppf k</code> prints an unspecified representation of <code class="code">k</code> on
+      <code class="code">ppf</code>.<br>
+</div>
+
+<pre><span id="VALkind"><span class="keyword">val</span> kind</span> : <code class="type">[< `Bin ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> <a href="Assemblage.Bin.html#TYPEkind">kind</a></code></pre><div class="info ">
+<code class="code">kind p</code> is <code class="code">p</code>'s kind.<br>
+</div>
+
+<pre><span id="VALbyte"><span class="keyword">val</span> byte</span> : <code class="type">[< `Bin ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool</code></pre><div class="info ">
+<code class="code">byte p</code> is <code class="code"><span class="keyword">true</span></code> if <code class="code">p</code> can compile to OCaml byte code.<br>
+</div>
+
+<pre><span id="VALnative"><span class="keyword">val</span> native</span> : <code class="type">[< `Bin ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool</code></pre><div class="info ">
+<code class="code">native p</code> is <code class="code"><span class="keyword">true</span></code> if <code class="code">p</code> can compile to native code.<br>
+</div>
+
+<pre><span id="VALjs"><span class="keyword">val</span> js</span> : <code class="type">[< `Bin ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool</code></pre><div class="info ">
+<code class="code">js p</code> is <code class="code"><span class="keyword">true</span></code> if <code class="code">p</code> can compile to JavaScript code.<br>
+</div>
+
+<pre><span id="VALocaml"><span class="keyword">val</span> ocaml</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Bin ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> option</code></pre><div class="info ">
+<code class="code">ocaml p</code> is <code class="code"><span class="constructor">Some</span> p</code> iff <code class="code">p</code> is an <code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code> binary.<br>
+</div>
+
+<pre><span id="VALocaml_toplevel"><span class="keyword">val</span> ocaml_toplevel</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Bin ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> option</code></pre><div class="info ">
+<code class="code">ocaml_toplevel p</code> is <code class="code"><span class="constructor">Some</span> p</code> iff <code class="code">p</code> is an <code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml_toplevel</span></code> binary.<br>
+</div>
+
+<pre><span id="VALc"><span class="keyword">val</span> c</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Bin ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> option</code></pre><div class="info ">
+<code class="code">c p</code> is <code class="code"><span class="constructor">Some</span> p</code> iff <code class="code">p</code> is an <code class="code"><span class="keywordsign">`</span><span class="constructor">C</span></code> binary.<br>
+</div>
+<br>
+<h1 id="1_Binaries">Binaries</h1><br>
+
+<pre><span id="VALv"><span class="keyword">val</span> v</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Assemblage.Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       ?args:<a href="Assemblage.Args.html#TYPEt">Assemblage.Args.t</a> -><br>       ?byte:bool -><br>       ?native:bool -><br>       ?js:bool -><br>       string -><br>       <a href="Assemblage.Bin.html#TYPEkind">kind</a> -><br>       [< `Lib | `Pkg | `Unit ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Bin ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a></code></pre><div class="info ">
+<code class="code">v ?byte ?native ?js name kind needs</code> is a binary named <code class="code">name</code>
+      of the given <code class="code">kind</code>. <code class="code">needs</code> has the compilation units <code class="code">us</code> that
+      define the binary, they are integrated. The package and
+      libraries that are in <code class="code">needs</code> are added to <code class="code">us</code> needs and used
+      at link time.
+<p>
+
+      The binary's <em>ability</em> to compile to different targets is specified
+      by the arguments <code class="code">?byte</code>, <code class="code">?native</code> and <code class="code">?js</code> whose defaults
+      respectively depend on <code class="code">kind</code> as follows.
+      <ul>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code>, <code class="code"><span class="keyword">true</span></code>, <code class="code"><span class="keyword">true</span></code>, <code class="code"><span class="keyword">false</span></code>.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml_toplevel</span></code>, <code class="code"><span class="keyword">true</span></code>, <code class="code"><span class="keyword">false</span></code>, <code class="code"><span class="keyword">false</span></code>.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">C</span></code>, <code class="code"><span class="keyword">false</span></code> (not applicable), <code class="code"><span class="keyword">true</span></code>, <code class="code"><span class="keyword">false</span></code></li>
+</ul>
+
+      Whether the outputs associated to a compilation target are
+      concretly build depends on the configuration keys <a href="Assemblage.Conf.html#VALocaml_byte"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.ocaml_byte</code></a>,
+      <a href="Assemblage.Conf.html#VALocaml_native"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.ocaml_native</code></a>, <a href="Assemblage.Conf.html#VALocaml_js"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.ocaml_js</code></a> and <a href="Assemblage.Conf.html#VALc_js"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.c_js</code></a>.<br>
+</div>
+
+<pre><span id="VALto_cmd"><span class="keyword">val</span> to_cmd</span> : <code class="type">?ext:<a href="Assemblage.Path.html#TYPEext">Assemblage.Path.ext</a> -><br>       [< `Bin ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> <a href="Assemblage.Acmd.html#TYPEcmd">Assemblage.Acmd.cmd</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code></pre><div class="info ">
+<code class="code">to_cmd ext bin</code> is an <a href="Assemblage.Acmd.html#TYPEcmd">action command</a> for
+      using the part's binary. <code class="code">ext</code> specifies the binary to use if
+      there are multiple of them; default favors native code over byte
+      code if available and as per configuration.
+<p>
+
+      <b>Warning.</b> When you use the resulting command in
+      <a href="Assemblage.Action.html">actions</a> make sure to specify it as an input product
+      of the action using <a href="Assemblage.Bin.html#VALto_cmd_path"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Bin</span>.to_cmd_path</code></a> otherwise the binary may not
+      exist when the action is executed. Also make sure to use the
+      command in configurations in which <code class="code">bin</code> exists, see
+      <a href="Assemblage.Bin.html#VALexists"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Bin</span>.exists</code></a>. For simple use cases <a href="Assemblage.Run.html#VALwith_bin"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Run</span>.with_bin</code></a> and <a href="Assemblage.Run.html#VALbin"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Run</span>.bin</code></a>
+      will take care of these details.<br>
+</div>
+
+<pre><span id="VALto_cmd_path"><span class="keyword">val</span> to_cmd_path</span> : <code class="type">?abs:bool -><br>       ?ext:<a href="Assemblage.Path.html#TYPEext">Assemblage.Path.ext</a> -><br>       [< `Bin ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> <a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code></pre><div class="info ">
+<code class="code">to_cmd_path ext bin</code> is <code class="code">to_cmd ext bin</code> as a path. If <code class="code">abs</code> is
+      true (default to <code class="code"><span class="keyword">false</span></code>) returns an absolute path.<br>
+</div>
+
+<pre><span id="VALexists"><span class="keyword">val</span> exists</span> : <code class="type">?ext:<a href="Assemblage.Path.html#TYPEext">Assemblage.Path.ext</a> -><br>       [< `Bin ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code></pre><div class="info ">
+<code class="code">exists ?ext bin</code> is <code class="code"><span class="keyword">true</span></code> if the <code class="code">to_cmd bin</code> command
+      exists.<br>
+</div>
+<br>
+<h1 id="1_Binariesasproductgenerators">Binaries as product generators</h1><br>
+
+<pre><span id="VALgen"><span class="keyword">val</span> gen</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Assemblage.Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       ?args:<a href="Assemblage.Args.html#TYPEt">Assemblage.Args.t</a> -><br>       ?dir:<a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       ?name:string -><br>       ?ext:<a href="Assemblage.Path.html#TYPEext">Assemblage.Path.ext</a> -><br>       ?stdin:<a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       ?stdout:<a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       ?stderr:<a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       [< `Bin ] <a href="Assemblage.Part.html#TYPEt">Assemblage.Part.t</a> -><br>       string list <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Base ] <a href="Assemblage.Part.html#TYPEt">Assemblage.Part.t</a></code></pre><div class="info ">
+<code class="code">gen ext bin args</code> is a part that uses <a href="Assemblage.Bin.html#VALto_cmd"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Bin</span>.to_cmd</code></a> to generate
+      a product on <code class="code">stdout</code>.
+<p>
+
+      <b>FIXME</b> This API is a proof of concept, it was quickly derived
+      from <a href="Assemblage.Run.html#VALbin"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Run</span>.bin</code></a>, it's not designed. We need to devise sensitive
+      things with <code class="code">dir</code> and relative to what we express paths. Also
+      want to specify the action's outputs explicitely.  See the
+      gen-quine example.<br>
+</div>
+</body></html>

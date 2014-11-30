@@ -1,0 +1,146 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage_driver.Lib_prefs.html">
+<link rel="next" href="Assemblage_driver.Driver.html">
+<link rel="Up" href="Assemblage_driver.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Loader" rel="Section" href="#1_Loader">
+<link title="User interface" rel="Section" href="#1_Userinterface">
+<title>Assemblage_driver.Loader</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage_driver.Lib_prefs.html" title="Assemblage_driver.Lib_prefs">Previous</a>
+&nbsp;<a class="up" href="Assemblage_driver.html" title="Assemblage_driver">Up</a>
+&nbsp;<a class="post" href="Assemblage_driver.Driver.html" title="Assemblage_driver.Driver">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage_driver.Loader.html">Assemblage_driver.Loader</a></h1>
+
+<pre><span class="keyword">module</span> Loader: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage_driver.Loader.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Assemble file loader.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Loader">Loader</h1><br>
+
+<pre><span id="TYPEkind"><span class="keyword">type</span> <code class="type"></code>kind</span> = <code class="type">[ `Toplevel ]</code> </pre>
+<div class="info ">
+The type for kinds of loaders.<br>
+</div>
+
+
+<pre><span id="VALpp_kind"><span class="keyword">val</span> pp_kind</span> : <code class="type">Format.formatter -> <a href="Assemblage_driver.Loader.html#TYPEkind">kind</a> -> unit</code></pre><div class="info ">
+<code class="code">pp_kind ppf kind</code> prints an unspecified representation of <code class="code">kind</code>
+      on <code class="code">ppf</code>.<br>
+</div>
+
+<pre><code><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> = {</code></pre><table class="typetable">
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTt.kind">kind</span>&nbsp;: <code class="type">[ `Toplevel ]</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >kind of loader.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTt.ocamlfind_exec">ocamlfind_exec</span>&nbsp;: <code class="type">string</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code">ocamlfind</code> to use.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTt.auto_lib">auto_lib</span>&nbsp;: <code class="type">bool</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" ><code class="code"><span class="keyword">true</span></code> to add assemblage lib to loader.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTt.includes">includes</span>&nbsp;: <code class="type">string list</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >includes to add to toploop execution.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr>
+<tr>
+<td align="left" valign="top" >
+<code>&nbsp;&nbsp;</code></td>
+<td align="left" valign="top" >
+<code><span id="TYPEELTt.files">files</span>&nbsp;: <code class="type"><a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> list</code>;</code></td>
+<td class="typefieldcomment" align="left" valign="top" ><code>(*</code></td><td class="typefieldcomment" align="left" valign="top" >.ml files to load.</td><td class="typefieldcomment" align="left" valign="bottom" ><code>*)</code></td>
+</tr></table>
+}
+
+<div class="info ">
+The type for loader settings. TODO: we could add packages to the mix.<br>
+</div>
+
+
+<pre><span id="VALload"><span class="keyword">val</span> load</span> : <code class="type">?level:Assemblage.Private.Log.level -><br>       <a href="Assemblage_driver.Loader.html#TYPEt">t</a> -> unit Assemblage.Private.Cmd.result</code></pre><div class="info ">
+<code class="code">load l</code> loads according to settings <code class="code">l</code>. <code class="code">level</code> indicates
+      with which level file loads are logged, defaults to <code class="code"><span class="constructor">Level</span>.<span class="constructor">Info</span></code>.<br>
+</div>
+
+<pre><span id="VALpp"><span class="keyword">val</span> pp</span> : <code class="type">Format.formatter -> <a href="Assemblage_driver.Loader.html#TYPEt">t</a> -> unit</code></pre><div class="info ">
+<code class="code">pp ppf l</code> prints an unspecified representation of <code class="code">l</code> on <code class="code">ppf</code>.<br>
+</div>
+<br>
+<h1 id="1_Userinterface">User interface</h1><br>
+
+<pre><span id="VALui"><span class="keyword">val</span> ui</span> : <code class="type">?kinds:<a href="Assemblage_driver.Loader.html#TYPEkind">kind</a> list -><br>       ?files:<a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> list Cmdliner.Term.t -><br>       docs:string -> unit -> <a href="Assemblage_driver.Loader.html#TYPEt">t</a> Cmdliner.Term.t</code></pre><div class="info ">
+<code class="code">ui ~docs</code> is a <code class="code"><span class="constructor">Cmdliner</span></code> term that defines a loader setting
+      value either through command line options or through environment
+      variables. An environment variable definition takes over a
+      corresponding command line option. <code class="code">kinds</code> lists the kind of
+      loaders that should be supported, if absent all loader are supported.
+      <code class="code">files</code> defines how files to load should be parsed from the command
+      line, default uses an optional argument.<br>
+</div>
+
+<pre><span id="VALman_vars"><span class="keyword">val</span> man_vars</span> : <code class="type">?kinds:<a href="Assemblage_driver.Loader.html#TYPEkind">kind</a> list -><br>       unit -> Cmdliner.Manpage.block list</code></pre><div class="info ">
+<code class="code">man_vars</code> is a man page fragment for the environment variables
+      used by <a href="Assemblage_driver.Loader.html#VALui"><code class="code"><span class="constructor">Assemblage_driver</span>.<span class="constructor">Loader</span>.ui</code></a>.<br>
+</div>
+</body></html>

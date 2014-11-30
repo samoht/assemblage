@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Ast_opam.html">
+<link rel="next" href="As_action.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Action commands" rel="Section" href="#1_Actioncommands">
+<link title="Portable system utility invocations" rel="Section" href="#1_Portablesystemutilityinvocations">
+<title>As_acmd</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Ast_opam.html" title="Ast_opam">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="As_action.html" title="As_action">Next</a>
+</div>
+<h1>Module <a href="type_As_acmd.html">As_acmd</a></h1>
+
+<pre><span class="keyword">module</span> As_acmd: <code class="code"><span class="keyword">sig</span></code> <a href="As_acmd.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Build action commands
+<p>
+
+    See <a href="Assemblage.Acmd.html"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Acmd</span></code></a>.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Actioncommands">Action commands</h1><br>
+
+<pre><span id="TYPEcmd"><span class="keyword">type</span> <code class="type"></code>cmd</span> </pre>
+
+
+<pre><span id="VALcmd"><span class="keyword">val</span> cmd</span> : <code class="type">string <a href="As_conf.html#TYPEkey">As_conf.key</a> -> <a href="As_acmd.html#TYPEcmd">cmd</a> <a href="As_conf.html#TYPEvalue">As_conf.value</a></code></pre>
+<pre><span id="VALstatic"><span class="keyword">val</span> static</span> : <code class="type">string -> <a href="As_acmd.html#TYPEcmd">cmd</a></code></pre>
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+
+
+<pre><span id="VALv"><span class="keyword">val</span> v</span> : <code class="type">?stdin:<a href="As_path.html#TYPEt">As_path.t</a> -><br>       ?stdout:<a href="As_path.html#TYPEt">As_path.t</a> -><br>       ?stderr:<a href="As_path.html#TYPEt">As_path.t</a> -> <a href="As_acmd.html#TYPEcmd">cmd</a> -> string list -> <a href="As_acmd.html#TYPEt">t</a></code></pre>
+<pre><span id="VALcmd_key"><span class="keyword">val</span> cmd_key</span> : <code class="type"><a href="As_acmd.html#TYPEt">t</a> -> string <a href="As_conf.html#TYPEkey">As_conf.key</a> option</code></pre>
+<pre><span id="VALcmd_name"><span class="keyword">val</span> cmd_name</span> : <code class="type"><a href="As_acmd.html#TYPEt">t</a> -> string</code></pre>
+<pre><span id="VALargs"><span class="keyword">val</span> args</span> : <code class="type"><a href="As_acmd.html#TYPEt">t</a> -> string list</code></pre>
+<pre><span id="VALstdin"><span class="keyword">val</span> stdin</span> : <code class="type"><a href="As_acmd.html#TYPEt">t</a> -> <a href="As_path.html#TYPEt">As_path.t</a> option</code></pre>
+<pre><span id="VALstdout"><span class="keyword">val</span> stdout</span> : <code class="type"><a href="As_acmd.html#TYPEt">t</a> -> <a href="As_path.html#TYPEt">As_path.t</a> option</code></pre>
+<pre><span id="VALstderr"><span class="keyword">val</span> stderr</span> : <code class="type"><a href="As_acmd.html#TYPEt">t</a> -> <a href="As_path.html#TYPEt">As_path.t</a> option</code></pre>
+<pre><span id="VALpp"><span class="keyword">val</span> pp</span> : <code class="type">Format.formatter -> <a href="As_acmd.html#TYPEt">t</a> -> unit</code></pre>
+<pre><span id="VALctx"><span class="keyword">val</span> ctx</span> : <code class="type"><a href="As_ctx.html#TYPEt">As_ctx.t</a> -> <a href="As_acmd.html#TYPEt">t</a> -> <a href="As_ctx.html#TYPEt">As_ctx.t</a></code></pre>
+<pre><span id="VALargs_with_ctx"><span class="keyword">val</span> args_with_ctx</span> : <code class="type"><a href="As_conf.html#TYPEt">As_conf.t</a> -> <a href="As_ctx.html#TYPEt">As_ctx.t</a> -> <a href="As_args.html#TYPEt">As_args.t</a> -> <a href="As_acmd.html#TYPEt">t</a> -> string list</code></pre>
+<pre><span class="keyword">module</span> <a href="As_acmd.Args.html">Args</a>: <code class="code"><span class="keyword">sig</span></code> <a href="As_acmd.Args.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Action command arguments combinators.
+</div>
+<br>
+<h1 id="1_Portablesystemutilityinvocations">Portable system utility invocations</h1><br>
+
+<pre><span id="VALdev_null"><span class="keyword">val</span> dev_null</span> : <code class="type"><a href="As_path.html#TYPEt">As_path.t</a> <a href="As_conf.html#TYPEvalue">As_conf.value</a></code></pre>
+<pre><span id="VALcd"><span class="keyword">val</span> cd</span> : <code class="type">(<a href="As_path.html#TYPEt">As_path.t</a> -> <a href="As_acmd.html#TYPEt">t</a>) <a href="As_conf.html#TYPEvalue">As_conf.value</a></code></pre>
+<pre><span id="VALln"><span class="keyword">val</span> ln</span> : <code class="type">(<a href="As_path.html#TYPEt">As_path.t</a> -> <a href="As_path.html#TYPEt">As_path.t</a> -> <a href="As_acmd.html#TYPEt">t</a>) <a href="As_conf.html#TYPEvalue">As_conf.value</a></code></pre>
+<pre><span id="VALln_rel"><span class="keyword">val</span> ln_rel</span> : <code class="type">(<a href="As_path.html#TYPEt">As_path.t</a> -> <a href="As_path.html#TYPEt">As_path.t</a> -> <a href="As_acmd.html#TYPEt">t</a>) <a href="As_conf.html#TYPEvalue">As_conf.value</a></code></pre>
+<pre><span id="VALcp"><span class="keyword">val</span> cp</span> : <code class="type">(<a href="As_path.html#TYPEt">As_path.t</a> -> <a href="As_path.html#TYPEt">As_path.t</a> -> <a href="As_acmd.html#TYPEt">t</a>) <a href="As_conf.html#TYPEvalue">As_conf.value</a></code></pre>
+<pre><span id="VALmv"><span class="keyword">val</span> mv</span> : <code class="type">(<a href="As_path.html#TYPEt">As_path.t</a> -> <a href="As_path.html#TYPEt">As_path.t</a> -> <a href="As_acmd.html#TYPEt">t</a>) <a href="As_conf.html#TYPEvalue">As_conf.value</a></code></pre>
+<pre><span id="VALrm_files"><span class="keyword">val</span> rm_files</span> : <code class="type">(?f:bool -> <a href="As_path.html#TYPEt">As_path.t</a> list -> <a href="As_acmd.html#TYPEt">t</a>) <a href="As_conf.html#TYPEvalue">As_conf.value</a></code></pre>
+<pre><span id="VALrm_dirs"><span class="keyword">val</span> rm_dirs</span> : <code class="type">(?f:bool -> ?r:bool -> <a href="As_path.html#TYPEt">As_path.t</a> list -> <a href="As_acmd.html#TYPEt">t</a>) <a href="As_conf.html#TYPEvalue">As_conf.value</a></code></pre>
+<pre><span id="VALmkdir"><span class="keyword">val</span> mkdir</span> : <code class="type">(<a href="As_path.html#TYPEt">As_path.t</a> -> <a href="As_acmd.html#TYPEt">t</a>) <a href="As_conf.html#TYPEvalue">As_conf.value</a></code></pre>
+<pre><span id="VALstamp"><span class="keyword">val</span> stamp</span> : <code class="type">(<a href="As_path.html#TYPEt">As_path.t</a> -> string -> <a href="As_acmd.html#TYPEt">t</a>) <a href="As_conf.html#TYPEvalue">As_conf.value</a></code></pre></body></html>

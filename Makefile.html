@@ -1,0 +1,141 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Cmd_setup.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Makefile variables" rel="Section" href="#1_Makefilevariables">
+<link title="Rules" rel="Section" href="#rules">
+<link title="Makefiles" rel="Section" href="#makefile">
+<title>Makefile</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Cmd_setup.html" title="Cmd_setup">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;</div>
+<h1>Module <a href="type_Makefile.html">Makefile</a></h1>
+
+<pre><span class="keyword">module</span> Makefile: <code class="code"><span class="keyword">sig</span></code> <a href="Makefile.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Makefiles.
+<p>
+
+    Functions to specify and generate
+    <a href="http://www.gnu.org/software/make/manual/make.html">Makefiles</a>.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Makefilevariables">Makefile variables</h1><br>
+
+<pre><span id="TYPEvar"><span class="keyword">type</span> <code class="type"></code>var</span> </pre>
+<div class="info ">
+The type for makefile variable declarations.<br>
+</div>
+
+<br>
+<b>Note.</b> In the following functions. The right hand-side of
+    variables is a list of strings. On output these strings are
+    separated by one space and can be used as a break point if the
+    line becomes too long.<br>
+
+<pre><span id="VAL(===)"><span class="keyword">val</span> (===)</span> : <code class="type">string -> string list -> [> `Var of <a href="Makefile.html#TYPEvar">var</a> ]</code></pre><div class="info ">
+<code class="code">v === def</code> is <code class="code">v = def</code>.<br>
+</div>
+
+<pre><span id="VAL(=:=)"><span class="keyword">val</span> (=:=)</span> : <code class="type">string -> string list -> [> `Var of <a href="Makefile.html#TYPEvar">var</a> ]</code></pre><div class="info ">
+<code class="code">v =:= def</code> is <code class="code">v := def</code>.<br>
+</div>
+
+<pre><span id="VAL(=::=)"><span class="keyword">val</span> (=::=)</span> : <code class="type">string -> string list -> [> `Var of <a href="Makefile.html#TYPEvar">var</a> ]</code></pre><div class="info ">
+<code class="code">v =::= def</code> is <code class="code">v ::= def</code>.<br>
+</div>
+
+<pre><span id="VAL(=+=)"><span class="keyword">val</span> (=+=)</span> : <code class="type">string -> string list -> [> `Var of <a href="Makefile.html#TYPEvar">var</a> ]</code></pre><div class="info ">
+<code class="code">v =+= def</code> is <code class="code">v += def</code>.<br>
+</div>
+
+<pre><span id="VAL(=?=)"><span class="keyword">val</span> (=?=)</span> : <code class="type">string -> string list -> [> `Var of <a href="Makefile.html#TYPEvar">var</a> ]</code></pre><div class="info ">
+<code class="code">v =+= def</code> is <code class="code">v += def</code>.<br>
+</div>
+
+<pre><span class="keyword">module</span> <a href="Makefile.Infix.html">Infix</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Makefile.Infix.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Infix operators.
+</div>
+<br>
+<h1 id="rules">Rules</h1><br>
+
+<pre><span id="TYPErule"><span class="keyword">type</span> <code class="type"></code>rule</span> </pre>
+<div class="info ">
+The type for makefile rules.<br>
+</div>
+
+
+<pre><span id="VALrule"><span class="keyword">val</span> rule</span> : <code class="type">?ext:bool -><br>       ?order_only_prereqs:string list -><br>       targets:string list -><br>       prereqs:string list -><br>       recipe:string list list -> unit -> [> `Rule of <a href="Makefile.html#TYPErule">rule</a> ]</code></pre><div class="info ">
+<code class="code">rule ext order_only_prereqs targets prerequs recipe ()</code> is a makefile
+    rule. <code class="code">ext</code> indicates whether the rule should be extensible (double colon
+    rule, defaults to <code class="code"><span class="keyword">false</span></code>).
+<p>
+
+    <code class="code">recipe</code> is a list of commands. Commands are list of strings.
+    On output the later strings are separated by one space and can be used
+    as a break point if the line becomes too long.<br>
+</div>
+<br>
+<h1 id="makefile">Makefiles</h1><br>
+
+<pre><span id="TYPEstatement"><span class="keyword">type</span> <code class="type"></code>statement</span> = <code class="type">[ `Rule of <a href="Makefile.html#TYPErule">rule</a> | `Var of <a href="Makefile.html#TYPEvar">var</a> ]</code> </pre>
+<div class="info ">
+The type for makefile statements.<br>
+</div>
+
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> = <code class="type">[ `Blank | `Comment of string | `Rule of <a href="Makefile.html#TYPErule">rule</a> | `Var of <a href="Makefile.html#TYPEvar">var</a> ]<br>       list</code> </pre>
+<div class="info ">
+The type for makefiles.<br>
+</div>
+
+
+<pre><span id="VALto_string"><span class="keyword">val</span> to_string</span> : <code class="type"><a href="Makefile.html#TYPEt">t</a> -> string</code></pre><div class="info ">
+<code class="code">to_string m</code> is <code class="code">m</code> as a string.<br>
+</div>
+</body></html>

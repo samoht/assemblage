@@ -1,0 +1,103 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="As_action.html">
+<link rel="next" href="As_args.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Types" rel="Section" href="#1_Types">
+<link title="Preprocess" rel="Section" href="#1_Preprocess">
+<link title="Compiling" rel="Section" href="#1_Compiling">
+<link title="Archiving" rel="Section" href="#1_Archiving">
+<link title="Linking" rel="Section" href="#1_Linking">
+<title>As_action_ocaml</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="As_action.html" title="As_action">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="As_args.html" title="As_args">Next</a>
+</div>
+<h1>Module <a href="type_As_action_ocaml.html">As_action_ocaml</a></h1>
+
+<pre><span class="keyword">module</span> As_action_ocaml: <code class="code"><span class="keyword">sig</span></code> <a href="As_action_ocaml.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Built-in actions for OCaml.
+<p>
+
+    The strategy is the following. At this level we only deal
+    with unlifted actions and we are concerned about the command
+    options that deal with inputs and output specification (e.g.
+    <code class="code">-bin-annot</code> or packages, but not <code class="code">-g</code>).<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Types">Types</h1><br>
+
+<pre><span id="TYPEincludes"><span class="keyword">type</span> <code class="type"></code>includes</span> = <code class="type"><a href="As_path.html#TYPEt">As_path.t</a> list</code> </pre>
+
+
+<pre><span id="TYPEname"><span class="keyword">type</span> <code class="type"></code>name</span> = <code class="type"><a href="As_path.html#TYPEt">As_path.t</a></code> </pre>
+
+
+<pre><span id="TYPEpkgs"><span class="keyword">type</span> <code class="type"></code>pkgs</span> = <code class="type"><a href="As_ctx.html#TYPEt">As_ctx.t</a> -> string list</code> </pre>
+
+<br>
+<h1 id="1_Preprocess">Preprocess</h1><br>
+
+<pre><span id="VALcompile_src_ast"><span class="keyword">val</span> compile_src_ast</span> : <code class="type">?needs:<a href="As_path.html#TYPEt">As_path.t</a> list -><br>       ?pkgs:<a href="As_action_ocaml.html#TYPEpkgs">pkgs</a> -><br>       ?args:string list -><br>       dumpast:<a href="As_acmd.html#TYPEcmd">As_acmd.cmd</a> -> [ `Ml | `Mli ] -> src:<a href="As_path.html#TYPEt">As_path.t</a> -> unit -> <a href="As_action.html#TYPEt">As_action.t</a></code></pre><br>
+<h1 id="1_Compiling">Compiling</h1><br>
+
+<pre><span id="VALcompile_mli"><span class="keyword">val</span> compile_mli</span> : <code class="type">?needs:<a href="As_path.html#TYPEt">As_path.t</a> list -><br>       ?pkgs:<a href="As_action_ocaml.html#TYPEpkgs">pkgs</a> -><br>       ?args:string list -><br>       ocamlc:<a href="As_acmd.html#TYPEcmd">As_acmd.cmd</a> -><br>       annot:bool -><br>       incs:<a href="As_action_ocaml.html#TYPEincludes">includes</a> -> src:<a href="As_path.html#TYPEt">As_path.t</a> -> unit -> <a href="As_action.html#TYPEt">As_action.t</a></code></pre>
+<pre><span id="VALcompile_ml_byte"><span class="keyword">val</span> compile_ml_byte</span> : <code class="type">?needs:<a href="As_path.html#TYPEt">As_path.t</a> list -><br>       ?pkgs:<a href="As_action_ocaml.html#TYPEpkgs">pkgs</a> -><br>       ?args:string list -><br>       ocamlc:<a href="As_acmd.html#TYPEcmd">As_acmd.cmd</a> -><br>       annot:bool -><br>       has_mli:bool -><br>       incs:<a href="As_action_ocaml.html#TYPEincludes">includes</a> -> src:<a href="As_path.html#TYPEt">As_path.t</a> -> unit -> <a href="As_action.html#TYPEt">As_action.t</a></code></pre>
+<pre><span id="VALcompile_ml_native"><span class="keyword">val</span> compile_ml_native</span> : <code class="type">?needs:<a href="As_path.html#TYPEt">As_path.t</a> list -><br>       ?pkgs:<a href="As_action_ocaml.html#TYPEpkgs">pkgs</a> -><br>       ?args:string list -><br>       ocamlopt:<a href="As_acmd.html#TYPEcmd">As_acmd.cmd</a> -><br>       annot:bool -><br>       has_mli:bool -><br>       incs:<a href="As_action_ocaml.html#TYPEincludes">includes</a> -> src:<a href="As_path.html#TYPEt">As_path.t</a> -> unit -> <a href="As_action.html#TYPEt">As_action.t</a></code></pre>
+<pre><span id="VALcompile_c"><span class="keyword">val</span> compile_c</span> : <code class="type">?needs:<a href="As_path.html#TYPEt">As_path.t</a> list -><br>       ?pkgs:<a href="As_action_ocaml.html#TYPEpkgs">pkgs</a> -><br>       ?args:string list -><br>       ocamlc:<a href="As_acmd.html#TYPEcmd">As_acmd.cmd</a> -> src:<a href="As_path.html#TYPEt">As_path.t</a> -> unit -> <a href="As_action.html#TYPEt">As_action.t</a></code></pre><br>
+<h1 id="1_Archiving">Archiving</h1><br>
+
+<pre><span id="VALarchive_byte"><span class="keyword">val</span> archive_byte</span> : <code class="type">?needs:<a href="As_path.html#TYPEt">As_path.t</a> list -><br>       ?pkgs:<a href="As_action_ocaml.html#TYPEpkgs">pkgs</a> -><br>       ?args:string list -><br>       ocamlc:<a href="As_acmd.html#TYPEcmd">As_acmd.cmd</a> -><br>       cmos:<a href="As_path.html#TYPEt">As_path.t</a> list -> name:<a href="As_action_ocaml.html#TYPEname">name</a> -> unit -> <a href="As_action.html#TYPEt">As_action.t</a></code></pre>
+<pre><span id="VALarchive_native"><span class="keyword">val</span> archive_native</span> : <code class="type">?needs:<a href="As_path.html#TYPEt">As_path.t</a> list -><br>       ?pkgs:<a href="As_action_ocaml.html#TYPEpkgs">pkgs</a> -><br>       ?args:string list -><br>       ocamlopt:<a href="As_acmd.html#TYPEcmd">As_acmd.cmd</a> -><br>       cmx_s:<a href="As_path.html#TYPEt">As_path.t</a> list -> name:<a href="As_action_ocaml.html#TYPEname">name</a> -> unit -> <a href="As_action.html#TYPEt">As_action.t</a></code></pre>
+<pre><span id="VALarchive_shared"><span class="keyword">val</span> archive_shared</span> : <code class="type">?needs:<a href="As_path.html#TYPEt">As_path.t</a> list -><br>       ?pkgs:<a href="As_action_ocaml.html#TYPEpkgs">pkgs</a> -><br>       ?args:string list -><br>       ocamlopt:<a href="As_acmd.html#TYPEcmd">As_acmd.cmd</a> -><br>       cmx_s:<a href="As_path.html#TYPEt">As_path.t</a> list -> name:<a href="As_action_ocaml.html#TYPEname">name</a> -> unit -> <a href="As_action.html#TYPEt">As_action.t</a></code></pre>
+<pre><span id="VALarchive_c"><span class="keyword">val</span> archive_c</span> : <code class="type">?needs:<a href="As_path.html#TYPEt">As_path.t</a> list -><br>       ?pkgs:<a href="As_action_ocaml.html#TYPEpkgs">pkgs</a> -><br>       ?args:string list -><br>       ocamlmklib:<a href="As_acmd.html#TYPEcmd">As_acmd.cmd</a> -><br>       objs:<a href="As_path.html#TYPEt">As_path.t</a> list -> name:<a href="As_action_ocaml.html#TYPEname">name</a> -> unit -> <a href="As_action.html#TYPEt">As_action.t</a></code></pre><br>
+<h1 id="1_Linking">Linking</h1><br>
+
+<pre><span id="VALlink_byte"><span class="keyword">val</span> link_byte</span> : <code class="type">?needs:<a href="As_path.html#TYPEt">As_path.t</a> list -><br>       ?pkgs:<a href="As_action_ocaml.html#TYPEpkgs">pkgs</a> -><br>       ?args:string list -><br>       ocamlc:<a href="As_acmd.html#TYPEcmd">As_acmd.cmd</a> -><br>       objs:<a href="As_path.html#TYPEt">As_path.t</a> list -> name:<a href="As_action_ocaml.html#TYPEname">name</a> -> unit -> <a href="As_action.html#TYPEt">As_action.t</a></code></pre>
+<pre><span id="VALlink_native"><span class="keyword">val</span> link_native</span> : <code class="type">?needs:<a href="As_path.html#TYPEt">As_path.t</a> list -><br>       ?pkgs:<a href="As_action_ocaml.html#TYPEpkgs">pkgs</a> -><br>       ?args:string list -><br>       ocamlopt:<a href="As_acmd.html#TYPEcmd">As_acmd.cmd</a> -><br>       objs:<a href="As_path.html#TYPEt">As_path.t</a> list -> name:<a href="As_action_ocaml.html#TYPEname">name</a> -> unit -> <a href="As_action.html#TYPEt">As_action.t</a></code></pre></body></html>

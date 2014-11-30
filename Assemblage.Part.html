@@ -1,0 +1,370 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.Action.html">
+<link rel="next" href="Assemblage.Unit.html">
+<link rel="Up" href="Assemblage.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Kinds" rel="Section" href="#1_Kinds">
+<link title="Usage" rel="Section" href="#1_Usage">
+<link title="Metadata" rel="Section" href="#1_Metadata">
+<link title="Parts" rel="Section" href="#1_Parts">
+<link title="File part" rel="Section" href="#1_Filepart">
+<link title="Part integration" rel="Section" href="#1_Partintegration">
+<link title="Coercions" rel="Section" href="#1_Coercions">
+<link title="Part lists" rel="Section" href="#1_Partlists">
+<link title="Part sets and maps" rel="Section" href="#1_Partsetsandmaps">
+<title>Assemblage.Part</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.Action.html" title="Assemblage.Action">Previous</a>
+&nbsp;<a class="up" href="Assemblage.html" title="Assemblage">Up</a>
+&nbsp;<a class="post" href="Assemblage.Unit.html" title="Assemblage.Unit">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Part.html">Assemblage.Part</a></h1>
+
+<pre><span class="keyword">module</span> Part: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Part.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Parts, part sets and maps.
+<p>
+
+    Parts are the logical build units that define a project, they
+    define the project's outcomes for every possible configuration.
+<p>
+
+    A <em>part</em> defines a coherent set of build actions. There are
+    different <a href="Assemblage.html#TYPEpart_kind">kinds</a> of part, each which specific
+    metadata that it uses to define its action. Parts may also refer to,
+    or integrate, other parts to define their actions.
+<p>
+
+    A part can also be seen as defining the outputs of its build
+    actions. These build products depend on the configuration.
+<p>
+
+    In addition to part specific metadata, each part has the following
+    attributes that the user specifies:
+    <ul>
+<li>A <a href="Assemblage.Part.html#VALname">name</a> used to identify the part; note that it may not
+       be unique. The name is often used as metadata itself.
+       For example it defines the library name for <a href="Assemblage.Lib.html">library parts</a> or
+       the name of a <a href="Assemblage.Unit.html"> compilation unit</a>, etc.</li>
+<li>A <a href="Assemblage.Part.html#TYPEkind">kind</a> that identifies the kind of metadata the part
+       uses and the build action it produces.</li>
+<li>A <a href="Assemblage.Part.html#TYPEusage">usage</a>. This is a broad usage label to classify
+       parts. It can be used by drivers to derive bureaucratic
+       information about a project. For example if some of parts
+       are only used for developing the project they should have
+       a <code class="code"><span class="keywordsign">`</span><span class="constructor">Dev</span></code> usage; this will allow drivers to understand
+       that their dependencies are only needed for development.</li>
+<li><a href="Assemblage.Part.html#VALneeds">Needs.</a> This is a list of parts used by the part to
+       define its actions. The way a part uses its needs depends
+       on its kind, consult their specific documentation.</li>
+<li>An <a href="Assemblage.Part.html#VALexists">exists</a> configuration boolean that indicates
+       whether a part exists in a given configuration. If the
+       part doesn't exist it doesn't define any build action. For example
+       the existence of a library may depends on the presence of an
+       optional package.</li>
+<li>An argument bundle applied to its actions.
+       See <a href="Assemblage.Args.html#basics"><i>Argument bundles basics</i></a> for more information about argument
+       bundles.</li>
+</ul>
+
+<p>
+
+    Given all this information a part will give you
+    <a href="Assemblage.Part.html#VALactions">build actions</a> whose outputs define
+    a part's build products.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Kinds">Kinds</h1><br>
+
+<pre><span id="TYPEkind"><span class="keyword">type</span> <code class="type"></code>kind</span> = <code class="type">[ `Base | `Bin | `Dir | `Doc | `Lib | `Pkg | `Run | `Unit ]</code> </pre>
+<div class="info ">
+The type for part kinds. See the corresponding individual modules
+      for more information.<br>
+</div>
+
+
+<pre><span id="VALpp_kind"><span class="keyword">val</span> pp_kind</span> : <code class="type">Format.formatter -> <a href="Assemblage.Part.html#TYPEkind">kind</a> -> unit</code></pre><div class="info ">
+<code class="code">pp_kind ppf k</code> prints an unspecified represetation of <code class="code">k</code> on
+      <code class="code">ppf</code>.<br>
+</div>
+<br>
+<h1 id="1_Usage">Usage</h1><br>
+
+<pre><span id="TYPEusage"><span class="keyword">type</span> <code class="type"></code>usage</span> = <code class="type">[ `Build | `Dev | `Doc | `Other of string | `Outcome | `Test ]</code> </pre>
+<div class="info ">
+The type for part usage.
+      <ul>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Outcome</span></code>, the part is an outcome of the project.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Build</span></code>, the part is used for building the project.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Dev</span></code>, the part is used when developing the project.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Test</span></code>, the part is used to test the project.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Doc</span></code>, the part is used for building the project
+         documentation.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Other</span> u</code>, the part is used according to a user-defined semantics.</li>
+</ul>
+<br>
+</div>
+
+
+<pre><span id="VALpp_usage"><span class="keyword">val</span> pp_usage</span> : <code class="type">Format.formatter -> <a href="Assemblage.Part.html#TYPEusage">usage</a> -> unit</code></pre><div class="info ">
+<code class="code">pp_usage ppf u</code> prints an unspecified representation of <code class="code">u</code>
+      on <code class="code">ppf</code>.<br>
+</div>
+<br>
+<h1 id="1_Metadata">Metadata</h1><br>
+
+<pre><span id="TYPEmeta"><span class="keyword">type</span> <code class="type"></code>meta</span> </pre>
+<div class="info ">
+The type for part metadata<br>
+</div>
+
+
+<pre><span id="VALmeta_key"><span class="keyword">val</span> meta_key</span> : <code class="type">unit -> ('a -> <a href="Assemblage.Part.html#TYPEmeta">meta</a>) * (<a href="Assemblage.Part.html#TYPEmeta">meta</a> -> 'a option)</code></pre><div class="info ">
+<code class="code">meta_key ()</code> pairs a metadata injector and projector.<br>
+</div>
+
+<pre><span id="VALmeta_nil"><span class="keyword">val</span> meta_nil</span> : <code class="type"><a href="Assemblage.Part.html#TYPEmeta">meta</a></code></pre><div class="info ">
+<code class="code">meta_nil</code> is metadata that cannot be accessed.<br>
+</div>
+<br>
+<h1 id="1_Parts">Parts</h1><br>
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ]</code> t</span> = <code class="type">([< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] as 'a) <a href="Assemblage.html#TYPEpart">Assemblage.part</a></code> </pre>
+<div class="info ">
+The type for parts.<br>
+</div>
+
+
+<pre><span id="VALv"><span class="keyword">val</span> v</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       ?args:<a href="Assemblage.Args.html#TYPEt">Assemblage.Args.t</a> -><br>       ?meta:<a href="Assemblage.Part.html#TYPEmeta">meta</a> -><br>       ?needs:[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -><br>       ?root:<a href="Assemblage.Path.html#TYPErel">Assemblage.Path.rel</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       ?actions:(<a href="Assemblage.Part.html#TYPEkind">kind</a> <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>                 <a href="Assemblage.Action.html#TYPEt">Assemblage.Action.t</a> list <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a>) -><br>       ?check:(<a href="Assemblage.Part.html#TYPEkind">kind</a> <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a>) -><br>       string -> [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Base ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a></code></pre><div class="info ">
+<code class="code">v ?usage ?exists ?meta ?needs ?args ?actions ?check name</code> defines
+      a base part named <code class="code">name</code>.
+      <ul>
+<li><code class="code">usage</code> is the part's usage, default to
+         <code class="code"><span class="keywordsign">`</span><span class="constructor">Outcome</span></code>.</li>
+<li><code class="code">exists</code> is a condition for the part to exist, defaults to
+         <a href="Assemblage.Conf.html#VALtrue_"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.true_</code></a>.</li>
+<li><code class="code">args</code> is an argument bundle added to the actions of the part,
+         defaults to <a href="Assemblage.Args.html#VALempty"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Args</span>.empty</code></a>.</li>
+<li><code class="code">meta</code> is the part's metadata, defaults to <a href="Assemblage.Part.html#VALmeta_nil"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Part</span>.meta_nil</code></a>.</li>
+<li><code class="code">needs</code> are the parts that are needed by the part, defaults to <code class="code">[]</code>,
+         the given list is <code class="code">uniq</code>ified. </li>
+<li><code class="code">root</code> is a build root for the part, usually best left unspecified.
+         Note that this value should not be used as a constant for defining
+         <code class="code">actions</code> as it may be redefined by <a href="Assemblage.Part.html#VALintegrate">integrating</a> parts.
+         Use <a href="Assemblage.Part.html#VALroot"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Part</span>.root</code></a><code class="code"> p</code> instead.</li>
+<li><code class="code">actions</code> is the function that defines the actions associated to
+         the part. The function is given the part itself which allows
+         to access its metadata. Action outputs should be generated
+         in the directory returned by <a href="Assemblage.Part.html#VALroot"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Part</span>.root</code></a><code class="code"> p</code>, <b>not</b> the <code class="code">root</code>
+         argument given to the constructor. This will ensure that the
+         part adapts correctly if it is integrated by another.</li>
+<li><code class="code">check</code> is a diagnostic function that should <a href="Assemblage.Log.html"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Log</span></code></a> information
+         about potential problems with the part and return <code class="code"><span class="keyword">true</span></code> if there
+         is no problem.</li>
+</ul>
+<br>
+</div>
+
+<pre><span id="VALkind"><span class="keyword">val</span> kind</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> <a href="Assemblage.Part.html#TYPEkind">kind</a></code></pre><div class="info ">
+<code class="code">kind p</code> is <code class="code">p</code>'s kind.<br>
+</div>
+
+<pre><span id="VALname"><span class="keyword">val</span> name</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> string</code></pre><div class="info ">
+<code class="code">name p</code> is <code class="code">p</code>'s name.<br>
+</div>
+
+<pre><span id="VALusage"><span class="keyword">val</span> usage</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> <a href="Assemblage.Part.html#TYPEusage">usage</a></code></pre><div class="info ">
+<code class="code">usage p</code> is <code class="code">p</code>'s usage.<br>
+</div>
+
+<pre><span id="VALexists"><span class="keyword">val</span> exists</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code></pre><div class="info ">
+<code class="code">exists p</code> determines if <code class="code">p</code> exists.<br>
+</div>
+
+<pre><span id="VALmeta"><span class="keyword">val</span> meta</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> <a href="Assemblage.Part.html#TYPEmeta">meta</a></code></pre><div class="info ">
+<code class="code">meta p</code> is <code class="code">p</code>'s metadata.<br>
+</div>
+
+<pre><span id="VALget_meta"><span class="keyword">val</span> get_meta</span> : <code class="type">(<a href="Assemblage.Part.html#TYPEmeta">meta</a> -> 'a option) -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.Part.html#TYPEt">t</a> -> 'a</code></pre><div class="info ">
+<code class="code">get_meta proj p</code> uses <code class="code">proj</code> on <code class="code">p</code>'s metadata.<br>
+<b>Raises</b> <code>Invalid_argument</code> if <code class="code">proj</code> returns <code class="code"><span class="constructor">None</span></code>.<br>
+</div>
+
+<pre><span id="VALroot"><span class="keyword">val</span> root</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       <a href="Assemblage.Path.html#TYPErel">Assemblage.Path.rel</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code></pre><div class="info ">
+<code class="code">root p</code> is <code class="code">p</code>'s root build directory expressed relative to
+      <a href="Assemblage.Conf.html#VALroot_dir"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.root_dir</code></a>. Most of the time the actions of a part will
+      output their build products in this direcory. This directory may
+      change when a part is <a href="Assemblage.Part.html#VALintegrate">integrated</a> in another.<br>
+</div>
+
+<pre><span id="VALroot_path"><span class="keyword">val</span> root_path</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       <a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code></pre><div class="info ">
+<code class="code">root_path</code> is like <a href="Assemblage.Part.html#VALroot"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Part</span>.root</code></a> but as a generic path.<br>
+</div>
+
+<pre><span id="VALneeds"><span class="keyword">val</span> needs</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       <a href="Assemblage.Part.html#TYPEkind">kind</a> <a href="Assemblage.Part.html#TYPEt">t</a> list</code></pre><div class="info ">
+<code class="code">needs p</code> is the (uniqified) list of parts needed by <code class="code">p</code> to
+      define itself.<br>
+</div>
+
+<pre><span id="VALactions"><span class="keyword">val</span> actions</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       <a href="Assemblage.Action.html#TYPEt">Assemblage.Action.t</a> list <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code></pre><div class="info ">
+<code class="code">actions p</code> are the actions to build part <code class="code">p</code>. If
+      <a href="Assemblage.Part.html#VALexists"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Part</span>.exists</code></a><code class="code"> p</code> evaluates to <code class="code"><span class="keyword">false</span></code> this evaluates to
+      the empty list.<br>
+</div>
+
+<pre><span id="VALcheck"><span class="keyword">val</span> check</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code></pre><div class="info ">
+<code class="code">check p</code> logs information about potential problems with <code class="code">p</code>
+      and returns <code class="code"><span class="keyword">true</span></code> if there is no such problem.<br>
+</div>
+
+<pre><span id="VALid"><span class="keyword">val</span> id</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> int</code></pre><div class="info ">
+<code class="code">id p</code> is a unique id for the part.<br>
+</div>
+
+<pre><span id="VALequal"><span class="keyword">val</span> equal</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool</code></pre><div class="info ">
+<code class="code">equal p p'</code> is <code class="code">(id p) = (id p')</code>.<br>
+</div>
+
+<pre><span id="VALcompare"><span class="keyword">val</span> compare</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> int</code></pre><div class="info ">
+<code class="code">compare p p'</code> is <code class="code">compare (id p) (id p')</code>.<br>
+</div>
+
+<pre><span id="VALredefine"><span class="keyword">val</span> redefine</span> : <code class="type">?check:(<a href="Assemblage.Part.html#TYPEkind">kind</a> <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a>) -><br>       ?actions:(<a href="Assemblage.Part.html#TYPEkind">kind</a> <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>                 <a href="Assemblage.Action.html#TYPEt">Assemblage.Action.t</a> list <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a>) -><br>       ([< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] as 'a) <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> 'a <a href="Assemblage.html#TYPEpart">Assemblage.part</a></code></pre><div class="info ">
+<code class="code">redefine check actions p</code> is <code class="code">p</code> with check function <code class="code">check</code>
+      and actions function <code class="code">action</code> (both defaults to <code class="code">p</code>'s one if
+      unspecified).
+<p>
+
+      <b>Warning.</b> As far as <code class="code"><span class="constructor">Assemblage</span></code> is concerned
+      this is equivalent to Obj.magic.<br>
+</div>
+<br>
+<h1 id="1_Filepart">File part</h1><br>
+
+<pre><span id="VALfile"><span class="keyword">val</span> file</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       <a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> -> [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Base ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a></code></pre><div class="info ">
+<code class="code">file p</code> is a part with a noop action that inputs <code class="code">p</code>.<br>
+</div>
+<br>
+<h1 id="1_Partintegration">Part integration</h1><br>
+
+<pre><span id="VALintegrate"><span class="keyword">val</span> integrate</span> : <code class="type">?add_need:(<a href="Assemblage.Part.html#TYPEkind">kind</a> <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool) -><br>       ([< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] as 'a) <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> 'a <a href="Assemblage.html#TYPEpart">Assemblage.part</a></code></pre><div class="info ">
+<code class="code">integrate ?add_need i p</code> is <code class="code">i</code> as integrated in <code class="code">p</code>. This is
+      <code class="code">i</code> except its root and usage now match those of <code class="code">p</code> and the
+      needs of <code class="code">p</code> that returned <code class="code"><span class="keyword">true</span></code> on <code class="code">add_need</code> were added to the
+      new part. <code class="code">add_need</code> defaults to <code class="code"><span class="keyword">fun</span> _ <span class="keywordsign">-&gt;</span> <span class="keyword">false</span></code>. The new part
+      will adapt to the new parameters by recomputing actions using
+      the part's action definition function.<br>
+</div>
+<br>
+<h1 id="1_Coercions">Coercions</h1><br>
+
+<pre><span id="VALcoerce"><span class="keyword">val</span> coerce</span> : <code class="type">([< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] as 'a) -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> 'a <a href="Assemblage.html#TYPEpart">Assemblage.part</a></code></pre><div class="info ">
+<code class="code">coerce k p</code> coerces <code class="code">p</code> to kind <code class="code">k</code>,<br>
+<b>Raises</b> <code>Invalid_argument</code> if <code class="code">p</code>'s kind is not <code class="code">k</code>.<br>
+</div>
+
+<pre><span id="VALcoerce_if"><span class="keyword">val</span> coerce_if</span> : <code class="type">([< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] as 'a) -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> 'a <a href="Assemblage.html#TYPEpart">Assemblage.part</a> option</code></pre><div class="info ">
+<code class="code">coerce_if k p</code> is <code class="code"><span class="constructor">Some</span></code> if <code class="code">p</code> is of kind <code class="code">k</code> and
+      <code class="code"><span class="constructor">None</span></code> otherwise.<br>
+</div>
+<br>
+<h1 id="1_Partlists">Part lists</h1><br>
+
+<pre><span id="VALlist_actions"><span class="keyword">val</span> list_actions</span> : <code class="type"><a href="Assemblage.Part.html#TYPEkind">kind</a> <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -><br>       <a href="Assemblage.Action.html#TYPEt">Assemblage.Action.t</a> list <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code></pre><div class="info ">
+<code class="code">list_actions ps</code> is the list of actions of the parts <code class="code">ps</code>.
+      The list order is preserved.<br>
+</div>
+
+<pre><span id="VALlist_uniquify"><span class="keyword">val</span> list_uniquify</span> : <code class="type"><a href="Assemblage.Part.html#TYPEkind">kind</a> <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -><br>       <a href="Assemblage.Part.html#TYPEkind">kind</a> <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list</code></pre><div class="info ">
+<code class="code">list_uniquify ps</code> is <code class="code">ps</code> with duplicates as determined by <a href="Assemblage.Part.html#VALequal"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Part</span>.equal</code></a>
+      removed. The list order is preserved.<br>
+</div>
+
+<pre><span id="VALlist_keep"><span class="keyword">val</span> list_keep</span> : <code class="type">(([< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] as 'a) <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool) -><br>       'a <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -> 'a <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list</code></pre><div class="info ">
+<code class="code">list_keep pred ps</code> is the elements of <code class="code">ps</code> that satisfy <code class="code">pred</code>.
+      The list order is preserved.<br>
+</div>
+
+<pre><span id="VALlist_keep_map"><span class="keyword">val</span> list_keep_map</span> : <code class="type">(([< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] as 'a) <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> 'b option) -><br>       'a <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -> 'b list</code></pre><div class="info ">
+<code class="code">list_keep_map f ps</code> is the elements of <code class="code">ps</code> for which <code class="code">f</code> returns
+      <code class="code"><span class="constructor">Some</span></code> value. The list order is according to <code class="code">ps</code>.<br>
+</div>
+
+<pre><span id="VALlist_keep_kind"><span class="keyword">val</span> list_keep_kind</span> : <code class="type">([< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] as 'a) -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -> 'a <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list</code></pre><div class="info ">
+<code class="code">list_keep_kind k ps</code> is the elements of <code class="code">ps</code> that have kind <code class="code">kind</code>.
+      The list order is preserved.<br>
+</div>
+
+<pre><span id="VALlist_keep_kinds"><span class="keyword">val</span> list_keep_kinds</span> : <code class="type"><a href="Assemblage.Part.html#TYPEkind">kind</a> list -><br>       ([< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] as 'a) <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -><br>       'a <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list</code></pre><div class="info ">
+<code class="code">list_keep_kinds ks</code> is the elements of <code class="code">ps</code> that have one of the
+      kind <code class="code">ks</code>. The list order is preserved.<br>
+</div>
+
+<pre><span id="VALlist_fold"><span class="keyword">val</span> list_fold</span> : <code class="type">('a -> ([< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] as 'b) <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> 'a) -><br>       'a -> 'b <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -> 'a</code></pre><div class="info ">
+<code class="code">list_fold f acc ps</code> is <code class="code"><span class="constructor">List</span>.fold_left f acc ps</code>.<br>
+</div>
+
+<pre><span id="VALlist_fold_kind"><span class="keyword">val</span> list_fold_kind</span> : <code class="type">([< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] as 'b) -><br>       ('a -> 'b <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> 'a) -><br>       'a -> [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -> 'a</code></pre><div class="info ">
+<code class="code">list_fold kind f acc ps</code> is like <a href="Assemblage.Part.html#VALlist_fold"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Part</span>.list_fold</code></a> but folds only
+      over the parts whose kind is <code class="code">kind</code>.<br>
+</div>
+
+<pre><span id="VALlist_fold_rec"><span class="keyword">val</span> list_fold_rec</span> : <code class="type">('a -> <a href="Assemblage.Part.html#TYPEkind">kind</a> <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> 'a) -><br>       'a -> <a href="Assemblage.Part.html#TYPEkind">kind</a> <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -> 'a</code></pre><div class="info ">
+<code class="code">fold_rec f acc l</code> folds over the parts of <code class="code">l</code> and their needs
+      recusively, in depth first pre-order. If a part appears twice in
+      the traversal is it only folded over the first time.<br>
+</div>
+
+<pre><span id="VALlist_fold_kind_rec"><span class="keyword">val</span> list_fold_kind_rec</span> : <code class="type">([< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] as 'b) -><br>       ('a -> 'b <a href="Assemblage.Part.html#TYPEt">t</a> -> 'a) -><br>       'a -> <a href="Assemblage.Part.html#TYPEkind">kind</a> <a href="Assemblage.Part.html#TYPEt">t</a> list -> 'a</code></pre><div class="info ">
+<code class="code">list_fold_kind_rec</code> is the same traversal as <a href="Assemblage.Part.html#VALlist_fold_rec"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Part</span>.list_fold_rec</code></a>
+      but only parts whose kind is <code class="code">kind</code> are folded over.<br>
+</div>
+<br>
+<h1 id="1_Partsetsandmaps">Part sets and maps</h1><br>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Part.Set.html">Set</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Part.Set.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span class="keyword">module</span> <a href="Assemblage.Part.Map.html">Map</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Part.Map.html">..</a> <code class="code"><span class="keyword">end</span></code></pre></body></html>

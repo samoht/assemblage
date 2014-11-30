@@ -1,0 +1,138 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.Bin.html">
+<link rel="next" href="Assemblage.Doc.html">
+<link rel="Up" href="Assemblage.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Metadata" rel="Section" href="#1_Metadata">
+<link title="Packages" rel="Section" href="#1_Packages">
+<title>Assemblage.Pkg</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.Bin.html" title="Assemblage.Bin">Previous</a>
+&nbsp;<a class="up" href="Assemblage.html" title="Assemblage">Up</a>
+&nbsp;<a class="post" href="Assemblage.Doc.html" title="Assemblage.Doc">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Pkg.html">Assemblage.Pkg</a></h1>
+
+<pre><span class="keyword">module</span> Pkg: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Pkg.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Package part.
+<p>
+
+    Packages are named entities that provide action command arguments
+    in certain <a href="Assemblage.Ctx.html">contexts</a>. Some parts query and use these arguments
+    when packages are specified in their needs.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Metadata">Metadata</h1><br>
+
+<pre><span id="TYPElookup"><span class="keyword">type</span> <code class="type"></code>lookup</span> = <code class="type"><a href="Assemblage.Ctx.html#TYPEt">Assemblage.Ctx.t</a> -> string list</code> </pre>
+<div class="info ">
+The type for lookups. Given a context the package answers
+      with a list of command arguments.<br>
+</div>
+
+
+<pre><span id="TYPEkind"><span class="keyword">type</span> <code class="type"></code>kind</span> = <code class="type">[ `OCamlfind<br>       | `Other of string * <a href="Assemblage.Pkg.html#TYPElookup">lookup</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a><br>       | `Pkg_config ]</code> </pre>
+<div class="info ">
+The type for package kinds.
+      <ul>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">OCamlfind</span></code> is for
+         <a href="http://projects.camlcity.org/projects/findlib.html">Findlib</a>
+         packages.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Pkg_config</span></code> is for
+         <a href="http://pkg-config.freedesktop.org/"><code class="code">pkg-config</code></a> packages.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Other</span> (n,lookup)</code> is for an other mecanism named <code class="code">n</code> and
+         that uses the function <code class="code">lookup</code>.</li>
+</ul>
+<br>
+</div>
+
+
+<pre><span id="VALpp_kind"><span class="keyword">val</span> pp_kind</span> : <code class="type">Format.formatter -> <a href="Assemblage.Pkg.html#TYPEkind">kind</a> -> unit</code></pre><div class="info ">
+<code class="code">pp_kind ppf k</code> prints an unspecified representation of <code class="code">k</code> on
+      <code class="code">ppf</code>.<br>
+</div>
+
+<pre><span id="VALkind"><span class="keyword">val</span> kind</span> : <code class="type">[< `Pkg ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> <a href="Assemblage.Pkg.html#TYPEkind">kind</a></code></pre><div class="info ">
+<code class="code">kind p</code> is <code class="code">p</code>'s package kind.<br>
+</div>
+
+<pre><span id="VALlookup"><span class="keyword">val</span> lookup</span> : <code class="type">[< `Pkg ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> <a href="Assemblage.Pkg.html#TYPElookup">lookup</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code></pre><div class="info ">
+<code class="code">query p q</code> is <code class="code">p</code>'s lookup function.<br>
+</div>
+
+<pre><span id="VALopt"><span class="keyword">val</span> opt</span> : <code class="type">[< `Pkg ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool</code></pre><div class="info ">
+<code class="code">opt p</code> is <code class="code"><span class="keyword">true</span></code> if the package is optional.<br>
+</div>
+
+<pre><span id="VALocamlfind"><span class="keyword">val</span> ocamlfind</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Pkg ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> option</code></pre><div class="info ">
+<code class="code">ocamlfind p</code> is <code class="code"><span class="constructor">Some</span> p</code> iff <code class="code">p</code> is an <code class="code"><span class="keywordsign">`</span><span class="constructor">OCamlfind</span></code> package.<br>
+</div>
+
+<pre><span id="VALpkg_config"><span class="keyword">val</span> pkg_config</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Pkg ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> option</code></pre><div class="info ">
+<code class="code">pkg_config p</code> is <code class="code"><span class="constructor">Some</span> p</code> iff <code class="code">p</code> is a <code class="code"><span class="keywordsign">`</span><span class="constructor">Pkg_config</span></code> package.<br>
+</div>
+
+<pre><span id="VALother"><span class="keyword">val</span> other</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Pkg ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> option</code></pre><div class="info ">
+<code class="code">c p</code> is <code class="code"><span class="constructor">Some</span> p</code> iff <code class="code">p</code> is a C package.<br>
+</div>
+<br>
+<h1 id="1_Packages">Packages</h1><br>
+
+<pre><span id="VALv"><span class="keyword">val</span> v</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Assemblage.Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       ?opt:bool -><br>       string -><br>       <a href="Assemblage.Pkg.html#TYPEkind">kind</a> -> [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Pkg ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a></code></pre><div class="info ">
+<code class="code">v opt name kind</code> is a package named <code class="code">name</code> of the given <code class="code">kind</code>.
+      <code class="code">name</code> is the name used for looking up the package system if
+      <code class="code">kind</code> is not <code class="code"><span class="keywordsign">`</span><span class="constructor">Other</span></code>. <code class="code">opt</code> should be <code class="code"><span class="keyword">true</span></code> if the package is
+      optional.<br>
+</div>
+
+<pre><span id="VALlist_lookup"><span class="keyword">val</span> list_lookup</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -><br>       <a href="Assemblage.Pkg.html#TYPElookup">lookup</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code></pre><div class="info ">
+<code class="code">list_lookup ps</code> is a lookup function that looks up all
+      package in <code class="code">ps</code> and returns the aggregated result. The arguments
+      are in order of package appearance.<br>
+</div>
+</body></html>

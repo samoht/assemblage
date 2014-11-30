@@ -1,0 +1,196 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.Doc.html">
+<link rel="next" href="Assemblage.Run.html">
+<link rel="Up" href="Assemblage.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Metadata" rel="Section" href="#1_Metadata">
+<link title="Directory specifiers" rel="Section" href="#1_Directoryspecifiers">
+<link title="Dir" rel="Section" href="#1_Dir">
+<title>Assemblage.Dir</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.Doc.html" title="Assemblage.Doc">Previous</a>
+&nbsp;<a class="up" href="Assemblage.html" title="Assemblage">Up</a>
+&nbsp;<a class="post" href="Assemblage.Run.html" title="Assemblage.Run">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Dir.html">Assemblage.Dir</a></h1>
+
+<pre><span class="keyword">module</span> Dir: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Dir.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Directory part.
+<p>
+
+    A directory part defines a clean directory in which a selection of
+    part products (both source and build) can be gathered and
+    renamed. Directory parts can be marked as being
+    <a href="Assemblage.Dir.html#VALinstall"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Dir</span>.install</code></a>able; drivers can use this information to devise an
+    installation procedure for your project's outcomes.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Metadata">Metadata</h1><br>
+
+<pre><span id="TYPEkind"><span class="keyword">type</span> <code class="type"></code>kind</span> = <code class="type">[ `Bin<br>       | `Doc<br>       | `Etc<br>       | `Lib<br>       | `Man<br>       | `Other of <a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a><br>       | `Sbin<br>       | `Share<br>       | `Share_root<br>       | `Stublibs<br>       | `Toplevel ]</code> </pre>
+<div class="info ">
+The type for kinds of directories. They essentially correspond
+      to the sections of an OPAM
+      <a href="http://opam.ocaml.org/doc/manual/dev-manual.html#sec25">install file</a>.<br>
+</div>
+
+
+<pre><span id="VALpp_kind"><span class="keyword">val</span> pp_kind</span> : <code class="type">Format.formatter -> <a href="Assemblage.Dir.html#TYPEkind">kind</a> -> unit</code></pre><div class="info ">
+<code class="code">pp_kind ppf k</code> prints an unspecified representation of <code class="code">k</code> on
+      <code class="code">ppf</code>.<br>
+</div>
+
+<pre><span id="VALkind"><span class="keyword">val</span> kind</span> : <code class="type">[< `Dir ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> <a href="Assemblage.Dir.html#TYPEkind">kind</a></code></pre><div class="info ">
+<code class="code">kind p</code> is <code class="code">p</code>'s kind.<br>
+</div>
+
+<pre><span id="VALinstall"><span class="keyword">val</span> install</span> : <code class="type">[< `Dir ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool</code></pre><div class="info ">
+<code class="code">kind p</code> is <code class="code"><span class="keyword">true</span></code> if the directory contents is meant to be installed.<br>
+</div>
+<br>
+<h1 id="1_Directoryspecifiers">Directory specifiers</h1>
+<p>
+
+      FIXME a few combinators to quickly devise spec values
+      would be welcome, e.g. put a specific part in sub directory, etc.<br>
+
+<pre><span id="TYPEspec"><span class="keyword">type</span> <code class="type"></code>spec</span> = <code class="type"><a href="Assemblage.Part.html#TYPEkind">Assemblage.Part.kind</a> <a href="Assemblage.Part.html#TYPEt">Assemblage.Part.t</a> -><br>       (<a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> * <a href="Assemblage.Path.html#TYPErel">Assemblage.Path.rel</a> option) list <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code> </pre>
+<div class="info ">
+The type for directory specifier.
+<p>
+
+      Given a part <code class="code">p</code> it returns a list of tuples <code class="code">(prod, path)</code>,
+      where <code class="code">prod</code> is a product of <code class="code">p</code> to add to the directory and
+      <code class="code">path</code> specifies under which name, relative to the directory, it
+      should be added. If <code class="code">path</code> is <code class="code"><span class="constructor">None</span></code> and <code class="code">prod</code> is in <code class="code">p</code>'s
+      build root directory, the path relative to this directory is used.<br>
+</div>
+
+
+<pre><span id="VALall"><span class="keyword">val</span> all</span> : <code class="type"><a href="Assemblage.Dir.html#TYPEspec">spec</a></code></pre><div class="info ">
+<code class="code">all</code> is a specifier that keeps any product of any part.<br>
+</div>
+
+<pre><span id="VALall_output"><span class="keyword">val</span> all_output</span> : <code class="type"><a href="Assemblage.Dir.html#TYPEspec">spec</a></code></pre><div class="info ">
+<code class="code">all_output</code> is a specifier that keeps any output product of any part.<br>
+</div>
+
+<pre><span id="VALall_input"><span class="keyword">val</span> all_input</span> : <code class="type"><a href="Assemblage.Dir.html#TYPEspec">spec</a></code></pre><div class="info ">
+<code class="code">all_input</code> is a specifier that keeps any input product of any part.<br>
+</div>
+
+<pre><span id="VALfile_exts"><span class="keyword">val</span> file_exts</span> : <code class="type"><a href="Assemblage.Path.html#TYPEext">Assemblage.Path.ext</a> list -> <a href="Assemblage.Dir.html#TYPEspec">spec</a></code></pre><div class="info ">
+<code class="code">file_exts exts</code> is a specifier that keeps, in any part,
+      products that have an extension in <code class="code">exts</code>.<br>
+</div>
+
+<pre><span id="VALbin"><span class="keyword">val</span> bin</span> : <code class="type"><a href="Assemblage.Dir.html#TYPEspec">spec</a></code></pre><div class="info ">
+<code class="code">bin</code> is <a href="Assemblage.Dir.html#VALall_output"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Dir</span>.all_output</code></a> except in the following cases:
+      <ul>
+<li>For <code class="code"><span class="keywordsign">`</span><span class="constructor">Bin</span></code> parts of kind <code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code> keeps only one of the
+         byte and native code executable without its extension. If
+         both are available favors native code over byte code.</li>
+<li>For <code class="code"><span class="keywordsign">`</span><span class="constructor">Bin</span></code> parts of kind <code class="code"><span class="keywordsign">`</span><span class="constructor">C</span></code> keeps only the part's
+         executable.</li>
+</ul>
+<br>
+</div>
+
+<pre><span id="VALlib"><span class="keyword">val</span> lib</span> : <code class="type"><a href="Assemblage.Dir.html#TYPEspec">spec</a></code></pre><div class="info ">
+<code class="code">lib</code> is <a href="Assemblage.Dir.html#VALall_output"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Dir</span>.all_output</code></a> except in the following cases:
+      <ul>
+<li>For <code class="code"><span class="keywordsign">`</span><span class="constructor">Lib</span></code> parts of kind <code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code>, keeps only the library's
+         archives and the library's unit's <code class="code">cmx</code>, <code class="code">cmi</code> and <code class="code">cmti</code>
+         files according to their
+         <a href="Assemblage.Unit.html#TYPEocaml_interface">interface specification</a>.</li>
+<li>For <code class="code"><span class="keywordsign">`</span><span class="constructor">Lib</span></code> parts of kind <code class="code"><span class="keywordsign">`</span><span class="constructor">C</span></code>, keeps only the library's
+         archives.</li>
+</ul>
+<br>
+</div>
+
+<pre><span id="VALdoc"><span class="keyword">val</span> doc</span> : <code class="type"><a href="Assemblage.Dir.html#TYPEspec">spec</a></code></pre><div class="info ">
+<code class="code">doc</code> is <a href="Assemblage.Dir.html#VALall"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Dir</span>.all</code></a> except in the following cases:
+      <ul>
+<li>For <code class="code"><span class="keywordsign">`</span><span class="constructor">Doc</span></code> parts of kind <code class="code"><span class="keywordsign">`</span><span class="constructor">OCamldoc</span></code> it is <code class="code">any_output</code>.</li>
+</ul>
+<br>
+</div>
+<br>
+<h1 id="1_Dir">Dir</h1><br>
+
+<pre><span id="VALv"><span class="keyword">val</span> v</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Assemblage.Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       ?args:<a href="Assemblage.Args.html#TYPEt">Assemblage.Args.t</a> -><br>       ?spec:<a href="Assemblage.Dir.html#TYPEspec">spec</a> -><br>       ?install:bool -><br>       <a href="Assemblage.Dir.html#TYPEkind">kind</a> -><br>       [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Dir ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a></code></pre><div class="info ">
+<code class="code">v spec install kind needs</code> is a directory of type <code class="code">kind</code> that
+      gathers the products of existing <code class="code">needs</code> as determined by
+      the directory specifier <code class="code">spec</code>.
+<p>
+
+      If <code class="code">install</code> is <code class="code"><span class="keyword">true</span></code> the directory structure is meant to be
+      installed at a root location defined by <code class="code">kind</code>. <code class="code">install</code>
+      defaults to <code class="code"><span class="keyword">true</span></code> except for kind <code class="code"><span class="keywordsign">`</span><span class="constructor">Other</span></code>.
+<p>
+
+      The name of the part is automatically derived from <code class="code">kind</code>
+      in the obvious way. For <code class="code"><span class="keywordsign">`</span><span class="constructor">Other</span> p</code> the name is the basename of
+      <code class="code">p</code>.
+<p>
+
+      The default for <code class="code">spec</code> depends in <code class="code">kind</code> as follows:
+      <ul>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Bin</span></code>, <a href="Assemblage.Dir.html#VALbin"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Dir</span>.bin</code></a> is used.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Lib</span></code>, <a href="Assemblage.Dir.html#VALlib"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Dir</span>.lib</code></a> is used.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Doc</span></code>, <a href="Assemblage.Dir.html#VALdoc"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Dir</span>.doc</code></a> is used.</li>
+<li>Otherwise, <a href="Assemblage.Dir.html#VALall"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Dir</span>.all</code></a> is used.</li>
+</ul>
+
+<p>
+
+      <b>Note.</b> Due to the way assemblage and ocamldoc work, trying
+      to install a <code class="code"><span class="keywordsign">`</span><span class="constructor">Doc</span></code> part will be disappointing.<br>
+</div>
+</body></html>

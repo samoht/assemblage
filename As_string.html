@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="As_project.html">
+<link rel="next" href="As_univ.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Sets of strings" rel="Section" href="#1_Setsofstrings">
+<title>As_string</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="As_project.html" title="As_project">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="As_univ.html" title="As_univ">Next</a>
+</div>
+<h1>Module <a href="type_As_string.html">As_string</a></h1>
+
+<pre><span class="keyword">module</span> As_string: <code class="code"><span class="keyword">sig</span></code> <a href="As_string.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+String utilities and string sets
+<p>
+
+    For documentation see <a href="Assemblage.String.html"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">String</span></code></a>.<br>
+</div>
+<hr width="100%">
+
+<pre><span class="keyword">include</span> String</pre>
+
+<pre><span id="VALsplit"><span class="keyword">val</span> split</span> : <code class="type">sep:string -> string -> string list</code></pre><div class="info ">
+<code class="code">split sep s</code> is the list of all (possibly empty)
+    substrings of <code class="code">s</code> that are delimited by matches of the non empty
+    separator string <code class="code">sep</code>.
+<p>
+
+    Matching separators in <code class="code">s</code> starts from the beginning of <code class="code">s</code> and once
+    one is found, the separator is skipped and matching starts again
+    (i.e. separator matches can't overlap). If there is no separator
+    match in <code class="code">s</code>, <code class="code">[s]</code> is returned.
+<p>
+
+    The invariants <code class="code"><span class="constructor">String</span>.concat sep (<span class="constructor">String</span>.split sep s) = s</code> and
+    <code class="code"><span class="constructor">String</span>.split sep s &lt;&gt; []</code> always hold.<br>
+<b>Raises</b> <code>Invalid_argument</code> if <code class="code">sep</code> is the empty string.<br>
+</div>
+
+<pre><span id="VALrsplit"><span class="keyword">val</span> rsplit</span> : <code class="type">sep:string -> string -> string list</code></pre><div class="info ">
+<code class="code">rsplit sep s</code> is like <a href="As_string.html#VALsplit"><code class="code"><span class="constructor">As_string</span>.split</code></a> but the matching is
+    done backwards, starting from the end of <code class="code">s</code>.<br>
+<b>Raises</b> <code>Invalid_argument</code> if <code class="code">sep</code> is the empty string.<br>
+</div>
+
+<pre><span id="VALcut"><span class="keyword">val</span> cut</span> : <code class="type">sep:string -> string -> (string * string) option</code></pre><div class="info ">
+<code class="code">cut sep s</code> is either the pair <code class="code"><span class="constructor">Some</span> (l,r)</code> of the two
+    (possibly empty) substrings of <code class="code">s</code> that are delimited by the first
+    match of the non empty separator string <code class="code">sep</code> or <code class="code"><span class="constructor">None</span></code> if <code class="code">sep</code>
+    can't be matched in <code class="code">s</code>. Matching starts from the beginning of <code class="code">s</code>.
+<p>
+
+    The invariant <code class="code">l ^ sep ^ r = s</code> holds.<br>
+<b>Raises</b> <code>Invalid_argument</code> if <code class="code">sep</code> is the empty string.<br>
+</div>
+
+<pre><span id="VALrcut"><span class="keyword">val</span> rcut</span> : <code class="type">sep:string -> string -> (string * string) option</code></pre><div class="info ">
+<code class="code">rcut sep s</code> is like <a href="As_string.html#VALcut"><code class="code"><span class="constructor">As_string</span>.cut</code></a> but the matching is done backwards
+    starting from the end of <code class="code">s</code>.<br>
+<b>Raises</b> <code>Invalid_argument</code> if <code class="code">sep</code> is the empty string.<br>
+</div>
+
+<pre><span id="VALslice"><span class="keyword">val</span> slice</span> : <code class="type">?start:int -> ?stop:int -> string -> string</code></pre><div class="info ">
+<code class="code">slice ~start ~stop s</code> is the string s.<code class="code">start</code>, s.<code class="code">start+1</code>, ...
+    s.<code class="code">stop - 1</code>. <code class="code">start</code> defaults to <code class="code">0</code> and <code class="code">stop</code> to <code class="code"><span class="constructor">String</span>.length s</code>.
+<p>
+
+    If <code class="code">start</code> or <code class="code">stop</code> are negative they are subtracted from
+    <code class="code"><span class="constructor">String</span>.length s</code>. This means that <code class="code">-1</code> denotes the last
+    character of the string.<br>
+</div>
+
+<pre><span id="VALtokens"><span class="keyword">val</span> tokens</span> : <code class="type">string -> string list</code></pre><div class="info ">
+<code class="code">tokens s</code> is the list of non empty strings made of characters
+    that are not separated by <code class="code"><span class="string">' '</span></code>, <code class="code"><span class="string">'\t'</span></code>, <code class="code"><span class="string">'\n'</span></code>, <code class="code"><span class="string">'\r'</span></code> characters in
+    <code class="code">s</code>, the order of character appearance in the list is the same as
+    in <code class="code">s</code>.<br>
+</div>
+
+<pre><span id="VALuniquify"><span class="keyword">val</span> uniquify</span> : <code class="type">string list -> string list</code></pre><div class="info ">
+<code class="code">uniquify ss</code> is <code class="code">ss</code> without duplicates, the list order is preserved.<br>
+</div>
+<br>
+<h1 id="1_Setsofstrings">Sets of strings</h1><br>
+
+<pre><span class="keyword">module</span> <a href="As_string.Set.html">Set</a>: <code class="code"><span class="keyword">sig</span></code> <a href="As_string.Set.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span id="VALmake_unique_in"><span class="keyword">val</span> make_unique_in</span> : <code class="type">?suff:string -> Set.t -> string -> string option</code></pre><div class="info ">
+<code class="code">make_unique_in ~suff set elt</code> is a string that does not belong
+    <code class="code">set</code>.  If <code class="code">elt</code> in not in <code class="code">set</code> then this is <code class="code">elt</code> itself
+    otherwise it is a string defined by <code class="code"><span class="constructor">Printf</span>.sprintf <span class="string">"%s%s%d"</span> s
+    suff d</code> where <code class="code">d</code> is a positive number starting from <code class="code">1</code>. <code class="code">suff</code>
+    defaults to <code class="code"><span class="string">"~"</span></code>.  <code class="code"><span class="constructor">None</span></code> in the unlikely case that all positive
+    numbers were exhausted.<br>
+</div>
+
+<pre><span class="keyword">module</span> <a href="As_string.Map.html">Map</a>: <code class="code"><span class="keyword">sig</span></code> <a href="As_string.Map.html">..</a> <code class="code"><span class="keyword">end</span></code></pre></body></html>

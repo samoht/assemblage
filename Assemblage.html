@@ -1,0 +1,312 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="next" href="Assemblage_driver.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Preliminaries" rel="Section" href="#1_Preliminaries">
+<link title="Building" rel="Section" href="#building">
+<link title="Parts" rel="Section" href="#parts">
+<link title="Part specification combinators" rel="Section" href="#spec">
+<link title="Projects" rel="Section" href="#projects">
+<link title="Private API" rel="Section" href="#1_PrivateAPI">
+<link title="Basics" rel="Section" href="#basics">
+<link title="Don't" rel="Section" href="#dont">
+<link title="Limitations" rel="Section" href="#limitations">
+<link title="Designing new part kind" rel="Section" href="#design_part">
+<title>Assemblage</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="Assemblage_driver.html" title="Assemblage_driver">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.html">Assemblage</a></h1>
+
+<pre><span class="keyword">module</span> Assemblage: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Assemble software projects.
+<p>
+
+    <code class="code"><span class="constructor">Assemblage</span></code> provides functions to describe the structure of your
+    software project as a <a href="Assemblage.html#TYPEproject">project description</a> value. This
+    data structure allows tools known as assemblage <em>drivers</em> to
+    explore, build and manage your project.
+<p>
+
+    Open the module to use it, this defines only modules, types and a
+    few combinators in your scope.
+<p>
+
+    Consult the <a href="Assemblage.html#basics">basics</a>.
+<p>
+
+    <em>Release %%VERSION%% — %%MAINTAINER%% </em><br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Preliminaries">Preliminaries</h1><br>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.String.html">String</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.String.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Extended <code class="code"><span class="constructor">String</span></code> module, string sets and maps.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Fmt.html">Fmt</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Fmt.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Formatters.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Path.html">Path</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Path.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+File system paths, path sets and maps.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Log.html">Log</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Log.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Assemblage log.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Cmd.html">Cmd</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Cmd.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Executing <em>non-build</em> commands and IO operations.
+</div>
+<br>
+<h1 id="building">Building</h1><br>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Conf.html">Conf</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Conf.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Build configuration.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Ctx.html">Ctx</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Ctx.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Command execution contexts.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Args.html">Args</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Args.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Command argument bundles.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Acmd.html">Acmd</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Acmd.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Action commands.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Action.html">Action</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Action.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Build action.
+</div>
+<br>
+<h1 id="parts">Parts</h1><br>
+
+<pre><span id="TYPEpart_kind"><span class="keyword">type</span> <code class="type"></code>part_kind</span> = <code class="type">[ `Base | `Bin | `Dir | `Doc | `Lib | `Pkg | `Run | `Unit ]</code> </pre>
+<div class="info ">
+The type for part kinds.<br>
+</div>
+
+
+<pre><span id="TYPEpart"><span class="keyword">type</span> <code class="type">+[< <a href="Assemblage.html#TYPEpart_kind">part_kind</a> ]</code> part</span> </pre>
+<div class="info ">
+The type for project parts.<br>
+</div>
+
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Part.html">Part</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Part.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Parts, part sets and maps.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Unit.html">Unit</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Unit.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Compilation unit part.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Lib.html">Lib</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Lib.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Library part.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Bin.html">Bin</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Bin.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Binary executable part.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Pkg.html">Pkg</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Pkg.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Package part.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Doc.html">Doc</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Doc.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Unit documentation set part.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Dir.html">Dir</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Dir.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Directory part.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Run.html">Run</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Run.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Runs.
+</div>
+<br>
+<h1 id="spec">Part specification combinators</h1><br>
+
+<pre><span id="TYPEpath"><span class="keyword">type</span> <code class="type"></code>path</span> = <code class="type"><a href="Assemblage.Path.html#TYPEt">Path.t</a> <a href="Assemblage.Conf.html#TYPEvalue">Conf.value</a></code> </pre>
+<div class="info ">
+The type for part paths specifications.<br>
+</div>
+
+
+<pre><span id="VALroot"><span class="keyword">val</span> root</span> : <code class="type"><a href="Assemblage.html#TYPEpath">path</a></code></pre><div class="info ">
+<code class="code">root</code> is the current directory relative to the
+    project root.<br>
+</div>
+
+<pre><span id="VAL(/)"><span class="keyword">val</span> (/)</span> : <code class="type"><a href="Assemblage.html#TYPEpath">path</a> -> string -> <a href="Assemblage.html#TYPEpath">path</a></code></pre><div class="info ">
+<code class="code">path / seg</code> is <code class="code"><span class="constructor">Conf</span>.(const <span class="constructor">Path</span>.( / ) $ path $ const seg)</code>.<br>
+</div>
+
+<pre><span id="VAL(//)"><span class="keyword">val</span> (//)</span> : <code class="type"><a href="Assemblage.html#TYPEpath">path</a> -><br>       <a href="Assemblage.Path.html#TYPErel">Path.rel</a> <a href="Assemblage.Conf.html#TYPEvalue">Conf.value</a> -> <a href="Assemblage.html#TYPEpath">path</a></code></pre><div class="info ">
+<code class="code">path // rel</code> is <code class="code"><span class="constructor">Conf</span>.(const <span class="constructor">Path</span>.( // ) $ path $ rel)</code>.<br>
+</div>
+
+<pre><span id="VALunit"><span class="keyword">val</span> unit</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Conf.value</a> -><br>       ?args:<a href="Assemblage.Args.html#TYPEt">Args.t</a> -><br>       ?needs:[< `Lib | `Pkg ] <a href="Assemblage.html#TYPEpart">part</a> list -><br>       ?kind:<a href="Assemblage.Unit.html#TYPEkind">Unit.kind</a> -><br>       ?dir:<a href="Assemblage.html#TYPEpath">path</a> -><br>       string -> [< <a href="Assemblage.html#TYPEpart_kind">part_kind</a> > `Unit ] <a href="Assemblage.html#TYPEpart">part</a></code></pre><div class="info ">
+See <a href="Assemblage.Unit.html#VALv"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Unit</span>.v</code></a>. <code class="code">kind</code> defaults to <code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span> (<span class="keywordsign">`</span><span class="constructor">Both</span>, <span class="keywordsign">`</span><span class="constructor">Normal</span>)</code>.<br>
+</div>
+
+<pre><span id="VALlib"><span class="keyword">val</span> lib</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Conf.value</a> -><br>       ?args:<a href="Assemblage.Args.html#TYPEt">Args.t</a> -><br>       ?byte:bool -><br>       ?native:bool -><br>       ?native_dynlink:bool -><br>       ?kind:<a href="Assemblage.Lib.html#TYPEkind">Lib.kind</a> -><br>       string -><br>       [< `Lib | `Pkg | `Unit ] <a href="Assemblage.html#TYPEpart">part</a> list -><br>       [< <a href="Assemblage.html#TYPEpart_kind">part_kind</a> > `Lib ] <a href="Assemblage.html#TYPEpart">part</a></code></pre><div class="info ">
+See <a href="Assemblage.Lib.html#VALv"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Lib</span>.v</code></a>. <code class="code">kind</code> defaults to <code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code>.<br>
+</div>
+
+<pre><span id="VALbin"><span class="keyword">val</span> bin</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Conf.value</a> -><br>       ?args:<a href="Assemblage.Args.html#TYPEt">Args.t</a> -><br>       ?byte:bool -><br>       ?native:bool -><br>       ?js:bool -><br>       ?kind:<a href="Assemblage.Bin.html#TYPEkind">Bin.kind</a> -><br>       string -><br>       [< `Lib | `Pkg | `Unit ] <a href="Assemblage.html#TYPEpart">part</a> list -><br>       [< <a href="Assemblage.html#TYPEpart_kind">part_kind</a> > `Bin ] <a href="Assemblage.html#TYPEpart">part</a></code></pre><div class="info ">
+See <a href="Assemblage.Bin.html#VALv"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Bin</span>.v</code></a>. <code class="code">kind</code> defaults to <code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code>.<br>
+</div>
+
+<pre><span id="VALpkg"><span class="keyword">val</span> pkg</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Conf.value</a> -><br>       ?opt:bool -><br>       ?kind:<a href="Assemblage.Pkg.html#TYPEkind">Pkg.kind</a> -><br>       string -> [< <a href="Assemblage.html#TYPEpart_kind">part_kind</a> > `Pkg ] <a href="Assemblage.html#TYPEpart">part</a></code></pre><div class="info ">
+See <a href="Assemblage.Pkg.html#VALv"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Pkg</span>.v</code></a>. <code class="code">kind</code> defaults to <code class="code"><span class="keywordsign">`</span><span class="constructor">OCamlfind</span></code>.<br>
+</div>
+
+<pre><span id="VALdoc"><span class="keyword">val</span> doc</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Conf.value</a> -><br>       ?args:<a href="Assemblage.Args.html#TYPEt">Args.t</a> -><br>       ?keep:([< `Unit ] <a href="Assemblage.html#TYPEpart">part</a> -> bool) -><br>       ?kind:<a href="Assemblage.Doc.html#TYPEkind">Doc.kind</a> -><br>       string -><br>       [< `Bin | `Lib | `Unit ] <a href="Assemblage.html#TYPEpart">part</a> list -><br>       [< <a href="Assemblage.html#TYPEpart_kind">part_kind</a> > `Doc ] <a href="Assemblage.html#TYPEpart">part</a></code></pre><div class="info ">
+See <a href="Assemblage.Doc.html#VALv"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Doc</span>.v</code></a>. <code class="code">kind</code> defaults to <code class="code"><span class="keywordsign">`</span><span class="constructor">OCamldoc</span></code>.<br>
+</div>
+
+<pre><span id="VALdir"><span class="keyword">val</span> dir</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Conf.value</a> -><br>       ?args:<a href="Assemblage.Args.html#TYPEt">Args.t</a> -><br>       ?spec:<a href="Assemblage.Dir.html#TYPEspec">Dir.spec</a> -><br>       ?install:bool -><br>       <a href="Assemblage.Dir.html#TYPEkind">Dir.kind</a> -><br>       [< `Base | `Bin | `Dir | `Doc | `Lib | `Unit ] <a href="Assemblage.html#TYPEpart">part</a> list -><br>       [< <a href="Assemblage.html#TYPEpart_kind">part_kind</a> > `Dir ] <a href="Assemblage.html#TYPEpart">part</a></code></pre><div class="info ">
+See <a href="Assemblage.Dir.html#VALv"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Dir</span>.v</code></a>.<br>
+</div>
+
+<pre><span id="VALfile"><span class="keyword">val</span> file</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Conf.value</a> -><br>       <a href="Assemblage.Path.html#TYPEt">Path.t</a> -> [< <a href="Assemblage.html#TYPEpart_kind">part_kind</a> > `Base ] <a href="Assemblage.html#TYPEpart">part</a></code></pre><div class="info ">
+See <a href="Assemblage.Part.html#VALfile"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Part</span>.file</code></a>.<br>
+</div>
+
+<pre><span id="VALrun"><span class="keyword">val</span> run</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Conf.value</a> -><br>       ?args:<a href="Assemblage.Args.html#TYPEt">Args.t</a> -><br>       ?dir:<a href="Assemblage.html#TYPEpath">path</a> -><br>       string -><br>       <a href="Assemblage.Action.html#TYPEt">Action.t</a> <a href="Assemblage.Conf.html#TYPEvalue">Conf.value</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">part_kind</a> > `Run ] <a href="Assemblage.html#TYPEpart">part</a></code></pre><div class="info ">
+See <a href="Assemblage.Run.html#VALv"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Run</span>.v</code></a>. FIXME maybe removed that one from the toplevel.<br>
+</div>
+<br>
+<h1 id="projects">Projects</h1><br>
+
+<pre><span id="TYPEproject"><span class="keyword">type</span> <code class="type"></code>project</span> </pre>
+<div class="info ">
+The type for projects descriptions.<br>
+</div>
+
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Project.html">Project</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Project.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Project descriptions.
+</div>
+
+<pre><span id="VALassemble"><span class="keyword">val</span> assemble</span> : <code class="type"><a href="Assemblage.html#TYPEproject">project</a> -> unit</code></pre><div class="info ">
+<code class="code">assemble p</code> registers <code class="code">p</code> for assembling by an assemblage driver.<br>
+</div>
+<br>
+<h1 id="1_PrivateAPI">Private API</h1><br>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Private.html">Private</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Private.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Private functions and types for implementing drivers.
+</div>
+<br>
+<h1 id="basics">Basics</h1>
+<p>
+
+    An assemblage <a href="Assemblage.html#TYPEproject">project</a> is made of <a href="Assemblage.html#parts">parts</a>. This
+    was very basic.
+<p>
+
+    <h1 id="dont">Don't</h1>
+<p>
+
+    Make the project depend on direct conditions. E.g.
+<pre class="codepre"><code class="code">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span>&nbsp;<span class="constructor">Sys</span>.file_exists&nbsp;file&nbsp;<span class="keyword">then</span>&nbsp;<span class="constructor">Some</span>&nbsp;(unit&nbsp;<span class="string">"src"</span>)&nbsp;&nbsp;<span class="keyword">else</span>&nbsp;<span class="constructor">None</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span>&nbsp;<span class="constructor">Sys</span>.win32&nbsp;<span class="keyword">then</span>&nbsp;...<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">if</span>&nbsp;<span class="constructor">Sys</span>.ocaml_version&nbsp;=&nbsp;...<br>
+</code></pre>
+<p>
+
+    That's the way of doing it:
+<pre class="codepre"><code class="code">&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;exists&nbsp;=&nbsp;<span class="constructor">Conf</span>.(const&nbsp;<span class="constructor">Cmd</span>.<span class="constructor">File</span>.exists&nbsp;$&nbsp;const&nbsp;(<span class="constructor">Path</span>.file&nbsp;file))&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unit&nbsp;~exists&nbsp;<span class="string">"src"</span><br>
+</code></pre>
+    TODO the rule to hammer in people's mind is the following:
+    don't do anything that doesn't make the set of configuration
+    keys constant on *every* load of the <code class="code">assemble.ml</code> file. Maybe
+    we could still make an exception for a <code class="code">units</code> combinator
+    that looksup the units in a directory automatically.
+<p>
+
+   <h1 id="limitations">Limitations</h1>
+<p>
+
+   The build model behind assemblage has the following limitation.
+   <ul>
+<li>Doesn't work well with tools that are not able to determine
+      their output statically, e.g. ocamldoc. FIXME dep
+      discovery ?</li>
+<li>TODO</li>
+</ul>
+
+<p>
+
+   <h1 id="design_part">Designing new part kind</h1>
+<p>
+
+   <OL>
+<li>Define configuration keys for the utilities.</li>
+<li>Make non lifted action creators for the main
+      operations. Don't use the keys yet, use a bin type to represent
+      them. Arguments to the creators should be those that allow to
+      correctly determine the inputs and outputs of the operation
+      (e.g. for OCaml annot is handled in the creator). Add an
+      <code class="code">?args</code> optional argument.</li>
+<li>In the part action definition function lift the utilities
+      and common build configuration keys (debug, warn_error, etc).
+      Handle the command argument for those at that level an pass
+      them to actions using the <code class="code">?args</code> optional argument of creators.</li>
+<li>Don't support all command line flags, the user can use argument
+      bundles. You may want to provide some of them already created.</li>
+</OL>
+<br>
+</body></html>

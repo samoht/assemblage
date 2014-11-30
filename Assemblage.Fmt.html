@@ -1,0 +1,173 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.String.html">
+<link rel="next" href="Assemblage.Path.html">
+<link rel="Up" href="Assemblage.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Formatters" rel="Section" href="#1_Formatters">
+<link title="Conditional UTF-8 formatting" rel="Section" href="#utf8_cond">
+<link title="Styled formatting" rel="Section" href="#styled">
+<title>Assemblage.Fmt</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.String.html" title="Assemblage.String">Previous</a>
+&nbsp;<a class="up" href="Assemblage.html" title="Assemblage">Up</a>
+&nbsp;<a class="post" href="Assemblage.Path.html" title="Assemblage.Path">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Fmt.html">Assemblage.Fmt</a></h1>
+
+<pre><span class="keyword">module</span> Fmt: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Fmt.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Formatters.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Formatters">Formatters</h1><br>
+
+<pre><span id="TYPEformatter"><span class="keyword">type</span> <code class="type">'a</code> formatter</span> = <code class="type">Format.formatter -> 'a -> unit</code> </pre>
+<div class="info ">
+The type for formatters of values of type <code class="code"><span class="keywordsign">'</span>a</code>.<br>
+</div>
+
+
+<pre><span id="VALpp"><span class="keyword">val</span> pp</span> : <code class="type">Format.formatter -> ('a, Format.formatter, unit) Pervasives.format -> 'a</code></pre><div class="info ">
+<code class="code">pp</code> is <code class="code"><span class="constructor">Format</span>.fprintf</code><br>
+</div>
+
+<pre><span id="VALrpp"><span class="keyword">val</span> rpp</span> : <code class="type">('a, Format.formatter, unit) Pervasives.format -> Format.formatter -> 'a</code></pre><div class="info ">
+<code class="code">rpp</code> is <code class="code">pp fmt ppf</code><br>
+</div>
+
+<pre><span id="VALnop"><span class="keyword">val</span> nop</span> : <code class="type">'a <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">nop</code> does nothing.<br>
+</div>
+
+<pre><span id="VALpp_cut"><span class="keyword">val</span> pp_cut</span> : <code class="type">unit <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_cut</code> is <code class="code"><span class="constructor">Format</span>.pp_print_cut</code>.<br>
+</div>
+
+<pre><span id="VALpp_sp"><span class="keyword">val</span> pp_sp</span> : <code class="type">unit <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_sp</code> is <code class="code"><span class="constructor">Format</span>.pp_print_space</code>.<br>
+</div>
+
+<pre><span id="VALpp_str"><span class="keyword">val</span> pp_str</span> : <code class="type">string <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_str</code> is <code class="code"><span class="constructor">Format</span>.pp_print_string</code>.<br>
+</div>
+
+<pre><span id="VALpp_int"><span class="keyword">val</span> pp_int</span> : <code class="type">int <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_int</code> is <code class="code"><span class="constructor">Format</span>.pp_print_int</code>.<br>
+</div>
+
+<pre><span id="VALpp_bool"><span class="keyword">val</span> pp_bool</span> : <code class="type">bool <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_bool</code> is <code class="code"><span class="constructor">Format</span>.pp_print_bool</code>.<br>
+</div>
+
+<pre><span id="VALpp_larrow"><span class="keyword">val</span> pp_larrow</span> : <code class="type">unit <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_larrow</code> formats a left arrow.<br>
+</div>
+
+<pre><span id="VALpp_rarrow"><span class="keyword">val</span> pp_rarrow</span> : <code class="type">unit <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_rarrow</code> formats a right arrow.<br>
+</div>
+
+<pre><span id="VALpp_opt"><span class="keyword">val</span> pp_opt</span> : <code class="type">?pp_none:unit <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a> -><br>       'a <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a> -> 'a option <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_opt pp_none pp_v</code> formats value of type <code class="code"><span class="keywordsign">'</span>a option</code>. The default
+      value of <code class="code">pp_none</code> prints nothing.<br>
+</div>
+
+<pre><span id="VALpp_list"><span class="keyword">val</span> pp_list</span> : <code class="type">?pp_sep:unit <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a> -><br>       'a <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a> -> 'a list <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_list pp_sep pp_v</code> formats lists of type <code class="code"><span class="keywordsign">'</span>a</code>. Each value
+      is printed with <code class="code">pp_v</code> followed by <code class="code">pp_sep</code> (defaults to <a href="Assemblage.Fmt.html#VALpp_cut"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Fmt</span>.pp_cut</code></a>).
+      Empty lists never print anything.<br>
+</div>
+
+<pre><span id="VALpp_text"><span class="keyword">val</span> pp_text</span> : <code class="type">string <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_text</code> formats text by replacing spaces and newlines in the string
+      with calls to <code class="code"><span class="constructor">Format</span>.pp_print_space</code> and <code class="code"><span class="constructor">Format</span>.pp_force_newline</code>.<br>
+</div>
+
+<pre><span id="VALpp_lines"><span class="keyword">val</span> pp_lines</span> : <code class="type">string <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_lines</code> formats lines by replacing newlines in the string
+      with calls to <code class="code"><span class="constructor">Format</span>.pp_force_newline</code>.<br>
+</div>
+
+<pre><span id="VALpp_doomed"><span class="keyword">val</span> pp_doomed</span> : <code class="type">string <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_doomed</code> should be used for printing a message when
+       reasonable assumptions are being violated. The string
+      should be a short description of what is going on.<br>
+</div>
+<br>
+<h1 id="utf8_cond">Conditional UTF-8 formatting</h1>
+<p>
+
+      <b>Note.</b> Since <code class="code"><span class="constructor">Format</span></code> is not UTF-8 aware using UTF-8 output
+      may derail the pretty printing process. The decision of allowing
+      UTF-8 is left to the discretion of the drivers.<br>
+
+<pre><span id="VALpp_if_utf8"><span class="keyword">val</span> pp_if_utf8</span> : <code class="type">'a <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a> -><br>       'a <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a> -> 'a <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_if_utf8 pp_u pp</code> is a formatter that will use <code class="code">pp_u</code> if UTF-8
+      output is enabled by the driver and <code class="code">pp</code> otherwise.<br>
+</div>
+<br>
+<h1 id="styled">Styled formatting</h1>
+<p>
+
+      <b>Note.</b> Text output using these functions may still appear
+      unformatted, style application is left to the discretion of
+      drivers.<br>
+
+<pre><span id="TYPEstyle"><span class="keyword">type</span> <code class="type"></code>style</span> = <code class="type">[ `Black<br>       | `Blue<br>       | `Bold<br>       | `Cyan<br>       | `Green<br>       | `Magenta<br>       | `None<br>       | `Red<br>       | `Underline<br>       | `White<br>       | `Yellow ]</code> </pre>
+<div class="info ">
+The type for styles.<br>
+</div>
+
+
+<pre><span id="VALpp_styled"><span class="keyword">val</span> pp_styled</span> : <code class="type"><a href="Assemblage.Fmt.html#TYPEstyle">style</a> -><br>       'a <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a> -> 'a <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_styled style pp</code> formats according to <code class="code">pp</code> but styled with <code class="code">style</code>.<br>
+</div>
+
+<pre><span id="VALpp_styled_str"><span class="keyword">val</span> pp_styled_str</span> : <code class="type"><a href="Assemblage.Fmt.html#TYPEstyle">style</a> -> string <a href="Assemblage.Fmt.html#TYPEformatter">formatter</a></code></pre><div class="info ">
+<code class="code">pp_styled_str style</code> is <code class="code">pp_styled_str style pp_str</code>.<br>
+</div>
+</body></html>

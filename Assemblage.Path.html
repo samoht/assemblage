@@ -1,0 +1,322 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.Fmt.html">
+<link rel="next" href="Assemblage.Log.html">
+<link rel="Up" href="Assemblage.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="File paths" rel="Section" href="#filepaths">
+<link title="Predicates and comparison" rel="Section" href="#predicates">
+<link title="Conversions" rel="Section" href="#conversions">
+<link title="File extensions" rel="Section" href="#file_exts">
+<link title="Relative paths" rel="Section" href="#rel">
+<link title="Absolute paths" rel="Section" href="#abs">
+<link title="Path sets and maps" rel="Section" href="#sets_maps">
+<title>Assemblage.Path</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.Fmt.html" title="Assemblage.Fmt">Previous</a>
+&nbsp;<a class="up" href="Assemblage.html" title="Assemblage">Up</a>
+&nbsp;<a class="post" href="Assemblage.Log.html" title="Assemblage.Log">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Path.html">Assemblage.Path</a></h1>
+
+<pre><span class="keyword">module</span> Path: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Path.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+File system paths, path sets and maps.
+<p>
+
+    <code class="code"><span class="constructor">Path</span></code> provides three types for handling paths. Values of type
+    <a href="Assemblage.Path.html#TYPEt"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.t</code></a> are for paths that are either relative or absolute while
+    those of type <a href="Assemblage.Path.html#TYPErel"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.rel</code></a> and <a href="Assemblage.Path.html#TYPEabs"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.abs</code></a> specialize to either
+    case.
+<p>
+
+    Relative paths and absolute path each have corresponding modules
+    <a href="Assemblage.Path.Rel.html"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.<span class="constructor">Rel</span></code></a> and <a href="Assemblage.Path.Abs.html"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.<span class="constructor">Abs</span></code></a> with specialized functions. <a href="Assemblage.Path.html#conversions">Conversion</a>
+    between the three type of paths are explicit.
+<p>
+
+    <b>FIXME</b>. We need to properly handle <code class="code"><span class="constructor">Filename</span>.current_dir_name</code> and
+    <code class="code"><span class="constructor">Filename</span>.parent_dir_name</code> in path segments.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="filepaths">File paths</h1><br>
+
+<pre><span id="TYPEfilename"><span class="keyword">type</span> <code class="type"></code>filename</span> = <code class="type">string</code> </pre>
+<div class="info ">
+The type for file names (basenames).<br>
+</div>
+
+
+<pre><span id="TYPErel"><span class="keyword">type</span> <code class="type"></code>rel</span> </pre>
+<div class="info ">
+The type for relative paths.<br>
+</div>
+
+
+<pre><span id="TYPEabs"><span class="keyword">type</span> <code class="type"></code>abs</span> </pre>
+<div class="info ">
+The type for absolute paths.<br>
+</div>
+
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info ">
+The type for absolute or relative paths.<br>
+</div>
+
+
+<pre><span id="VALroot"><span class="keyword">val</span> root</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">root</code> is the root absolute path (empty list of segments).<br>
+</div>
+
+<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">empty</code> is the empty relative path (empty list of segments).<br>
+</div>
+
+<pre><span id="VALdash"><span class="keyword">val</span> dash</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">dash</code> is the <code class="code"><span class="string">"-"</span></code> relative path.<br>
+</div>
+
+<pre><span id="VALadd"><span class="keyword">val</span> add</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> string -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">add p seg</code> concatenates <code class="code">seg</code> at the end of <code class="code">p</code>. For any <code class="code">p</code>,
+      <code class="code">add p <span class="string">""</span> = p</code>.<br>
+</div>
+
+<pre><span id="VALconcat"><span class="keyword">val</span> concat</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPErel">rel</a> -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">concat p p'</code> concatenates <code class="code">p'</code> at the end of <code class="code">p</code>.<br>
+</div>
+
+<pre><span id="VAL(/)"><span class="keyword">val</span> (/)</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> string -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">p / c</code> is <code class="code">add p c</code>. Left associative.<br>
+</div>
+
+<pre><span id="VAL(//)"><span class="keyword">val</span> (//)</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPErel">rel</a> -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">p // p'</code> is <code class="code">concat p p'</code>. Left associative.<br>
+</div>
+
+<pre><span id="VALfile"><span class="keyword">val</span> file</span> : <code class="type"><a href="Assemblage.Path.html#TYPEfilename">filename</a> -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">file name</code> is <code class="code">add empty f</code>.<br>
+</div>
+
+<pre><span id="VALbase"><span class="keyword">val</span> base</span> : <code class="type">string -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">base name</code> is <code class="code">add empty f</code>.<br>
+</div>
+
+<pre><span id="VALbasename"><span class="keyword">val</span> basename</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> string</code></pre><div class="info ">
+<code class="code">basename p</code> is the basename of <code class="code">p</code>. If <code class="code">p</code> has no segments the
+      empty string is returned.<br>
+</div>
+
+<pre><span id="VALdirname"><span class="keyword">val</span> dirname</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">dirname p</code> is the dirname of <code class="code">p</code>. If <code class="code">p</code> has no segments <code class="code">p</code>
+      is returned.<br>
+</div>
+
+<pre><span id="VALrem_prefix"><span class="keyword">val</span> rem_prefix</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPErel">rel</a> option</code></pre><div class="info ">
+<code class="code">rem_prefix pre p</code> is <code class="code">p</code> with the literal prefix <code class="code">pre</code> removed. <code class="code"><span class="constructor">None</span></code>
+      if <code class="code">pre</code> is not a prefix of <code class="code">p</code>.<br>
+</div>
+
+<pre><span id="VALfind_prefix"><span class="keyword">val</span> find_prefix</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEt">t</a> option</code></pre><div class="info ">
+<code class="code">find_prefix p p'</code> is a common prefix for <code class="code">p</code> and <code class="code">p'</code>. There is
+      always a common prefix between path of the same kind (either <a href="Assemblage.Path.html#VALroot"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.root</code></a>
+      or <a href="Assemblage.Path.html#VALempty"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.empty</code></a> and <code class="code"><span class="constructor">None</span></code> is only returned if <code class="code">p</code> and <code class="code">p'</code> are of
+      different kind.<br>
+</div>
+<br>
+<h1 id="predicates">Predicates and comparison</h1><br>
+
+<pre><span id="VALis_root"><span class="keyword">val</span> is_root</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+<code class="code">is_root p</code> is <code class="code"><span class="keyword">true</span></code> iff <code class="code">p</code> is <a href="Assemblage.Path.html#VALroot"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.root</code></a>.<br>
+</div>
+
+<pre><span id="VALis_empty"><span class="keyword">val</span> is_empty</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+<code class="code">is_empty p</code> is <code class="code"><span class="keyword">true</span></code> iff <code class="code">p</code> is <a href="Assemblage.Path.html#VALempty"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.empty</code></a>.<br>
+</div>
+
+<pre><span id="VALis_dash"><span class="keyword">val</span> is_dash</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+<code class="code">is_dash p</code> is <code class="code"><span class="keyword">true</span></code> iff <code class="code">p</code> is <a href="Assemblage.Path.html#VALdash"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.dash</code></a>.<br>
+</div>
+
+<pre><span id="VALis_rel"><span class="keyword">val</span> is_rel</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+<code class="code">is_rel p</code> is <code class="code"><span class="keyword">true</span></code> iff <code class="code">p</code> is a relative path.<br>
+</div>
+
+<pre><span id="VALis_abs"><span class="keyword">val</span> is_abs</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+<code class="code">is_abs p</code> is <code class="code"><span class="keyword">true</span></code> iff <code class="code">p</code> is an absolute path.<br>
+</div>
+
+<pre><span id="VALis_prefix"><span class="keyword">val</span> is_prefix</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+<code class="code">is_prefix p p'</code> is <code class="code"><span class="keyword">true</span></code> if <code class="code">p</code> is a literal prefix of <code class="code">p'</code>.<br>
+</div>
+
+<pre><span id="VALequal"><span class="keyword">val</span> equal</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+<code class="code">equal p p'</code> is <code class="code">p = p'</code>.<br>
+</div>
+
+<pre><span id="VALcompare"><span class="keyword">val</span> compare</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEt">t</a> -> int</code></pre><div class="info ">
+<code class="code">compare p p'</code> is <code class="code"><span class="constructor">Pervasives</span>.compare p p'</code>.<br>
+</div>
+<br>
+<h1 id="conversions">Conversions</h1><br>
+
+<pre><span id="VALto_rel"><span class="keyword">val</span> to_rel</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPErel">rel</a> option</code></pre><div class="info ">
+<code class="code">to_rel p</code> is <code class="code"><span class="constructor">Some</span> r</code> if <code class="code">p</code> is a relative path.<br>
+</div>
+
+<pre><span id="VALof_rel"><span class="keyword">val</span> of_rel</span> : <code class="type"><a href="Assemblage.Path.html#TYPErel">rel</a> -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">of_rel r</code> is <code class="code">r</code> as a path.<br>
+</div>
+
+<pre><span id="VALto_abs"><span class="keyword">val</span> to_abs</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEabs">abs</a> option</code></pre><div class="info ">
+<code class="code">to_abs p</code> is <code class="code"><span class="constructor">Some</span> a</code> if <code class="code">p</code> is an absolute path.<br>
+</div>
+
+<pre><span id="VALof_abs"><span class="keyword">val</span> of_abs</span> : <code class="type"><a href="Assemblage.Path.html#TYPEabs">abs</a> -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">of_abs a</code> is <code class="code">a</code> as a path.<br>
+</div>
+
+<pre><span id="VALto_segs"><span class="keyword">val</span> to_segs</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> [ `Abs of string list | `Rel of string list ]</code></pre><div class="info ">
+<code class="code">to_segs p</code> is <code class="code">p</code>'s segments.<br>
+</div>
+
+<pre><span id="VALof_segs"><span class="keyword">val</span> of_segs</span> : <code class="type">[ `Abs of string list | `Rel of string list ] -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">of_segs segs</code> is a path from <code class="code">segs</code> segments.<br>
+</div>
+
+<pre><span id="VALto_string"><span class="keyword">val</span> to_string</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> string</code></pre><div class="info ">
+<code class="code">to_string p</code> is the path <code class="code">p</code> as a string according to
+      the driver's platform convention with <code class="code"><span class="constructor">Filename</span>.dir_sep</code>.<br>
+</div>
+
+<pre><span id="VALof_string"><span class="keyword">val</span> of_string</span> : <code class="type">string -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">of_string s</code> is the string <code class="code">s</code> as a path. <code class="code">s</code> is splitted
+      according to the driver's platform convention with <code class="code"><span class="constructor">Filename</span>.dir_sep</code>.<br>
+</div>
+
+<pre><span id="VALquote"><span class="keyword">val</span> quote</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> string</code></pre><div class="info ">
+<code class="code">quote p</code> is the path <code class="code">p</code> as a string, quoted according
+       to the driver's platform conventions with <code class="code"><span class="constructor">Filename</span>.quote</code>.<br>
+</div>
+
+<pre><span id="VALpp"><span class="keyword">val</span> pp</span> : <code class="type">Format.formatter -> <a href="Assemblage.Path.html#TYPEt">t</a> -> unit</code></pre><div class="info ">
+<code class="code">pp ppf p</code> prints path <code class="code">p</code> on <code class="code">ppf</code> using <a href="Assemblage.Path.html#VALto_string"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.to_string</code></a>.<br>
+</div>
+<br>
+<h1 id="file_exts">File extensions</h1><br>
+
+<pre><span id="TYPEext"><span class="keyword">type</span> <code class="type"></code>ext</span> = <code class="type">[ `A<br>       | `Byte<br>       | `C<br>       | `Cma<br>       | `Cmi<br>       | `Cmo<br>       | `Cmt<br>       | `Cmti<br>       | `Cmx<br>       | `Cmxa<br>       | `Cmxs<br>       | `Css<br>       | `Dll<br>       | `Exe<br>       | `Ext of string<br>       | `Gif<br>       | `H<br>       | `Html<br>       | `Img<br>       | `Install<br>       | `Jpeg<br>       | `Js<br>       | `Json<br>       | `Lib<br>       | `Md<br>       | `Ml<br>       | `Ml_dep<br>       | `Ml_pp<br>       | `Mli<br>       | `Mli_dep<br>       | `Mli_pp<br>       | `Native<br>       | `O<br>       | `Opt<br>       | `Png<br>       | `Sh<br>       | `So<br>       | `Tar<br>       | `Tbz<br>       | `Xml<br>       | `Zip ]</code> </pre>
+<div class="info ">
+The type for file extensions.<br>
+</div>
+
+
+<pre><span id="VALext_to_string"><span class="keyword">val</span> ext_to_string</span> : <code class="type"><a href="Assemblage.Path.html#TYPEext">ext</a> -> string</code></pre><div class="info ">
+<code class="code">ext_to_string ext</code> is <code class="code">ext</code> as a string (without separator).<br>
+</div>
+
+<pre><span id="VALext_of_string"><span class="keyword">val</span> ext_of_string</span> : <code class="type">string -> <a href="Assemblage.Path.html#TYPEext">ext</a></code></pre><div class="info ">
+<code class="code">ext_of_string ext</code> is <code class="code">ext</code> as a file extension (<code class="code">ext</code> without
+      separator).<br>
+</div>
+
+<pre><span id="VALpp_ext"><span class="keyword">val</span> pp_ext</span> : <code class="type">Format.formatter -> <a href="Assemblage.Path.html#TYPEext">ext</a> -> unit</code></pre><div class="info ">
+<code class="code">pp_ext ppf p</code> prints file extension <code class="code">ext</code> on <code class="code">ppf</code> using
+      <a href="Assemblage.Path.html#VALext_to_string"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.ext_to_string</code></a>.<br>
+</div>
+
+<pre><span id="VALext"><span class="keyword">val</span> ext</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEext">ext</a> option</code></pre><div class="info ">
+<code class="code">ext p</code> is <code class="code">p</code>'s last segment file extension (if any).<br>
+</div>
+
+<pre><span id="VALget_ext"><span class="keyword">val</span> get_ext</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEext">ext</a></code></pre><div class="info ">
+<code class="code">get_ext p</code> is <code class="code">p</code>'s last segment file extension.<br>
+<b>Raises</b> <code>Invalid_argument</code> if <code class="code">p</code>'s last segment has no file extension.<br>
+</div>
+
+<pre><span id="VALadd_ext"><span class="keyword">val</span> add_ext</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEext">ext</a> -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">add_ext p ext</code> is <code class="code">p</code> with <code class="code">ext</code> concatenated to <code class="code">p</code>'s last segment.<br>
+</div>
+
+<pre><span id="VALrem_ext"><span class="keyword">val</span> rem_ext</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">rem_ext p</code> is <code class="code">p</code> with <code class="code">ext</code> removed from <code class="code">p</code>'s last segment
+      (if it has an extension).<br>
+</div>
+
+<pre><span id="VALchange_ext"><span class="keyword">val</span> change_ext</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEext">ext</a> -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">change_ext p e</code> is <code class="code">add_ext (rem_ext p)</code>.<br>
+</div>
+
+<pre><span id="VAL(+)"><span class="keyword">val</span> (+)</span> : <code class="type"><a href="Assemblage.Path.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEext">ext</a> -> <a href="Assemblage.Path.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">p + ext</code> is <code class="code">add_ext p e</code>. Left associative.<br>
+</div>
+
+<pre><span id="VALhas_ext"><span class="keyword">val</span> has_ext</span> : <code class="type"><a href="Assemblage.Path.html#TYPEext">ext</a> -> <a href="Assemblage.Path.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+<code class="code">has_ext p ext</code> is <code class="code"><span class="keyword">true</span></code> iff <code class="code">p</code>'s last segment has file extension
+      <code class="code">ext</code>.<br>
+</div>
+
+<pre><span id="VALext_matches"><span class="keyword">val</span> ext_matches</span> : <code class="type"><a href="Assemblage.Path.html#TYPEext">ext</a> list -> <a href="Assemblage.Path.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+<code class="code">ext_matches exts p</code> is <code class="code"><span class="keyword">true</span></code> iff <code class="code">p</code>'s last segment has a file
+      extension in <code class="code">exts</code>.<br>
+</div>
+<br>
+<h1 id="rel">Relative paths</h1><br>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Path.Rel.html">Rel</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Path.Rel.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Relative paths.
+</div>
+<br>
+<h1 id="abs">Absolute paths</h1><br>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Path.Abs.html">Abs</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Path.Abs.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Absolute paths.
+</div>
+<br>
+<h1 id="sets_maps">Path sets and maps</h1><br>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Path.Set.html">Set</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Path.Set.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span class="keyword">module</span> <a href="Assemblage.Path.Map.html">Map</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Path.Map.html">..</a> <code class="code"><span class="keyword">end</span></code></pre></body></html>

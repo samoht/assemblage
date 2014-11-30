@@ -1,0 +1,129 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage_driver.Loader.html">
+<link rel="Up" href="Assemblage_driver.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Initialization" rel="Section" href="#1_Initialization">
+<link title="Example" rel="Section" href="#example">
+<title>Assemblage_driver.Driver</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage_driver.Loader.html" title="Assemblage_driver.Loader">Previous</a>
+&nbsp;<a class="up" href="Assemblage_driver.html" title="Assemblage_driver">Up</a>
+&nbsp;</div>
+<h1>Module <a href="type_Assemblage_driver.Driver.html">Assemblage_driver.Driver</a></h1>
+
+<pre><span class="keyword">module</span> Driver: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage_driver.Driver.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Initializing drivers.
+<p>
+
+    <code class="code"><span class="constructor">Driver</span></code> uses the <a href="Assemblage_driver.Lib_prefs.html"><code class="code"><span class="constructor">Assemblage_driver</span>.<span class="constructor">Lib_prefs</span></code></a> and <a href="Assemblage_driver.Loader.html"><code class="code"><span class="constructor">Assemblage_driver</span>.<span class="constructor">Loader</span></code></a> modules transparently
+    to initialize a driver. See an <a href="Assemblage_driver.Driver.html#example">example</a>.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Initialization">Initialization</h1><br>
+
+<pre><span id="TYPEinit"><span class="keyword">type</span> <code class="type"></code>init</span> = <code class="type">(<a href="Assemblage_driver.Lib_prefs.html#TYPEt">Assemblage_driver.Lib_prefs.t</a> * <a href="Assemblage_driver.Loader.html#TYPEt">Assemblage_driver.Loader.t</a>) option</code> </pre>
+<div class="info ">
+The type for initialisation results.<br>
+</div>
+
+
+<pre><span id="VALinit"><span class="keyword">val</span> init</span> : <code class="type">?version_opt:bool -><br>       ?kinds:<a href="Assemblage_driver.Loader.html#TYPEkind">Assemblage_driver.Loader.kind</a> list -><br>       docs:string -> unit -> <a href="Assemblage_driver.Driver.html#TYPEinit">init</a> * unit Cmdliner.Term.t</code></pre><div class="info ">
+<code class="code">init ?version_opt ?kinds ~docs</code> an initialization value
+      <code class="code">(init,t)</code>.  <code class="code">docs</code> is the manual section in which the command
+      line options for initialization are documented. <code class="code">kinds</code> is the
+      kinds of loader that should be supported (defaults to all).
+      <code class="code">version_opt</code> should be true if the driver supports a
+      <code class="code">--version</code> option through <code class="code"><span class="constructor">Cmdliner</span></code> (defaults to <code class="code"><span class="keyword">false</span></code>).
+<p>
+
+      The returned term <code class="code">t</code> should always be used in all the
+      <code class="code"><span class="constructor">Cmdliner</span></code> terms that your program may evaluate. It contains
+      the command line specification for initialization and may
+      evaluate to an error that happened during initalization that
+      will be reported by <code class="code"><span class="constructor">Cmdliner</span></code>'s 
+      error mechanism.
+<p>
+
+      There are two cases to consider:
+      <ul>
+<li><code class="code">init</code> is <code class="code"><span class="constructor">None</span></code>. In that case the driver should assume the
+         contents of <a href="Assemblage.Private.Project.html#VALlist"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Private</span>.<span class="constructor">Project</span>.list</code></a> is meaningless
+         and simply create its terms using <code class="code">t</code>. The evaluation of
+         these term will error either because of <code class="code">t</code> or because
+         of a command line parse error.</li>
+<li><code class="code">init</code> is <code class="code"><span class="constructor">Some</span> (prefs, loader)</code>. In that case library
+         preferences are already setup according to <code class="code">prefs</code> and
+         assemble files are already loaded according to <code class="code">loader</code>. The
+         <a href="Assemblage.Private.Project.html#VALlist"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Private</span>.<span class="constructor">Project</span>.list</code></a> contains the project that
+         were registered by the assemble files. The driver can now
+         consult the configuration of these project for example to
+         specify configuration options for them on the command line
+         with the <a href="Assemblage_driver.Conf_spec.html"><code class="code"><span class="constructor">Assemblage_driver</span>.<span class="constructor">Conf_spec</span></code></a> module. Eventually this should lead
+         <code class="code"><span class="constructor">Cmdliner</span></code> term evaluations by the driver that must include
+         <code class="code">t</code> (so that the initalization options are correctly
+         parsed).</li>
+</ul>
+<br>
+</div>
+
+<pre><span id="VALman_vars"><span class="keyword">val</span> man_vars</span> : <code class="type">?kinds:<a href="Assemblage_driver.Loader.html#TYPEkind">Assemblage_driver.Loader.kind</a> list -><br>       unit -> Cmdliner.Manpage.block list</code></pre><div class="info ">
+<code class="code">man_vars kinds</code> is a man page fragment for the environment
+      variables used by <a href="Assemblage_driver.Driver.html#VALinit"><code class="code"><span class="constructor">Assemblage_driver</span>.<span class="constructor">Driver</span>.init</code></a>.<br>
+</div>
+<br>
+<h1 id="example">Example</h1>
+<p>
+
+    This simple example shows how to output the version of a project
+    as it could be configured on the command line.
+<p>
+
+    FIXME.
+<pre class="codepre"><code class="code">&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;main&nbsp;()&nbsp;=&nbsp;()<br>
+</code></pre><br>
+</body></html>

@@ -1,0 +1,88 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.Cmd.File.html">
+<link rel="next" href="Assemblage.Cmd.Vcs.html">
+<link rel="Up" href="Assemblage.Cmd.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Directory operations" rel="Section" href="#dirops">
+<title>Assemblage.Cmd.Dir</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.Cmd.File.html" title="Assemblage.Cmd.File">Previous</a>
+&nbsp;<a class="up" href="Assemblage.Cmd.html" title="Assemblage.Cmd">Up</a>
+&nbsp;<a class="post" href="Assemblage.Cmd.Vcs.html" title="Assemblage.Cmd.Vcs">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Cmd.Dir.html">Assemblage.Cmd.Dir</a></h1>
+
+<pre><span class="keyword">module</span> Dir: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Cmd.Dir.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Directory operations.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="dirops">Directory operations</h1>
+<p>
+
+        <b>Note.</b> When paths are <a href="Assemblage.Path.html#TYPErel">relative</a> they are expressed
+        relative to the <a href="Assemblage.Cmd.Dir.html#VALgetcwd">current working directory</a>.<br>
+
+<pre><span id="VALexists"><span class="keyword">val</span> exists</span> : <code class="type"><a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a> -> bool <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">exists dir</code> is <code class="code"><span class="keyword">true</span></code> if directory <code class="code">dir</code> exists.<br>
+</div>
+
+<pre><span id="VALgetcwd"><span class="keyword">val</span> getcwd</span> : <code class="type">unit -> <a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a> <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">getcwd ()</code> is the current working directory.<br>
+</div>
+
+<pre><span id="VALchdir"><span class="keyword">val</span> chdir</span> : <code class="type"><a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a> -> unit <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">chdir dir</code> changes the current working directory to <code class="code">dir</code>.<br>
+</div>
+
+<pre><span id="VALfold_files_rec"><span class="keyword">val</span> fold_files_rec</span> : <code class="type">?skip:string list -><br>       (string -> 'a -> 'a <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a>) -><br>       'a -> string list -> 'a <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">fold_files_rec skip f acc paths</code> folds <code class="code">f</code> over the files
+        found in <code class="code">paths</code>. Files and directories whose suffix matches an
+        element of <code class="code">skip</code> are skipped. <b>FIXME</b> this should be using
+        <a href="Assemblage.Path.html#TYPEt"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.t</code></a> and <a href="Assemblage.Path.html#VALext"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.ext</code></a>.<br>
+</div>
+</body></html>

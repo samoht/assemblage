@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.Part.html">
+<link rel="next" href="Assemblage.Lib.html">
+<link rel="Up" href="Assemblage.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Metadata" rel="Section" href="#1_Metadata">
+<link title="Units" rel="Section" href="#1_Units">
+<title>Assemblage.Unit</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.Part.html" title="Assemblage.Part">Previous</a>
+&nbsp;<a class="up" href="Assemblage.html" title="Assemblage">Up</a>
+&nbsp;<a class="post" href="Assemblage.Lib.html" title="Assemblage.Lib">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Unit.html">Assemblage.Unit</a></h1>
+
+<pre><span class="keyword">module</span> Unit: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Unit.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Compilation unit part.
+<p>
+
+    Defines a compilation unit's build products in
+    a build directory defined by an enclosing <a href="Assemblage.Lib.html"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Lib</span></code></a> or <a href="Assemblage.Bin.html"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Bin</span></code></a> part.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Metadata">Metadata</h1><br>
+
+<pre><span id="TYPEocaml_interface"><span class="keyword">type</span> <code class="type"></code>ocaml_interface</span> = <code class="type">[ `Hidden | `Normal | `Opaque ]</code> </pre>
+<div class="info ">
+The type for OCaml compilation unit interfaces.
+<p>
+
+      Adds additional information about how the interface of a
+      compilation unit should be treated.
+      <ul>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Normal</span></code> is for regular compilation units.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Opaque</span></code> is for compilation units with cross-module optimizations
+         disabled.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">Hidden</span></code> is for regular compilation units whose
+         <code class="code">cmi</code> files are hidden (implies <code class="code"><span class="keywordsign">`</span><span class="constructor">Opaque</span></code>).</li>
+</ul>
+<br>
+</div>
+
+
+<pre><span id="TYPEocaml_unit"><span class="keyword">type</span> <code class="type"></code>ocaml_unit</span> = <code class="type">[ `Both | `Ml | `Mli ]</code> </pre>
+<div class="info ">
+The type for OCaml compilation units.<br>
+</div>
+
+
+<pre><span id="TYPEc_unit"><span class="keyword">type</span> <code class="type"></code>c_unit</span> = <code class="type">[ `Both | `C | `H ]</code> </pre>
+<div class="info ">
+The type for C Compilation units<br>
+</div>
+
+
+<pre><span id="TYPEkind"><span class="keyword">type</span> <code class="type"></code>kind</span> = <code class="type">[ `C of <a href="Assemblage.Unit.html#TYPEc_unit">c_unit</a><br>       | `Js<br>       | `OCaml of <a href="Assemblage.Unit.html#TYPEocaml_unit">ocaml_unit</a> * <a href="Assemblage.Unit.html#TYPEocaml_interface">ocaml_interface</a> ]</code> </pre>
+<div class="info ">
+The type for kinds of compilation units<br>
+</div>
+
+
+<pre><span id="VALpp_kind"><span class="keyword">val</span> pp_kind</span> : <code class="type">Format.formatter -> <a href="Assemblage.Unit.html#TYPEkind">kind</a> -> unit</code></pre><div class="info ">
+<code class="code">pp_kind ppf k</code> prints an unspecified representation of <code class="code">k</code> on
+      <code class="code">ppf</code>.<br>
+</div>
+
+<pre><span id="VALkind"><span class="keyword">val</span> kind</span> : <code class="type">[< `Unit ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> <a href="Assemblage.Unit.html#TYPEkind">kind</a></code></pre><div class="info ">
+<code class="code">kind u</code> is the kind of <code class="code">u</code>.<br>
+</div>
+
+<pre><span id="VALdir"><span class="keyword">val</span> dir</span> : <code class="type">[< `Unit ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> <a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code></pre><div class="info ">
+<code class="code">dir u</code> is the directory where the unit <code class="code">u</code> is located.<br>
+</div>
+
+<pre><span id="VALocaml"><span class="keyword">val</span> ocaml</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Unit ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> option</code></pre><div class="info ">
+<code class="code">ocaml p</code> is <code class="code"><span class="constructor">Some</span> p</code> iff <code class="code">p</code> is an OCaml compilation unit.<br>
+</div>
+
+<pre><span id="VALc"><span class="keyword">val</span> c</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Unit ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> option</code></pre><div class="info ">
+<code class="code">c p</code> is <code class="code"><span class="constructor">Some</span> p</code> iff <code class="code">p</code> is a C compilation unit.<br>
+</div>
+
+<pre><span id="VALjs"><span class="keyword">val</span> js</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Unit ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> option</code></pre><div class="info ">
+<code class="code">js p</code> is <code class="code"><span class="constructor">Some</span> p</code> iff <code class="code">p</code> is a JavaScript compilation unit.<br>
+</div>
+<br>
+<h1 id="1_Units">Units</h1><br>
+
+<pre><span id="VALv"><span class="keyword">val</span> v</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Assemblage.Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       ?args:<a href="Assemblage.Args.html#TYPEt">Assemblage.Args.t</a> -><br>       ?needs:[< `Lib | `Pkg ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -><br>       ?dir:<a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       string -><br>       <a href="Assemblage.Unit.html#TYPEkind">kind</a> -> [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Unit ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a></code></pre><div class="info ">
+<code class="code">v ~needs ~dir name kind</code> is a compilation unit named <code class="code">name</code>,
+      the name of the file without the suffix located in directory
+      <code class="code">dir</code> (defaults to <a href="Assemblage.html#VALroot"><code class="code"><span class="constructor">Assemblage</span>.root</code></a>) of kind <code class="code">kind</code>. <code class="code">needs</code> indicate the
+      project libraries and packages that are needed to compile the
+      unit. The <code class="code">args</code> bundle is used by the unit's actions according
+      to context.<br>
+</div>
+</body></html>

@@ -1,0 +1,181 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.Acmd.html">
+<link rel="next" href="Assemblage.Part.html">
+<link rel="Up" href="Assemblage.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Build actions" rel="Section" href="#1_Buildactions">
+<link title="Built-in actions" rel="Section" href="#1_Builtinactions">
+<link title="Action lists" rel="Section" href="#1_Actionlists">
+<title>Assemblage.Action</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.Acmd.html" title="Assemblage.Acmd">Previous</a>
+&nbsp;<a class="up" href="Assemblage.html" title="Assemblage">Up</a>
+&nbsp;<a class="post" href="Assemblage.Part.html" title="Assemblage.Part">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Action.html">Assemblage.Action</a></h1>
+
+<pre><span class="keyword">module</span> Action: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Action.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Build action.
+<p>
+
+    An <em>action</em> determines how to output a list of build products
+    from a list of existing input products using a sequence of
+    <a href="Assemblage.Acmd.html">commands</a>.
+<p>
+
+    Given a notion of product identity (e.g. hash, timestamp, etc.) an
+    action defines a pure function from its input to its outputs, it
+    is assumed that identical inputs yield identical outputs.
+<p>
+
+    In order to be productive it is important to understand the following
+    terminology. With respect to a project:
+    <ul>
+<li>A <em>product</em> is any existing file in the <a href="Assemblage.Conf.html#VALroot_dir"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.root_dir</code></a>
+       hierarchy.</li>
+<li>A <em>source product</em> is a product for which there exists no
+       action to create it; typically the source code you write, a
+       product from your brain.</li>
+<li>A <em>build product</em> is a product that is output from a build action.</li>
+<li>An <em>input product</em> is a product that is used as input
+       to a build action, this can be a source product or a build product.</li>
+<li>An <em>output product</em> is synonym with build product</li>
+</ul>
+
+<p>
+
+    A build driver is an assemblage driver that given a specification
+    of the project's products yielded by a configuration ensures that
+    all the products exists and are up-to-date according to the project's
+    actions.
+<p>
+
+    <b>FIXME.</b> The following need to clarified
+    <ul>
+<li>Empty inputs, empty outputs, empty cmds or any combination there of.</li>
+<li><a href="Assemblage.Part.html#VALfile"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Part</span>.file</code></a> uses empty outputs and empty inputs. This allows
+       <a href="Assemblage.Dir.html"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Dir</span></code></a> which works on products regardless (i.e., input and
+       output) to be made aware of their existence.</li>
+<li><a href="Assemblage.Run.html"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Run</span></code></a> use <em>build</em> actions but they are not build per se as we
+       run the command inconditionally.</li>
+<li>The model is too weak. How need a way to account for
+       <code class="code">ocamldep</code>, <code class="code">gcc -<span class="constructor">MD</span> -<span class="constructor">MP</span></code>, etc.</li>
+</ul>
+<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Buildactions">Build actions</h1><br>
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info ">
+The type for build actions.<br>
+</div>
+
+
+<pre><span id="VALv"><span class="keyword">val</span> v</span> : <code class="type">?log:string -><br>       ?ctx:<a href="Assemblage.Ctx.html#TYPEt">Assemblage.Ctx.t</a> -><br>       ?inputs:<a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> list -><br>       ?outputs:<a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> list -><br>       <a href="Assemblage.Acmd.html#TYPEt">Assemblage.Acmd.t</a> list -> <a href="Assemblage.Action.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">v ctx inputs outputs cmds</code> is the action that given the
+      existence of <code class="code">inputs</code> creates <code class="code">outputs</code> using the sequence of
+      command <code class="code">cmds</code>. <code class="code">ctx</code> defaults to <code class="code"><span class="constructor">Ctx</span>.empty</code>, <code class="code">inputs</code> and
+      <code class="code">outputs</code> to the empty list. <code class="code">log</code> is a high-level logging
+      string about the action that may be used by drivers when the
+      action is invoked.
+<p>
+
+      <b>Warning.</b> To ensure determinism and parallelism correctness <code class="code">cmds</code>
+      must ensure that it only reads from the <code class="code">inputs</code> and solely writes to
+      <code class="code">outputs</code>.<br>
+</div>
+
+<pre><span id="VALctx"><span class="keyword">val</span> ctx</span> : <code class="type"><a href="Assemblage.Action.html#TYPEt">t</a> -> <a href="Assemblage.Ctx.html#TYPEt">Assemblage.Ctx.t</a></code></pre><div class="info ">
+<code class="code">ctx a</code> is <code class="code">a</code>'s context.<br>
+</div>
+
+<pre><span id="VALinputs"><span class="keyword">val</span> inputs</span> : <code class="type"><a href="Assemblage.Action.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> list</code></pre><div class="info ">
+<code class="code">inputs a</code> is the list of products input by <code class="code">a</code>'s action.<br>
+</div>
+
+<pre><span id="VALoutputs"><span class="keyword">val</span> outputs</span> : <code class="type"><a href="Assemblage.Action.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> list</code></pre><div class="info ">
+<code class="code">outputs a</code> is the list of products output by <code class="code">a</code>'s action.<br>
+</div>
+
+<pre><span id="VALcmds"><span class="keyword">val</span> cmds</span> : <code class="type"><a href="Assemblage.Action.html#TYPEt">t</a> -> <a href="Assemblage.Acmd.html#TYPEt">Assemblage.Acmd.t</a> list</code></pre><div class="info ">
+<code class="code">cmds a</code> is <code class="code">a</code>'s commands to generate outputs from the inputs.<br>
+</div>
+
+<pre><span id="VALlog"><span class="keyword">val</span> log</span> : <code class="type"><a href="Assemblage.Action.html#TYPEt">t</a> -> string option</code></pre><div class="info ">
+<code class="code">log a</code> is <code class="code">a</code>'s high-level logging string (if any).<br>
+</div>
+
+<pre><span id="VALproducts"><span class="keyword">val</span> products</span> : <code class="type"><a href="Assemblage.Action.html#TYPEt">t</a> -> <a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> list</code></pre><div class="info ">
+<code class="code">products a</code> is <code class="code">inputs a @ outputs a</code> but tail recursive.<br>
+</div>
+<br>
+<h1 id="1_Builtinactions">Built-in actions</h1><br>
+
+<pre><span id="VALsymlink"><span class="keyword">val</span> symlink</span> : <code class="type">(<a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> -> <a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> -> <a href="Assemblage.Action.html#TYPEt">t</a>)<br>       <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a></code></pre><div class="info ">
+<code class="code">symlink</code> has an action <code class="code">action src dst</code> that links <code class="code">src</code> to <code class="code">dst</code> using
+      <a href="Assemblage.Acmd.html#VALln_rel"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Acmd</span>.ln_rel</code></a>.<br>
+</div>
+<br>
+<h1 id="1_Actionlists">Action lists</h1><br>
+
+<pre><span id="VALlist_inputs"><span class="keyword">val</span> list_inputs</span> : <code class="type"><a href="Assemblage.Action.html#TYPEt">t</a> list -> <a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> list</code></pre><div class="info ">
+<code class="code">list_inputs l</code> is the list of inputs of the actions in <code class="code">l</code>.
+      Ordered but may contain duplicates.<br>
+</div>
+
+<pre><span id="VALlist_outputs"><span class="keyword">val</span> list_outputs</span> : <code class="type"><a href="Assemblage.Action.html#TYPEt">t</a> list -> <a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> list</code></pre><div class="info ">
+<code class="code">list_outputs l</code> is the list of outputs of the actions in <code class="code">l</code>.
+      Ordered but may contain duplicates.<br>
+</div>
+
+<pre><span id="VALlist_products"><span class="keyword">val</span> list_products</span> : <code class="type"><a href="Assemblage.Action.html#TYPEt">t</a> list -> <a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a> list</code></pre><div class="info ">
+<code class="code">list_products l</code> is <code class="code">list_inputs l @ list_outputs l</code>
+      but tail-recursive.<br>
+</div>
+</body></html>

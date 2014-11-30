@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.Cmd.Path.html">
+<link rel="next" href="Assemblage.Cmd.Dir.html">
+<link rel="Up" href="Assemblage.Cmd.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="File operations" rel="Section" href="#fileops">
+<link title="Input" rel="Section" href="#input">
+<link title="Output" rel="Section" href="#output">
+<title>Assemblage.Cmd.File</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.Cmd.Path.html" title="Assemblage.Cmd.Path">Previous</a>
+&nbsp;<a class="up" href="Assemblage.Cmd.html" title="Assemblage.Cmd">Up</a>
+&nbsp;<a class="post" href="Assemblage.Cmd.Dir.html" title="Assemblage.Cmd.Dir">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Cmd.File.html">Assemblage.Cmd.File</a></h1>
+
+<pre><span class="keyword">module</span> File: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Cmd.File.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+File operations.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="fileops">File operations</h1>
+<p>
+
+        <b>Note.</b> When paths are <a href="Assemblage.Path.html#TYPErel">relative</a> they are expressed
+        relative to the <a href="Assemblage.Cmd.Dir.html#VALgetcwd">current working directory</a>.<br>
+
+<pre><span id="VALexists"><span class="keyword">val</span> exists</span> : <code class="type"><a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a> -> bool <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">exists file</code> is <code class="code"><span class="keyword">true</span></code> iff <code class="code">file</code> exists and is not a directory.<br>
+</div>
+
+<pre><span id="VALdev_null"><span class="keyword">val</span> dev_null</span> : <code class="type"><a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a></code></pre><div class="info ">
+<code class="code">dev_null</code> represents a file that discards all writes.
+<p>
+
+        <b>Warning.</b> Do not use this value to define build actions,
+        use <a href="Assemblage.Acmd.html#VALdev_null"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Acmd</span>.dev_null</code></a>.<br>
+</div>
+
+<pre><span id="VALdelete"><span class="keyword">val</span> delete</span> : <code class="type">?maybe:bool -> <a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a> -> unit <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">delete ~maybe file</code> deletes file <code class="code">file</code>. If <code class="code">maybe</code> is <code class="code"><span class="keyword">false</span></code>
+        (default) no error is returned if the file doesn't exit.<br>
+</div>
+
+<pre><span id="VALtemp"><span class="keyword">val</span> temp</span> : <code class="type">string -> <a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a> <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">temp suffix</code> creates a temporary file with suffix <code class="code">suffix</code> and returns
+        its name. The file is destroyed at the end of program execution.<br>
+</div>
+<br>
+<h1 id="input">Input</h1><br>
+
+<pre><span id="VALwith_inf"><span class="keyword">val</span> with_inf</span> : <code class="type">(Pervasives.in_channel -> 'a -> 'b <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a>) -><br>       <a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a> -> 'a -> 'b <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">with_inf f inf v</code> opens <code class="code">inf</code> as a channel <code class="code">ic</code> and returns <code class="code">f
+        ic v</code> if no error occurs. In case of error the channel is closed
+        and the error is returned. If <code class="code">inf</code> is <a href="Assemblage.Path.html#VALdash"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.dash</code></a>, <code class="code">ic</code> is
+        <code class="code"><span class="constructor">Pervasives</span>.stdin</code> and not closed.<br>
+</div>
+
+<pre><span id="VALread"><span class="keyword">val</span> read</span> : <code class="type"><a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a> -> string <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">read file</code> is <code class="code">file</code>'s content. If <code class="code">file</code> is <a href="Assemblage.Path.html#VALdash"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.dash</code></a> reads
+        from <code class="code"><span class="constructor">Pervasives</span>.stdin</code>.<br>
+</div>
+
+<pre><span id="VALread_lines"><span class="keyword">val</span> read_lines</span> : <code class="type"><a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a> -> string list <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">read_lines file</code> is <code class="code">file</code>'s content splitted at <code class="code"><span class="string">'\n'</span></code>. If
+        <code class="code">file</code> is <a href="Assemblage.Path.html#VALdash"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.dash</code></a> reads from <code class="code"><span class="constructor">Pervasives</span>.stdin</code>.<br>
+</div>
+<br>
+<h1 id="output">Output</h1><br>
+
+<pre><span id="VALwith_outf"><span class="keyword">val</span> with_outf</span> : <code class="type">(Pervasives.out_channel -> 'a -> 'b <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a>) -><br>       <a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a> -> 'a -> 'b <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">with_inf f outf v</code> opens <code class="code">outf</code> as a channel <code class="code">oc</code> and returns
+        <code class="code">f oc v</code> if no error occurs. In case of error the channel is
+        closed and the error is returned. If <code class="code">outf</code> is <a href="Assemblage.Path.html#VALdash"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.dash</code></a>, <code class="code">oc</code> is
+        <code class="code"><span class="constructor">Pervasives</span>.stdout</code> and not closed.<br>
+</div>
+
+<pre><span id="VALwrite"><span class="keyword">val</span> write</span> : <code class="type"><a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a> -> string -> unit <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">write file content</code> outputs <code class="code">content</code> to <code class="code">file</code>. If <code class="code">file</code>
+        is <a href="Assemblage.Path.html#VALdash"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.dash</code></a>, writes to <code class="code"><span class="constructor">Pervasives</span>.stdout</code>. If an error is
+        returned <code class="code">file</code> is left untouched except if <code class="code"><span class="constructor">Pervasives</span>.stdout</code>
+        is written.<br>
+</div>
+
+<pre><span id="VALwrite_lines"><span class="keyword">val</span> write_lines</span> : <code class="type"><a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a> -> string list -> unit <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">write_lines file lines</code> outputs <code class="code">lines</code> separated by <code class="code"><span class="string">'\n'</span></code> to
+        <code class="code">file</code>. If <code class="code">file</code> is <a href="Assemblage.Path.html#VALdash"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.dash</code></a>, writes to <code class="code"><span class="constructor">Pervasives</span>.stdout</code>.
+        If an error is returned <code class="code">file</code> is left untouched except if
+        <code class="code"><span class="constructor">Pervasives</span>.stdout</code> is written.<br>
+</div>
+
+<pre><span id="VALwrite_subst"><span class="keyword">val</span> write_subst</span> : <code class="type">(string * string) list -><br>       <a href="Assemblage.Cmd.html#TYPEpath">Assemblage.Cmd.path</a> -> string -> unit <a href="Assemblage.Cmd.html#TYPEresult">Assemblage.Cmd.result</a></code></pre><div class="info ">
+<code class="code">write_subst vars file content</code> outputs <code class="code">content</code> to <code class="code">file</code>. In
+        <code class="code">content</code> patterns of the form <code class="code"><span class="string">"%%ID%%"</span></code> are replaced by the value
+        of <code class="code"><span class="constructor">List</span>.assoc <span class="string">"ID"</span> vars</code> (if any). If <code class="code">file</code> is <a href="Assemblage.Path.html#VALdash"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.dash</code></a>, writes
+        to <code class="code"><span class="constructor">Pervasives</span>.stdout</code>. If an error is returned <code class="code">file</code> is left
+        untouched except if <code class="code"><span class="constructor">Pervasives</span>.stdout</code> is written.
+<p>
+
+        FIXME: add optional argument <code class="code">delim</code> that defaults to <code class="code">%%</code>,
+        the latter may appear in programs.<br>
+</div>
+</body></html>

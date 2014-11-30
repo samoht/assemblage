@@ -1,0 +1,166 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.Private.Cmd.html">
+<link rel="next" href="Assemblage.Private.Args.html">
+<link rel="Up" href="Assemblage.Private.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Build configuration" rel="Section" href="#build">
+<link title="Keys" rel="Section" href="#keys">
+<link title="Configurations" rel="Section" href="#configurations">
+<link title="Configuration error messages" rel="Section" href="#1_Configurationerrormessages">
+<link title="Configuration value dependencies and evaluation" rel="Section" href="#1_Configurationvaluedependenciesandevaluation">
+<link title="Builtin key sections documentation" rel="Section" href="#1_Builtinkeysectionsdocumentation">
+<title>Assemblage.Private.Conf</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.Private.Cmd.html" title="Assemblage.Private.Cmd">Previous</a>
+&nbsp;<a class="up" href="Assemblage.Private.html" title="Assemblage.Private">Up</a>
+&nbsp;<a class="post" href="Assemblage.Private.Args.html" title="Assemblage.Private.Args">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Private.Conf.html">Assemblage.Private.Conf</a></h1>
+
+<pre><span class="keyword">module</span> Conf: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Private.Conf.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Build configuration.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="build">Build configuration</h1><br>
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info ">
+The type for configurations.<br>
+</div>
+
+
+<pre><span class="keyword">include</span> <a href="Assemblage.Conf.html">Assemblage.Conf</a></pre>
+<br>
+<h1 id="keys">Keys</h1><br>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Private.Conf.Key.html">Key</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Private.Conf.Key.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Configuration keys.
+</div>
+<br>
+<h1 id="configurations">Configurations</h1><br>
+
+<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type"><a href="Assemblage.Private.Conf.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">empty</code> is the empty configuration.<br>
+</div>
+
+<pre><span id="VALis_empty"><span class="keyword">val</span> is_empty</span> : <code class="type"><a href="Assemblage.Private.Conf.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+<code class="code">is_empty c</code> is <code class="code"><span class="keyword">true</span></code> iff <code class="code">c</code> is empty.<br>
+</div>
+
+<pre><span id="VALmem"><span class="keyword">val</span> mem</span> : <code class="type"><a href="Assemblage.Private.Conf.html#TYPEt">t</a> -> 'a key -> bool</code></pre><div class="info ">
+<code class="code">mem c k</code> is <code class="code"><span class="keyword">true</span></code> iff <code class="code">k</code> is in <code class="code">c</code>.<br>
+</div>
+
+<pre><span id="VALadd"><span class="keyword">val</span> add</span> : <code class="type"><a href="Assemblage.Private.Conf.html#TYPEt">t</a> -> 'a key -> <a href="Assemblage.Private.Conf.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">add c k</code> is <code class="code">c</code> with <code class="code">k</code> bindings to its default value.<br>
+</div>
+
+<pre><span id="VALset"><span class="keyword">val</span> set</span> : <code class="type"><a href="Assemblage.Private.Conf.html#TYPEt">t</a> -> 'a key -> 'a value -> <a href="Assemblage.Private.Conf.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">set c k v</code> is <code class="code">c</code> with <code class="code">k</code> binding to <code class="code">v</code>.<br>
+</div>
+
+<pre><span id="VALrem"><span class="keyword">val</span> rem</span> : <code class="type"><a href="Assemblage.Private.Conf.html#TYPEt">t</a> -> 'a key -> <a href="Assemblage.Private.Conf.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">rem c k</code> is <code class="code">c</code> without <code class="code">k</code>'s binding.<br>
+</div>
+
+<pre><span id="VALmerge"><span class="keyword">val</span> merge</span> : <code class="type"><a href="Assemblage.Private.Conf.html#TYPEt">t</a> -><br>       <a href="Assemblage.Private.Conf.html#TYPEt">t</a> -> <a href="Assemblage.Private.Conf.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">merge c c'</code> merge the configuration <code class="code">c</code> and <code class="code">c'</code>. If a key is
+        defined in both <code class="code">c</code> and <code class="code">c'</code> the value of the key in <code class="code">c'</code> takes
+        over.<br>
+</div>
+
+<pre><span id="VALfind"><span class="keyword">val</span> find</span> : <code class="type"><a href="Assemblage.Private.Conf.html#TYPEt">t</a> -> 'a key -> 'a value option</code></pre><div class="info ">
+<code class="code">find c k</code> is the binding of <code class="code">k</code> in <code class="code">c</code> (if any).<br>
+</div>
+
+<pre><span id="VALget"><span class="keyword">val</span> get</span> : <code class="type"><a href="Assemblage.Private.Conf.html#TYPEt">t</a> -> 'a key -> 'a value</code></pre><div class="info ">
+<code class="code">get c k</code> is the binding of <code class="code">k</code> in <code class="code">c</code>.<br>
+<b>Raises</b> <code>Invalid_argument</code> if <code class="code">k</code> is not in <code class="code">c</code>.<br>
+</div>
+
+<pre><span id="VALpp"><span class="keyword">val</span> pp</span> : <code class="type">Format.formatter -> <a href="Assemblage.Private.Conf.html#TYPEt">t</a> -> unit</code></pre><div class="info ">
+<code class="code">pp ppf c</code> prints an unspecified representation of <code class="code">c</code> on <code class="code">ppf</code>.<br>
+</div>
+
+<pre><span id="VALof_keys"><span class="keyword">val</span> of_keys</span> : <code class="type">Key.Set.t -> <a href="Assemblage.Private.Conf.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">of_keys ks</code> is a configuration where each key in <code class="code">ks</code> binds to
+        its default value.<br>
+</div>
+
+<pre><span id="VALdomain"><span class="keyword">val</span> domain</span> : <code class="type"><a href="Assemblage.Private.Conf.html#TYPEt">t</a> -> Key.Set.t</code></pre><div class="info ">
+<code class="code">domain c</code> is the configuration keys of <code class="code">c</code>.<br>
+</div>
+<br>
+<h1 id="1_Configurationerrormessages">Configuration error messages</h1><br>
+
+<pre><span id="VALpp_key_dup"><span class="keyword">val</span> pp_key_dup</span> : <code class="type">Format.formatter -> <a href="Assemblage.Private.Conf.Key.html#TYPEt">Key.t</a> -> unit</code></pre><div class="info ">
+<code class="code">pp_key_dup ppf k</code> prints a message that says that the name of
+        <code class="code">k</code> is not unique in a configuration.<br>
+</div>
+<br>
+<h1 id="1_Configurationvaluedependenciesandevaluation">Configuration value dependencies and evaluation</h1><br>
+
+<pre><span id="VALdeps"><span class="keyword">val</span> deps</span> : <code class="type">'a value -> Key.Set.t</code></pre><div class="info ">
+<code class="code">deps v</code> is the set of configuration keys which may be needed
+        for evaluating <code class="code">v</code>.<br>
+</div>
+
+<pre><span id="VALeval"><span class="keyword">val</span> eval</span> : <code class="type"><a href="Assemblage.Private.Conf.html#TYPEt">t</a> -> 'a value -> 'a</code></pre><div class="info ">
+<code class="code">eval c v</code> evaluates <code class="code">v</code> in the configuration <code class="code">c</code>.<br>
+<b>Raises</b> <code>Invalid_argument</code> if <code class="code">c</code> is not a subset of <code class="code">deps c</code>.<br>
+</div>
+<br>
+<h1 id="1_Builtinkeysectionsdocumentation">Builtin key sections documentation</h1><br>
+
+<pre><span id="VALdoc_project"><span class="keyword">val</span> doc_project</span> : <code class="type">string</code></pre>
+<pre><span id="VALdoc_build_properties"><span class="keyword">val</span> doc_build_properties</span> : <code class="type">string</code></pre>
+<pre><span id="VALdoc_build_directories"><span class="keyword">val</span> doc_build_directories</span> : <code class="type">string</code></pre>
+<pre><span id="VALdoc_ocaml_system"><span class="keyword">val</span> doc_ocaml_system</span> : <code class="type">string</code></pre>
+<pre><span id="VALdoc_c_system"><span class="keyword">val</span> doc_c_system</span> : <code class="type">string</code></pre>
+<pre><span id="VALdoc_machine_information"><span class="keyword">val</span> doc_machine_information</span> : <code class="type">string</code></pre>
+<pre><span id="VALdoc_system_utilities"><span class="keyword">val</span> doc_system_utilities</span> : <code class="type">string</code></pre></body></html>

@@ -1,0 +1,197 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.Ctx.html">
+<link rel="next" href="Assemblage.Acmd.html">
+<link rel="Up" href="Assemblage.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Argument bundles" rel="Section" href="#argument_bundles">
+<link title="Built-in argument bundles" rel="Section" href="#built_in">
+<link title="Argument bundles basics" rel="Section" href="#basics">
+<link title="Argument bundle propagation model" rel="Section" href="#propagation">
+<title>Assemblage.Args</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.Ctx.html" title="Assemblage.Ctx">Previous</a>
+&nbsp;<a class="up" href="Assemblage.html" title="Assemblage">Up</a>
+&nbsp;<a class="post" href="Assemblage.Acmd.html" title="Assemblage.Acmd">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Args.html">Assemblage.Args</a></h1>
+
+<pre><span class="keyword">module</span> Args: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Args.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Command argument bundles.
+<p>
+
+    Argument bundles are conditional bindings from <a href="Assemblage.Ctx.html">execution contexts</a>
+    to lists of command arguments. They provide a simply mechanism
+    to allow the end user to inject flags on the command lines of
+    <a href="Assemblage.Action.html">actions</a>.
+<p>
+
+    See <a href="Assemblage.Args.html#basics"><i>Argument bundles basics</i></a> and <a href="Assemblage.Args.html#propagation"><i>Argument bundle propagation model</i></a> for more details.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="argument_bundles">Argument bundles</h1><br>
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+<div class="info ">
+The type for argument bundles.<br>
+</div>
+
+
+<pre><span id="VALv"><span class="keyword">val</span> v</span> : <code class="type">?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       <a href="Assemblage.Ctx.html#TYPEt">Assemblage.Ctx.t</a> -> string list <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -> <a href="Assemblage.Args.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">v ~exists ctx args</code> is the bundle that binds <code class="code">ctx</code> to <code class="code">args</code>
+      whenever <code class="code">exists</code> evaluates to <code class="code"><span class="keyword">true</span></code> (defaults to <a href="Assemblage.Conf.html#VALtrue_"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.true_</code></a>).<br>
+</div>
+
+<pre><span id="VALvc"><span class="keyword">val</span> vc</span> : <code class="type">?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       <a href="Assemblage.Ctx.html#TYPEt">Assemblage.Ctx.t</a> -> string list -> <a href="Assemblage.Args.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">vc ~exists ctx args</code> is <code class="code">v ~exists ctx (<span class="constructor">Conf</span>.const args)</code>.<br>
+</div>
+
+<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type"><a href="Assemblage.Args.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">empty</code> is the empty bundle.<br>
+</div>
+
+<pre><span id="VALis_empty"><span class="keyword">val</span> is_empty</span> : <code class="type"><a href="Assemblage.Args.html#TYPEt">t</a> -> bool</code></pre><div class="info ">
+<code class="code">is_empty a</code> is <code class="code"><span class="keyword">true</span></code> if <code class="code">a</code> is empty.<br>
+</div>
+
+<pre><span id="VALappend"><span class="keyword">val</span> append</span> : <code class="type"><a href="Assemblage.Args.html#TYPEt">t</a> -> <a href="Assemblage.Args.html#TYPEt">t</a> -> <a href="Assemblage.Args.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">append a a'</code> is the bundle that has the bindings of <code class="code">a</code> and
+      <code class="code">a'</code>.  If both <code class="code">a</code> and <code class="code">a'</code> have bindings for the same context,
+      they are preserved each with their own condition of existence
+      and it is guaranteed that the binding arguments of <code class="code">a</code> will
+      appear before those of <code class="code">a'</code> on the command line.<br>
+</div>
+
+<pre><span id="VAL(@@@)"><span class="keyword">val</span> (@@@)</span> : <code class="type"><a href="Assemblage.Args.html#TYPEt">t</a> -> <a href="Assemblage.Args.html#TYPEt">t</a> -> <a href="Assemblage.Args.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">a @@@ a'</code> is <code class="code">append a a'</code>.<br>
+</div>
+
+<pre><span id="VALconcat"><span class="keyword">val</span> concat</span> : <code class="type"><a href="Assemblage.Args.html#TYPEt">t</a> list -> <a href="Assemblage.Args.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">concat args</code> is <code class="code"><span class="constructor">List</span>.fold_left append empty args</code><br>
+</div>
+<br>
+<h1 id="built_in">Built-in argument bundles</h1><br>
+
+<pre><span id="VALlinkall"><span class="keyword">val</span> linkall</span> : <code class="type"><a href="Assemblage.Args.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">linkall</code> is the <code class="code">-linkall</code> flag in the right <code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code> contexts.<br>
+</div>
+
+<pre><span id="VALthread"><span class="keyword">val</span> thread</span> : <code class="type"><a href="Assemblage.Args.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">thread</code> is the <code class="code">-thread</code> flag in the right <code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code> contexts.<br>
+</div>
+
+<pre><span id="VALvmthread"><span class="keyword">val</span> vmthread</span> : <code class="type"><a href="Assemblage.Args.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">vmthread</code> is the <code class="code">-vmthread</code> flag in the right <code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code> contexts.<br>
+</div>
+
+<pre><span id="VALcclib"><span class="keyword">val</span> cclib</span> : <code class="type">string list -> <a href="Assemblage.Args.html#TYPEt">t</a></code></pre><div class="info ">
+The <code class="code">-cclib x</code> args. FIXME<br>
+</div>
+
+<pre><span id="VALccopt"><span class="keyword">val</span> ccopt</span> : <code class="type">string list -> <a href="Assemblage.Args.html#TYPEt">t</a></code></pre><div class="info ">
+The <code class="code">-ccopt x</code> args. FIXME<br>
+</div>
+
+<pre><span id="VALstub"><span class="keyword">val</span> stub</span> : <code class="type">string -> <a href="Assemblage.Args.html#TYPEt">t</a></code></pre><div class="info ">
+<code class="code">stub s</code> adds <i>-cclib -l<code class="code">s</code> -dllib -l<code class="code">s</code></i> to the bytecode
+      linking options and <i>-cclib -l<code class="code">s</code></i> to the native linking
+      options. FIXME<br>
+</div>
+<br>
+<h1 id="basics">Argument bundles basics</h1>
+<p>
+
+    Argument bundles allow to tweak actions by prepending additional
+    arguments to their command invocations. For example the
+    following bundle:
+<pre class="codepre"><code class="code"><span class="keyword">let</span>&nbsp;ocaml_debug&nbsp;=<br>
+&nbsp;&nbsp;<span class="keyword">let</span>&nbsp;debug&nbsp;ctx&nbsp;=&nbsp;<span class="constructor">Args</span>.vc&nbsp;~exists:<span class="constructor">Conf</span>.debug&nbsp;ctx&nbsp;[<span class="string">"-g"</span>]&nbsp;<span class="keyword">in</span><br>
+&nbsp;&nbsp;<span class="constructor">Args</span>.(debug&nbsp;[<span class="keywordsign">`</span><span class="constructor">OCaml</span>;&nbsp;<span class="keywordsign">`</span><span class="constructor">Compile</span>]&nbsp;@@@&nbsp;debug&nbsp;[<span class="keywordsign">`</span><span class="constructor">OCaml</span>;&nbsp;<span class="keywordsign">`</span><span class="constructor">Link</span>])<br>
+</code></pre>
+    used with a part will, whenever the configuration value of
+    <a href="Assemblage.Conf.html#VALdebug"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.debug</code></a> evaluates to <code class="code"><span class="keyword">true</span></code>, prepend the option <code class="code">-g</code> to any
+    command of its actions that operates in a context that contains
+    the <code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code> and <code class="code"><span class="keywordsign">`</span><span class="constructor">Compile</span></code> or <code class="code"><span class="keywordsign">`</span><span class="constructor">Link</span></code> elements. Note, you don't
+    need the above definition, assemblage's OCaml built-in actions
+    know how to handle the <a href="Assemblage.Conf.html#VALdebug"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.debug</code></a> key for you.
+<p>
+
+    Given an argument bundle and a command to execute, every binding
+    in the bundle is considered, if the context of the binding
+    <a href="Assemblage.Ctx.html#VALmatches">matches</a> the context of the command and the binding
+    exists, the arguments of the binding are prepended to the command
+    invocation.
+<p>
+
+    <b>Warning.</b> Do not rely on the order of context matches for your
+    command lines to be valid. The argument bundle mechanism is a
+    rough end user build action tweaking mechanism that is mostly
+    useful for injecting command line <em>options</em>, not <em>positional</em>
+    arguments. The final bundle given to actions is the concatenation
+    of many bundle sources (project, parts, action implementation)
+    that may be applied in arbitrary order.
+<p>
+
+    <h1 id="propagation">Argument bundle propagation model</h1>
+<p>
+
+    Which argument bundles are applied to an action (and its commands):
+    <OL>
+<li>Each part has a user defined argument bundle, this bundle
+       is automatically applied to any of its actions.</li>
+<li>Each part has needs. In
+       these needs there are parts that <em>integrated</em> and other
+       that are <em>consulted</em>. When a part <code class="code">i</code> is integrated by
+       a part <code class="code">p</code> its build
+       actions are integrated into <code class="code">p</code>. In that
+       case these actions have both the argument bundle of the
+       integrated part <code class="code">i</code> and that of the integrating part <code class="code">p</code>.</li>
+<li>Finally the <a href="Assemblage.Project.html#VALv">project's argument</a> bundle is added to any
+       action.</li>
+</OL>
+<br>
+</body></html>

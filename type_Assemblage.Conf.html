@@ -1,0 +1,171 @@
+<html><head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><title>Assemblage.Conf</title>
+</head>
+<body>
+<code class="code"><span class="keyword">sig</span><br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;value<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;const&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;app&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b)&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;(&nbsp;$&nbsp;)&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;(<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b)&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>b&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;true_&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;false_&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;neg&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;(&nbsp;&amp;&amp;&amp;&nbsp;)&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;(&nbsp;|||&nbsp;)&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pick_if&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value<br>
+&nbsp;&nbsp;<span class="keyword">module</span>&nbsp;<span class="constructor">Option</span>&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">sig</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;wrap&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;option&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;option&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;some&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;option&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;get&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;?none:<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">'</span>a&nbsp;option&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keyword">end</span><br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keyword">parser</span>&nbsp;=&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;[&nbsp;<span class="keywordsign">`</span><span class="constructor">Error</span>&nbsp;<span class="keyword">of</span>&nbsp;string&nbsp;<span class="keywordsign">|</span>&nbsp;<span class="keywordsign">`</span><span class="constructor">Ok</span>&nbsp;<span class="keyword">of</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;]<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;printer&nbsp;=&nbsp;<span class="constructor">Format</span>.formatter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;unit<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;converter&nbsp;=&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.<span class="keyword">parser</span>&nbsp;*&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.printer<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;<span class="keyword">parser</span>&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.<span class="keyword">parser</span><br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;printer&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.converter&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.printer<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;key&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?public:bool&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?docs:string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?docv:string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?doc:string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.converter&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;value&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;scheme<br>
+&nbsp;&nbsp;<span class="keyword">type</span>&nbsp;def<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;def&nbsp;:&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.def<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;defv&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.value&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.def<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;scheme&nbsp;:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;?doc:string&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;?base:<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.scheme&nbsp;<span class="keywordsign">-&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;string&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.def&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.scheme<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;project_version&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;docs_project&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;debug&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;profile&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;warn_error&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;test&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;doc&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;jobs&nbsp;:&nbsp;int&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;docs_build_properties&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;root_dir&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.t&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;build_dir&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.rel&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;docs_build_directories&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocaml_native_tools&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocaml_version&nbsp;:&nbsp;(int&nbsp;*&nbsp;int&nbsp;*&nbsp;int&nbsp;*&nbsp;string&nbsp;option)&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocaml_byte&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocaml_native&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocaml_native_dynlink&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocaml_js&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocaml_annot&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocaml_build_ast&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocaml_dumpast&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocamlc&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocamlopt&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;js_of_ocaml&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocamlmklib&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocamldep&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocamllex&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocamlyacc&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocaml&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocamlrun&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocamldebug&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocamlprof&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ocamlfind&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;opam&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;opam_installer&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;opam_admin&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;docs_ocaml_system&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;c_dynlink&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;c_js&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cc&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;pkg_config&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;docs_c_system&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;uname&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;host_os&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;host_arch&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;host_word_size&nbsp;:&nbsp;int&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;target_os&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;target_arch&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;target_word_size&nbsp;:&nbsp;int&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;docs_machine_information&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;echo&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cd&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;ln&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cp&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mv&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;rm&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;rmdir&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;mkdir&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;cat&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;make&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.key<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;docs_system_utilities&nbsp;:&nbsp;string<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;bool&nbsp;:&nbsp;bool&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.converter<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;int&nbsp;:&nbsp;int&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.converter<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;string&nbsp;:&nbsp;string&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.converter<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;path&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.t&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.converter<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;abs_path&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.abs&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.converter<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;rel_path&nbsp;:&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Path</span>.rel&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.converter<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;enum&nbsp;:&nbsp;(string&nbsp;*&nbsp;<span class="keywordsign">'</span>a)&nbsp;list&nbsp;<span class="keywordsign">-&gt;</span>&nbsp;<span class="keywordsign">'</span>a&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.converter<br>
+&nbsp;&nbsp;<span class="keyword">val</span>&nbsp;version&nbsp;:&nbsp;(int&nbsp;*&nbsp;int&nbsp;*&nbsp;int&nbsp;*&nbsp;string&nbsp;option)&nbsp;<span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.converter<br>
+<span class="keyword">end</span></code></body></html>

@@ -1,0 +1,203 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.Log.html">
+<link rel="next" href="Assemblage.Conf.html">
+<link rel="Up" href="Assemblage.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Command and IO results" rel="Section" href="#command_results">
+<link title="IO and file system operations" rel="Section" href="#io">
+<link title="Environment variables lookup" rel="Section" href="#env_lookup">
+<link title="Executing commands" rel="Section" href="#executing_commands">
+<title>Assemblage.Cmd</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.Log.html" title="Assemblage.Log">Previous</a>
+&nbsp;<a class="up" href="Assemblage.html" title="Assemblage">Up</a>
+&nbsp;<a class="post" href="Assemblage.Conf.html" title="Assemblage.Conf">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Cmd.html">Assemblage.Cmd</a></h1>
+
+<pre><span class="keyword">module</span> Cmd: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Cmd.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Executing <em>non-build</em> commands and IO operations.
+<p>
+
+    <code class="code"><span class="constructor">Cmd</span></code> provides functions to execute <em>non-build</em> commands
+    and perform IO operations. They can be used to define the default
+    value of <a href="Assemblage.Conf.html">configuration keys</a> in assemble files.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="command_results">Command and IO results</h1><br>
+
+<pre><span id="TYPEresult"><span class="keyword">type</span> <code class="type">'a</code> result</span> = <code class="type">[ `Error of string | `Ok of 'a ]</code> </pre>
+<div class="info ">
+The type for command and IO results.<br>
+</div>
+
+
+<pre><span id="VALret"><span class="keyword">val</span> ret</span> : <code class="type">'a -> 'a <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre><div class="info ">
+<code class="code">ret v</code> is <code class="code"><span class="keywordsign">`</span><span class="constructor">Ok</span> v</code>.<br>
+</div>
+
+<pre><span id="VALerror"><span class="keyword">val</span> error</span> : <code class="type">string -> 'a <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre><div class="info ">
+<code class="code">error e</code> is <code class="code"><span class="keywordsign">`</span><span class="constructor">Error</span> e</code>.<br>
+</div>
+
+<pre><span id="VALbind"><span class="keyword">val</span> bind</span> : <code class="type">'a <a href="Assemblage.Cmd.html#TYPEresult">result</a> -><br>       ('a -> 'b <a href="Assemblage.Cmd.html#TYPEresult">result</a>) -> 'b <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre><div class="info ">
+<code class="code">bind r f</code> is <code class="code">f v</code> if <code class="code">r = <span class="keywordsign">`</span><span class="constructor">Ok</span> v</code> and <code class="code">r</code> if <code class="code">r = <span class="keywordsign">`</span><span class="constructor">Error</span> _</code>.<br>
+</div>
+
+<pre><span id="VALmap"><span class="keyword">val</span> map</span> : <code class="type">'a <a href="Assemblage.Cmd.html#TYPEresult">result</a> -> ('a -> 'b) -> 'b <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre><div class="info ">
+<code class="code">map r f</code> is <code class="code">bind r (<span class="keyword">fun</span> v <span class="keywordsign">-&gt;</span> ret (f v))</code>.<br>
+</div>
+
+<pre><span id="VALget"><span class="keyword">val</span> get</span> : <code class="type">'a <a href="Assemblage.Cmd.html#TYPEresult">result</a> -> 'a</code></pre><div class="info ">
+<code class="code">get r</code> is <code class="code">v</code> if <code class="code">r = <span class="keywordsign">`</span><span class="constructor">Ok</span> v</code> and<br>
+<b>Raises</b> <code>Invalid_argument</code> otherwise.<br>
+</div>
+
+<pre><span id="VALon_error"><span class="keyword">val</span> on_error</span> : <code class="type">?level:<a href="Assemblage.Log.html#TYPElevel">Assemblage.Log.level</a> -> use:'a -> 'a <a href="Assemblage.Cmd.html#TYPEresult">result</a> -> 'a</code></pre><div class="info ">
+<code class="code">on_error ~level ~use r</code> is:
+      <ul>
+<li><code class="code">v</code> if <code class="code">r = <span class="keywordsign">`</span><span class="constructor">Ok</span> v</code></li>
+<li><code class="code">use</code> if <code class="code">r = <span class="keywordsign">`</span><span class="constructor">Error</span> msg</code>. As a side effect <code class="code">msg</code> is
+       <a href="Assemblage.Log.html">logged</a> with level <code class="code">level</code> (defaults to
+       <code class="code"><span class="constructor">Log</span>.<span class="constructor">Error</span></code>)</li>
+</ul>
+<br>
+</div>
+
+<pre><span id="VALignore_error"><span class="keyword">val</span> ignore_error</span> : <code class="type">use:'a -> 'a <a href="Assemblage.Cmd.html#TYPEresult">result</a> -> 'a</code></pre><div class="info ">
+<code class="code">ignore_error ~use r</code> is like <a href="Assemblage.Cmd.html#VALon_error"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Cmd</span>.on_error</code></a> but the error
+      is not logged.<br>
+</div>
+
+<pre><span id="VALreword_error"><span class="keyword">val</span> reword_error</span> : <code class="type">?replace:bool -><br>       string -> 'a <a href="Assemblage.Cmd.html#TYPEresult">result</a> -> 'a <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre><div class="info ">
+<code class="code">reword_error msg r</code> uses <code class="code">msg</code> for the error message in case of
+      <code class="code"><span class="keywordsign">`</span><span class="constructor">Error</span></code>. If replace is <code class="code"><span class="keyword">false</span></code> (default), <code class="code">msg</code> is stacked on
+      top of the old message.<br>
+</div>
+
+<pre><span id="VALexn_error"><span class="keyword">val</span> exn_error</span> : <code class="type">?msg:(Printexc.raw_backtrace -> exn -> 'a -> string) -><br>       ('a -> 'b) -> 'a -> 'b <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre>
+<pre><span id="VAL(>>=)"><span class="keyword">val</span> (&gt;&gt;=)</span> : <code class="type">'a <a href="Assemblage.Cmd.html#TYPEresult">result</a> -><br>       ('a -> 'b <a href="Assemblage.Cmd.html#TYPEresult">result</a>) -> 'b <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre><div class="info ">
+<code class="code">r &gt;&gt;= f</code> is <code class="code">bind r f</code>.<br>
+</div>
+
+<pre><span id="VAL(>>|)"><span class="keyword">val</span> (&gt;&gt;|)</span> : <code class="type">'a <a href="Assemblage.Cmd.html#TYPEresult">result</a> -> ('a -> 'b) -> 'b <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre><div class="info ">
+<code class="code">r &gt;&gt;| f</code> is <code class="code">map r f</code>.<br>
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Cmd.Infix.html">Infix</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Cmd.Infix.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Infix operators.
+</div>
+<br>
+<h1 id="io">IO and file system operations</h1><br>
+
+<pre><span id="TYPEpath"><span class="keyword">type</span> <code class="type"></code>path</span> = <code class="type"><a href="Assemblage.Path.html#TYPEt">Assemblage.Path.t</a></code> </pre>
+
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Cmd.Path.html">Path</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Cmd.Path.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Path operations.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Cmd.File.html">File</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Cmd.File.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+File operations.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Cmd.Dir.html">Dir</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Cmd.Dir.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Directory operations.
+</div>
+
+<pre><span class="keyword">module</span> <a href="Assemblage.Cmd.Vcs.html">Vcs</a>: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Cmd.Vcs.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info">
+Version control system operations.
+</div>
+<br>
+<h1 id="env_lookup">Environment variables lookup</h1><br>
+
+<pre><span id="VALenv"><span class="keyword">val</span> env</span> : <code class="type">string -> string option</code></pre><div class="info ">
+<code class="code">env var</code> is the value if the environment variable <code class="code">var</code>, if
+      defined.<br>
+</div>
+
+<pre><span id="VALget_env"><span class="keyword">val</span> get_env</span> : <code class="type">string -> string <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre><div class="info ">
+<code class="code">get_env var</code> is like <a href="Assemblage.Cmd.html#VALenv"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Cmd</span>.env</code></a> but returns an error if <code class="code">var</code> is
+      undefined.<br>
+</div>
+<br>
+<h1 id="executing_commands">Executing commands</h1><br>
+
+<pre><span id="VALexists"><span class="keyword">val</span> exists</span> : <code class="type">string -> bool <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre><div class="info ">
+<code class="code">exists cmd</code> is <code class="code"><span class="keyword">true</span></code> if <code class="code">cmd</code> exists and can be invoked.<br>
+</div>
+
+<pre><span id="VALexec_ret"><span class="keyword">val</span> exec_ret</span> : <code class="type">string -> string list -> int</code></pre><div class="info ">
+<code class="code">exec_ret cmd args</code> executes <code class="code">cmd</code> with arguments <code class="code">args</code> and
+      returns the exit code of the invocation.<br>
+</div>
+
+<pre><span id="VALexec"><span class="keyword">val</span> exec</span> : <code class="type">string -> string list -> unit <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre><div class="info ">
+<code class="code">exec cmd args</code> executes <code class="code">cmd</code> with arguments <code class="code">args</code>. On exit
+      code <code class="code">0</code> returns <code class="code"><span class="keywordsign">`</span><span class="constructor">Ok</span> ()</code>. Otherwise an error message with
+      the failed invocation and its exit code is returned in <code class="code"><span class="keywordsign">`</span><span class="constructor">Error</span></code>.<br>
+</div>
+
+<pre><span id="VALread"><span class="keyword">val</span> read</span> : <code class="type">?trim:bool -> string -> string list -> string <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre><div class="info ">
+<code class="code">read cmd args</code> execute <code class="code">cmd</code> with arguments <code class="code">args</code> and returns
+      its standard output. If <code class="code">cmd</code>'s return code is non zero returns
+      an error message. If <code class="code">trim</code> is <code class="code"><span class="keyword">true</span></code> (default) the contents is
+      passed to <code class="code"><span class="constructor">String</span>.trim</code> before being returned.<br>
+</div>
+
+<pre><span id="VALread_lines"><span class="keyword">val</span> read_lines</span> : <code class="type">string -> string list -> string list <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre><div class="info ">
+<code class="code">input_lines cmd args</code> is like <code class="code">input ~trim:<span class="keyword">false</span> cmd args</code> but
+      the input is splitted at <code class="code"><span class="string">'\n'</span></code>.<br>
+</div>
+
+<pre><span id="VALwrite"><span class="keyword">val</span> write</span> : <code class="type">string -> string list -> <a href="Assemblage.Cmd.html#TYPEpath">path</a> -> unit <a href="Assemblage.Cmd.html#TYPEresult">result</a></code></pre><div class="info ">
+<code class="code">write cmd args file</code> execute <code class="code">cmd</code> with arguments <code class="code">args</code> and writes
+      the invocation's <code class="code">stdout</code> to <code class="code">file</code>. In <code class="code">cmd</code>'s return code is non
+      zero returns an error message and <code class="code">file</code> is left intact.<br>
+</div>
+</body></html>

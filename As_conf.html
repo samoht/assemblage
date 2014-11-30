@@ -1,0 +1,245 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="As_cmd.html">
+<link rel="next" href="As_ctx.html">
+<link rel="Up" href="index.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Configuration values" rel="Section" href="#1_Configurationvalues">
+<link title="Configuration value converters" rel="Section" href="#1_Configurationvalueconverters">
+<link title="Configuration keys" rel="Section" href="#1_Configurationkeys">
+<link title="Configurations" rel="Section" href="#1_Configurations">
+<link title="Configuration schemes" rel="Section" href="#1_Configurationschemes">
+<link title="Configuration error messages" rel="Section" href="#1_Configurationerrormessages">
+<link title="Built-in configuration keys" rel="Section" href="#1_Builtinconfigurationkeys">
+<link title="Project keys" rel="Section" href="#1_Projectkeys">
+<link title="Configuration key value converters" rel="Subsection" href="#2_Configurationkeyvalueconverters">
+<link title="Machine information keys" rel="Subsection" href="#2_Machineinformationkeys">
+<link title="Build directory keys" rel="Subsection" href="#2_Builddirectorykeys">
+<link title="Build property keys" rel="Subsection" href="#2_Buildpropertykeys">
+<link title="OCaml system keys" rel="Subsection" href="#2_OCamlsystemkeys">
+<link title="C system keys" rel="Subsection" href="#2_Csystemkeys">
+<link title="System utility keys" rel="Subsection" href="#2_Systemutilitykeys">
+<title>As_conf</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="As_cmd.html" title="As_cmd">Previous</a>
+&nbsp;<a class="up" href="index.html" title="Index">Up</a>
+&nbsp;<a class="post" href="As_ctx.html" title="As_ctx">Next</a>
+</div>
+<h1>Module <a href="type_As_conf.html">As_conf</a></h1>
+
+<pre><span class="keyword">module</span> As_conf: <code class="code"><span class="keyword">sig</span></code> <a href="As_conf.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Build configuration.
+<p>
+
+    See <a href="Assemblage.Conf.html"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span></code></a> for documentation.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Configurationvalues">Configuration values</h1><br>
+
+<pre><span id="TYPEvalue"><span class="keyword">type</span> <code class="type">'a</code> value</span> </pre>
+
+
+<pre><span id="VALconst"><span class="keyword">val</span> const</span> : <code class="type">'a -> 'a <a href="As_conf.html#TYPEvalue">value</a></code></pre>
+<pre><span id="VALapp"><span class="keyword">val</span> app</span> : <code class="type">('a -> 'b) <a href="As_conf.html#TYPEvalue">value</a> -> 'a <a href="As_conf.html#TYPEvalue">value</a> -> 'b <a href="As_conf.html#TYPEvalue">value</a></code></pre>
+<pre><span id="VAL($)"><span class="keyword">val</span> ($)</span> : <code class="type">('a -> 'b) <a href="As_conf.html#TYPEvalue">value</a> -> 'a <a href="As_conf.html#TYPEvalue">value</a> -> 'b <a href="As_conf.html#TYPEvalue">value</a></code></pre>
+<pre><span id="VALtrue_"><span class="keyword">val</span> true_</span> : <code class="type">bool <a href="As_conf.html#TYPEvalue">value</a></code></pre>
+<pre><span id="VALfalse_"><span class="keyword">val</span> false_</span> : <code class="type">bool <a href="As_conf.html#TYPEvalue">value</a></code></pre>
+<pre><span id="VALneg"><span class="keyword">val</span> neg</span> : <code class="type">bool <a href="As_conf.html#TYPEvalue">value</a> -> bool <a href="As_conf.html#TYPEvalue">value</a></code></pre>
+<pre><span id="VAL(&&&)"><span class="keyword">val</span> (&amp;&amp;&amp;)</span> : <code class="type">bool <a href="As_conf.html#TYPEvalue">value</a> -> bool <a href="As_conf.html#TYPEvalue">value</a> -> bool <a href="As_conf.html#TYPEvalue">value</a></code></pre>
+<pre><span id="VAL(|||)"><span class="keyword">val</span> (|||)</span> : <code class="type">bool <a href="As_conf.html#TYPEvalue">value</a> -> bool <a href="As_conf.html#TYPEvalue">value</a> -> bool <a href="As_conf.html#TYPEvalue">value</a></code></pre>
+<pre><span id="VALpick_if"><span class="keyword">val</span> pick_if</span> : <code class="type">bool <a href="As_conf.html#TYPEvalue">value</a> -><br>       'a <a href="As_conf.html#TYPEvalue">value</a> -> 'a <a href="As_conf.html#TYPEvalue">value</a> -> 'a <a href="As_conf.html#TYPEvalue">value</a></code></pre>
+<pre><span class="keyword">module</span> <a href="As_conf.Option.html">Option</a>: <code class="code"><span class="keyword">sig</span></code> <a href="As_conf.Option.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><br>
+<h1 id="1_Configurationvalueconverters">Configuration value converters</h1><br>
+
+<pre><span id="TYPEparser"><span class="keyword">type</span> <code class="type">'a</code> parser</span> = <code class="type">string -> [ `Error of string | `Ok of 'a ]</code> </pre>
+
+
+<pre><span id="TYPEprinter"><span class="keyword">type</span> <code class="type">'a</code> printer</span> = <code class="type">Format.formatter -> 'a -> unit</code> </pre>
+
+
+<pre><span id="TYPEconverter"><span class="keyword">type</span> <code class="type">'a</code> converter</span> = <code class="type">'a <a href="As_conf.html#TYPEparser">parser</a> * 'a <a href="As_conf.html#TYPEprinter">printer</a></code> </pre>
+
+
+<pre><span id="VALparser"><span class="keyword">val</span> parser</span> : <code class="type">'a <a href="As_conf.html#TYPEconverter">converter</a> -> 'a <a href="As_conf.html#TYPEparser">parser</a></code></pre>
+<pre><span id="VALprinter"><span class="keyword">val</span> printer</span> : <code class="type">'a <a href="As_conf.html#TYPEconverter">converter</a> -> 'a <a href="As_conf.html#TYPEprinter">printer</a></code></pre><br>
+<h1 id="1_Configurationkeys">Configuration keys</h1><br>
+
+<pre><span id="TYPEkey"><span class="keyword">type</span> <code class="type">'a</code> key</span> </pre>
+
+
+<pre><span class="keyword">module</span> <a href="As_conf.Key.html">Key</a>: <code class="code"><span class="keyword">sig</span></code> <a href="As_conf.Key.html">..</a> <code class="code"><span class="keyword">end</span></code></pre>
+<pre><span id="VALkey"><span class="keyword">val</span> key</span> : <code class="type">?public:bool -><br>       ?docs:string -><br>       ?docv:string -><br>       ?doc:string -><br>       string -> 'a <a href="As_conf.html#TYPEconverter">converter</a> -> 'a <a href="As_conf.html#TYPEvalue">value</a> -> 'a <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALvalue"><span class="keyword">val</span> value</span> : <code class="type">'a <a href="As_conf.html#TYPEkey">key</a> -> 'a <a href="As_conf.html#TYPEvalue">value</a></code></pre>
+<pre><span id="VALmanual_value"><span class="keyword">val</span> manual_value</span> : <code class="type">Key.Set.t -> 'a -> 'a <a href="As_conf.html#TYPEvalue">value</a></code></pre><br>
+<h2 id="2_Configurationkeyvalueconverters">Configuration key value converters</h2><br>
+
+<pre><span id="VALbool"><span class="keyword">val</span> bool</span> : <code class="type">bool <a href="As_conf.html#TYPEconverter">converter</a></code></pre>
+<pre><span id="VALint"><span class="keyword">val</span> int</span> : <code class="type">int <a href="As_conf.html#TYPEconverter">converter</a></code></pre>
+<pre><span id="VALstring"><span class="keyword">val</span> string</span> : <code class="type">string <a href="As_conf.html#TYPEconverter">converter</a></code></pre>
+<pre><span id="VALpath"><span class="keyword">val</span> path</span> : <code class="type"><a href="As_path.html#TYPEt">As_path.t</a> <a href="As_conf.html#TYPEconverter">converter</a></code></pre>
+<pre><span id="VALabs_path"><span class="keyword">val</span> abs_path</span> : <code class="type"><a href="As_path.html#TYPEabs">As_path.abs</a> <a href="As_conf.html#TYPEconverter">converter</a></code></pre>
+<pre><span id="VALrel_path"><span class="keyword">val</span> rel_path</span> : <code class="type"><a href="As_path.html#TYPErel">As_path.rel</a> <a href="As_conf.html#TYPEconverter">converter</a></code></pre>
+<pre><span id="VALenum"><span class="keyword">val</span> enum</span> : <code class="type">(string * 'a) list -> 'a <a href="As_conf.html#TYPEconverter">converter</a></code></pre>
+<pre><span id="VALversion"><span class="keyword">val</span> version</span> : <code class="type">(int * int * int * string option) <a href="As_conf.html#TYPEconverter">converter</a></code></pre><br>
+<h1 id="1_Configurations">Configurations</h1><br>
+
+<pre><span id="TYPEt"><span class="keyword">type</span> <code class="type"></code>t</span> </pre>
+
+
+<pre><span id="VALempty"><span class="keyword">val</span> empty</span> : <code class="type"><a href="As_conf.html#TYPEt">t</a></code></pre>
+<pre><span id="VALis_empty"><span class="keyword">val</span> is_empty</span> : <code class="type"><a href="As_conf.html#TYPEt">t</a> -> bool</code></pre>
+<pre><span id="VALmem"><span class="keyword">val</span> mem</span> : <code class="type"><a href="As_conf.html#TYPEt">t</a> -> 'a <a href="As_conf.html#TYPEkey">key</a> -> bool</code></pre>
+<pre><span id="VALadd"><span class="keyword">val</span> add</span> : <code class="type"><a href="As_conf.html#TYPEt">t</a> -> 'a <a href="As_conf.html#TYPEkey">key</a> -> <a href="As_conf.html#TYPEt">t</a></code></pre>
+<pre><span id="VALset"><span class="keyword">val</span> set</span> : <code class="type"><a href="As_conf.html#TYPEt">t</a> -> 'a <a href="As_conf.html#TYPEkey">key</a> -> 'a <a href="As_conf.html#TYPEvalue">value</a> -> <a href="As_conf.html#TYPEt">t</a></code></pre>
+<pre><span id="VALrem"><span class="keyword">val</span> rem</span> : <code class="type"><a href="As_conf.html#TYPEt">t</a> -> 'a <a href="As_conf.html#TYPEkey">key</a> -> <a href="As_conf.html#TYPEt">t</a></code></pre>
+<pre><span id="VALmerge"><span class="keyword">val</span> merge</span> : <code class="type"><a href="As_conf.html#TYPEt">t</a> -> <a href="As_conf.html#TYPEt">t</a> -> <a href="As_conf.html#TYPEt">t</a></code></pre>
+<pre><span id="VALfind"><span class="keyword">val</span> find</span> : <code class="type"><a href="As_conf.html#TYPEt">t</a> -> 'a <a href="As_conf.html#TYPEkey">key</a> -> 'a <a href="As_conf.html#TYPEvalue">value</a> option</code></pre>
+<pre><span id="VALget"><span class="keyword">val</span> get</span> : <code class="type"><a href="As_conf.html#TYPEt">t</a> -> 'a <a href="As_conf.html#TYPEkey">key</a> -> 'a <a href="As_conf.html#TYPEvalue">value</a></code></pre>
+<pre><span id="VALdomain"><span class="keyword">val</span> domain</span> : <code class="type"><a href="As_conf.html#TYPEt">t</a> -> Key.Set.t</code></pre>
+<pre><span id="VALof_keys"><span class="keyword">val</span> of_keys</span> : <code class="type">Key.Set.t -> <a href="As_conf.html#TYPEt">t</a></code></pre>
+<pre><span id="VALeval"><span class="keyword">val</span> eval</span> : <code class="type"><a href="As_conf.html#TYPEt">t</a> -> 'a <a href="As_conf.html#TYPEvalue">value</a> -> 'a</code></pre>
+<pre><span id="VALdeps"><span class="keyword">val</span> deps</span> : <code class="type">'a <a href="As_conf.html#TYPEvalue">value</a> -> Key.Set.t</code></pre>
+<pre><span id="VALpp"><span class="keyword">val</span> pp</span> : <code class="type">Format.formatter -> <a href="As_conf.html#TYPEt">t</a> -> unit</code></pre><br>
+<h1 id="1_Configurationschemes">Configuration schemes</h1><br>
+
+<pre><span id="TYPEscheme"><span class="keyword">type</span> <code class="type"></code>scheme</span> = <code class="type">string * (string * <a href="As_conf.html#TYPEt">t</a>)</code> </pre>
+
+
+<pre><span id="TYPEdef"><span class="keyword">type</span> <code class="type"></code>def</span> </pre>
+
+
+<pre><span id="VALdef"><span class="keyword">val</span> def</span> : <code class="type">'a <a href="As_conf.html#TYPEkey">key</a> -> 'a -> <a href="As_conf.html#TYPEdef">def</a></code></pre>
+<pre><span id="VALdefv"><span class="keyword">val</span> defv</span> : <code class="type">'a <a href="As_conf.html#TYPEkey">key</a> -> 'a <a href="As_conf.html#TYPEvalue">value</a> -> <a href="As_conf.html#TYPEdef">def</a></code></pre>
+<pre><span id="VALscheme"><span class="keyword">val</span> scheme</span> : <code class="type">?doc:string -><br>       ?base:<a href="As_conf.html#TYPEscheme">scheme</a> -> string -> <a href="As_conf.html#TYPEdef">def</a> list -> <a href="As_conf.html#TYPEscheme">scheme</a></code></pre><br>
+<h1 id="1_Configurationerrormessages">Configuration error messages</h1><br>
+
+<pre><span id="VALpp_key_dup"><span class="keyword">val</span> pp_key_dup</span> : <code class="type">Format.formatter -> <a href="As_conf.Key.html#TYPEt">Key.t</a> -> unit</code></pre><br>
+<h1 id="1_Builtinconfigurationkeys">Built-in configuration keys</h1><br>
+<br>
+<h1 id="1_Projectkeys">Project keys</h1><br>
+
+<pre><span id="VALproject_version"><span class="keyword">val</span> project_version</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALdocs_project"><span class="keyword">val</span> docs_project</span> : <code class="type">string</code></pre>
+<pre><span id="VALdoc_project"><span class="keyword">val</span> doc_project</span> : <code class="type">string</code></pre><br>
+<h2 id="2_Machineinformationkeys">Machine information keys</h2><br>
+
+<pre><span id="VALdocs_machine_information"><span class="keyword">val</span> docs_machine_information</span> : <code class="type">string</code></pre>
+<pre><span id="VALdoc_machine_information"><span class="keyword">val</span> doc_machine_information</span> : <code class="type">string</code></pre>
+<pre><span id="VALuname"><span class="keyword">val</span> uname</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALhost_os"><span class="keyword">val</span> host_os</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALhost_arch"><span class="keyword">val</span> host_arch</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALhost_word_size"><span class="keyword">val</span> host_word_size</span> : <code class="type">int <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALtarget_os"><span class="keyword">val</span> target_os</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALtarget_arch"><span class="keyword">val</span> target_arch</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALtarget_word_size"><span class="keyword">val</span> target_word_size</span> : <code class="type">int <a href="As_conf.html#TYPEkey">key</a></code></pre><br>
+<h2 id="2_Builddirectorykeys">Build directory keys</h2><br>
+
+<pre><span id="VALdocs_build_directories"><span class="keyword">val</span> docs_build_directories</span> : <code class="type">string</code></pre>
+<pre><span id="VALdoc_build_directories"><span class="keyword">val</span> doc_build_directories</span> : <code class="type">string</code></pre>
+<pre><span id="VALroot_dir"><span class="keyword">val</span> root_dir</span> : <code class="type"><a href="As_path.html#TYPEt">As_path.t</a> <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALbuild_dir"><span class="keyword">val</span> build_dir</span> : <code class="type"><a href="As_path.html#TYPErel">As_path.rel</a> <a href="As_conf.html#TYPEkey">key</a></code></pre><br>
+<h2 id="2_Buildpropertykeys">Build property keys</h2><br>
+
+<pre><span id="VALdocs_build_properties"><span class="keyword">val</span> docs_build_properties</span> : <code class="type">string</code></pre>
+<pre><span id="VALdoc_build_properties"><span class="keyword">val</span> doc_build_properties</span> : <code class="type">string</code></pre>
+<pre><span id="VALdebug"><span class="keyword">val</span> debug</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALprofile"><span class="keyword">val</span> profile</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALwarn_error"><span class="keyword">val</span> warn_error</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALtest"><span class="keyword">val</span> test</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALdoc"><span class="keyword">val</span> doc</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALjobs"><span class="keyword">val</span> jobs</span> : <code class="type">int <a href="As_conf.html#TYPEkey">key</a></code></pre><br>
+<h2 id="2_OCamlsystemkeys">OCaml system keys</h2><br>
+
+<pre><span id="VALdocs_ocaml_system"><span class="keyword">val</span> docs_ocaml_system</span> : <code class="type">string</code></pre>
+<pre><span id="VALdoc_ocaml_system"><span class="keyword">val</span> doc_ocaml_system</span> : <code class="type">string</code></pre>
+<pre><span id="VALocaml_native_tools"><span class="keyword">val</span> ocaml_native_tools</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocaml_version"><span class="keyword">val</span> ocaml_version</span> : <code class="type">(int * int * int * string option) <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocaml_byte"><span class="keyword">val</span> ocaml_byte</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocaml_native"><span class="keyword">val</span> ocaml_native</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocaml_native_dynlink"><span class="keyword">val</span> ocaml_native_dynlink</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocaml_build_ast"><span class="keyword">val</span> ocaml_build_ast</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocaml_js"><span class="keyword">val</span> ocaml_js</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocaml_annot"><span class="keyword">val</span> ocaml_annot</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocaml_dumpast"><span class="keyword">val</span> ocaml_dumpast</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocamlc"><span class="keyword">val</span> ocamlc</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocamlopt"><span class="keyword">val</span> ocamlopt</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALjs_of_ocaml"><span class="keyword">val</span> js_of_ocaml</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocamldep"><span class="keyword">val</span> ocamldep</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocamlmklib"><span class="keyword">val</span> ocamlmklib</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocamldoc"><span class="keyword">val</span> ocamldoc</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocamllex"><span class="keyword">val</span> ocamllex</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocamlyacc"><span class="keyword">val</span> ocamlyacc</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocaml"><span class="keyword">val</span> ocaml</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocamlrun"><span class="keyword">val</span> ocamlrun</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocamldebug"><span class="keyword">val</span> ocamldebug</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocamlprof"><span class="keyword">val</span> ocamlprof</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALocamlfind"><span class="keyword">val</span> ocamlfind</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALopam"><span class="keyword">val</span> opam</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALopam_installer"><span class="keyword">val</span> opam_installer</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALopam_admin"><span class="keyword">val</span> opam_admin</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre><br>
+<h2 id="2_Csystemkeys">C system keys</h2><br>
+
+<pre><span id="VALdocs_c_system"><span class="keyword">val</span> docs_c_system</span> : <code class="type">string</code></pre>
+<pre><span id="VALdoc_c_system"><span class="keyword">val</span> doc_c_system</span> : <code class="type">string</code></pre>
+<pre><span id="VALc_dynlink"><span class="keyword">val</span> c_dynlink</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALc_js"><span class="keyword">val</span> c_js</span> : <code class="type">bool <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALcc"><span class="keyword">val</span> cc</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALpkg_config"><span class="keyword">val</span> pkg_config</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre><br>
+<h2 id="2_Systemutilitykeys">System utility keys</h2><br>
+
+<pre><span id="VALdocs_system_utilities"><span class="keyword">val</span> docs_system_utilities</span> : <code class="type">string</code></pre>
+<pre><span id="VALdoc_system_utilities"><span class="keyword">val</span> doc_system_utilities</span> : <code class="type">string</code></pre>
+<pre><span id="VALecho"><span class="keyword">val</span> echo</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALcd"><span class="keyword">val</span> cd</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALln"><span class="keyword">val</span> ln</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALcp"><span class="keyword">val</span> cp</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALmv"><span class="keyword">val</span> mv</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALrm"><span class="keyword">val</span> rm</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALrmdir"><span class="keyword">val</span> rmdir</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALmkdir"><span class="keyword">val</span> mkdir</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALcat"><span class="keyword">val</span> cat</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre>
+<pre><span id="VALmake"><span class="keyword">val</span> make</span> : <code class="type">string <a href="As_conf.html#TYPEkey">key</a></code></pre></body></html>

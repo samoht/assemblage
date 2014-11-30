@@ -1,0 +1,93 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="next" href="Assemblage_driver.Lib_prefs.html">
+<link rel="Up" href="Assemblage_driver.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Configuration specification" rel="Section" href="#1_Configurationspecification">
+<link title="Configuration scheme selection" rel="Section" href="#1_Configurationschemeselection">
+<title>Assemblage_driver.Conf_spec</title>
+</head>
+<body>
+<div class="navbar">&nbsp;<a class="up" href="Assemblage_driver.html" title="Assemblage_driver">Up</a>
+&nbsp;<a class="post" href="Assemblage_driver.Lib_prefs.html" title="Assemblage_driver.Lib_prefs">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage_driver.Conf_spec.html">Assemblage_driver.Conf_spec</a></h1>
+
+<pre><span class="keyword">module</span> Conf_spec: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage_driver.Conf_spec.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Configuration specification.
+<p>
+
+    <code class="code"><span class="constructor">Conf_spec</span></code> provides standard means for drivers to let the end
+    user specify project configurations through command line
+    arguments.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Configurationspecification">Configuration specification</h1><br>
+
+<pre><span id="VALui"><span class="keyword">val</span> ui</span> : <code class="type"><a href="Assemblage.Private.Conf.html#TYPEt">Assemblage.Private.Conf.t</a> -> <a href="Assemblage.Private.Conf.html#TYPEt">Assemblage.Private.Conf.t</a> Cmdliner.Term.t</code></pre><div class="info ">
+<code class="code">ui c</code> is a <code class="code"><span class="constructor">Cmdliner</span></code> term that allows to set the value of
+      the public configuration keys of <code class="code">c</code> using flags on the command
+      line. The domain of the resulting configuration is precisely
+      the key that were setup on the command line, <b>not</b> the full
+      domain of <code class="code">c</code>.<br>
+</div>
+
+<pre><span id="VALman"><span class="keyword">val</span> man</span> : <code class="type"><a href="Assemblage.Private.Conf.html#TYPEt">Assemblage.Private.Conf.t</a> -> Cmdliner.Manpage.block list</code></pre><div class="info ">
+<code class="code">man c</code> is a man page fragment for the the term <code class="code">ui c</code>.<br>
+</div>
+<br>
+<h1 id="1_Configurationschemeselection">Configuration scheme selection</h1><br>
+
+<pre><span id="VALscheme_ui"><span class="keyword">val</span> scheme_ui</span> : <code class="type">Assemblage.Private.Conf.scheme list -><br>       Assemblage.Private.Conf.scheme option Cmdliner.Term.t</code></pre><div class="info ">
+<code class="code">scheme_ui sl</code> is a <code class="code"><span class="constructor">Cmdliner</span></code> term that allows to select a
+      configuration scheme from the list of schemes <code class="code">sl</code>.<br>
+</div>
+
+<pre><span id="VALscheme_man"><span class="keyword">val</span> scheme_man</span> : <code class="type">Assemblage.Private.Conf.scheme list -> Cmdliner.Manpage.block list</code></pre><div class="info ">
+<code class="code">scheme_man sl</code> is a man page fragment for the term
+      <code class="code">scheme_ui sl</code>.<br>
+</div>
+</body></html>

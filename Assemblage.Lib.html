@@ -1,0 +1,142 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<link rel="stylesheet" href="style.css" type="text/css">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link rel="Start" href="index.html">
+<link rel="previous" href="Assemblage.Unit.html">
+<link rel="next" href="Assemblage.Bin.html">
+<link rel="Up" href="Assemblage.html">
+<link title="Index of types" rel=Appendix href="index_types.html">
+<link title="Index of values" rel=Appendix href="index_values.html">
+<link title="Index of modules" rel=Appendix href="index_modules.html">
+<link title="Assemblage" rel="Chapter" href="Assemblage.html">
+<link title="Assemblage_driver" rel="Chapter" href="Assemblage_driver.html">
+<link title="Assemblage_tools" rel="Chapter" href="Assemblage_tools.html">
+<link title="Ast_merlin" rel="Chapter" href="Ast_merlin.html">
+<link title="Ast_meta" rel="Chapter" href="Ast_meta.html">
+<link title="Ast_opam" rel="Chapter" href="Ast_opam.html">
+<link title="As_acmd" rel="Chapter" href="As_acmd.html">
+<link title="As_action" rel="Chapter" href="As_action.html">
+<link title="As_action_ocaml" rel="Chapter" href="As_action_ocaml.html">
+<link title="As_args" rel="Chapter" href="As_args.html">
+<link title="As_cmd" rel="Chapter" href="As_cmd.html">
+<link title="As_conf" rel="Chapter" href="As_conf.html">
+<link title="As_ctx" rel="Chapter" href="As_ctx.html">
+<link title="As_fmt" rel="Chapter" href="As_fmt.html">
+<link title="As_log" rel="Chapter" href="As_log.html">
+<link title="As_ocamlfind" rel="Chapter" href="As_ocamlfind.html">
+<link title="As_part" rel="Chapter" href="As_part.html">
+<link title="As_part_bin" rel="Chapter" href="As_part_bin.html">
+<link title="As_part_dir" rel="Chapter" href="As_part_dir.html">
+<link title="As_part_doc" rel="Chapter" href="As_part_doc.html">
+<link title="As_part_lib" rel="Chapter" href="As_part_lib.html">
+<link title="As_part_pkg" rel="Chapter" href="As_part_pkg.html">
+<link title="As_part_run" rel="Chapter" href="As_part_run.html">
+<link title="As_part_unit" rel="Chapter" href="As_part_unit.html">
+<link title="As_path" rel="Chapter" href="As_path.html">
+<link title="As_pkg_config" rel="Chapter" href="As_pkg_config.html">
+<link title="As_project" rel="Chapter" href="As_project.html">
+<link title="As_string" rel="Chapter" href="As_string.html">
+<link title="As_univ" rel="Chapter" href="As_univ.html">
+<link title="Builder_makefile" rel="Chapter" href="Builder_makefile.html">
+<link title="Cmd_base" rel="Chapter" href="Cmd_base.html">
+<link title="Cmd_build" rel="Chapter" href="Cmd_build.html">
+<link title="Cmd_describe" rel="Chapter" href="Cmd_describe.html">
+<link title="Cmd_help" rel="Chapter" href="Cmd_help.html">
+<link title="Cmd_product" rel="Chapter" href="Cmd_product.html">
+<link title="Cmd_setup" rel="Chapter" href="Cmd_setup.html">
+<link title="Makefile" rel="Chapter" href="Makefile.html"><link title="Metadata" rel="Section" href="#1_Metadata">
+<link title="Libraries" rel="Section" href="#1_Libraries">
+<title>Assemblage.Lib</title>
+</head>
+<body>
+<div class="navbar"><a class="pre" href="Assemblage.Unit.html" title="Assemblage.Unit">Previous</a>
+&nbsp;<a class="up" href="Assemblage.html" title="Assemblage">Up</a>
+&nbsp;<a class="post" href="Assemblage.Bin.html" title="Assemblage.Bin">Next</a>
+</div>
+<h1>Module <a href="type_Assemblage.Lib.html">Assemblage.Lib</a></h1>
+
+<pre><span class="keyword">module</span> Lib: <code class="code"><span class="keyword">sig</span></code> <a href="Assemblage.Lib.html">..</a> <code class="code"><span class="keyword">end</span></code></pre><div class="info module top">
+Library part.
+<p>
+
+    Defines a library's build products by gathering a set of
+    <a href="Assemblage.Unit.html">unit parts</a>.<br>
+</div>
+<hr width="100%">
+<br>
+<h1 id="1_Metadata">Metadata</h1><br>
+
+<pre><span id="TYPEkind"><span class="keyword">type</span> <code class="type"></code>kind</span> = <code class="type">[ `C | `OCaml | `OCaml_pp ]</code> </pre>
+<div class="info ">
+The type for kinds of libraries.
+      <ul>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code> is an OCaml library.</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml_pp</span></code> is an OCaml pre-processing library</li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">C</span></code> is a C library.</li>
+</ul>
+<br>
+</div>
+
+
+<pre><span id="VALpp_kind"><span class="keyword">val</span> pp_kind</span> : <code class="type">Format.formatter -> <a href="Assemblage.Lib.html#TYPEkind">kind</a> -> unit</code></pre><div class="info ">
+<code class="code">pp_kind ppf k</code> prints an unspecified representation of <code class="code">k</code> on
+      <code class="code">ppf</code>.<br>
+</div>
+
+<pre><span id="VALkind"><span class="keyword">val</span> kind</span> : <code class="type">[< `Lib ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> <a href="Assemblage.Lib.html#TYPEkind">kind</a></code></pre><div class="info ">
+<code class="code">kind p</code> is the kind of <code class="code">p</code>.<br>
+</div>
+
+<pre><span id="VALbyte"><span class="keyword">val</span> byte</span> : <code class="type">[< `Lib ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool</code></pre><div class="info ">
+<code class="code">byte p</code> is <code class="code"><span class="keyword">true</span></code> if <code class="code">p</code> can compile to OCaml byte code.<br>
+</div>
+
+<pre><span id="VALnative"><span class="keyword">val</span> native</span> : <code class="type">[< `Lib ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool</code></pre><div class="info ">
+<code class="code">native p</code> is <code class="code"><span class="keyword">true</span></code> if <code class="code">p</code> can compile to native code.<br>
+</div>
+
+<pre><span id="VALnative_dynlink"><span class="keyword">val</span> native_dynlink</span> : <code class="type">[< `Lib ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -> bool</code></pre><div class="info ">
+<code class="code">native p</code> is <code class="code"><span class="keyword">true</span></code> if <code class="code">p</code> can compile to native dynamically
+      linked code.<br>
+</div>
+
+<pre><span id="VALocaml"><span class="keyword">val</span> ocaml</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Lib ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> option</code></pre><div class="info ">
+<code class="code">ocaml p</code> is <code class="code"><span class="constructor">Some</span> p</code> iff <code class="code">p</code> is an <code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code> library.<br>
+</div>
+
+<pre><span id="VALocaml_pp"><span class="keyword">val</span> ocaml_pp</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Lib ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> option</code></pre><div class="info ">
+<code class="code">ocaml_pp p</code> is <code class="code"><span class="constructor">Some</span> p</code> iff <code class="code">p</code> is <code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml_pp</span></code> library.<br>
+</div>
+
+<pre><span id="VALc"><span class="keyword">val</span> c</span> : <code class="type">[< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Lib ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> option</code></pre><div class="info ">
+<code class="code">c p</code> is <code class="code"><span class="constructor">Some</span> p</code> iff <code class="code">p</code> is a <code class="code"><span class="keywordsign">`</span><span class="constructor">C</span></code> library.<br>
+</div>
+<br>
+<h1 id="1_Libraries">Libraries</h1><br>
+
+<pre><span id="VALv"><span class="keyword">val</span> v</span> : <code class="type">?usage:<a href="Assemblage.Part.html#TYPEusage">Assemblage.Part.usage</a> -><br>       ?exists:bool <a href="Assemblage.Conf.html#TYPEvalue">Assemblage.Conf.value</a> -><br>       ?args:<a href="Assemblage.Args.html#TYPEt">Assemblage.Args.t</a> -><br>       ?byte:bool -><br>       ?native:bool -><br>       ?native_dynlink:bool -><br>       string -><br>       <a href="Assemblage.Lib.html#TYPEkind">kind</a> -><br>       [< `Lib | `Pkg | `Unit ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a> list -><br>       [< <a href="Assemblage.html#TYPEpart_kind">Assemblage.part_kind</a> > `Lib ] <a href="Assemblage.html#TYPEpart">Assemblage.part</a></code></pre><div class="info ">
+<code class="code">v ?byte ?native ?native_dynlink name kind needs</code> is a library
+      named <code class="code">name</code> of the given <code class="code">kind</code>. <code class="code">needs</code> has the compilation
+      units <code class="code">us</code> that define the libary, they are integrated. The
+      package and libraries that are in <code class="code">needs</code> are automatically
+      added to <code class="code">us</code> needs.
+<p>
+
+      The library's <em>ability</em> to compile to different targets is
+      specified by the arguments <code class="code">?byte</code>, <code class="code">?native</code> and
+      <code class="code">?native_dynlink</code> whose defaults respectively depend on <code class="code">kind</code>
+      as follows.
+      <ul>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml</span></code>, <code class="code"><span class="keyword">true</span></code>, <code class="code"><span class="keyword">true</span></code>, <code class="code"><span class="keyword">true</span></code></li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">OCaml_pp</span></code>, <code class="code"><span class="keyword">true</span></code>, <code class="code"><span class="keyword">false</span></code>, <code class="code"><span class="keyword">false</span></code></li>
+<li><code class="code"><span class="keywordsign">`</span><span class="constructor">C</span></code>, <code class="code"><span class="keyword">false</span></code> (not applicable), <code class="code"><span class="keyword">true</span></code>, <code class="code"><span class="keyword">true</span></code></li>
+</ul>
+
+      Whether the outputs associated to a compilation target are
+      concretly build depends on the configuration keys
+      <a href="Assemblage.Conf.html#VALocaml_byte"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.ocaml_byte</code></a>, <a href="Assemblage.Conf.html#VALocaml_native"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.ocaml_native</code></a>,
+      <a href="Assemblage.Conf.html#VALocaml_native_dynlink"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.ocaml_native_dynlink</code></a> and <a href="Assemblage.Conf.html#VALc_dynlink"><code class="code"><span class="constructor">Assemblage</span>.<span class="constructor">Conf</span>.c_dynlink</code></a>.<br>
+</div>
+</body></html>
