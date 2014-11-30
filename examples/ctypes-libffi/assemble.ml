@@ -1,7 +1,6 @@
 open Assemblage
 
 let username =
-  let deps = [pkg "ctypes"; pkg "ctypes.foreign" ] in
-  bin "username" ~deps (`Units [ unit "main" (`Path []) ])
+  bin "username" [ unit "main"; pkg "ctypes"; pkg "ctypes.foreign" ]
 
-let () = assemble (project "username" [username])
+let () = assemble (Project.v "username" [username])

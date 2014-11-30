@@ -1,14 +1,13 @@
 open Assemblage
 
-let a = unit "a" (`Path ["src"])
+let dir = root / "src"
 
-let b = pack "b" [
-    unit "a" (`Path ["src";"b"]);
-    unit "c" (`Path ["src";"b"]);
-  ]
+let a = unit "a" ~dir
+let b =
+  let dir = dir / "b" in
+  (* FIXME *)
+  pack "b" [ unit "a" ~dir; unit "c" ~dir; ]
 
-let main = bin "main" ~deps:[a;b] (`Units [
-    unit "main" (`Path ["src"])
-  ])
+let main = bin "main" [ unit "main" ~dir; a; b ]
 
-let () = assemble (project "pack" [main])
+let () = assemble (Project.v "pack" [main])

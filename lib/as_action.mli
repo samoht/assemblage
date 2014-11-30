@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,55 +14,39 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Actions to generate new files. *)
+(** Build actions.
 
-type action
+    See {!Assemblage.Action}. *)
 
-val create: ?dir:string -> ('a, unit, string, action) format4 -> 'a
-val seq: action list -> action
-val mkdir: As_resolver.t -> string -> action
-val link: As_resolver.t -> source:string -> target:string -> action
+(** {1 Actions} *)
 
-type 'a t = 'a -> As_resolver.t -> As_flags.t -> action
+type t
 
-type file =
-  [ `Dep of [`Ml|`Mli]
-  | `Ml | `Mli | `C | `Js
-  | `Cmt | `Cmti
-  | `Cmi | `Cmo | `Cmx | `O
-  | `So | `Cma | `Cmxa | `Cmxs
-  | `A | `Byte | `Native
-  | `Dir
-  | `Source of file
-  | `Ext of string
-  | `Other of (string -> string) ]
+val v : ?log:string -> ?ctx:As_ctx.t -> ?inputs:As_path.t list ->
+  ?outputs:As_path.t list -> As_acmd.t list -> t
 
-module FileSet: sig
-  include Set.S with type elt = file
-  val to_list: t -> file list
-  val of_list: file list -> t
-end
+val ctx : t -> As_ctx.t
+val inputs : t -> As_path.t list
+val outputs : t -> As_path.t list
+val cmds : t -> As_acmd.t list
+val args : t -> As_args.t
+val log : t -> string option
+val products : t -> As_path.t list
 
-type 'a node =
-  [ `Self of file
-  | `Phony of string
-  | `N of 'a * file ]
+val add_cmds : [`Before | `After] -> As_acmd.t list -> t -> t
+val add_ctx_args : As_ctx.t -> As_args.t -> t -> t
+(** [add_ctx_args ctx args t] adds context [ctx] and argument bundle [args]
+    to [t]. This is used by parts to watermark their actions
+    on {!As_part.actions}. *)
 
-type 'a rule = {
-  phase  : As_flags.phase;
-  targets: 'a node list;
-  prereqs: 'a node list;
-  action : 'a t;
-}
+val pp : As_conf.t -> Format.formatter -> t -> unit
 
-val rule:
-  phase:As_flags.phase ->
-  targets:'a node list ->
-  prereqs:'a node list ->
-  'a t -> 'a rule
+(** {1 Action lists} *)
 
-val string_of_file: string -> file -> string
+val list_inputs : t list -> As_path.t list
+val list_outputs : t list -> As_path.t list
+val list_products : t list -> As_path.t list
 
-val empty: 'a t
+(** {1 Build actions} *)
 
-val run: 'a t -> 'a -> As_resolver.t -> As_flags.t -> string list
+val symlink : (As_path.t -> As_path.t -> t) As_conf.value

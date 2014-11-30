@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,29 +15,40 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(** Project
+(** Project.
 
-    A datastructure to describe projects. Models a project as a
-    description of a set of components such as libraries, binaries,
-    tests, etc. forming a DAG. *)
+    For documentation see {!Assemblage.Private.Project}. *)
 
-(** {1 Projects} *)
+(** {1 Project} *)
 
 type t
-(** The type for describing projects. *)
 
-val create : ?available:As_features.t -> ?flags:As_flags.t ->
-  ?version:string -> string -> As_component.t list -> t
-(** [create cs n] is the project named [n] with components [cs]. *)
-
-val components : t -> As_component.t list
-(** Return the project components in context. *)
+val v : ?exists:bool As_conf.value -> ?args:As_args.t ->
+  ?schemes:As_conf.scheme list -> string -> parts:'a As_part.t list -> t
 
 val name : t -> string
-(** [name t] is the project name. *)
+val exists : t -> bool As_conf.value
+val args : t -> As_args.t
+val schemes : t -> As_conf.scheme list
+val parts : t -> As_part.kind As_part.t list
+
+(** {1 Configuration} *)
+
+val deps : t -> As_conf.Key.Set.t
+val conf : t -> As_conf.t
+val with_conf : t -> As_conf.t -> t
+
+val eval : t -> 'a As_conf.value -> 'a
+val eval_key : t -> 'a As_conf.key -> 'a
+
+(** {1 Configuration dependent value} *)
 
 val version : t -> string
-(** [version t] is the project version. *)
+val products : ?kind:[`Source | `Input | `Output | `Any ] -> t -> As_path.Set.t
+val watermark_string : ?suffix:string -> t -> string
+val pp_signature : Format.formatter -> t -> unit
 
-val features : t -> As_features.Set.t
-(** [features t] is the collection of features used in the project. *)
+(** {1 Assembling projects} *)
+
+val assemble : t -> unit
+val list : unit -> t list

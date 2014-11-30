@@ -1,5 +1,5 @@
 (*
- * Copyright (c) 2014 Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2014 Daniel C. Bünzli
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -14,99 +14,62 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-open Printf
+(* Actions *)
 
-type one_action = {
-  dir: string option;
-  cmd: string;
-}
+type t =
+  { ctx : As_ctx.t;                         (* context to use on evaluation. *)
+    inputs : As_path.t list; (* inputs that need to exist and be up to date. *)
+    outputs : As_path.t list;    (* outputs that need to be touched by cmds. *)
+    cmds : As_acmd.t list;                               (* action commands. *)
+    args : As_args.t;               (* argument bundle to use on evaluation. *)
+    log : string option; }    (* a high-level logging string for the action. *)
 
-type action = one_action list
+let v ?log ?(ctx = As_ctx.empty) ?(inputs = []) ?(outputs = []) cmds =
+  { args = As_args.empty; log; ctx; inputs; outputs; cmds }
 
-type file =
-  [ `Dep of [`Ml|`Mli]
-  | `Ml | `Mli | `C | `Js
-  | `Cmi | `Cmo | `Cmx | `O
-  | `Cmt | `Cmti
-  | `So | `Cma | `Cmxa | `Cmxs
-  | `A | `Byte | `Native
-  | `Dir
-  | `Source of file
-  | `Ext of string
-  | `Other of (string -> string) ]
+let ctx a = a.ctx
+let inputs a = a.inputs
+let outputs a = a.outputs
+let cmds a = a.cmds
+let args a = a.args
+let log a = a.log
+let products a = List.(rev_append (rev (inputs a)) (outputs a))
 
-let rec string_of_file name (f:file) = match f with
-| `Dep `Ml -> name ^ ".ml.d"
-| `Dep `Mli -> name ^ ".mli.d"
-| `Ml -> name ^ ".ml"
-| `Mli -> name ^ ".mli"
-| `C -> name ^ ".c"
-| `Js -> name ^ ".js"
-| `Cmi -> name ^ ".cmi"
-| `Cmo -> name ^ ".cmo"
-| `Cmx -> name ^ ".cmx"
-| `Cmt -> name ^ ".cmt"
-| `Cmti -> name ^ ".cmti"
-| `O -> name ^ ".o"
-| `So -> "dll" ^ name ^ ".so"
-| `Cma -> name ^ ".cma"
-| `Cmxa -> name ^ ".cmxa"
-| `Cmxs -> name ^ ".cmxs"
-| `A -> name ^ ".a"
-| `Byte -> name ^ ".byte"
-| `Native -> name ^ ".native"
-| `Source f -> string_of_file name f
-| `Ext e -> name ^ "." ^ e
-| `Other f -> f name
-| `Dir -> ""
+let add_cmds loc cmds a =
+  let cmds = match loc with
+  | `Before -> List.rev_append (List.rev cmds) a.cmds
+  | `After -> List.rev_append (List.rev a.cmds) cmds
+  in
+  {a with cmds = cmds }
 
-module FileSet = struct
-  include Set.Make(struct
-      type t = file
-      let compare x y =
-        String.compare (string_of_file "xx" x) (string_of_file "xx" y)
-    end)
-  let to_list = elements
-  let of_list ss = List.fold_left (fun acc s -> add s acc) empty ss
-end
+let add_ctx_args ctx args a =
+  { a with ctx = As_ctx.union ctx a.ctx; args = As_args.append args a.args }
 
+let pp conf ppf a =
+  As_fmt.pp ppf
+    "@[<v>    ctx: @[%a@]@, inputs: @[%a@]@,outputs: @[%a@]@,   cmds: @[%a@]\
+     @,   args: @[%a@]@,    log: %a@]"
+    As_ctx.pp a.ctx
+    As_fmt.(pp_list ~pp_sep:pp_sp As_path.pp) a.inputs
+    As_fmt.(pp_list ~pp_sep:pp_sp As_path.pp) a.outputs
+    As_fmt.(pp_list ~pp_sep:pp_cut As_acmd.pp) a.cmds
+    (As_args.pp conf) a.args
+    As_fmt.(pp_opt pp_str) a.log
 
-type 'a t = 'a -> As_resolver.t -> As_flags.t -> action
+(* Action lists *)
 
-type 'a node =
-  [ `Self of file
-  | `Phony of string
-  | `N of 'a * file ]
+let list_field field acc acts =
+  let add_action acc a = List.rev_append (field a) acc in
+  List.rev (List.fold_left add_action acc acts)
 
-type 'a rule = {
-  phase  : As_flags.phase;
-  targets: 'a node list;
-  prereqs: 'a node list;
-  action : 'a t;
-}
+let list_inputs acts = list_field inputs [] acts
+let list_outputs acts = list_field outputs [] acts
+let list_products acts = list_field inputs (list_field outputs [] acts) acts
 
-let rule ~phase ~targets ~prereqs action =
-  { phase; targets; prereqs; action }
+(* Build actions *)
 
-let empty _ _ _ = []
-
-let create ?dir fmt =
-  ksprintf (fun cmd ->
-      [ { dir; cmd } ]
-    ) fmt
-
-let seq actions = List.concat actions
-
-let mkdir r dir =
-  let cmd = As_resolver.mkdir r in
-  create "%s %s" cmd dir
-
-let link r ~source ~target =
-  let cmd = As_resolver.ln r in
-  create "%s %s %s" cmd source target
-
-let run (t:'a t) x r f =
-  List.map (fun action -> match action.dir with
-    | None   -> action.cmd
-    | Some d -> sprintf "cd %s && %s" d action.cmd
-    ) (t x r f)
+let symlink =
+  let action ln_rel src dst =
+    v ~ctx:As_ctx.empty ~inputs:[src] ~outputs:[dst] [ln_rel src dst]
+  in
+  As_conf.(const action $ As_acmd.ln_rel)
