@@ -42,7 +42,6 @@ let lib_assemblage =
       unit "as_pkg_config";
       unit "as_part";
       unit "as_part_bin";
-      unit "as_part_custom";
       unit "as_part_dir";
       unit "as_part_doc";
       unit "as_part_lib";

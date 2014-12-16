@@ -79,7 +79,8 @@ val rule : ?ext:bool -> ?order_only_prereqs:string list ->
 
 type statement =
   [ `Var of var
-  | `Rule of rule ]
+  | `Rule of rule
+  | `Include of string ]
 (** The type for makefile statements. *)
 
 type t = [ statement | `Comment of string | `Blank ] list

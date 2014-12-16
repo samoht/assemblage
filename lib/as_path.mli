@@ -70,7 +70,7 @@ type ext =
   | `Cmxs | `Css | `Dll | `Exe | `Gif | `H | `Html | `Install | `Img
   | `Jpeg | `Js | `Json | `Lib | `Md | `Ml | `Ml_dep | `Ml_pp | `Mli
   | `Mli_dep | `Mli_pp | `Native | `O | `Opt | `Png | `Sh | `So | `Tar
-  | `Tbz | `Xml | `Zip
+  | `Tbz | `Xml | `Zip | `Prepare
   | `Ext of string ]
 
 val ext_to_string : ext -> string

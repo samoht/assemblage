@@ -55,7 +55,8 @@ let rule ?(ext = false) ?(order_only_prereqs = []) ~targets ~prereqs ~recipe
 
 type statement =
   [ `Var of var
-  | `Rule of rule ]
+  | `Rule of rule
+  | `Include of string ]
 
 type t = [ statement | `Comment of string | `Blank ] list
 
@@ -112,6 +113,12 @@ let buf_add_comment b c =
   Buffer.add_char b '\n';
   ()
 
+let buf_add_include b f =
+  Buffer.add_string b "-include "; (* FIXME: add an option for - ? *)
+  Buffer.add_string b f;
+  Buffer.add_char b '\n';
+  ()
+
 let to_string mk =
   let b = Buffer.create 8192 in
   let add = function
@@ -119,6 +126,7 @@ let to_string mk =
   | `Var v -> buf_add_var b v
   | `Rule r -> buf_add_rule b r
   | `Comment c -> buf_add_comment b c
+  | `Include f -> buf_add_include b f
   in
   List.iter add mk;
   Buffer.contents b

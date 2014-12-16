@@ -122,7 +122,7 @@ module File = struct
   let read file =
     let input ic () =
       let len = in_channel_length ic in
-      let s = String.create len in
+      let s = Bytes.create len in
       really_input ic s 0 len; ret s
     in
     with_inf input file ()

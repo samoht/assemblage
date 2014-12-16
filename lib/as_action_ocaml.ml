@@ -37,17 +37,43 @@ let compile_src_ast
   let args = adds args @@ path_arg src @@ path_arg ~opt:"-o" out @@ [] in
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v dumpast args]
 
+(* Compute dependencies *)
+
+let prepare ~stamp ~src =
+  let inputs = [src] in
+  let outputs = [path (As_path.dirname src) ~ext:`Prepare] in
+  As_action.v ~inputs ~outputs [stamp src ""]
+
+(* [-modules] can be passed in [args] by the backend driver if
+   needed. *)
+let compute_deps src_kind
+    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamldep ~incs ~src () =
+  let ctx = As_ctx.v [`OCaml; `Dep; `Src src_kind] in
+  let args = adds args @@ pkgs ctx in
+  let prepare = List.map (fun i -> path i ~ext:`Prepare) incs in
+  let inputs = adds prepare @@ needs in
+  let output = path src ~ext:(if src_kind = `Mli then `Mli_dep else `Ml_dep) in
+  let args =
+    let intf = if src_kind = `Mli then "-intf" else "-impl" in
+    adds args @@ path_args ~opt:"-I" incs @@ adds [intf] @@ path_arg src @@ []
+  in
+  let cmds = [As_acmd.v ocamldep args ~stdout:output] in
+  As_action.v ~ctx ~inputs ~outputs:[output] cmds
+
+let compute_deps_mli = compute_deps `Mli
+let compute_deps_ml = compute_deps `Ml
+
 (* Compile *)
 
 let compile_mli
     ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlc ~annot ~incs ~src () =
   let ctx = As_ctx.v [`OCaml; `Compile; `Src `Mli] in
   let args = adds args @@ pkgs ctx in
-  let inputs = add src @@ needs in
+  let inputs = add src @@ add (path src ~ext:`Mli_dep) @@ needs in
   let outputs = add_if annot (path src ~ext:`Cmti) @@ [path src ~ext:`Cmi] in
   let args =
-    adds args @@ add_if annot "-bin-annot" @@
-    adds [ "-c"; "-intf"] @@ path_arg src @@ path_args ~opt:"-I" incs @@ []
+    adds args @@ add_if annot "-bin-annot" @@ path_args ~opt:"-I" incs @@
+    adds [ "-c"; "-intf"] @@ path_arg src @@ []
   in
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlc args]
 
@@ -57,15 +83,19 @@ let compile_ml_byte
   let ctx = As_ctx.v [`OCaml; `Compile; `Src `Ml; `Target `Byte] in
   let args = adds args @@ pkgs ctx in
   let cmi = path src ~ext:`Cmi in
-  let inputs = add src @@ add_if has_mli cmi @@ needs in
+  let inputs =
+    add src @@
+    add (path src ~ext:`Ml_dep) @@
+    add_if has_mli cmi @@ needs
+  in
   let outputs =
     add_if (not has_mli) cmi @@
     add_if annot (path src ~ext:`Cmt) @@
     [path src ~ext:`Cmo]
   in
   let args =
-    adds args @@ add_if annot "-bin-annot" @@
-    adds ["-c"; "-impl"] @@ path_arg src @@ path_args ~opt:"-I" incs @@ []
+    adds args @@ add_if annot "-bin-annot" @@ path_args ~opt:"-I" incs @@
+    adds ["-c"; "-impl"] @@ path_arg src @@  []
   in
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlc args]
 
@@ -75,15 +105,18 @@ let compile_ml_native
   let ctx = As_ctx.v [`OCaml; `Compile; `Src `Ml; `Target `Native] in
   let args = adds args @@ pkgs ctx in
   let cmi = path src ~ext:`Cmi in
-  let inputs = add src @@ add_if has_mli cmi @@ needs in
+  let inputs =
+    add src @@
+    add (path src ~ext:`Ml_dep) @@
+    add_if has_mli cmi @@ needs
+  in
   let outputs =
-    add_if (not has_mli) cmi @@
     add_if annot (path src ~ext:`Cmt) @@
     [path src ~ext:`Cmx]
   in
   let args =
-    adds args @@ add_if annot "-bin-annot" @@
-    adds ["-c"; "-impl"] @@ path_arg src @@ path_args ~opt:"-I" incs @@ []
+    adds args @@ add_if annot "-bin-annot" @@ path_args ~opt:"-I" incs @@
+    adds ["-c"; "-impl"] @@ path_arg src @@ []
   in
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlopt args]
 

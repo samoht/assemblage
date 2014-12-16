@@ -102,8 +102,8 @@ let c_actions spec unit src_dir dst_dir =
            src_dir $ dst_dir)
 
 let ocaml_actions spec unit src_dir dst_dir =
-  let actions symlink ocamlc ocamlopt debug profile warn_error annot
-      byte native pkgs libs_pp_actions libs_actions src_dir dst_dir =
+  let actions symlink stamp ocamldep ocamlc ocamlopt debug profile warn_error
+      annot byte native pkgs libs_pp_actions libs_actions src_dir dst_dir =
     let open As_acmd.Args in
     let has_mli, has_ml = match spec with
     | `Mli -> true, false | `Ml -> false, true | `Both -> true, true
@@ -117,6 +117,7 @@ let ocaml_actions spec unit src_dir dst_dir =
       List.map As_path.dirname (List.filter (As_path.has_ext `Cma) outs),
       List.map As_path.dirname (List.filter (As_path.has_ext `Cmxa) outs)
     in
+    let all_incs = adds incs_byte @@ adds incs_native @@ [dst_dir] in
     let incs_byte = adds incs_byte @@ [dst_dir]in
     let incs_native = adds incs_native @@ [dst_dir]in
     let name = As_part.name unit in
@@ -129,8 +130,17 @@ let ocaml_actions spec unit src_dir dst_dir =
     let args =
       add_if debug "-g" @@ adds_if warn_error [ "-warn_error"; "+a" ] @@ []
     in
+    let ocamldep_args = add_if native "-native" @@ [] in
     add_if has_mli (symlink src_mli mli) @@
     add_if has_ml (symlink src_ml ml) @@
+    add_if has_mli (As_action_ocaml.prepare ~stamp ~src:mli) @@
+    add_if has_ml (As_action_ocaml.prepare ~stamp ~src:ml) @@
+    fadd_if has_mli
+      (As_action_ocaml.compute_deps_mli ~ocamldep ~pkgs ~args:ocamldep_args
+         ~src: mli ~incs:all_incs) () @@
+    fadd_if has_ml
+      (As_action_ocaml.compute_deps_ml ~ocamldep ~pkgs ~args:ocamldep_args
+         ~src:ml ~incs:all_incs) () @@
     fadd_if has_mli
       (As_action_ocaml.compile_mli
          ~ocamlc:mlicomp ~pkgs ~args ~annot
@@ -149,7 +159,8 @@ let ocaml_actions spec unit src_dir dst_dir =
   let libs = As_part.list_keep_map As_part_lib.ocaml needs in
   let pkgs = As_part_pkg.list_lookup needs in
   As_conf.(const actions $
-           As_action.symlink $ As_acmd.cmd ocamlc $ As_acmd.cmd ocamlopt $
+           As_action.symlink $ As_acmd.stamp $ As_acmd.cmd ocamldep $
+           As_acmd.cmd ocamlc $ As_acmd.cmd ocamlopt $
            value debug $ value profile $ value warn_error $
            value ocaml_annot $ value ocaml_byte $ value ocaml_native $
            pkgs $ As_part.list_actions libs_pp $ As_part.list_actions libs $
