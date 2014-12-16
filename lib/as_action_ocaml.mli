@@ -35,6 +35,23 @@ val compile_src_ast :
   [`Ml | `Mli] -> src:As_path.t -> unit ->
   As_action.t
 
+(** {1 Dependencies} *)
+
+val prepare:
+  stamp:(As_path.t -> string -> As_acmd.t) -> src:As_path.t -> As_action.t
+
+val compute_deps_mli:
+  ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
+  ocamldep:As_acmd.cmd ->
+  incs:includes -> src:As_path.t -> unit ->
+  As_action.t
+
+val compute_deps_ml:
+  ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
+  ocamldep:As_acmd.cmd ->
+  incs:includes -> src:As_path.t -> unit ->
+  As_action.t
+
 (** {1 Compiling} *)
 
 val compile_mli :

@@ -7,6 +7,7 @@ B _build/lib-assemblage
 B _build/bin-ctypes-gen
 B _build/bin-assemble
 B _build/bin-assemblage
+B _build/**
 
 S lib
 S lib-driver

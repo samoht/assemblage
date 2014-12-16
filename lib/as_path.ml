@@ -158,7 +158,7 @@ type ext =
   | `Cmxs | `Css | `Dll | `Exe | `Gif | `H | `Html | `Install | `Img
   | `Jpeg | `Js | `Json | `Lib | `Md | `Ml | `Ml_dep | `Ml_pp | `Mli
   | `Mli_dep | `Mli_pp | `Native | `O | `Opt | `Png | `Sh | `So | `Tar
-  | `Tbz | `Xml | `Zip
+  | `Tbz | `Xml | `Zip | `Prepare
   | `Ext of string ]
 
 let ext_to_string = function
@@ -172,7 +172,7 @@ let ext_to_string = function
 | `Mli_dep -> "mli-dep" | `Mli_pp -> "mli-pp" | `Native -> "native"
 | `O -> "o" | `Opt -> "opt" | `Png -> "png" | `Sh -> "sh" | `So -> "so"
 | `Tar -> "tar" | `Tbz -> "tbz" | `Xml -> "xml" | `Zip -> "zip"
-| `Ext ext -> ext
+| `Prepare -> "prepare" | `Ext ext -> ext
 
 let ext_of_string = function
 | "a" -> `A | "byte" -> `Byte | "c" -> `C | "cma" -> `Cma | "cmi" -> `Cmi
@@ -185,7 +185,7 @@ let ext_of_string = function
 | "mli-dep" -> `Mli_dep | "mli-pp" -> `Mli_pp | "native" -> `Native
 | "o" -> `O | "opt" -> `Opt | "png" -> `Png | "sh" -> `Sh | "so" -> `So
 | "tar" -> `Tar | "tbz"  -> `Tbz | "xml" -> `Xml | "zip" -> `Zip
-| ext -> `Ext ext
+| "prepare" -> `Prepare | ext -> `Ext ext
 
 let pp_ext ppf e = As_fmt.pp_str ppf (ext_to_string e)
 
