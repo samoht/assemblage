@@ -18,6 +18,7 @@ let args = Args.empty
 let pkg_cmdliner = pkg "cmdliner"
 let pkg_bytecomp = pkg "compiler-libs.bytecomp"
 let pkg_toplevel = pkg "compiler-libs.toplevel"
+let pkg_bytes = pkg "bytes"
 
 (* Libraries *)
 
@@ -31,7 +32,7 @@ let lib_assemblage =
       unit "as_fmt";
       unit "as_path";
       unit "as_log";
-      unit "as_cmd";
+      unit "as_cmd" ~needs:[pkg_bytes];
       unit "as_conf" ~needs:[pkg_cmdliner]; (* FIXME remove dep *)
       unit "as_ctx";
       unit "as_args";
