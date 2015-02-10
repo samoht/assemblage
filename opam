@@ -24,5 +24,4 @@ build-test: [make "test"]
 build: [
   ["./bootstrap.sh"]
   [make]
-  [make "install"]
 ]
