@@ -1,12 +1,17 @@
-opam-version: "1"
+opam-version: "1.2"
 maintainer: "thomas@gazagnaire.org"
 authors: [
   "Thomas Gazagnaire <thomas@gazagnaire.org>"
-  "Daniel Bünzli <daniel.buenzli i@erratique.ch>"
+  "Daniel Bünzli <daniel.buenzl i@erratique.ch>"
 ]
+homepage: "https://github.com/samoht/assemblage/"
+doc: "http://samoht.github.io/assemblage/Assemblage.html"
+dev-repo: "https://github.com/samoht/assemblage.git"
+bug-reports: "https://github.com/samoht/assemblage/issues"
+tags: ["build system"]
 license: "ISC"
 depends: [
-  "cmdliner"
+  "cmdliner" {>= "0.9.6"}
   "dumpast"
 ]
 build: [
