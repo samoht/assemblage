@@ -54,7 +54,7 @@ module File : sig
   val dev_null : As_path.t
   val exists : As_path.t -> bool result
   val delete : ?maybe:bool -> As_path.t -> unit result
-  val temp : string -> As_path.t result
+  val temp : ?dir:As_path.t -> string -> As_path.t result
   val with_inf : (in_channel -> 'a -> 'b result) -> As_path.t -> 'a -> 'b result
   val read : As_path.t -> string result
   val read_lines : As_path.t -> string list result
