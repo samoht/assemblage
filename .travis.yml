@@ -1,16 +1,7 @@
 language: c
-script: bash -e .travis-ci.sh
-os:
-- linux
-- osx
+install: wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-opam.sh
+script: bash -ex .travis-opam.sh
 env:
-  global:
-    - OPAM_VERSION=1.1.0
-  matrix:
-    - OCAML_VERSION=4.02.0
-    - OCAML_VERSION=4.01.0
-    - OCAML_VERSION=4.00.1
-matrix:
-  exclude:
-    - os: osx
-      env: OCAML_VERSION=4.00.1
+  - OCAML_VERSION=4.02.0
+  - OCAML_VERSION=4.01.0
+  - OCAML_VERSION=4.00.1

@@ -11,11 +11,17 @@ bug-reports: "https://github.com/samoht/assemblage/issues"
 tags: ["build system"]
 license: "ISC"
 depends: [
+  "ocamlfind"
   "cmdliner" {>= "0.9.6"}
   "dumpast"
+  "sexplib" {test}
+  "comparelib" {test}
+  "xmlm" {test}
+  "ezjsonm" {test}
+  "ctypes" {test}
 ]
+build-test: [make "test"]
 build: [
   ["./bootstrap.sh"]
   [make]
-  [make "install"]
 ]
