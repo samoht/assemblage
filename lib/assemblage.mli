@@ -801,9 +801,11 @@ module Cmd : sig
     (** [delete ~maybe file] deletes file [file]. If [maybe] is [false]
         (default) no error is returned if the file doesn't exit. *)
 
-    val temp : string -> path result
-    (** [temp suffix] creates a temporary file with suffix [suffix] and returns
-        its name. The file is destroyed at the end of program execution. *)
+    val temp : ?dir:path -> string -> path result
+    (** [temp dir suffix] creates a temporary file with suffix
+        [suffix] in [dir] (defaults to {!Filename.get_temp_dir_name})
+        and returns its name. The file is destroyed at the end of
+        program execution. *)
 
     (** {1:input Input} *)
 

@@ -102,9 +102,14 @@ module File = struct
     if maybe && not exists then ret () else
     try ret (Sys.remove (path_str file)) with Sys_error e -> error e
 
-  let temp suff =
+  let temp ?dir suff =
     try
-      let f = As_path.of_string (Filename.temp_file "assemblage" suff) in
+      let temp_dir = match dir with
+      | None -> None
+      | Some d -> Some (As_path.to_string d)
+      in
+      let f = Filename.temp_file ?temp_dir "assemblage" suff in
+      let f = As_path.of_string f in
       at_exit (fun () -> ignore (delete f));
       ret f
     with Sys_error e -> error e
@@ -142,7 +147,7 @@ module File = struct
   let write file contents =
     let write oc contents = output_string oc contents; ret () in
     if is_dash file then with_outf write file contents else
-    temp "write"
+    temp ~dir:(As_path.dirname file) "write"
     >>= fun tmpf -> with_outf write tmpf contents
     >>= fun () -> Path.move ~force:true tmpf file
 
@@ -185,7 +190,7 @@ module File = struct
       Pervasives.output oc s !start (len - !start); ret ()
     in
     if is_dash file then with_outf write_subst file contents else
-    temp "write"
+    temp ~dir:(As_path.dirname file) "write"
     >>= fun tmpf -> with_outf write_subst tmpf contents
     >>= fun () -> Path.move ~force:true tmpf file
 end
