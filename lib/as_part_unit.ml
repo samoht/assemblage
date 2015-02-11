@@ -144,6 +144,7 @@ let ocaml_actions spec unit src_dir dst_dir =
     fadd_if has_mli
       (As_action_ocaml.compile_mli
          ~ocamlc:mlicomp ~pkgs ~args ~annot
+         ~target:(if native then `Target `Native else `Target `Byte)
          ~incs:(if native then incs_native else incs_byte) ~src:mli) () @@
     fadd_if (has_ml && byte)
       (As_action_ocaml.compile_ml_byte

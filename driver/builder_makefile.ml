@@ -32,11 +32,13 @@ type gen =
     incs : Path.Set.t;  (* Set of Makefile fragments to include. *)
     preps : Path.Set.t Path.Map.t; (* reverse deps for '.prepare' targets *)
     phony : string list;
+    all: string list;   (* libraries + binaries targets *)
+    test : string list; (* test targets *)
     rmk : Makefile.t;   (* Reversed makefile definition. *) }
 
 let generator proj =
   { proj; dirs = Path.Set.empty; incs = Path.Set.empty; phony = [];
-    preps = Path.Map.empty;
+    preps = Path.Map.empty; all = []; test = [];
     rmk =
       `Blank ::
       (`Comment "Run `make help` to get the list of targets.") ::
@@ -143,11 +145,21 @@ let mk_part gen p =
       let name = Part.name p in
       let kind = Part.kind p in
       let comment = str "%a-%s rules" Part.pp_kind kind name in
-      let rmk = `Blank :: `Comment comment :: `Blank :: gen.rmk in
+      let main =
+        let outputs =
+          List.fold_left (fun acc action ->
+              (* FIXME: too many outputs *)
+              List.rev_map Path.to_string (Action.outputs action) @ acc
+            ) [] actions
+        in
+        let target = str "%a-%s" Part.pp_kind kind name in
+        Makefile.rule ~targets:[target] ~prereqs:outputs ~recipe:[] ()
+      in
+      let rmk = `Blank :: main :: `Comment comment :: gen.rmk in
       let mk_action = if kind = `Run then mk_run_action name else mk_action in
       List.fold_left mk_action { gen with rmk } actions
 
-let mk_gen_dirs gen =
+let gen_dirs gen =
   let add_dir dir gen =
     let prereqs = [] in
     let targets = [Path.to_string dir] in
@@ -162,7 +174,7 @@ let mk_gen_dirs gen =
   let rmk = `Blank :: `Comment header :: `Blank :: gen.rmk in
   Path.Set.fold add_dir gen.dirs { gen with rmk }
 
-let mk_gen_phony gen =
+let phony gen =
   let rule =
     let targets = [".PHONY"] in
     let prereqs = gen.phony in
@@ -171,7 +183,7 @@ let mk_gen_phony gen =
   { gen with rmk = rule :: `Blank :: gen.rmk }
 
 (* Generate the .d files *)
-let mk_gen_ds gen =
+let dot_ds gen =
   let add_include file gen =
     let rmk = `Include (Path.to_string file) :: gen.rmk in
     { gen with rmk }
@@ -179,7 +191,7 @@ let mk_gen_ds gen =
   Path.Set.fold add_include gen.incs gen
 
 (* Generate the .prepare files *)
-let mk_gen_prepare gen =
+let dot_prepares gen =
   let add_prepare p inputs gen =
     let prereqs = Path.Set.fold (fun x l -> Path.to_string x :: l) inputs [] in
     let targets = [Path.to_string p] in
@@ -192,12 +204,47 @@ let mk_gen_prepare gen =
   let rmk = `Blank :: `Comment header :: `Blank :: gen.rmk in
   Path.Map.fold add_prepare gen.preps { gen with rmk }
 
+let all gen =
+  let add gen p = match Part.kind p with
+  | `Lib -> { gen with all = str "lib-%s" (Part.name p) :: gen.all }
+  | `Bin -> { gen with all = str "bin-%s" (Part.name p) :: gen.all }
+  | _ -> gen
+  in
+  let all gen = match gen.all with
+  | []  -> gen
+  | all ->
+      let header = "Main rule" in
+      let rule = Makefile.rule ~targets:["all"] ~prereqs:all ~recipe:[] () in
+      let rmk = `Blank :: rule :: `Comment header  :: gen.rmk in
+      { gen with rmk }
+  in
+  List.fold_left add gen (Project.parts gen.proj)
+  |> all
+
+let test gen =
+  let add gen p = match Part.kind p with
+  | `Run -> { gen with test = str "run-%s" (Part.name p) :: gen.test }
+  | _ -> gen
+  in
+  let test gen = match gen.test with
+  | []    -> gen
+  | tests ->
+      let header = "Run tests" in
+      let rule = Makefile.rule ~targets:["test"] ~prereqs:tests ~recipe:[] () in
+      let rmk = `Blank :: rule :: `Comment header :: gen.rmk in
+      { gen with rmk }
+  in
+  List.fold_left add gen (Project.parts gen.proj)
+  |> test
+
 let of_project ~setup_files proj =
   let gen = generator proj in
   let gen = keys gen in
+  let gen = phony gen in
+  let gen = all gen in
+  let gen = test gen in
   let gen = List.fold_left mk_part gen (Project.parts gen.proj) in
-  let gen = mk_gen_dirs gen in
-  let gen = mk_gen_ds gen in
-  let gen = mk_gen_phony gen in
-  let gen = mk_gen_prepare gen in
+  let gen = gen_dirs gen in
+  let gen = dot_ds gen in
+  let gen = dot_prepares gen in
   List.rev gen.rmk

@@ -75,8 +75,8 @@ let ocaml_actions bin dst_dir unit_actions =
     in
     let cmos = List.filter (As_path.ext_matches [`Cmo; `O]) unit_outputs in
     let cmx_s = List.filter (As_path.ext_matches [`Cmx; `O]) unit_outputs in
-    let byte_objs = List.rev_append (List.rev cmas) cmos in
-    let native_objs = List.rev_append (List.rev cmxas) cmx_s in
+    let byte_objs = List.rev_append (List.rev cmas) (List.rev cmos) in
+    let native_objs = List.rev_append (List.rev cmxas) (List.rev cmx_s) in
     let byte = byte bin && ocaml_byte in
     let native = native bin && ocaml_native in
     let args = add_if debug "-g" @@ [] in

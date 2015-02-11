@@ -42,13 +42,13 @@ let lib_assemblage =
       unit "as_ocamlfind";
       unit "as_pkg_config";
       unit "as_part";
-      unit "as_part_bin";
-      unit "as_part_dir";
-      unit "as_part_doc";
       unit "as_part_lib";
       unit "as_part_pkg";
-      unit "as_part_run";
       unit "as_part_unit";
+      unit "as_part_doc";
+      unit "as_part_bin";
+      unit "as_part_dir";
+      unit "as_part_run";
       unit "as_project";
       unit "assemblage" ~kind:(`OCaml (`Both, `Normal)) ]
 
@@ -65,31 +65,34 @@ let lib_assemblage_tools =
 
 let lib_assemblage_driver =
   let dir = root / "lib-driver" in
-  lib "assemblage_driver"
-    [ pkg_cmdliner;
-      pkg_toplevel;
-      lib_assemblage;
-      unit ~dir "assemblage_driver" ]
+  lib "assemblage_driver" [
+    pkg_cmdliner;
+    pkg_toplevel;
+    lib_assemblage;
+    unit ~dir "assemblage_driver" ~needs:[pkg_cmdliner; pkg_toplevel];
+  ]
 
 (* The default assemblage driver *)
 
 let bin_assemblage =
   let dir = root / "driver" in
   let unit ?needs ?kind name = unit ?needs ?kind name ~dir in
-  bin "assemblage" ~native:false ~args:Args.linkall
-    [ pkg_cmdliner;
-      lib_assemblage;
-      lib_assemblage_tools;
-      lib_assemblage_driver;
-      unit "builder_makefile";
-      unit "cmd_base";
-      unit "cmd_build";
-      unit "cmd_describe";
-      unit "cmd_product";
-      unit "cmd_help";
-      unit "cmd_setup";
-      unit "main" ~kind:(`OCaml (`Ml, `Normal));
-      unit "makefile" ]
+  bin "assemblage" ~native:false ~args:Args.linkall [
+    pkg_cmdliner;
+    pkg_toplevel;
+    lib_assemblage;
+    lib_assemblage_tools;
+    lib_assemblage_driver;
+    unit "makefile";
+    unit "builder_makefile";
+    unit "cmd_base" ~needs:[pkg_cmdliner];
+    unit "cmd_build";
+    unit "cmd_describe";
+    unit "cmd_product";
+    unit "cmd_help";
+    unit "cmd_setup";
+    unit "main" ~kind:(`OCaml (`Ml, `Normal));
+  ]
 
 (* Tests & examples *)
 

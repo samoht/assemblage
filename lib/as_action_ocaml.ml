@@ -66,8 +66,9 @@ let compute_deps_ml = compute_deps `Ml
 (* Compile *)
 
 let compile_mli
-    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlc ~annot ~incs ~src () =
-  let ctx = As_ctx.v [`OCaml; `Compile; `Src `Mli] in
+    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlc ~annot ~incs ~target ~src
+    () =
+  let ctx = As_ctx.v [`OCaml; `Compile; `Src `Mli; (target :> As_ctx.elt)] in
   let args = adds args @@ pkgs ctx in
   let inputs = add src @@ add (path src ~ext:`Mli_dep) @@ needs in
   let outputs = add_if annot (path src ~ext:`Cmti) @@ [path src ~ext:`Cmi] in
@@ -188,7 +189,7 @@ let link_byte
   let args = adds args @@ pkgs ctx in
   let inputs = adds objs @@ needs in
   let outputs = [name] in
-  let args = adds args @@ add "-o" @@ path_arg name @@ path_args objs @@ [] in
+  let args = add "-o" @@ path_arg name @@ adds args @@ path_args objs @@ [] in
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlc args]
 
 let link_native
@@ -198,5 +199,5 @@ let link_native
   let args = adds args @@ pkgs ctx in
   let inputs = adds objs @@ needs in
   let outputs = [name] in
-  let args = adds args @@ add "-o" @@ path_arg name @@ path_args objs @@ [] in
+  let args = add "-o" @@ path_arg name @@ adds args @@ path_args objs @@ [] in
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlopt args]
