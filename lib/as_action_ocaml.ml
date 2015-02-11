@@ -189,7 +189,7 @@ let link_byte
   let args = adds args @@ pkgs ctx in
   let inputs = adds objs @@ needs in
   let outputs = [name] in
-  let args = adds args @@ add "-o" @@ path_arg name @@ path_args objs @@ [] in
+  let args = add "-o" @@ path_arg name @@ adds args @@ path_args objs @@ [] in
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlc args]
 
 let link_native
@@ -199,5 +199,5 @@ let link_native
   let args = adds args @@ pkgs ctx in
   let inputs = adds objs @@ needs in
   let outputs = [name] in
-  let args = adds args @@ add "-o" @@ path_arg name @@ path_args objs @@ [] in
+  let args = add "-o" @@ path_arg name @@ adds args @@ path_args objs @@ [] in
   As_action.v ~ctx ~inputs ~outputs [As_acmd.v ocamlopt args]
