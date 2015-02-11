@@ -52,8 +52,10 @@ let parse_lines (byte, native, pp) =
     match As_string.split ~sep:"|" l with
     | [dir; objs; flags] ->
         let objs = As_string.split ~sep:" " objs in
+        let objs = List.filter ((<>)"") objs in
         let objs = List.map (fun obj -> str "%s/%s" dir obj) objs in
         let flags = As_string.split ~sep:" " flags in
+        let flags = List.filter ((<>)"") flags in
         dir :: "-I" :: i, List.rev_append objs o, List.rev_append flags f
     | _ ->
         As_log.err "ocamlfind lookup could not parse line (%s)" l;
