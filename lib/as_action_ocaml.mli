@@ -57,7 +57,8 @@ val compute_deps_ml:
 val compile_mli :
   ?needs:As_path.t list -> ?pkgs:pkgs -> ?args:string list ->
   ocamlc:As_acmd.cmd ->
-  annot:bool -> incs:includes -> src:As_path.t -> unit ->
+  annot:bool -> incs:includes -> target:[`Target of [`Byte|`Native]] ->
+  src:As_path.t -> unit ->
   As_action.t
 
 val compile_ml_byte :

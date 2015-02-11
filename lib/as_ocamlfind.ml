@@ -79,6 +79,8 @@ let pkg_lookups ocamlfind name =
   [ As_ctx.v [`OCaml; `Pp], p.pp_incs @ p.pp_objs;
     As_ctx.v [`OCaml; `Compile; `Target `Byte], p.byte_incs;
     As_ctx.v [`OCaml; `Compile; `Target `Native], p.native_incs;
+    As_ctx.v [`OCaml; `Compile; `Target `Byte; `Src `Mli], p.byte_incs;
+    As_ctx.v [`OCaml; `Compile; `Target `Native; `Src `Mli], p.native_incs;
     As_ctx.v [`OCaml; `Link; `Target `Byte], p.byte_objs @ p.byte_link;
     As_ctx.v [`OCaml; `Link; `Target `Native], p.native_objs @ p.native_link; ]
 

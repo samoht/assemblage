@@ -66,8 +66,9 @@ let compute_deps_ml = compute_deps `Ml
 (* Compile *)
 
 let compile_mli
-    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlc ~annot ~incs ~src () =
-  let ctx = As_ctx.v [`OCaml; `Compile; `Src `Mli] in
+    ?(needs = []) ?(pkgs = nop) ?(args = []) ~ocamlc ~annot ~incs ~target ~src
+    () =
+  let ctx = As_ctx.v [`OCaml; `Compile; `Src `Mli; (target :> As_ctx.elt)] in
   let args = adds args @@ pkgs ctx in
   let inputs = add src @@ add (path src ~ext:`Mli_dep) @@ needs in
   let outputs = add_if annot (path src ~ext:`Cmti) @@ [path src ~ext:`Cmi] in
