@@ -57,9 +57,19 @@ type path = As_path.t (* to avoid assemblage.mli confusion *)
 
 let path_str = As_path.to_string
 
+let ret_exists ?(err = false) err_msg p b =
+  if not err then ret b else
+  if b then ret b else
+  error (err_msg p)
+
 module Path = struct
-  let exists p = try ret (Sys.file_exists (path_str p))
-  with Sys_error e -> error e
+
+  let exists ?err p =
+    try
+      let p = path_str p in
+      let err_msg p = str "%s: no such path" p in
+      ret_exists ?err err_msg p (Sys.file_exists p)
+    with Sys_error e -> error e
 
   let err_move src dst =
     let src, dst = (path_str src), (path_str dst) in
@@ -92,9 +102,13 @@ module File = struct
   | "Win32" -> As_path.file "NUL"
   |  _ -> As_path.(root /"dev"/"null")
 
-  let exists file =
-    let file = path_str file in
-    try ret (Sys.file_exists file && not (Sys.is_directory file)) with
+  let exists ?err file =
+    try
+      let file = path_str file in
+      let err_msg file = str "%s: no such file" file in
+      let exists = Sys.file_exists file && not (Sys.is_directory file) in
+      ret_exists ?err err_msg file exists
+    with
     | Sys_error e -> error e
 
   let delete ?(maybe = false) file =
@@ -198,9 +212,13 @@ end
 (* Directory operations *)
 
 module Dir = struct
-  let exists dir =
-    let dir = path_str dir in
-    try ret (Sys.file_exists dir && Sys.is_directory dir)
+
+  let exists ?err dir =
+    try
+      let dir = path_str dir in
+      let err_msg file = str "%s: no such directory" dir in
+      let exists = Sys.file_exists dir && Sys.is_directory dir in
+      ret_exists ?err err_msg dir exists
     with Sys_error e -> error e
 
   let getcwd () =
@@ -243,11 +261,14 @@ let get_env var = try `Ok (Sys.getenv var) with
 
 (* FIXME in these functions should [cmd] and [args] be quoted ? *)
 
-let exists cmd =
-  let null = path_str File.dev_null in
-  (* Using Sys.os_type, because that's really for the driver. *)
-  let test = match Sys.os_type with "Win32" -> "where" | _ -> "type" in
-  try ret (Sys.command (str "%s %s 1>%s 2>%s" test cmd null null) = 0)
+let exists ?err cmd =
+  try
+    let null = path_str File.dev_null in
+    (* Using Sys.os_type, because that's really for the driver. *)
+    let test = match Sys.os_type with "Win32" -> "where" | _ -> "type" in
+    let err_msg cmd = str "%s: no such command" cmd in
+    let exists = Sys.command (str "%s %s 1>%s 2>%s" test cmd null null) = 0 in
+    ret_exists ?err err_msg cmd exists
   with Sys_error e -> error e
 
 let trace cmd = As_log.info ~header:"EXEC" "@[<2>%a@]" As_fmt.pp_text cmd

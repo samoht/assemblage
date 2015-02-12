@@ -46,13 +46,13 @@ end
 type path = As_path.t (* to avoid assemblage.mli confusion *)
 
 module Path : sig
-  val exists : As_path.t -> bool result
+  val exists : ?err:bool -> As_path.t -> bool result
   val move : ?force:bool -> As_path.t -> As_path.t -> unit result
 end
 
 module File : sig
   val dev_null : As_path.t
-  val exists : As_path.t -> bool result
+  val exists : ?err:bool -> As_path.t -> bool result
   val delete : ?maybe:bool -> As_path.t -> unit result
   val temp : ?dir:As_path.t -> string -> As_path.t result
   val with_inf : (in_channel -> 'a -> 'b result) -> As_path.t -> 'a -> 'b result
@@ -67,7 +67,7 @@ module File : sig
 end
 
 module Dir : sig
-  val exists : As_path.t -> bool result
+  val exists : ?err:bool -> As_path.t -> bool result
   val getcwd : unit -> As_path.t result
   val chdir : As_path.t -> unit result
   val fold_files_rec : ?skip:string list -> (string -> 'a -> 'a result) ->
@@ -96,7 +96,7 @@ val get_env : string -> string result
 
 (** {1 Executing commands} *)
 
-val exists : string -> bool result
+val exists : ?err:bool -> string -> bool result
 val exec_ret : string -> string list -> int
 val exec : string -> string list -> unit result
 val read : ?trim:bool -> string -> string list -> string result
