@@ -15,13 +15,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let str = Printf.sprintf
+open Astring
 
 let run_ocamlfind ocamlfind name =
   let open As_cmd.Infix in
-  let err pkg = str "Could not lookup ocamlfind package %s" name in
+  let err pkg = strf "Could not lookup ocamlfind package %s" name in
   let args preds =
-    let preds = String.concat "," @@ match name with
+    let preds = String.concat ~sep:"," @@ match name with
       | "threads.posix" -> "mt" :: "mt_posix" :: preds
       | "threads.vm" -> "mt" :: "mt_vm" :: preds
       | _ -> preds
@@ -49,12 +49,12 @@ type pkg =
 
 let parse_lines (byte, native, pp) =
   let add_line (i, o, f as acc) l =
-    match As_string.split ~sep:"|" l with
+    match String.cuts ~sep:"|" l with
     | [dir; objs; flags] ->
-        let objs = As_string.split ~sep:" " objs in
+        let objs = String.cuts ~sep:" " objs in
         let objs = List.filter ((<>)"") objs in
-        let objs = List.map (fun obj -> str "%s/%s" dir obj) objs in
-        let flags = As_string.split ~sep:" " flags in
+        let objs = List.map (fun obj -> strf "%s/%s" dir obj) objs in
+        let flags = String.cuts ~sep:" " flags in
         let flags = List.filter ((<>)"") flags in
         dir :: "-I" :: i, List.rev_append objs o, List.rev_append flags f
     | _ ->
@@ -63,8 +63,8 @@ let parse_lines (byte, native, pp) =
   in
   let parse lines =
     let i, o, f = List.fold_left add_line ([], [], []) lines in
-    List.rev (As_string.uniquify i),
-    List.rev (As_string.uniquify o),
+    List.rev (String.uniquify i),
+    List.rev (String.uniquify o),
     List.rev f
   in
   let byte_incs, byte_objs, byte_link = parse byte in

@@ -14,7 +14,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let str = Printf.sprintf
+open Astring
 
 (* Configuration value converters. *)
 
@@ -265,7 +265,7 @@ let find c k =
   with Not_found -> None
 
 let get c k = match find c k with
-| None -> invalid_arg (str "no key named %s in configuration" (Key.name k))
+| None -> invalid_arg (strf "no key named %s in configuration" (Key.name k))
 | Some v -> v
 
 let domain c = Key.Map.dom c.Def.map
@@ -296,7 +296,7 @@ let def k v = D (k, `Const v)
 let defv k v = D (k, `Value v)
 
 let scheme ?doc ?base name defs =
-  let doc = match doc with None -> str "The %s scheme." name | Some d -> d in
+  let doc = match doc with None -> strf "The %s scheme." name | Some d -> d in
   let init = match base with None -> empty | Some (_, (_, conf)) -> conf in
   let add acc (D (k, v)) =
     let v = match v with `Const v -> const v | `Value v -> v in
@@ -326,48 +326,47 @@ let path_kind conv to_string err =
   parse, print
 
 let rel_path =
-  let err s = str "`%s' is not a relative path." s in
+  let err s = strf "`%s' is not a relative path." s in
   path_kind As_path.to_rel As_path.Rel.to_string err
 
 let abs_path =
-  let err s = str "`%s' is not an absolute path." s in
+  let err s = strf "`%s' is not an absolute path." s in
   path_kind As_path.to_abs As_path.Abs.to_string err
 
 let version : (int * int * int * string option) converter =
   let parser s =
     try
-      let slice = As_string.slice in
-      let s = if s.[0] = 'v' || s.[0] = 'V' then slice ~start:1 s else s in
-      let dot = try String.index s '.' with Not_found -> raise Exit in
-      let maj, s = slice ~stop:dot s, slice ~start:(dot + 1) s in
-      let dot = try Some (String.index s '.') with Not_found -> None in
-      let sep =
-        let plus = try Some (String.index s '+') with Not_found -> None in
-        let minus = try Some (String.index s '-') with Not_found -> None in
-        match plus, minus with
-        | Some i0, Some i1 -> Some (min i0 i1)
-        | Some i, None | None, Some i -> Some i
-        | None, None -> None
+      let parse_opt_v s = match String.Sub.head s with
+      | Some ('v'|'V') -> String.Sub.tail s
+      | Some _ -> s
+      | None -> raise Exit
       in
-      let min, patch, info = match dot, sep with
-      | Some dot, Some sep when dot < sep ->
-          slice ~stop:dot s,
-          slice ~start:(dot + 1) ~stop:sep s,
-          Some (slice ~start:sep s)
-      | (Some _ | None) , Some sep ->
-          slice ~stop:sep s, "0", Some (slice ~start:sep s)
-      | Some dot, None ->
-          slice ~stop:dot s, slice ~start:(dot + 1) s, None
-      | None, None ->
-          s, "0", None
+      let parse_dot s = match String.Sub.head s with
+      | Some '.' -> String.Sub.tail s
+      | Some _ | None -> raise Exit
       in
-      let maj = try int_of_string maj with Failure _ -> raise Exit in
-      let min = try int_of_string min with Failure _ -> raise Exit in
-      let patch = try int_of_string patch with Failure _ -> raise Exit in
+      let parse_int s =
+        match String.Sub.min_span ~min:1 ~sat:Char.Ascii.is_digit s with
+        | None -> raise Exit
+        | Some (i, s) ->
+            match String.Sub.to_int i with
+            | None -> raise Exit | Some i -> i, s
+      in
+      let maj, s = parse_int (parse_opt_v (String.sub s)) in
+      let min, s = parse_int (parse_dot s) in
+      let patch, s = match String.Sub.head s with
+      | Some '.' -> parse_int (parse_dot s)
+      | _ -> 0, s
+      in
+      let info = match String.Sub.head s with
+      | Some ('+' | '-') -> Some (String.Sub.(to_string (tail s)))
+      | Some _ -> raise Exit
+      | None -> None
+      in
       `Ok (maj, min, patch, info)
     with Exit ->
-      let err = str "invalid value `%s', expected a version number of the \
-                     form [v|V]majoAr.minor[.patch][(+|-)info]." s
+      let err = strf "invalid value `%s', expected a version number of the \
+                      form [v|V]majoAr.minor[.patch][(+|-)info]." s
       in
       `Error err
   in
@@ -381,7 +380,7 @@ let version : (int * int * int * string option) converter =
 
 open As_cmd.Infix
 
-let err_det this = str "Could not determine %s." this
+let err_det this = strf "Could not determine %s." this
 
 (* Build directories keys *)
 
@@ -434,7 +433,7 @@ let project_version =
 
 let utility_key ?exec ~docs name =
   let exec = match exec with None -> const name | Some e -> e in
-  let doc = str "The %s utility." name in
+  let doc = strf "The %s utility." name in
   key name string exec ~doc ~docv:"BIN" ~docs
 
 (* Machine information keys *)
@@ -456,7 +455,7 @@ let host_os =
   let get_os uname = match Sys.os_type with
   | "Win32" -> "Win32"
   | _ ->
-      As_cmd.read uname [ "-s" ] >>| String.lowercase
+      As_cmd.read uname [ "-s" ] >>| String.Ascii.lowercase
       |> As_cmd.reword_error (err_det "host machine operating system name")
       |> As_cmd.on_error ~use:"unknown"
   in
@@ -472,7 +471,7 @@ let host_arch =
   let get_arch uname =
     begin match Sys.os_type with
     | "Win32" -> As_cmd.get_env "PROCESSOR_ARCHITECTURE"
-    | _ -> As_cmd.read uname [ "-m" ] >>| String.lowercase
+    | _ -> As_cmd.read uname [ "-m" ] >>| String.Ascii.lowercase
     end
     |> As_cmd.reword_error (err_det "host machine hardware architecture")
     |> As_cmd.on_error ~use:"unknown"
@@ -593,8 +592,8 @@ let ocaml_native_tools =
   ocaml_system_key "ocaml-native-tools" bool (const true) ~doc ~docv:"BOOL"
 
 let ocaml_system_utility_maybe_opt exec =
-  let doc = str "The %s utility." exec in
-  let bin native = if native then str "%s.opt" exec else exec in
+  let doc = strf "The %s utility." exec in
+  let bin native = if native then strf "%s.opt" exec else exec in
   let bin = const bin $ value ocaml_native_tools in
   ocaml_system_key exec string bin ~doc ~docv:"BIN"
 

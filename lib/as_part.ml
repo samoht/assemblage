@@ -15,7 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let str = Format.asprintf
+open Astring
 
 (* Part kinds *)
 
@@ -88,21 +88,15 @@ let alloc_root =
      parts that are integrated in others as in this case their build
      products should not be referenced by other parts except through
      the integrating part. *)
-  let allocated = ref As_string.Set.empty in
+  let allocated = ref String.Set.empty in
   fun kind usage name ->
     let part_root =
       let root = match usage with
-      | `Outcome -> str "%a-%s" pp_kind kind name
-      | u -> str "%a-%a-%s" pp_kind kind pp_usage u name
+      | `Outcome -> strf "%a-%s" pp_kind kind name
+      | u -> strf "%a-%a-%s" pp_kind kind pp_usage u name
       in
-      let root = match As_string.make_unique_in !allocated root with
-      | Some root -> root
-      | None ->
-          As_log.warn "%a" As_fmt.pp_doomed
-            (str "could not find a unique directory root for %s" root);
-          root
-      in
-      allocated := As_string.Set.add root !allocated;
+      let root = String.make_unique_in !allocated root in
+      allocated := String.Set.add root !allocated;
       root
     in
     let in_build_dir build = As_path.Rel.(build / part_root) in

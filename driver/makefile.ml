@@ -15,7 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let str = Printf.sprintf
+open Astring
 
 (* Variables *)
 
@@ -68,7 +68,7 @@ let buf_add_strings ?(max = 76) ?(nl = "\\\n") ?(indent = "    ") b count ss =
       let new_len = String.length d + count + 1 in
       if new_len > max && count > indent_len && not first
       then begin
-        Buffer.add_string b (str "%s%s" nl indent); loop false indent_len defs
+        Buffer.add_string b (strf "%s%s" nl indent); loop false indent_len defs
       end else begin
         Buffer.add_string b d;
         if ds <> [] then (Buffer.add_char b ' '; loop false new_len ds)
@@ -109,7 +109,7 @@ let buf_add_rule b { ext; targets; prereqs; order_only_prereqs; recipe } =
 let buf_add_comment b c =
   let indent = "# " in
   Buffer.add_string b indent;
-  buf_add_strings ~nl:"\n" ~indent b 2 (As_string.split ~sep:" " c);
+  buf_add_strings ~nl:"\n" ~indent b 2 (String.cuts ~sep:" " c);
   Buffer.add_char b '\n';
   ()
 

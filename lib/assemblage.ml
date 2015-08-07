@@ -15,9 +15,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-(* Perliminaries *)
+(* Pereliminaries *)
 
-module String = As_string
+include Astring
+
 module Fmt = As_fmt
 module Path = As_path
 module Log = As_log
