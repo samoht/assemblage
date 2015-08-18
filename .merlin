@@ -2,6 +2,7 @@
 
 PKG assemblage
 PKG astring
+PKG fmt
 PKG bytes
 PKG cmdliner
 PKG compiler-libs.toplevel

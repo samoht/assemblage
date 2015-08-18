@@ -22,7 +22,7 @@ open Assemblage_tools
 let str = Printf.sprintf
 
 let write file s =
-  let pp_arrow = Fmt.(pp_styled `Green pp_rarrow) in
+  let pp_arrow = Fmt.(styled `Green @@ verbatim "==>") in
   Log.show "%a write %s" pp_arrow () (Path.to_string file);
   Cmd.on_error ~use:() @@
   Cmd.File.write file s;

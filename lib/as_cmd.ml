@@ -30,7 +30,7 @@ let get = function `Ok v -> v | `Error msg -> invalid_arg (err_error msg)
 let ignore_error ~use r = match r with `Ok v -> v | `Error _ -> use
 let on_error ?(level = As_log.Error) ~use r = match r with
 | `Ok v -> v
-| `Error msg -> As_log.kmsg (fun () -> use) level "@[%a@]" As_fmt.pp_text msg
+| `Error msg -> As_log.kmsg (fun () -> use) level "@[%a@]" Fmt.text msg
 
 let reword_error ?(replace = false) msg r = match r with
 | `Ok _ as r -> r
@@ -271,7 +271,7 @@ let exists ?err cmd =
     ret_exists ?err err_msg cmd exists
   with Sys_error e -> error e
 
-let trace cmd = As_log.info ~header:"EXEC" "@[<2>%a@]" As_fmt.pp_text cmd
+let trace cmd = As_log.info ~header:"EXEC" "@[<2>%a@]" Fmt.text cmd
 let mk_cmd cmd args = String.concat ~sep:" " (cmd :: args)
 
 let execute cmd = trace cmd; Sys.command cmd

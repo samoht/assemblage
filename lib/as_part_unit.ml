@@ -28,7 +28,7 @@ type kind =
   | `C of c_unit
   | `Js ]
 
-let pp_kind ppf k = As_fmt.pp_str ppf begin match k with
+let pp_kind ppf k = Fmt.string ppf begin match k with
   | `OCaml _ -> "OCaml" | `C _ -> "C" | `Js -> "JavaScript"
   end
 

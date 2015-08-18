@@ -176,10 +176,10 @@ module Key = struct
   end
 end
 
-let pp_key_dup ppf (Key.V k) = As_fmt.pp ppf
+let pp_key_dup ppf (Key.V k) = Fmt.pf ppf
     "Key name `%s'@ not unique@ in@ the@ configuration." (Key.name k)
 
-let pp_miss_key ppf (Key.V k) = As_fmt.pp ppf
+let pp_miss_key ppf (Key.V k) = Fmt.pf ppf
     "Key@ `%s'@ not@ found@ in@ configuration.@ \
      The@ key's@ default@ value@ will@ be@ used." (Key.name k)
 
@@ -283,10 +283,9 @@ let pp ppf c =
   let pp_binding ppf (Key.V k, v) =
     let v = match Key.of_univ k v with None -> assert false | Some v -> v in
     let v = eval c v in
-    As_fmt.pp ppf "@[%s@ = @[%a@]@]"
-      (Key.name k) (printer (Key.converter k)) v
+    Fmt.pf ppf "@[%s@ = @[%a@]@]" (Key.name k) (printer (Key.converter k)) v
   in
-  As_fmt.pp ppf "@[<v>%a@]" (As_fmt.pp_list pp_binding) defs
+  Fmt.pf ppf "@[<v>%a@]" (Fmt.list pp_binding) defs
 
 (* Configuration schemes *)
 
@@ -314,7 +313,7 @@ let enum = Cmdliner.Arg.enum
 
 let path =
   let parse s = `Ok (As_path.of_string s) in
-  let print ppf v = As_fmt.pp_str ppf (As_path.to_string v) in
+  let print = As_path.pp in
   parse, print
 
 let path_kind conv to_string err =
@@ -322,7 +321,7 @@ let path_kind conv to_string err =
   | None -> `Error (err s)
   | Some p -> `Ok p
   in
-  let print ppf v = As_fmt.pp_str ppf (to_string v) in
+  let print = Fmt.of_to_string to_string in
   parse, print
 
 let rel_path =

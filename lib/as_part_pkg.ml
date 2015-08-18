@@ -26,9 +26,9 @@ type kind =
   | `Other of string * lookup As_conf.value ]
 
 let pp_kind ppf = function
-| `OCamlfind -> As_fmt.pp_str ppf "ocamlfind"
-| `Pkg_config -> As_fmt.pp_str ppf "pkg-config"
-| `Other (n, _) -> As_fmt.pp ppf "%s" n
+| `OCamlfind -> Fmt.string ppf "ocamlfind"
+| `Pkg_config -> Fmt.string ppf "pkg-config"
+| `Other (n, _) -> Fmt.pf ppf "%s" n
 
 type meta = { kind : kind; lookup : lookup As_conf.value; opt : bool }
 

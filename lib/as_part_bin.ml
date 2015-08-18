@@ -21,7 +21,7 @@ let str = Printf.sprintf
 
 type kind = [ `OCaml | `OCaml_toplevel | `C ]
 
-let pp_kind ppf k = As_fmt.pp_str ppf begin match k with
+let pp_kind ppf k = Fmt.string ppf begin match k with
   | `OCaml -> "OCaml" | `OCaml_toplevel -> "OCaml_toplevel" | `C -> "C"
   end
 

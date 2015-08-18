@@ -22,7 +22,7 @@ let str = Format.asprintf
 type kind = [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root
             | `Etc | `Doc | `Stublibs | `Man | `Other of As_path.t ]
 
-let pp_kind ppf kind = As_fmt.pp_str ppf begin match kind with
+let pp_kind ppf kind = Fmt.string ppf begin match kind with
   | `Lib -> "lib" | `Bin -> "bin" | `Sbin -> "sbin" | `Toplevel -> "toplevel"
   | `Share -> "share" | `Share_root -> "share_root" | `Etc -> "etc"
   | `Doc -> "doc" | `Stublibs -> "stublibs" | `Man -> "man"

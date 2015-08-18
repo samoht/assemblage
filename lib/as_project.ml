@@ -95,11 +95,11 @@ let watermark_string ?suffix p =
 
 let pp_signature ppf p =
   let pp_icon = (* UTF-8 <U+0020, U+1F377> *)
-    let pp_icon ppf () = As_fmt.pp ppf " \xF0\x9F\x8D\xB7" in
-    As_fmt.(pp_if_utf8 pp_icon nop)
+    let pp_icon ppf () = Fmt.pf ppf " \xF0\x9F\x8D\xB7" in
+    Fmt.(if_utf_8 pp_icon nop)
   in
-  As_fmt.(pp ppf "%a %s%a"
-            (pp_styled_str `Bold) (name p) (version p) pp_icon ())
+  Fmt.(pf ppf "%a %s%a"
+         (styled_string `Bold) (name p) (version p) pp_icon ())
 
 (* Assembling projects *)
 

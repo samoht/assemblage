@@ -24,8 +24,8 @@ let cargs_exists ca = ca.exists
 let cargs_args ca = ca.args
 let cargs_deps ca = As_conf.(Key.Set.union (deps ca.exists) (deps ca.args))
 let cargs_pp conf ppf ca =
-  As_fmt.pp ppf "@[<1>[exists:%b %a]@]" (As_conf.eval conf ca.exists)
-    As_fmt.(pp_list ~pp_sep:pp_sp pp_str) (As_conf.eval conf ca.args)
+  Fmt.pf ppf "@[<1>[exists:%b %a]@]" (As_conf.eval conf ca.exists)
+    Fmt.(list ~sep:sp string) (As_conf.eval conf ca.args)
 
 (* Argument bundles *)
 
@@ -72,10 +72,10 @@ let for_ctx conf ctx a =
 
 let pp conf ppf args =
   let pp_binding ppf (ctx, cargs) =
-    As_fmt.pp ppf "@[<2>%a %a@]"
-      As_ctx.pp ctx As_fmt.(pp_list ~pp_sep:pp_sp (cargs_pp conf)) cargs
+    Fmt.pf ppf "@[<2>%a %a@]"
+      As_ctx.pp ctx Fmt.(list ~sep:sp (cargs_pp conf)) cargs
   in
-  As_fmt.pp ppf "@[<v>%a@]" As_fmt.(pp_list pp_binding) (Cmap.bindings args)
+  Fmt.pf ppf "@[<v>%a@]" Fmt.(list pp_binding) (Cmap.bindings args)
 
 (* Built-in argument bundles *)
 

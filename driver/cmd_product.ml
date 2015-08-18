@@ -71,23 +71,23 @@ let refs proj kind selection details =
   let index = index proj in
   let refs = Path.Map.bindings (find_refs index kind selection) in
   let pp_ref key ppf (part, act) =
-    Fmt.pp ppf "%s %a - %s"
+    Fmt.pf ppf "%s %a - %s"
       (Part.name part) Part.pp_kind (Part.kind part) (Path.to_string key)
   in
   let pp_ref_details key ppf (part, act) =
-      Fmt.pp ppf "@[<v>%s@,    part: @[%a %s@]@, @[%a@]@]@,"
+      Fmt.pf ppf "@[<v>%s@,    part: @[%a %s@]@, @[%a@]@]@,"
         (Path.to_string key) Part.pp_kind (Part.kind part)
         (Part.name part) (Action.pp (Project.conf proj)) act
   in
   let pp_ref = if details then pp_ref_details else pp_ref in
-  let pp_refs ppf (k, refs) = Fmt.pp ppf "%a" (Fmt.pp_list (pp_ref k)) refs in
-  Format.printf "@[<v>%a@]@." (Fmt.pp_list pp_refs) refs;
+  let pp_refs ppf (k, refs) = Fmt.pf ppf "%a" (Fmt.list (pp_ref k)) refs in
+  Fmt.pr "@[<v>%a@]@." (Fmt.list pp_refs) refs;
   `Ok ()
 
 let list proj kind =
   let products = Path.Set.elements (Project.products ~kind proj) in
   let pp_product ppf p = Path.pp ppf p in
-  Format.printf "@[<v>%a@]@." (Fmt.pp_list pp_product) products;
+  Fmt.pr "@[<v>%a@]@." (Fmt.list pp_product) products;
   `Ok ()
 
 let product cmd kind selection details p = match cmd with

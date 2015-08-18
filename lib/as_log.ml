@@ -52,13 +52,12 @@ let kmsg ?header k l fmt =
   let k _ = k () in
   if not (should_log l) then Format.ikfprintf k dumb fmt else
   let pp_msg ppf style label fmt =
-    Format.kfprintf k ppf
-      ("[%a] @[" ^^ fmt ^^ "@]@.") (As_fmt.pp_styled_str style) label
+    Fmt.kpf k ppf ("[%a] @[" ^^ fmt ^^ "@]@.") (Fmt.styled_string style) label
   in
   match l with
   | Show ->
       begin match header with
-      | None -> Format.kfprintf k !show_ppf ("@[" ^^ fmt ^^ "@]@.")
+      | None -> Fmt.kpf k !show_ppf ("@[" ^^ fmt ^^ "@]@.")
       | Some h -> pp_msg !show_ppf `Bold h fmt
       end
   | Error ->
@@ -72,7 +71,7 @@ let kmsg ?header k l fmt =
 
 let msg ?header l fmt = kmsg ?header (fun () -> ()) l fmt
 let msg_driver_fault ?header l fmt =
-  msg ?header l ("[%a] " ^^ fmt) (As_fmt.pp_styled_str `Red) "DRIVER FAULT"
+  msg ?header l ("[%a] " ^^ fmt) (Fmt.styled_string `Red) "DRIVER FAULT"
 
 let show ?header fmt = msg ?header Show fmt
 let err ?header fmt = msg ?header Error fmt

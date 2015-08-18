@@ -19,7 +19,7 @@
 
 include Astring
 
-module Fmt = As_fmt
+module Fmt = Fmt
 module Path = As_path
 module Log = As_log
 module Cmd = As_cmd
@@ -89,7 +89,6 @@ let assemble = Project.assemble
 (* Private API *)
 
 module Private = struct
-  module Fmt = As_fmt
   module Log = As_log
   module Cmd = As_cmd
   module Conf = As_conf
