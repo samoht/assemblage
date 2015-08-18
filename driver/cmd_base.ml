@@ -18,13 +18,11 @@
 open Assemblage
 open Assemblage.Private
 open Assemblage_driver
-open Cmdliner;;
-
-let str = Printf.sprintf
+open Cmdliner
 
 let err_multi_project ~using =
-  str "Unsupported: multiple projects assembled in the loaded files. \
-       Using the project named `%s' and ignoring the others."
+  strf "Unsupported: multiple projects assembled in the loaded files. \
+        Using the project named `%s' and ignoring the others."
     (Project.name using)
 
 let err_no_project files =
@@ -47,8 +45,8 @@ let help_sections =
 
 let see_also_section cmds =
   if cmds = [] then [] else
-  let see_also = List.map (str "$(b,$(mname)-%s)(1)") cmds in
-  let see_also = String.concat ", " ("$(b,$(mname))(1)" :: see_also) in
+  let see_also = List.map (strf "$(b,$(mname)-%s)(1)") cmds in
+  let see_also = String.concat ~sep:", " ("$(b,$(mname))(1)" :: see_also) in
   [ `S "SEE ALSO"; `P see_also ]
 
 let default_cmd init =

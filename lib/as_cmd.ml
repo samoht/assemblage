@@ -14,11 +14,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let str = Printf.sprintf
+open Astring
 
 (* Command and IO operation results *)
 
-let err_error msg = str "result value is (`Error %S)" msg
+let err_error msg = strf "result value is (`Error %a)" String.pp msg
 
 type 'a result = [ `Ok of 'a | `Error of string ]
 
@@ -35,7 +35,7 @@ let on_error ?(level = As_log.Error) ~use r = match r with
 let reword_error ?(replace = false) msg r = match r with
 | `Ok _ as r -> r
 | `Error _ when replace -> `Error msg
-| `Error old -> `Error (str "%s\n%s" msg old)
+| `Error old -> `Error (strf "%s\n%s" msg old)
 
 let exn_msg bt _ _ = Printexc.raw_backtrace_to_string bt
 let exn_error ?(msg = exn_msg) f v = try `Ok (f v) with
@@ -67,13 +67,13 @@ module Path = struct
   let exists ?err p =
     try
       let p = path_str p in
-      let err_msg p = str "%s: no such path" p in
+      let err_msg p = strf "%s: no such path" p in
       ret_exists ?err err_msg p (Sys.file_exists p)
     with Sys_error e -> error e
 
   let err_move src dst =
     let src, dst = (path_str src), (path_str dst) in
-    error (str "move %s to %s: destination exists" src dst)
+    error (strf "move %s to %s: destination exists" src dst)
 
   let move ?(force = false) src dst =
     (if force then ret false else exists dst) >>= fun don't ->
@@ -105,7 +105,7 @@ module File = struct
   let exists ?err file =
     try
       let file = path_str file in
-      let err_msg file = str "%s: no such file" file in
+      let err_msg file = strf "%s: no such file" file in
       let exists = Sys.file_exists file && not (Sys.is_directory file) in
       ret_exists ?err err_msg file exists
     with
@@ -146,7 +146,7 @@ module File = struct
     in
     with_inf input file ()
 
-  let read_lines file = read file >>| (As_string.split ~sep:"\n")
+  let read_lines file = read file >>| (String.cuts ~sep:"\n")
 
   (* Output *)
 
@@ -165,7 +165,7 @@ module File = struct
     >>= fun tmpf -> with_outf write tmpf contents
     >>= fun () -> Path.move ~force:true tmpf file
 
-  let write_lines file lines = write file (String.concat "\n" lines)
+  let write_lines file lines = write file (String.concat ~sep:"\n" lines)
 
   let write_subst vars file contents =
     let write_subst oc contents =                     (* man that's ugly. *)
@@ -185,8 +185,8 @@ module File = struct
               then (incr last_id)
               else (stop := true; last := !last_id)
             end else begin
-              let id_start = start_subst + 2 in
-              let id = String.sub s (id_start) (!last_id - id_start) in
+              let start_id = start_subst + 2 in
+              let id = String.with_pos_range s ~start:start_id ~stop:!last_id in
               try
                 let subst = List.assoc id vars in
                 Pervasives.output oc s !start (start_subst - !start);
@@ -216,7 +216,7 @@ module Dir = struct
   let exists ?err dir =
     try
       let dir = path_str dir in
-      let err_msg file = str "%s: no such directory" dir in
+      let err_msg file = strf "%s: no such directory" dir in
       let exists = Sys.file_exists dir && Sys.is_directory dir in
       ret_exists ?err err_msg dir exists
     with Sys_error e -> error e
@@ -255,7 +255,7 @@ end
 
 let env var = try Some (Sys.getenv var) with Not_found -> None
 let get_env var = try `Ok (Sys.getenv var) with
-| Not_found -> `Error (str "environment variable `%s' undefined" var)
+| Not_found -> `Error (strf "environment variable `%s' undefined" var)
 
 (* Commands *)
 
@@ -266,34 +266,34 @@ let exists ?err cmd =
     let null = path_str File.dev_null in
     (* Using Sys.os_type, because that's really for the driver. *)
     let test = match Sys.os_type with "Win32" -> "where" | _ -> "type" in
-    let err_msg cmd = str "%s: no such command" cmd in
-    let exists = Sys.command (str "%s %s 1>%s 2>%s" test cmd null null) = 0 in
+    let err_msg cmd = strf "%s: no such command" cmd in
+    let exists = Sys.command (strf "%s %s 1>%s 2>%s" test cmd null null) = 0 in
     ret_exists ?err err_msg cmd exists
   with Sys_error e -> error e
 
 let trace cmd = As_log.info ~header:"EXEC" "@[<2>%a@]" As_fmt.pp_text cmd
-let mk_cmd cmd args = String.concat " " (cmd :: args)
+let mk_cmd cmd args = String.concat ~sep:" " (cmd :: args)
 
 let execute cmd = trace cmd; Sys.command cmd
 let exec_ret cmd args = execute (mk_cmd cmd args)
 let handle_ret cmd = match execute cmd with
 | 0 -> ret ()
-| c -> error (str "Exited with code: %d `%s'" c cmd)
+| c -> error (strf "Exited with code: %d `%s'" c cmd)
 
 let exec cmd args = handle_ret (mk_cmd cmd args)
 let read ?(trim = true) cmd args =
   let cmd = mk_cmd cmd args in
   File.temp "cmd-read"
-  >>= fun file -> handle_ret (str "%s > %s" cmd (path_str file))
+  >>= fun file -> handle_ret (strf "%s > %s" cmd (path_str file))
   >>= fun () -> File.read file
-  >>= fun v -> ret (if trim then As_string.trim v else v)
+  >>= fun v -> ret (if trim then String.trim v else v)
 
-let read_lines cmd args = read cmd args >>| As_string.split ~sep:"\n"
+let read_lines cmd args = read cmd args >>| String.cuts ~sep:"\n"
 
 let write cmd args file =
   let cmd = mk_cmd cmd args in
   File.temp "cmd-write"
-  >>= fun tmpf -> handle_ret (str "%s > %s" cmd (path_str tmpf))
+  >>= fun tmpf -> handle_ret (strf "%s > %s" cmd (path_str tmpf))
   >>= fun () -> Path.move ~force:true tmpf file
 
 (* Version control systems operations *)
@@ -356,7 +356,7 @@ module Vcs = struct
   let hg_id root_dir =
     hg root_dir [ "id"; "-i" ] >>= fun id ->
     let is_dirty = String.length id > 0 && id.[String.length id - 1] = '+' in
-    let id = if is_dirty then As_string.slice ~stop:(-1) id else id in
+    let id = if is_dirty then String.slice ~stop:(-1) id else id in
     ret (id, is_dirty)
 
   let hg_head mark_dirty root_dir =

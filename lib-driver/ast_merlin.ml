@@ -18,7 +18,6 @@
 open Assemblage
 open Assemblage.Private
 
-let str = Printf.sprintf
 
 (* Merlin project file *)
 
@@ -37,8 +36,8 @@ let to_string m =
   | `S s -> pr "S %s\n" s
   | `B bdir -> pr "B %s\n" bdir
   | `PKG pkg -> pr "PKG %s\n" pkg
-  | `FLG flags -> pr "FLG %s\n" (String.concat " " flags)
-  | `EXT exts -> pr "EXT %s\n" (String.concat " " exts)
+  | `FLG flags -> pr "FLG %s\n" (String.concat ~sep:" " flags)
+  | `EXT exts -> pr "EXT %s\n" (String.concat ~sep:" " exts)
   | `REC -> pr "REC\n"
   in
   List.iter add m;

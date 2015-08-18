@@ -26,7 +26,10 @@ module Conf_spec = struct
 
   (* Configuration specification *)
 
-  let uppercase = function None -> None | Some s -> Some (String.uppercase s)
+  let uppercase = function
+  | None -> None
+  | Some s -> Some (String.Ascii.uppercase s)
+
   let value_converter_of_converter (parse, _) =
     let parse s = match parse s with
     | `Ok v -> `Ok (Some (Conf.const v)) | `Error _ as e -> e
@@ -41,18 +44,13 @@ module Conf_spec = struct
       if not (Conf.Key.public k) then (names, acc) else
       let name =
         let name = Conf.Key.name k in
-        if not (As_string.Set.mem name names) then name else
+        if not (String.Set.mem name names) then name else
         begin
           Log.warn "%a" Conf.pp_key_dup (Conf.Key.V k);
-          match As_string.make_unique_in names name with
-          | Some name -> name
-          | None ->
-              Log.warn "%a" Fmt.pp_doomed
-                (str "could not find a unique key option name for %s" name);
-              name
+          String.make_unique_in names name
         end
       in
-      let names' = As_string.Set.add name names in
+      let names' = String.Set.add name names in
       let c = value_converter_of_converter (Conf.Key.converter k) in
       (* We suffix the name to avoid end-user clashes with other options *)
       let opt_name = str "%s-key" name in
@@ -65,7 +63,7 @@ module Conf_spec = struct
       let acc' = Term.(pure set $ acc $ pure k $ opt) in
       (names', acc')
     in
-    let acc = (As_string.Set.empty, Cmdliner.Term.pure Conf.empty) in
+    let acc = (String.Set.empty, Cmdliner.Term.pure Conf.empty) in
     snd (Conf.Key.Set.fold add (Conf.domain c) acc)
 
   let builtin_sections =
@@ -94,7 +92,7 @@ module Conf_spec = struct
     in
     let add_section acc (title, doc) =
       if not (String.Set.mem title conf_sections) then acc else
-      `P doc :: `S (String.uppercase title) :: acc
+      `P doc :: `S (String.Ascii.uppercase title) :: acc
     in
     if Conf.is_empty c then man_empty else
     List.rev (List.fold_left add_section [] builtin_sections)
@@ -196,14 +194,14 @@ module Lib_prefs = struct
   let env_bool e = match Cmd.env e with
   | None -> None
   | Some v ->
-      match String.lowercase v with
+      match String.Ascii.lowercase v with
       | "" | "false" | "0" -> Some false
       | _ -> Some true
 
   let env_enum e enum_def = match Cmd.env e with
   | None -> None
   | Some v ->
-      let v = String.lowercase v in
+      let v = String.Ascii.lowercase v in
       try Some (List.assoc v enum_def) with Not_found -> None
 
   let var_color = "ASSEMBLAGE_COLOR"
