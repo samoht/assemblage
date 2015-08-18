@@ -148,5 +148,5 @@ let terms cmds =
       | [p] -> cmds_terms t (Some p) cmds
       |  ps ->
           let p = List.hd ps in
-          Log.warn "%a" Fmt.pp_text (err_multi_project ~using:p);
+          Log.warn "%a" Fmt.text (err_multi_project ~using:p);
           cmds_terms t (Some p) cmds

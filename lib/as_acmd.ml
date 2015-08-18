@@ -42,12 +42,13 @@ let stderr c = c.stderr
 let pp ppf c =
   let pp_redir fdname ppf = function
   | None -> ()
-  | Some p -> As_fmt.pp ppf "%s %s" fdname (As_path.to_string p)
+  | Some p -> Fmt.pf ppf "%s %s" fdname (As_path.to_string p)
   in
-  As_fmt.pp ppf "@[%a%s @[%a%a%a%a@]@]"
-    As_fmt.(pp_opt (fun ppf k -> pp ppf "%s:" (As_conf.Key.name k))) (cmd_key c)
+  Fmt.pf ppf "@[%a%s @[%a%a%a%a@]@]"
+    Fmt.(option (fun ppf k -> Fmt.pf ppf "%s:" (As_conf.Key.name k)))
+    (cmd_key c)
     (cmd_name c)
-    As_fmt.(pp_list ~pp_sep:pp_sp pp_str) c.args
+    Fmt.(list ~sep:sp string) c.args
     (pp_redir "<") c.stdin
     (pp_redir "1>") c.stdout
     (pp_redir "2>") c.stderr

@@ -158,12 +158,12 @@ module Lib_prefs = struct
       cmd_vcs_override_exec : string option; }
 
   let pp ppf p =
-    let pp_none ppf () = Fmt.pp_str ppf "none" in
+    let none ppf () = Fmt.string ppf "none" in
     let pp_style_tags ppf = function
-    | `Ansi -> Fmt.pp_str ppf "ansi"
-    | `None -> Fmt.pp_str ppf "none"
+    | `Ansi -> Fmt.string ppf "ansi"
+    | `None -> Fmt.string ppf "none"
     in
-    Fmt.pp ppf "@[<v>@[fmt_utf8_enabled@ = @[%b@]@]@,\
+    Fmt.pf ppf "@[<v>@[fmt_utf8_enabled@ = @[%b@]@]@,\
                      @[fmt_style_tags@ = @[%a@]@]@,\
                      @[log_level@ = @[%a@]@]@,\
                      @[cmd_vcs_override_kind@ = @[%a@]@]@,\
@@ -171,11 +171,11 @@ module Lib_prefs = struct
       p.fmt_utf8_enabled
       pp_style_tags p.fmt_style_tags
       (snd log_level_conv)  p.log_level
-      Fmt.(pp_opt ~pp_none (snd vcs_kind_conv)) p.cmd_vcs_override_kind
-      Fmt.(pp_opt ~pp_none pp_str) p.cmd_vcs_override_exec
+      Fmt.(option ~none (snd vcs_kind_conv)) p.cmd_vcs_override_kind
+      Fmt.(option ~none string) p.cmd_vcs_override_exec
 
   let set c =
-    Fmt.set_utf8_enabled c.fmt_utf8_enabled;
+    Fmt.set_utf_8_enabled c.fmt_utf8_enabled;
     Fmt.set_style_tags c.fmt_style_tags;
     Log.set_level c.log_level;
     Cmd.Vcs.set_override_kind c.cmd_vcs_override_kind;
@@ -183,7 +183,7 @@ module Lib_prefs = struct
     ()
 
   let get () =
-    { fmt_utf8_enabled = Fmt.utf8_enabled ();
+    { fmt_utf8_enabled = Fmt.utf_8_enabled ();
       fmt_style_tags = Fmt.style_tags ();
       log_level = Log.level ();
       cmd_vcs_override_kind = Cmd.Vcs.override_kind ();
@@ -274,10 +274,9 @@ module Loader = struct
       includes : string list;
       files : Path.t list; }
 
-  let pp_kind ppf k = match k with `Toplevel -> Fmt.pp_str ppf "toplevel"
+  let pp_kind ppf k = match k with `Toplevel -> Fmt.string ppf "toplevel"
   let pp ppf l =
-
-    Fmt.pp ppf "@[<v>@[kind@ = @[%a@]@,\
+    Fmt.pf ppf "@[<v>@[kind@ = @[%a@]@,\
                      @[ocamlfind_exec@ = @[%s@]@]@,\
                      @[auto_lib@ = @[%b@]@]@,\
                      @[includes@ = @[%a@]@]@,\
@@ -285,8 +284,8 @@ module Loader = struct
       pp_kind l.kind
       l.ocamlfind_exec
       l.auto_lib
-      Fmt.(pp_list ~pp_sep:pp_sp pp_str) l.includes
-      Fmt.(pp_list ~pp_sep:pp_sp Path.pp) l.files
+      Fmt.(list ~sep:sp string) l.includes
+      Fmt.(list ~sep:sp Path.pp) l.files
 
   open Cmd.Infix
 

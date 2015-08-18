@@ -46,15 +46,15 @@ let add_ctx_args ctx args a =
   { a with ctx = As_ctx.union ctx a.ctx; args = As_args.append args a.args }
 
 let pp conf ppf a =
-  As_fmt.pp ppf
+  Fmt.pf ppf
     "@[<v>    ctx: @[%a@]@, inputs: @[%a@]@,outputs: @[%a@]@,   cmds: @[%a@]\
      @,   args: @[%a@]@,    log: %a@]"
     As_ctx.pp a.ctx
-    As_fmt.(pp_list ~pp_sep:pp_sp As_path.pp) a.inputs
-    As_fmt.(pp_list ~pp_sep:pp_sp As_path.pp) a.outputs
-    As_fmt.(pp_list ~pp_sep:pp_cut As_acmd.pp) a.cmds
+    Fmt.(list ~sep:sp As_path.pp) a.inputs
+    Fmt.(list ~sep:sp As_path.pp) a.outputs
+    Fmt.(list ~sep:cut As_acmd.pp) a.cmds
     (As_args.pp conf) a.args
-    As_fmt.(pp_opt pp_str) a.log
+    Fmt.(option string) a.log
 
 (* Action lists *)
 

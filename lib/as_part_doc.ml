@@ -19,7 +19,7 @@
 
 type kind = [ `OCamldoc ]
 
-let pp_kind ppf k = As_fmt.pp_str ppf begin match k with
+let pp_kind ppf k = Fmt.string ppf begin match k with
   | `OCamldoc -> "ocamldoc"
   end
 
