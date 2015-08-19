@@ -19,6 +19,8 @@
 
     See {!Assemblage.Part}. *)
 
+open Bos
+
 (** {1 Part kinds} *)
 
 type kind = [ `Base | `Unit | `Lib | `Bin | `Pkg | `Run | `Doc | `Dir ]
@@ -40,13 +42,13 @@ val meta_nil : meta
 type +'a t constraint 'a = [< kind ]
 
 val v_kind : ?usage:usage -> ?exists:bool As_conf.value -> ?args:As_args.t ->
-  ?meta:meta -> ?needs:'a t list -> ?root:As_path.rel As_conf.value ->
+  ?meta:meta -> ?needs:'a t list -> ?root:path As_conf.value ->
   ?actions:(kind t -> As_action.t list As_conf.value) ->
   ?check:(kind t -> bool As_conf.value) ->
   string -> ([< kind] as 'b) -> 'b t
 
 val v : ?usage:usage -> ?exists:bool As_conf.value -> ?args:As_args.t ->
-  ?meta:meta -> ?needs:'a t list -> ?root:As_path.rel As_conf.value ->
+  ?meta:meta -> ?needs:'a t list -> ?root:path As_conf.value ->
   ?actions:(kind t -> As_action.t list As_conf.value) ->
   ?check:(kind t -> bool As_conf.value) ->
   string -> [> `Base] t
@@ -58,8 +60,8 @@ val exists : 'a t -> bool As_conf.value
 val meta : 'a t -> meta
 val get_meta : (meta -> 'a option) -> 'b t -> 'a
 val needs : 'a t -> kind t list
-val root : 'a t -> As_path.rel As_conf.value
-val root_path : 'a t -> As_path.t As_conf.value
+val root : 'a t -> path As_conf.value
+val root_path : 'a t -> path As_conf.value
 val args : 'a t -> As_args.t
 val actions : 'a t -> As_action.t list As_conf.value
 val check : 'a t -> bool As_conf.value
@@ -83,7 +85,7 @@ val coerce_if : ([< kind] as 'b) -> 'a t -> 'b t option
 
 (** {1 File part} *)
 
-val file : ?usage:usage -> ?exists:bool As_conf.value -> As_path.t ->
+val file : ?usage:usage -> ?exists:bool As_conf.value -> path ->
   [> `Base] t
 
 (** {1 Part lists} *)

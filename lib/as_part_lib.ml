@@ -15,6 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Bos
+
 (* Metadata *)
 
 type kind = [ `OCaml | `OCaml_pp | `C ]
@@ -64,13 +66,13 @@ let find_unit u p =
   match As_part.list_keep_map is_u (As_part.needs p) with
   | [] -> None
   | [u] -> Some u
-  | us -> As_log.warn warn_unit_dupe u (As_part.name p); Some (List.hd us)
+  | us -> Log.warn warn_unit_dupe u (As_part.name p); Some (List.hd us)
 
 (* Checks *)
 
 let check p =
   let lib = As_part.coerce `Lib p in
-  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind lib);
+  Log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind lib);
   As_conf.true_
 
 (* Actions *)
@@ -79,7 +81,7 @@ let check p =
    add the dep as an input to its actions. *)
 
 let c_actions lib dst_dir unit_actions =
-  As_log.warn "C library part support is TODO";
+  Log.warn "C library part support is TODO";
   As_conf.const []
 
 let ocaml_actions kind lib dst_dir unit_actions =
@@ -87,10 +89,10 @@ let ocaml_actions kind lib dst_dir unit_actions =
       dst_dir unit_actions =
     let open As_acmd.Args in
     let not_pp = kind <> `OCaml_pp in
-    let name = As_path.(dst_dir / As_part.name lib) in
+    let name = Path.(dst_dir / As_part.name lib) in
     let unit_outputs = As_action.list_outputs unit_actions in
-    let cmos = List.rev (List.filter (As_path.has_ext `Cmo) unit_outputs) in
-    let cmx_s = List.rev (List.filter (As_path.has_ext `Cmx) unit_outputs) in
+    let cmos = List.rev (List.filter (Path.ext_is ".cmo") unit_outputs) in
+    let cmx_s = List.rev (List.filter (Path.ext_is ".cmx") unit_outputs) in
     let byte = byte lib && ocaml_byte in
     let native = native lib && ocaml_native && not_pp in
     let shared = native_dynlink lib && ocaml_native_dynlink && not_pp in

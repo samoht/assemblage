@@ -17,6 +17,8 @@
 
 (* Action commands *)
 
+open Bos
+
 type cmd = string As_conf.key option * string
 
 let cmd k = As_conf.(const (fun k v -> Some k, v) $ const k $ value k)
@@ -25,9 +27,9 @@ let static n = None, n
 type t =
   { cmd : cmd;                                                  (* command. *)
     args : string list;                               (* command arguments. *)
-    stdin : As_path.t option;                (* stdin redirection (if any). *)
-    stdout : As_path.t option;              (* stdout redirection (if any). *)
-    stderr : As_path.t option; }            (* stderr redirection (if any). *)
+    stdin : path option;                     (* stdin redirection (if any). *)
+    stdout : path option;                   (* stdout redirection (if any). *)
+    stderr : path option; }                 (* stderr redirection (if any). *)
 
 let v ?stdin ?stdout ?stderr cmd args =
   { cmd; args; stdin; stdout; stderr }
@@ -42,7 +44,7 @@ let stderr c = c.stderr
 let pp ppf c =
   let pp_redir fdname ppf = function
   | None -> ()
-  | Some p -> Fmt.pf ppf "%s %s" fdname (As_path.to_string p)
+  | Some p -> Fmt.pf ppf "%s %s" fdname (Path.to_string p)
   in
   Fmt.pf ppf "@[%a%s @[%a%a%a%a@]@]"
     Fmt.(option (fun ppf k -> Fmt.pf ppf "%s:" (As_conf.Key.name k)))
@@ -72,16 +74,16 @@ module Args = struct
   let fadd_if c f v al = if c then add (f v) al else al
   let fadds_if c f v al = if c then adds (f v) al else al
   let path_arg ?opt p al = match opt with
-  | None -> As_path.to_string p :: al
-  | Some opt -> opt :: As_path.to_string p :: al
+  | None -> Path.to_string p :: al
+  | Some opt -> opt :: Path.to_string p :: al
 
   let path_args ?opt ps al = match opt with
-  | None -> List.rev_append (List.rev_map As_path.to_string ps) al
+  | None -> List.rev_append (List.rev_map Path.to_string ps) al
   | Some opt ->
-      let add acc p = (As_path.to_string p) :: opt :: acc in
+      let add acc p = (Path.to_string p) :: opt :: acc in
       List.rev_append (List.fold_left add [] ps) al
 
-  let path p ~ext = As_path.change_ext p ext
+  let path p ~ext = Path.set_ext p ext
 end
 
 (** {1 Portable system utility invocations} *)
@@ -90,8 +92,8 @@ open Args
 
 let dev_null =
   let dev_null os = match os with
-  | "Win32" -> As_path.file "NUL"
-  | _ -> As_path.(root / "dev" / "null")
+  | "Win32" -> Path.v "NUL"
+  | _ -> Path.(root / "dev" / "null")
   in
   As_conf.(const dev_null $ value host_os)
 
@@ -102,7 +104,8 @@ let cd =
 let ln =
   let make_cmd os ln = match os with
   | "Win32" ->
-      As_log.warn "Symbolic@ links@ unsupported@ copying@ instead.";
+      (* TODO *)
+      Log.warn "Symbolic@ links@ unsupported@ copying@ instead.";
       fun src dst -> v ln (add "/Y" @@ path_arg src @@ path_arg dst @@ [])
   | _ ->
       fun src dst ->
@@ -112,26 +115,12 @@ let ln =
   As_conf.(const make_cmd $ (value host_os) $ (cmd As_conf.ln ))
 
 let ln_rel =
-  (* FIXME here we really mean link src to dst when seen from
-       the empty relative directory. We are using `..` but As_path.t are
-       not supposed to have such segments. Really need to sort out
-       paths. *)
-  let see src ~from:dst = (* src as seen from dst, as short as possible *)
-    let parent = Filename.parent_dir_name in
-    let rec loop src dst = match As_path.Rel.dirname dst with
-    | d when As_path.Rel.is_empty d -> src
-    | d -> loop (As_path.Rel.(base parent // src)) d
-    in
-    match As_path.to_rel src, As_path.to_rel dst with
-    | Some src, Some dst ->
-        let pre = As_path.Rel.find_prefix src dst in
-        let rem p = match As_path.Rel.rem_prefix pre p with
-        | Some p -> p | None -> assert false
-        in
-        As_path.(of_rel (loop (rem src) (rem dst)))
-    | _ -> src
+  let relativize ~root src = (* src as seen from dst, as short as possible *)
+    match Path.relativize ~root src with
+    | None -> assert false (* TODO *)
+    | Some p -> p
   in
-  let make_cmd ln src dst = ln (see src ~from:dst) dst in
+  let make_cmd ln src dst = ln (relativize ~root:dst src) dst in
   let ln_cmd = ln in
   As_conf.(const make_cmd $ ln_cmd)
 

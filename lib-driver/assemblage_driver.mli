@@ -73,10 +73,10 @@ module Lib_prefs : sig
       (** See {!Assemblage.Private.Fmt.style_tags} *)
       log_level : Log.level option;
       (** See {!Assemblage.Private.Log.level} *)
-      cmd_vcs_override_kind : Cmd.Vcs.t option;
-      (** See {!Assemblage.Private.Cmd.Vcs.override_kind} *)
+      cmd_vcs_override_kind : Vcs.t option;
+      (** See {!Assemblage.Private.Vcs.override_kind} *)
       cmd_vcs_override_exec : string option;
-      (** See {!Assemblage.Private.Cmd.Vcs.override_exec} *) }
+      (** See {!Assemblage.Private.Vcs.override_exec} *) }
     (** The type for library preferences. *)
 
   val set : t -> unit
@@ -123,7 +123,7 @@ module Loader : sig
       files : Path.t list;                          (** .ml files to load. *) }
   (** The type for loader settings. TODO: we could add packages to the mix. *)
 
-  val load : ?level:Log.level -> t -> unit Cmd.result
+  val load : ?level:Log.level -> t -> unit Bos.OS.result
   (** [load l] loads according to settings [l]. [level] indicates
       with which level file loads are logged, defaults to {!Level.Info}. *)
 

@@ -20,18 +20,20 @@
 
 (** {1 Actions} *)
 
+open Bos
+
 type t
 
-val v : ?log:string -> ?ctx:As_ctx.t -> ?inputs:As_path.t list ->
-  ?outputs:As_path.t list -> As_acmd.t list -> t
+val v : ?log:string -> ?ctx:As_ctx.t -> ?inputs:path list ->
+  ?outputs:path list -> As_acmd.t list -> t
 
 val ctx : t -> As_ctx.t
-val inputs : t -> As_path.t list
-val outputs : t -> As_path.t list
+val inputs : t -> path list
+val outputs : t -> path list
 val cmds : t -> As_acmd.t list
 val args : t -> As_args.t
 val log : t -> string option
-val products : t -> As_path.t list
+val products : t -> path list
 
 val add_cmds : [`Before | `After] -> As_acmd.t list -> t -> t
 val add_ctx_args : As_ctx.t -> As_args.t -> t -> t
@@ -43,10 +45,10 @@ val pp : As_conf.t -> Format.formatter -> t -> unit
 
 (** {1 Action lists} *)
 
-val list_inputs : t list -> As_path.t list
-val list_outputs : t list -> As_path.t list
-val list_products : t list -> As_path.t list
+val list_inputs : t list -> path list
+val list_outputs : t list -> path list
+val list_products : t list -> path list
 
 (** {1 Build actions} *)
 
-val symlink : (As_path.t -> As_path.t -> t) As_conf.value
+val symlink : (path -> path -> t) As_conf.value

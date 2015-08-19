@@ -12,8 +12,10 @@ tags: ["build system"]
 license: "ISC"
 depends: [
   "ocamlfind"
+  "rresult"
   "astring"
   "fmt"
+  "bos"
   "cmdliner" {>= "0.9.6"}
   "dumpast"
   "sexplib" {test}

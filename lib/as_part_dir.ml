@@ -15,23 +15,24 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let str = Format.asprintf
+open Astring
+open Bos
 
 (* Metadata *)
 
 type kind = [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root
-            | `Etc | `Doc | `Stublibs | `Man | `Other of As_path.t ]
+            | `Etc | `Doc | `Stublibs | `Man | `Other of Path.t ]
 
 let pp_kind ppf kind = Fmt.string ppf begin match kind with
   | `Lib -> "lib" | `Bin -> "bin" | `Sbin -> "sbin" | `Toplevel -> "toplevel"
   | `Share -> "share" | `Share_root -> "share_root" | `Etc -> "etc"
   | `Doc -> "doc" | `Stublibs -> "stublibs" | `Man -> "man"
-  | `Other p -> str "other:%s" (As_path.to_string p)
+  | `Other p -> strf "other:%s" (Path.to_string p)
   end
 
 let name_of_kind = function
-| `Other p -> As_path.basename p
-| kind -> str "%a" pp_kind kind
+| `Other p -> Path.filename p
+| kind -> strf "%a" pp_kind kind
 
 type meta = { kind : kind; install : bool }
 
@@ -49,8 +50,7 @@ let install p = (get_meta p).install
 
 (* Directory specifiers *)
 
-type spec = As_part.kind As_part.t ->
-  (As_path.t * As_path.rel option) list As_conf.value
+type spec = As_part.kind As_part.t -> (path * path option) list As_conf.value
 
 let keep_if kind pred p =
   let keep_if acts =
@@ -74,10 +74,12 @@ let all_input = all As_action.list_inputs
 let all_output = all As_action.list_outputs
 let all = all As_action.list_products
 
-let file_exts exts = keep_if As_action.list_products (As_path.ext_matches exts)
+let file_exts exts =
+  let ext_matches exts p = List.exists (fun ext -> Path.ext_is ext p) exts in
+  keep_if As_action.list_products (ext_matches exts)
 
-let relativize root p = match As_path.rem_prefix root p with
-| None -> As_path.Rel.file (As_path.basename p)
+let relativize root p = match Path.rem_prefix root p with
+| None -> Path.base p
 | Some p -> p
 
 let bin p = match As_part.coerce_if `Bin p with
@@ -87,39 +89,39 @@ let bin p = match As_part.coerce_if `Bin p with
     | `OCaml_toplevel -> all_output p (* FIXME *)
     | `OCaml ->
         let spec ocaml_native root f =
-          let rename f = f, Some (As_path.Rel.rem_ext (relativize root f)) in
-          match As_path.ext f with
-          | Some `Byte when As_part_bin.native bin && ocaml_native -> None
-          | Some `Byte -> Some (rename f)
-          | Some `Native -> Some (rename f)
+          let rename f = f, Some (Path.rem_ext (relativize root f)) in
+          match Path.ext f with
+          | ".byte" when As_part_bin.native bin && ocaml_native -> None
+          | ".byte" -> Some (rename f)
+          | ".native" -> Some (rename f)
           | _ -> None
         in
         keep_map As_action.list_outputs
           As_conf.(const spec $ value ocaml_native $ As_part.root_path bin)
           bin
     | `C ->
-      let is_exec f = As_path.(basename (rem_ext f)) = As_part.name bin in
+      let is_exec f = Path.(filename (rem_ext f)) = As_part.name bin in
       keep_if As_action.list_outputs is_exec bin
 
 
 let warn_miss_unit = format_of_string
     "Library@ part@ %s:@ no@ compilation@ unit@ found@ for@ product@ %s"
 
-let lib_ocaml lib f = match As_path.ext f with
-| None -> None
-| Some (`Cma | `Cmxa | `Cmxs | `A | `So | `Dll) -> Some (f, None)
-| Some (`Cmx | `Cmi | `Cmti as ext) ->
-    let unit_name = As_path.(basename (rem_ext f)) in
+let lib_ocaml lib f = match Path.ext f with
+| "" -> None
+| ".cma" | ".cmxa" | ".cmxs" | ".a" | ".so" | ".dll" -> Some (f, None)
+| (".cmx" | ".cmi" | ".cmti" as ext) ->
+    let unit_name = Path.(filename (rem_ext f)) in
     begin match As_part_lib.find_unit unit_name lib with
     | None ->
-        As_log.warn warn_miss_unit (As_part.name lib) (As_path.to_string f);
+        Log.warn warn_miss_unit (As_part.name lib) (Path.to_string f);
         None
     | Some u ->
         begin match As_part_unit.kind u with
         | `OCaml (_, interface) ->
             begin match ext, interface with
-            | `Cmx, `Normal -> Some (f, None)
-            | (`Cmi | `Cmti), (`Normal | `Opaque) -> Some (f, None)
+            | ".cmx", `Normal -> Some (f, None)
+            | (".cmi" | ".cmti"), (`Normal | `Opaque) -> Some (f, None)
             | _ -> None
             end
         | _ -> None
@@ -131,7 +133,7 @@ let lib p = match As_part.coerce_if `Lib p with
 | None -> all_output p
 | Some lib ->
     match As_part_lib.kind lib with
-    | `C -> file_exts [`Dll; `So; `A] lib
+    | `C -> file_exts [".dll"; ".so"; ".a"] lib
     | `OCaml | `OCaml_pp ->
         keep_map As_action.list_outputs As_conf.(const (lib_ocaml lib)) lib
 
@@ -146,7 +148,7 @@ let check spec p =
   let dir = As_part.coerce `Dir p in
   (* Here we could check for example that the directory specifier
      returns only products that belong to the part itself. *)
-  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind dir);
+  Log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind dir);
   As_conf.true_
 
 (* Actions *)
@@ -158,7 +160,7 @@ let part_links acc symlink exists part_root specs dir_root =
     | Some dst -> dst
     | None -> relativize part_root src
     in
-    symlink src As_path.(dir_root // dst) :: acc
+    symlink src Path.(dir_root // dst) :: acc
   in
   List.fold_left add acc specs
 

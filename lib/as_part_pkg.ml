@@ -15,7 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let str = Printf.sprintf
+open Astring
+open Bos
 
 (* Metadata *)
 
@@ -57,7 +58,7 @@ let other = is_kind `Other
 
 let check p =
   let pkg = As_part.coerce `Pkg p in
-  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind pkg);
+  Log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind pkg);
   As_conf.true_
 
 (* Packages *)

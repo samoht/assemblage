@@ -18,8 +18,6 @@ open Assemblage
 open Assemblage.Private
 open Cmdliner
 
-let str = Printf.sprintf
-
 (* Configuration *)
 
 module Conf_spec = struct
@@ -32,7 +30,7 @@ module Conf_spec = struct
 
   let value_converter_of_converter (parse, _) =
     let parse s = match parse s with
-    | `Ok v -> `Ok (Some (Conf.const v)) | `Error _ as e -> e
+    | Ok v -> `Ok (Some (Conf.const v)) | Error (`Msg msg) -> `Error msg
     in
     let print = Fmt.nop (* config is needed for accurate default values so
                            don't print anything *)
@@ -53,7 +51,7 @@ module Conf_spec = struct
       let names' = String.Set.add name names in
       let c = value_converter_of_converter (Conf.Key.converter k) in
       (* We suffix the name to avoid end-user clashes with other options *)
-      let opt_name = str "%s-key" name in
+      let opt_name = strf "%s-key" name in
       let doc = Conf.Key.doc k in
       let docs = uppercase (Conf.Key.docs k) in
       let docv = Conf.Key.docv k in
@@ -110,7 +108,8 @@ module Conf_spec = struct
     let scheme_name =
       Arg.(value & opt ~vopt conv None & info ["s"; "scheme"]
              ~docs ~docv:"SCHEME"
-             ~doc:(str "Use the given configuration scheme. $(docv) must be %s."
+             ~doc:(strf
+                     "Use the given configuration scheme. $(docv) must be %s."
                      doc_names))
     in
     let select name = match name with
@@ -154,7 +153,7 @@ module Lib_prefs = struct
     { fmt_utf8_enabled : bool;
       fmt_style_tags : [ `Ansi | `None ];
       log_level : Log.level option;
-      cmd_vcs_override_kind : Cmd.Vcs.t option;
+      cmd_vcs_override_kind : Vcs.t option;
       cmd_vcs_override_exec : string option; }
 
   let pp ppf p =
@@ -178,27 +177,27 @@ module Lib_prefs = struct
     Fmt.set_utf_8_enabled c.fmt_utf8_enabled;
     Fmt.set_style_tags c.fmt_style_tags;
     Log.set_level c.log_level;
-    Cmd.Vcs.set_override_kind c.cmd_vcs_override_kind;
-    Cmd.Vcs.set_override_exec c.cmd_vcs_override_exec;
+    Vcs.set_override_kind c.cmd_vcs_override_kind;
+    Vcs.set_override_exec c.cmd_vcs_override_exec;
     ()
 
   let get () =
     { fmt_utf8_enabled = Fmt.utf_8_enabled ();
       fmt_style_tags = Fmt.style_tags ();
       log_level = Log.level ();
-      cmd_vcs_override_kind = Cmd.Vcs.override_kind ();
-      cmd_vcs_override_exec = Cmd.Vcs.override_exec (); }
+      cmd_vcs_override_kind = Vcs.override_kind ();
+      cmd_vcs_override_exec = Vcs.override_exec (); }
 
   (* Environment variables *)
 
-  let env_bool e = match Cmd.env e with
+  let env_bool e = match OS.Env.var e with
   | None -> None
   | Some v ->
       match String.Ascii.lowercase v with
       | "" | "false" | "0" -> Some false
       | _ -> Some true
 
-  let env_enum e enum_def = match Cmd.env e with
+  let env_enum e enum_def = match OS.Env.var e with
   | None -> None
   | Some v ->
       let v = String.Ascii.lowercase v in
@@ -211,26 +210,26 @@ module Lib_prefs = struct
   let var_verbose = "ASSEMBLAGE_VERBOSE"
 
   let man_vars =
-    let doc var doc = `I (str "$(i,%s)" var, doc) in
+    let doc var doc = `I (strf "$(i,%s)" var, doc) in
     [ doc var_color "See option $(b,--color).";
       doc var_utf8_msgs "Use UTF-8 characters in $(mname) messages.";
-      doc var_vcs_kind (str "Override assemblage's VCS discovery. Use %s."
+      doc var_vcs_kind (strf "Override assemblage's VCS discovery. Use %s."
                           vcs_kind_doc);
-      doc var_vcs (str "Specify the VCS executable to use, only used if $(i,%s)
-                        is defined." var_vcs_kind);
+      doc var_vcs (strf "Specify the VCS executable to use, only used if $(i,%s)
+                         is defined." var_vcs_kind);
       doc var_verbose "See option $(b,--verbose)."; ]
 
   (* Command line and environment interface *)
 
   let color_opt docs =
-    let doc = str "Colorize the output. $(docv) must be %s." color_doc in
+    let doc = strf "Colorize the output. $(docv) must be %s." color_doc in
     Arg.(value & opt color_conv `Auto & info ["color"] ~doc ~docv:"WHEN" ~docs)
 
   let verbose_opts docs =
     let verbose =
       Arg.(value & opt ~vopt:(Some Log.Info) log_level_conv (Some Log.Warning) &
            info ["v"; "verbose"] ~docs ~docv:"LEVEL"
-           ~doc:(str "Be more or less verbose. $(docv) must be %s."
+           ~doc:(strf "Be more or less verbose. $(docv) must be %s."
                    log_level_doc))
     in
     let quiet =
@@ -252,7 +251,7 @@ module Lib_prefs = struct
     in
     let log_level = override verb ~on:(env_enum var_verbose log_level_enum) in
     let cmd_vcs_override_kind = env_enum var_vcs vcs_kind_enum in
-    let cmd_vcs_override_exec = Cmd.env var_vcs in
+    let cmd_vcs_override_exec = OS.Env.var var_vcs in
     { fmt_utf8_enabled; fmt_style_tags; log_level; cmd_vcs_override_kind;
       cmd_vcs_override_exec }
 
@@ -287,44 +286,44 @@ module Loader = struct
       Fmt.(list ~sep:sp string) l.includes
       Fmt.(list ~sep:sp Path.pp) l.files
 
-  open Cmd.Infix
 
   let header = "LOADER" (* logging header *)
 
-  let err_missing file = str "%s: no such file to load" (Path.to_string file)
-  let err_loading file = str "%s: error while loading" (Path.to_string file)
+  let err_missing file = R.msgf "%s: no such file to load" (Path.to_string file)
+  let err_loading file = R.msgf "%s: error while loading" (Path.to_string file)
   let err_no_ocamlfind exec =
-    str "ocamlfind command not found (%s was used). Use the \
-         ASSEMBLAGE_OCAMLFIND environment variable to specify the path to \
-         ocamlfind or invoke the driver with --auto-lib=false and use -I to \
-         indicate the path to the assemblage library."
+    strf "ocamlfind command not found (%s was used). Use the \
+          ASSEMBLAGE_OCAMLFIND environment variable to specify the path to \
+          ocamlfind or invoke the driver with --auto-lib=false and use -I to \
+          indicate the path to the assemblage library."
       (Cmdliner.Arg.doc_quote exec)
 
   let check_ocamlfind exec =
-    Cmd.exists exec >>= fun exists ->
-    if exists then Cmd.ret () else Cmd.error (err_no_ocamlfind exec)
+    OS.Cmd.exists exec >>= fun exists ->
+    if exists then Ok () else R.error_msg (err_no_ocamlfind exec)
 
   let all_incs l =
-    if not l.auto_lib then Cmd.ret l.includes else
+    if not l.auto_lib then Ok l.includes else
     check_ocamlfind l.ocamlfind_exec
     >>= fun () ->
-    Cmd.read_lines l.ocamlfind_exec ["query"; "-r"; "assemblage" ]
-    |> Cmd.reword_error "ocamlfind lookup for package `assemblage' failed."
-    >>= fun auto_incs -> Cmd.ret (l.includes @ auto_incs)
+    OS.Cmd.exec_read_lines l.ocamlfind_exec ["query"; "-r"; "assemblage" ]
+    |> R.reword_error_msg
+      (fun _ -> R.msg "ocamlfind lookup for package `assemblage' failed.")
+    >>= fun auto_incs -> Ok (l.includes @ auto_incs)
 
   let toplevel_load level l =
     let add_include inc =
       Log.debug ~header "include: %s" inc; Topdirs.dir_directory inc
     in
     let rec loop = function
-    | [] -> Cmd.ret ()
+    | [] -> Ok ()
     | f :: fs ->
-        Cmd.File.exists f >>= fun exists ->
-        if not exists then Cmd.error (err_missing f) else
+        OS.File.exists f >>= fun exists ->
+        if not exists then Error (err_missing f) else
         let file = Path.to_string f in
         Log.msg level "Loading file %s" file;
         match Toploop.use_silently Format.err_formatter file with
-        | false -> Cmd.error (err_loading f)
+        | false -> Error (err_loading f)
         | true -> loop fs
     in
     Toploop.initialize_toplevel_env ();
@@ -340,13 +339,20 @@ module Loader = struct
   let var_ocamlfind = "ASSEMBLAGE_OCAMLFIND"
 
   let man_vars ?kinds () =
-    let doc var doc = `I (str "$(i,%s)" var, doc) in
+    let doc var doc = `I (strf "$(i,%s)" var, doc) in
     [ doc var_ocamlfind "Specify the ocamlfind executable to use when loading
                          assemble files. Note that this is different from
                          the ocamlfind configuration key used to configure a
                          project." ]
 
   (* Command line and environment interface *)
+
+  let path_arg =
+    let parse s = match Path.of_string s with
+    | None -> `Error (strf "%a: not a path" String.pp s)
+    | Some p -> `Ok p
+    in
+    parse, Path.pp
 
   let auto_lib_opt docs =
     let doc = "Use ocamlfind to automatically lookup the assemblage library
@@ -365,12 +371,12 @@ module Loader = struct
                be repeated. If absent looks for a file named `assemble.ml'
                in the current directory."
     in
-    Arg.(value & opt_all Conf.path [Path.file "assemble.ml"] &
+    Arg.(value & opt_all path_arg [Path.v "assemble.ml"] &
          info [ "f"; "file"] ~docv:"FILE" ~doc ~docs)
 
   let ui auto_lib includes files =
     let override value ~on = match on with None -> value | Some v -> v in
-    let ocamlfind_exec = override "ocamlfind" ~on:(Cmd.env var_ocamlfind) in
+    let ocamlfind_exec = override "ocamlfind" ~on:(OS.Env.var var_ocamlfind) in
     let kind = `Toplevel in
     { kind; auto_lib; ocamlfind_exec; includes; files }
 
@@ -393,8 +399,8 @@ module Driver = struct
     | Some (lib_prefs, loader as v), res ->
         Lib_prefs.set lib_prefs;
         match Loader.load loader with
-        | `Ok () as r -> Some v, ret r
-        | `Error msg -> None, ret (`Error (false, msg))
+        | Ok ()  -> Some v, ret (`Ok ())
+        | Error (`Msg msg) -> None, ret (`Error (false, msg))
 
   let man_vars ?kinds () =
     List.sort compare (Lib_prefs.man_vars @ Loader.man_vars ?kinds ())

@@ -33,7 +33,7 @@ let lib_assemblage =
       unit "as_path";
       unit "as_log";
       unit "as_cmd" ~needs:[pkg_bytes];
-      unit "as_conf" ~needs:[pkg_cmdliner]; (* FIXME remove dep *)
+      unit "as_conf";
       unit "as_ctx";
       unit "as_args";
       unit "as_acmd";
@@ -139,7 +139,7 @@ let api_doc = doc "api" [ lib_assemblage ]
 let install =
   [ dir `Lib [ lib_assemblage; lib_assemblage_tools; lib_assemblage_driver ];
     dir `Bin [ bin_assemblage ];
-    dir `Doc [ file (Path.file "README.md"); file (Path.file "CHANGES.md") ]]
+    dir `Doc [ file (Path.v "README.md"); file (Path.v "CHANGES.md") ]]
 
 (* The project *)
 

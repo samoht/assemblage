@@ -20,21 +20,23 @@
 
 (** {1 Action commands} *)
 
+open Bos
+
 type cmd
 val cmd : string As_conf.key -> cmd As_conf.value
 val static : string -> cmd
 
 type t
 
-val v : ?stdin:As_path.t -> ?stdout:As_path.t -> ?stderr:As_path.t -> cmd ->
+val v : ?stdin:path -> ?stdout:path -> ?stderr:path -> cmd ->
     string list -> t
 
 val cmd_key : t -> string As_conf.key option
 val cmd_name : t -> string
 val args : t -> string list
-val stdin : t -> As_path.t option
-val stdout : t -> As_path.t option
-val stderr : t -> As_path.t option
+val stdin : t -> path option
+val stdout : t -> path option
+val stderr : t -> path option
 
 val pp : Format.formatter -> t -> unit
 val ctx : As_ctx.t -> t -> As_ctx.t
@@ -48,20 +50,20 @@ module Args : sig
   val adds_if : bool -> 'a list -> 'a list -> 'a list
   val fadd_if : bool -> ('b -> 'a) -> 'b -> 'a list -> 'a list
   val fadds_if : bool -> ('b -> 'a list) -> 'b -> 'a list -> 'a list
-  val path_arg : ?opt:string -> As_path.t -> string list -> string list
-  val path_args : ?opt:string ->  As_path.t list -> string list -> string list
-  val path : As_path.t -> ext:As_path.ext -> As_path.t
+  val path_arg : ?opt:string -> path -> string list -> string list
+  val path_args : ?opt:string ->  path list -> string list -> string list
+  val path : path -> ext:Path.ext -> path
 end
 
 (** {1 Portable system utility invocations} *)
 
-val dev_null : As_path.t As_conf.value
-val cd : (As_path.t -> t) As_conf.value
-val ln : (As_path.t -> As_path.t -> t) As_conf.value
-val ln_rel : (As_path.t -> As_path.t -> t) As_conf.value
-val cp : (As_path.t -> As_path.t -> t) As_conf.value
-val mv : (As_path.t -> As_path.t -> t) As_conf.value
-val rm_files : (?f:bool -> As_path.t list -> t) As_conf.value
-val rm_dirs : (?f:bool -> ?r:bool -> As_path.t list -> t) As_conf.value
-val mkdir : (As_path.t -> t) As_conf.value
-val stamp : (As_path.t -> string -> t) As_conf.value
+val dev_null : path As_conf.value
+val cd : (path -> t) As_conf.value
+val ln : (path -> path -> t) As_conf.value
+val ln_rel : (path -> path -> t) As_conf.value
+val cp : (path -> path -> t) As_conf.value
+val mv : (path -> path -> t) As_conf.value
+val rm_files : (?f:bool -> path list -> t) As_conf.value
+val rm_dirs : (?f:bool -> ?r:bool -> path list -> t) As_conf.value
+val mkdir : (path -> t) As_conf.value
+val stamp : (path -> string -> t) As_conf.value

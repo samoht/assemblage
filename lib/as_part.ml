@@ -16,6 +16,7 @@
  *)
 
 open Astring
+open Bos
 
 (* Part kinds *)
 
@@ -47,7 +48,7 @@ type +'a t =
     args : As_args.t;                           (* end user argument bundle. *)
     meta : meta;                         (* part's metadata (kind specific). *)
     needs : kind t list;          (* part's need, n.b. unique and *ordered*. *)
-    root : As_path.rel As_conf.value;        (* part's build root directory. *)
+    root : path As_conf.value;               (* part's build root directory. *)
     action_defs :                                      (* action definition. *)
       kind t -> As_action.t list As_conf.value ;
     actions :                          (* part's actions (via actions_defs). *)
@@ -99,7 +100,7 @@ let alloc_root =
       allocated := String.Set.add root !allocated;
       root
     in
-    let in_build_dir build = As_path.Rel.(build / part_root) in
+    let in_build_dir build = Path.(build / part_root) in
     As_conf.(const in_build_dir $ (value As_conf.build_dir))
 
 let list_uniquify ps =           (* uniquify part list while keeping order. *)
@@ -158,7 +159,7 @@ let args p = p.args
 let meta p = p.meta
 let needs p = p.needs
 let root p = p.root
-let root_path p = As_conf.(const As_path.of_rel $ p.root)
+let root_path p = p.root
 let actions p = Lazy.force (p.actions)
 let check p = p.check (p :> kind t)
 
@@ -193,7 +194,7 @@ let file ?usage:usage ?exists p =
   let actions _ =
     As_conf.const ([As_action.v ~ctx:As_ctx.empty ~inputs:[p] ~outputs:[] []])
   in
-  v ?usage ?exists ~actions (As_path.basename p)
+  v ?usage ?exists ~actions (Path.filename p)
 
 (* Part integration *)
 

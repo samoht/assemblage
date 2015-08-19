@@ -15,10 +15,12 @@
  *)
 
 open Astring
+open Rresult
+open Bos
 
 (* Configuration value converters. *)
 
-type 'a parser = string -> [ `Error of string | `Ok of 'a ]
+type 'a parser = string -> ('a, R.msg) result
 type 'a printer = Format.formatter -> 'a -> unit
 type 'a converter = 'a parser * 'a printer
 
@@ -203,7 +205,7 @@ let value k =
   let def c =
     match try Some (Kmap.find (Key.V k) c.Def.map) with Not_found -> None with
   | None ->
-      As_log.msg_driver_fault As_log.Warning  "%a" pp_miss_key (Key.V k);
+      As_misc.log_driver_fault Log.Warning  "%a" pp_miss_key (Key.V k);
       eval c (Key.default k)
   | Some u ->
       match Key.of_univ k u with
@@ -303,34 +305,63 @@ let scheme ?doc ?base name defs =
   in
   name, (doc, List.fold_left add init defs)
 
-(* Builtin configuration value converters
-   FIXME remove Cmdliner dep *)
+let quote s = strf "`%s'" s
+let alts_str = function
+| [] -> assert false
+| [a] -> quote a
+| [a; b] -> strf "either %s or %s" (quote a) (quote b)
+| alts ->
+    let rev_alts = List.rev alts in
+    strf "one of %s or %s"
+      (String.concat ~sep:", " (List.rev_map quote @@ List.tl rev_alts))
+      (quote @@ List.hd rev_alts)
 
-let bool = Cmdliner.Arg.bool
-let int = Cmdliner.Arg.int
-let string = Cmdliner.Arg.string
-let enum = Cmdliner.Arg.enum
+let msg_invalid_value s exp = R.msgf "invalid value %s, %s" (quote s) exp
+
+let bool =
+  let parse s = match String.to_bool s with
+  | Some b -> Ok b
+  | None -> Error (msg_invalid_value s (alts_str ["true"; "false"]))
+  in
+  parse, Fmt.bool
+
+let int =
+  let parse s = match String.to_int s with
+  | Some i -> Ok i
+  | None -> Error (msg_invalid_value s "integer")
+  in
+  parse, Fmt.int
+
+let string = (fun s -> Ok s), String.pp
+
+let enum sl =
+  if sl = [] then invalid_arg "enum list can't be empty" else
+  let sl_inv = List.rev_map (fun (s, v) -> (v, s)) sl in
+  let parse s = try Ok (List.assoc s sl) with
+  | Not_found ->
+      let sl = List.rev (List.rev_map fst sl) in
+      Error (msg_invalid_value s (alts_str sl))
+  in
+  let print ppf v = Fmt.string ppf (List.assoc v sl_inv) in
+  parse, print
 
 let path =
-  let parse s = `Ok (As_path.of_string s) in
-  let print = As_path.pp in
-  parse, print
-
-let path_kind conv to_string err =
-  let parse s = match conv (As_path.of_string s) with
-  | None -> `Error (err s)
-  | Some p -> `Ok p
+  let parse s = match Path.of_string s with
+  | None -> R.error_msgf "%a: not a path" String.pp s
+  | Some p -> Ok p
   in
-  let print = Fmt.of_to_string to_string in
-  parse, print
+  parse, Path.pp
 
-let rel_path =
-  let err s = strf "`%s' is not a relative path." s in
-  path_kind As_path.to_rel As_path.Rel.to_string err
+let path_kind is_kind kind =
+  let parse s = match Path.of_string s with
+  | Some p when is_kind p -> Ok p
+  | Some p -> R.error_msgf "`%a': not a %s path" Path.pp p kind
+  | None -> R.error_msgf "%a: not a path" String.pp s
+  in
+  parse, Path.pp
 
-let abs_path =
-  let err s = strf "`%s' is not an absolute path." s in
-  path_kind As_path.to_abs As_path.Abs.to_string err
+let rel_path = path_kind Path.is_rel "relative"
+let abs_path = path_kind Path.is_abs "absolute"
 
 let version : (int * int * int * string option) converter =
   let parser s =
@@ -362,12 +393,10 @@ let version : (int * int * int * string option) converter =
       | Some _ -> raise Exit
       | None -> None
       in
-      `Ok (maj, min, patch, info)
+      Ok (maj, min, patch, info)
     with Exit ->
-      let err = strf "invalid value `%s', expected a version number of the \
-                      form [v|V]majoAr.minor[.patch][(+|-)info]." s
-      in
-      `Error err
+      R.error_msgf "invalid value `%s', expected a version number of the \
+                    form [v|V]majoAr.minor[.patch][(+|-)info]." s
   in
   let printer ppf (maj, min, patch, info) =
     let info = match info with None -> "" | Some info -> info in
@@ -377,9 +406,7 @@ let version : (int * int * int * string option) converter =
 
 (* Built-in configuration keys *)
 
-open As_cmd.Infix
-
-let err_det this = strf "Could not determine %s." this
+let err_det this _ = R.msgf "Could not determine %s." this
 
 (* Build directories keys *)
 
@@ -391,10 +418,7 @@ let build_directories_key = key ~docs:docs_build_directories
 
 let root_dir =
   let doc = "Absolute path to the project directory." in
-  let get_cwd () =
-    As_cmd.on_error ~use:As_path.root @@
-    As_cmd.Dir.getcwd ()
-  in
+  let get_cwd () = Log.on_error_msg ~use:Path.root @@ OS.Dir.current () in
   let get_cwd = const get_cwd $ const () in
   build_directories_key "root-dir" path get_cwd ~doc ~docv:"PATH"
 
@@ -402,7 +426,7 @@ let build_dir =
   let doc = "Path to the build directory expressed relative the root \
              directory (see $(b,--root-dir))."
   in
-  let build_dir = const (As_path.Rel.base "_build") in
+  let build_dir = const (Path.v "_build") in
   build_directories_key "build-dir" rel_path build_dir ~doc ~docv:"PATH"
 
 (* Project keys *)
@@ -415,15 +439,15 @@ let project_key = key ~docs:docs_project (* defined above, [key] ~docs def. *)
 let project_version =
   let doc = "Version of the project." in
   let vcs_info root =
-    begin As_cmd.Vcs.find root >>= function
+    begin As_vcs.find root >>= function
     | None ->
-        As_log.warn "No VCS found to derive project version.";
-        As_cmd.ret "unknown"
+        Log.warn "No VCS found to derive project version.";
+        Ok "unknown"
     | Some vcs ->
-        As_cmd.Vcs.describe root vcs
+        As_vcs.describe root vcs
     end
-    |> As_cmd.reword_error (err_det "project version")
-    |> As_cmd.on_error ~use:"unknown"
+    |> R.reword_error_msg (err_det "project version")
+    |> Log.on_error_msg ~use:"unknown"
   in
   let vcs = const vcs_info $ (value root_dir) in
   project_key "project-version" string vcs ~doc ~docv:"VERSION"
@@ -454,9 +478,9 @@ let host_os =
   let get_os uname = match Sys.os_type with
   | "Win32" -> "Win32"
   | _ ->
-      As_cmd.read uname [ "-s" ] >>| String.Ascii.lowercase
-      |> As_cmd.reword_error (err_det "host machine operating system name")
-      |> As_cmd.on_error ~use:"unknown"
+      OS.Cmd.exec_read uname [ "-s" ] >>| String.Ascii.lowercase
+      |> R.reword_error_msg (err_det "host machine operating system name")
+      |> Log.on_error_msg ~use:"unknown"
   in
   let get_os = const get_os $ value uname in
   machine_info_key "host-os" string get_os ~doc ~docv:"STRING"
@@ -469,11 +493,16 @@ let host_arch =
   in
   let get_arch uname =
     begin match Sys.os_type with
-    | "Win32" -> As_cmd.get_env "PROCESSOR_ARCHITECTURE"
-    | _ -> As_cmd.read uname [ "-m" ] >>| String.Ascii.lowercase
+    | "Win32" ->
+        (* TODO fix Bos.OS.Env *)
+        begin match OS.Env.var "PROCESSOR_ARCHITECTURE" with
+        | None -> R.error_msg "PROCESSOR_ARCHITECTURE env variable undefined"
+        | Some arch -> Ok (String.Ascii.lowercase arch)
+        end
+    | _ -> OS.Cmd.exec_read uname [ "-m" ] >>| String.Ascii.lowercase
     end
-    |> As_cmd.reword_error (err_det "host machine hardware architecture")
-    |> As_cmd.on_error ~use:"unknown"
+    |> R.reword_error_msg (err_det "host machine hardware architecture")
+    |> Log.on_error_msg ~use:"unknown"
   in
   let get_arch = const get_arch $ value uname in
   machine_info_key "host-arch" string get_arch ~doc ~docv:"STRING"
@@ -539,11 +568,16 @@ let jobs = (* FIXME not really sure that belongs here. This would
   let doc = "Number of jobs to run for building." in
   let get_jobs () =
     begin match Sys.os_type with
-    | "Win32" -> As_cmd.get_env "NUMBER_OF_PROCESSORS" >>= (parser int)
-    | _ -> As_cmd.read "getconf" [ "_NPROCESSORS_ONLN" ] >>= (parser int)
+    | "Win32" ->
+        (* TODO fix Bos.OS.Env *)
+        begin match OS.Env.var "NUMBER_OF_PROCESSORS" with
+        | None -> R.error_msg "PROCESSOR_ARCHITECTURE env variable undefined"
+        | Some n -> (parser int) n
+        end
+    | _ -> OS.Cmd.exec_read "getconf" [ "_NPROCESSORS_ONLN" ] >>= (parser int)
     end
-    |> As_cmd.reword_error (err_det "the number of host processors")
-    |> As_cmd.on_error ~level:As_log.Warning (* or Info ? *) ~use:1
+    |> R.reword_error_msg (err_det "the number of host processors")
+    |> Log.on_error_msg ~level:Log.Warning (* or Info ? *) ~use:1
   in
   let get_jobs = const get_jobs $ const () in
   build_properties_key "jobs" int get_jobs ~doc ~docv:"COUNT"
@@ -620,9 +654,9 @@ let ocaml_version =
   in
   let tool = pick_if (value ocaml_native) (value ocamlopt) (value ocamlc) in
   let get_version tool =
-    As_cmd.read tool [ "-version" ] >>= (parser version)
-    |> As_cmd.reword_error (err_det "OCaml compiler version")
-    |> As_cmd.on_error ~level:As_log.Warning ~use:(0, 0, 0, Some "-unknown")
+    OS.Cmd.exec_read tool [ "-version" ] >>= (parser version)
+    |> R.reword_error_msg (err_det "OCaml compiler version")
+    |> Log.on_error_msg ~level:Log.Warning ~use:(0, 0, 0, Some "-unknown")
   in
   let get_version = const get_version $ tool in
   ocaml_system_key "ocaml-version" version get_version ~doc ~docv:"VERSION"

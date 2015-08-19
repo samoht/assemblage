@@ -15,6 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Bos
+
 (* Metadata *)
 
 type kind = [ `OCamldoc ]
@@ -49,14 +51,14 @@ let dev p = match As_part_unit.kind p with `OCaml _ -> true | _ -> false
 
 let check p =
   let doc = As_part.coerce `Doc p in
-  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind doc);
+  Log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind doc);
   As_conf.true_
 
 (* Actions *)
 
 let actions p =
   let doc = As_part.coerce `Doc p in
-  As_log.warn "%a part actions are TODO" As_part.pp_kind (As_part.kind doc);
+  Log.warn "%a part actions are TODO" As_part.pp_kind (As_part.kind doc);
   As_conf.const []
 
 (* Doc *)

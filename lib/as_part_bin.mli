@@ -19,6 +19,8 @@
 
     See {!Assemblage.Bin} *)
 
+open Bos
+
 (** {1 Metadata} *)
 
 type kind = [ `OCaml | `OCaml_toplevel | `C ]
@@ -41,16 +43,16 @@ val v :
   [< `Unit | `Lib | `Pkg ] As_part.t list ->
   [> `Bin] As_part.t
 
-val to_cmd : ?ext:As_path.ext -> [< `Bin] As_part.t ->
+val to_cmd : ?ext:Path.ext -> [< `Bin] As_part.t ->
   As_acmd.cmd As_conf.value
 
-val to_cmd_path : ?abs:bool -> ?ext:As_path.ext -> [< `Bin] As_part.t ->
-  As_path.t As_conf.value
+val to_cmd_path : ?abs:bool -> ?ext:Path.ext -> [< `Bin] As_part.t ->
+  path As_conf.value
 
-val exists : ?ext:As_path.ext -> [< `Bin] As_part.t -> bool As_conf.value
+val exists : ?ext:Path.ext -> [< `Bin] As_part.t -> bool As_conf.value
 
 val gen : ?usage:As_part.usage -> ?exists:bool As_conf.value ->
-  ?args:As_args.t -> ?dir:As_path.t As_conf.value -> ?name:string ->
-  ?ext:As_path.ext -> ?stdin:As_path.t As_conf.value ->
-  ?stdout:As_path.t As_conf.value -> ?stderr:As_path.t As_conf.value ->
+  ?args:As_args.t -> ?dir:path As_conf.value -> ?name:string ->
+  ?ext:Path.ext -> ?stdin:path As_conf.value ->
+  ?stdout:path As_conf.value -> ?stderr:path As_conf.value ->
   [< `Bin] As_part.t -> string list As_conf.value -> [> `Base] As_part.t
