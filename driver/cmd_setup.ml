@@ -24,8 +24,8 @@ let str = Printf.sprintf
 let write file s =
   let pp_arrow = Fmt.(styled `Green @@ verbatim "==>") in
   Log.show "%a write %s" pp_arrow () (Path.to_string file);
-  Cmd.on_error ~use:() @@
-  Cmd.File.write file s;
+  Log.on_error_msg ~use:() @@
+  OS.File.write file s;
   ()
 
 let write_meta p file = write file Meta.(to_string @@ of_project p)
@@ -40,10 +40,10 @@ let write_makefile p ~setup_files file =
 
 let setup `Make ~merlin p =
   let add_if c v acc = if c then v :: acc else acc in
-  let install = Path.file (str "%s.install" @@ Project.name p) in
-  let dotmerlin = Path.file ".merlin" in
-  let makefile = Path.file "Makefile" in
-  let meta = Path.(of_rel (Project.eval_key p Conf.build_dir) / "META") in
+  let install = Path.v (str "%s.install" @@ Project.name p) in
+  let dotmerlin = Path.v ".merlin" in
+  let makefile = Path.v "Makefile" in
+  let meta = Path.(Project.eval_key p Conf.build_dir / "META") in
   let setup_files =
     add_if merlin dotmerlin @@ install :: meta :: makefile :: []
   in

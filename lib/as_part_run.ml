@@ -15,12 +15,13 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Bos
 
 (* Checks *)
 
 let check p =
   let run = As_part.coerce `Run p in
-  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind run);
+  Log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind run);
   As_conf.true_
 
 (* Actions *)

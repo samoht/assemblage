@@ -32,756 +32,49 @@
 (** {1 Preliminaries} *)
 
 (**/**)
+include module type of Rresult
+  with type ('a, 'b) result = ('a, 'b) Rresult.result
+
 include module type of Astring
 module Fmt : module type of Fmt with type 'a t = 'a Fmt.t
+
+include module type of Bos with type 'a OS.result = ('a, Rresult.R.msg) result
+
 (**/**)
 
-(** File system paths, path sets and maps.
-
-    [Path] provides three types for handling paths. Values of type
-    {!Path.t} are for paths that are either relative or absolute while
-    those of type {!Path.rel} and {!Path.abs} specialize to either
-    case.
-
-    Relative paths and absolute path each have corresponding modules
-    {!Rel} and {!Abs} with specialized functions. {{!conversions}Conversion}
-    between the three type of paths are explicit.
-
-    {b FIXME}. We need to properly handle {!Filename.current_dir_name} and
-    {!Filename.parent_dir_name} in path segments. *)
-module Path : sig
-
-  (** {1:filepaths File paths} *)
-
-  type filename = string
-  (** The type for file names (basenames). *)
-
-  type rel
-  (** The type for relative paths. *)
-
-  type abs
-  (** The type for absolute paths. *)
-
-  type t
-  (** The type for absolute or relative paths. *)
-
-  val root : t
-  (** [root] is the root absolute path (empty list of segments). *)
-
-  val empty : t
-  (** [empty] is the empty relative path (empty list of segments). *)
-
-  val dash : t
-  (** [dash] is the ["-"] relative path. *)
-
-  val add : t -> string -> t
-  (** [add p seg] concatenates [seg] at the end of [p]. For any [p],
-      [add p "" = p]. *)
-
-  val concat : t -> rel -> t
-  (** [concat p p'] concatenates [p'] at the end of [p]. *)
-
-  val ( / ) : t -> string -> t
-  (** [p / c] is [add p c]. Left associative. *)
-
-  val ( // ) : t -> rel -> t
-  (** [p // p'] is [concat p p']. Left associative. *)
-
-  val file : filename -> t
-  (** [file name] is [add empty f]. *)
-
-  val base : string -> t
-  (** [base name] is [add empty f]. *)
-
-  val basename : t -> string
-  (** [basename p] is the basename of [p]. If [p] has no segments the
-      empty string is returned. *)
-
-  val dirname :  t -> t
-  (** [dirname p] is the dirname of [p]. If [p] has no segments [p]
-      is returned. *)
-
-  val rem_prefix : t -> t -> rel option
-  (** [rem_prefix pre p] is [p] with the literal prefix [pre] removed. [None]
-      if [pre] is not a prefix of [p]. *)
-
-  val find_prefix : t -> t -> t option
-  (** [find_prefix p p'] is a common prefix for [p] and [p']. There is
-      always a common prefix between path of the same kind (either {!root}
-      or {!empty} and [None] is only returned if [p] and [p'] are of
-      different kind. *)
-
-  (** {1:predicates Predicates and comparison} *)
-
-  val is_root : t -> bool
-  (** [is_root p] is [true] iff [p] is {!root}. *)
-
-  val is_empty : t -> bool
-  (** [is_empty p] is [true] iff [p] is {!empty}. *)
-
-  val is_dash : t -> bool
-  (** [is_dash p] is [true] iff [p] is {!dash}. *)
-
-  val is_rel : t -> bool
-  (** [is_rel p] is [true] iff [p] is a relative path. *)
-
-  val is_abs : t -> bool
-  (** [is_abs p] is [true] iff [p] is an absolute path. *)
-
-  val is_prefix : t -> t -> bool
-  (** [is_prefix p p'] is [true] if [p] is a literal prefix of [p']. *)
-
-  val equal : t -> t -> bool
-  (** [equal p p'] is [p = p']. *)
-
-  val compare : t  -> t -> int
-  (** [compare p p'] is [Pervasives.compare p p']. *)
-
-  (** {1:conversions Conversions} *)
-
-  val to_rel : t -> rel option
-  (** [to_rel p] is [Some r] if [p] is a relative path. *)
-
-  val of_rel : rel -> t
-  (** [of_rel r] is [r] as a path. *)
-
-  val to_abs : t -> abs option
-  (** [to_abs p] is [Some a] if [p] is an absolute path. *)
-
-  val of_abs : abs -> t
-  (** [of_abs a] is [a] as a path. *)
-
-  val to_segs : t -> [ `Abs of string list | `Rel of string list ]
-  (** [to_segs p] is [p]'s segments. *)
-
-  val of_segs : [ `Abs of string list | `Rel of string list ] -> t
-  (** [of_segs segs] is a path from [segs] segments. *)
-
-  val to_string : t -> string
-  (** [to_string p] is the path [p] as a string according to
-      the driver's platform convention with {!Filename.dir_sep}. *)
-
-  val of_string : string -> t
-  (** [of_string s] is the string [s] as a path. [s] is splitted
-      according to the driver's platform convention with {!Filename.dir_sep}. *)
-
-  val quote : t -> string
-  (** [quote p] is the path [p] as a string, quoted according
-       to the driver's platform conventions with {!Filename.quote}. *)
-
-  val pp : Format.formatter -> t -> unit
-  (** [pp ppf p] prints path [p] on [ppf] using {!to_string}. *)
-
-  (** {1:file_exts File extensions} *)
-
-  type ext =
-    [ `A | `Byte | `C | `Cma | `Cmi | `Cmo | `Cmt | `Cmti | `Cmx | `Cmxa
-    | `Cmxs | `Css | `Dll | `Exe | `Gif | `H | `Html | `Install | `Img
-    | `Jpeg | `Js | `Json | `Lib | `Md | `Ml | `Ml_dep | `Ml_pp | `Mli
-    | `Mli_dep | `Mli_pp | `Native | `O | `Opt | `Png | `Sh | `So | `Tar
-    | `Tbz | `Xml | `Zip | `Prepare
-    | `Ext of string ]
-  (** The type for file extensions. *)
-
-  val ext_to_string : ext -> string
-  (** [ext_to_string ext] is [ext] as a string (without separator). *)
-
-  val ext_of_string : string -> ext
-  (** [ext_of_string ext] is [ext] as a file extension ([ext] without
-      separator). *)
-
-  val pp_ext : Format.formatter -> ext -> unit
-  (** [pp_ext ppf p] prints file extension [ext] on [ppf] using
-      {!ext_to_string}. *)
-
-  val ext : t -> ext option
-  (** [ext p] is [p]'s last segment file extension (if any). *)
-
-  val get_ext : t -> ext
-  (** [get_ext p] is [p]'s last segment file extension.
-
-      @raise Invalid_argument if [p]'s last segment has no file extension. *)
-
-  val add_ext : t -> ext -> t
-  (** [add_ext p ext] is [p] with [ext] concatenated to [p]'s last segment. *)
-
-  val rem_ext : t -> t
-  (** [rem_ext p] is [p] with [ext] removed from [p]'s last segment
-      (if it has an extension). *)
-
-  val change_ext : t -> ext -> t
-  (** [change_ext p e] is [add_ext (rem_ext p)]. *)
-
-  val ( + ) : t -> ext -> t
-  (** [p + ext] is [add_ext p e]. Left associative. *)
-
-  val has_ext : ext -> t -> bool
-  (** [has_ext p ext] is [true] iff [p]'s last segment has file extension
-      [ext]. *)
-
-  val ext_matches : ext list -> t -> bool
-  (** [ext_matches exts p] is [true] iff [p]'s last segment has a file
-      extension in [exts]. *)
-
-  (** {1:rel Relative paths} *)
-
-  (** Relative paths. *)
-  module Rel : sig
-
-    (** {1 Relative paths} *)
-
-    type path = t
-    (** The type for absolute or relative paths. *)
-
-    type t = rel
-    (** The type for relative paths. *)
-
-    val empty : rel
-    (** See {!Path.empty}. *)
-
-    val dash : rel
-    (** See {!Path.dash}. *)
-
-    val add : rel -> string -> rel
-    (** See {!Path.add}. *)
-
-    val concat : rel -> rel -> rel
-    (** See {!Path.concat}. *)
-
-    val file : filename -> rel
-    (** [file name] is [add empty f]. *)
-
-    val base : string -> rel
-    (** [base name] is [add empty f]. *)
-
-    val ( / ) : rel -> string -> rel
-    (** See {!Path.( / )}. *)
-
-    val ( // ) : rel -> rel -> rel
-    (** See {!Path.( // )}. *)
-
-    val basename : rel -> string
-    (** See {!Path.basename}. *)
-
-    val dirname :  rel -> rel
-    (** See {!Path.dirname}. *)
-
-    val rem_prefix : rel -> rel -> rel option
-    (** See {!Path.rem_prefix}. *)
-
-    val find_prefix : rel -> rel -> rel
-    (** See {!Path.find_prefix}. *)
-
-    (** {1:predicates Predicates and comparison} *)
-
-    val is_empty : rel -> bool
-    (** See {!Path.is_empty}. *)
-
-    val is_dash : rel -> bool
-    (** See {!Path.is_dash}. *)
-
-    val is_prefix : rel -> rel -> bool
-    (** See {!Path.is_prefix}. *)
-
-    val equal : rel -> rel -> bool
-    (** See {!Path.equal}. *)
-
-    val compare : rel  -> rel -> int
-    (** See {!Path.compare}. *)
-
-    (** {1 Conversions} *)
-
-    val to_segs : rel -> string list
-    (** [to_segs r] is [r]'s segments. *)
-
-    val of_segs : string list -> rel
-    (** [of_segs segs] is a path from [segs] segments. *)
-
-    val to_string : rel -> string
-    (** See {!Path.to_string}. *)
-
-    val quote : rel -> string
-    (** See {!Path.quote}. *)
-
-    val pp : Format.formatter -> rel -> unit
-    (** See {!Path.pp}. *)
-
-    (** {1:file_exts File extensions} *)
-
-    val ext : rel -> ext option
-    (** See {!Path.ext}. *)
-
-    val get_ext : rel -> ext
-    (** See {!Path.get_ext}. *)
-
-    val add_ext : rel -> ext -> rel
-    (** See {!Path.add_ext}. *)
-
-    val rem_ext : rel -> rel
-    (** See {!Path.rem_ext}. *)
-
-    val change_ext : rel -> ext -> rel
-    (** See {!Path.change_ext}. *)
-
-    val ( + ) : rel -> ext -> rel
-    (** See {!Path.( + )}. *)
-
-    val has_ext : ext -> rel -> bool
-    (** See {!Path.has_ext}. *)
-
-    val ext_matches : ext list -> rel -> bool
-    (** See {!Path.ext_matches}. *)
-
-    (** {1:sets_maps Path sets and maps} *)
-
-    module Set : sig
-      include Set.S with type elt = rel
-      val of_list : elt list -> t
-    end
-
-    module Map : sig
-      include Map.S with type key = rel
-      val dom : 'a t -> Set.t
-      (** [dom m] is the domain of [m]. *)
-    end
-  end
-
-  (** {1:abs Absolute paths} *)
-
-  (** Absolute paths. *)
-  module Abs : sig
-
-    (** {1 Absolute paths} *)
-
-    type path = t
-    (** The type for absolute or relative paths. *)
-
-    type t = abs
-    (** The type for absolute paths. *)
-
-    val root : abs
-    (** See {!Path.root}. *)
-
-    val add : abs -> string -> abs
-    (** See {!Path.add}. *)
-
-    val concat : abs -> rel -> abs
-    (** See {!Path.concat}. *)
-
-    val ( / ) : abs -> string -> abs
-    (** See {!Path.( / )}. *)
-
-    val ( // ) : abs -> rel -> abs
-    (** See {!Path.( // )}. *)
-
-    val basename : abs -> string
-    (** See {!Path.basename}. *)
-
-    val dirname :  abs -> abs
-    (** See {!Path.dirname}. *)
-
-    val rem_prefix : abs -> abs -> rel option
-    (** See {!Path.rem_prefix}. *)
-
-    val find_prefix : abs -> abs -> abs
-    (** See {!Path.find_prefix}. *)
-
-    (** {1:predicates Predicates and comparison} *)
-
-    val is_root : abs -> bool
-    (** See {!Path.is_root}. *)
-
-    val is_prefix : abs -> abs -> bool
-    (** See {!Path.is_prefix}. *)
-
-    val equal : abs -> abs -> bool
-    (** See {!Path.equal}. *)
-
-    val compare : abs  -> abs -> int
-    (** See {!Path.compare}. *)
-
-    (** {1:conversions Conversions} *)
-
-    val to_segs : abs -> string list
-    (** [to_segs a] is [a]'s segments. *)
-
-    val of_segs : string list -> abs
-    (** [of_segs segs] is a path from [segs] segments. *)
-
-    val to_string : abs -> string
-    (** See {!Path.to_string}. *)
-
-    val quote : abs -> string
-    (** See {!Path.quote}. *)
-
-    val pp : Format.formatter -> abs -> unit
-    (** See {!Path.pp}. *)
-
-    (** {1:file_exts File extensions} *)
-
-    val ext : abs -> ext option
-    (** See {!Path.ext}. *)
-
-    val get_ext : abs -> ext
-    (** See {!Path.get_ext}. *)
-
-    val add_ext : abs -> ext -> abs
-    (** See {!Path.add_ext}. *)
-
-    val rem_ext : abs -> abs
-    (** See {!Path.rem_ext}. *)
-
-    val change_ext : abs -> ext -> abs
-    (** See {!Path.change_ext}. *)
-
-    val ( + ) : abs -> ext -> abs
-    (** See {!Path.( + )}. *)
-
-    val has_ext : ext -> abs -> bool
-    (** See {!Path.has_ext}. *)
-
-    val ext_matches : ext list -> abs -> bool
-    (** See {!Path.ext_matches}. *)
-
-    (** {1:sets_maps Path sets and maps} *)
-
-    module Set : sig
-      include Set.S with type elt = abs
-      val of_list : elt list -> t
-    end
-
-    module Map : sig
-      include Map.S with type key = abs
-      val dom : 'a t -> Set.t
-      (** [dom m] is the domain of [m]. *)
-    end
-  end
-
-  (** {1:sets_maps Path sets and maps} *)
-
-  module Set : sig
-    include Set.S with type elt = t
-    val of_list : elt list -> t
-  end
-
-  module Map : sig
-    include Map.S with type key = t
-    val dom : 'a t -> Set.t
-    (** [dom m] is the domain of [m]. *)
-  end
-end
-
-(** Assemblage log.
-
-    [Log] provides functions to log messages from assemble files. It
-    is also used by the assemblage library itself. The log's output
-    is controlled by drivers. *)
-module Log : sig
-
-  (** {1 Log level} *)
-
-  (** The type for log levels. *)
-  type level = Show | Error | Warning | Info | Debug
-
-  val msg : ?header:string -> level ->
-    ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [msg header l fmt ...] logs a message with level [l]. [header] is
-      the message header, default depends on [l]. *)
-
-  val kmsg : ?header:string ->
-    (unit -> 'a) -> level -> ('b, Format.formatter, unit, 'a) format4 -> 'b
-  (** [kmsg header k l fmt ...] is like [msg header l fmt] but calls [k ()]
-      before returning. *)
-
-  val show : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [show fmt ...] logs a message with level [Show]. [header] defaults
-      to [None]. *)
-
-  val err : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [err fmt ...] logs a message with level [Error]. [header] defaults
-      to ["ERROR"]. *)
-
-  val warn : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [warn fmt ...] logs a message with level [Warning]. [header] defaults
-      to ["WARNING"]. *)
-
-  val info : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [info fmt ...] logs a message with level [Info]. [header] defaults
-      to ["INFO"]. *)
-
-  val debug : ?header:string -> ('a, Format.formatter, unit, unit) format4 -> 'a
-  (** [debug info ...] logs a message with level [Debug]. [header] defaults
-      to ["DEBUG"]. *)
-
-end
-
-(** Executing {e non-build} commands and IO operations.
-
-    [Cmd] provides functions to execute {e non-build} commands
-    and perform IO operations. They can be used to define the default
-    value of {{!Conf}configuration keys} in assemble files. *)
-module Cmd : sig
-
-  (** {1:command_results Command and IO results} *)
-
-  type 'a result = [ `Ok of 'a | `Error of string ]
-  (** The type for command and IO results. *)
-
-  val ret : 'a -> 'a result
-  (** [ret v] is [`Ok v]. *)
-
-  val error : string -> 'a result
-  (** [error e] is [`Error e]. *)
-
-  val bind : 'a result -> ('a -> 'b result) -> 'b result
-  (** [bind r f] is [f v] if [r = `Ok v] and [r] if [r = `Error _]. *)
-
-  val map : 'a result -> ('a -> 'b) -> 'b result
-  (** [map r f] is [bind r (fun v -> ret (f v))]. *)
-
-  val get : 'a result -> 'a
-  (** [get r] is [v] if [r = `Ok v] and @raise Invalid_argument otherwise. *)
-
-  val on_error : ?level:Log.level -> use:'a -> 'a result -> 'a
-  (** [on_error ~level ~use r] is:
-      {ul
-      {- [v] if [r = `Ok v]}
-      {- [use] if [r = `Error msg]. As a side effect [msg] is
-       {{!Log}logged} with level [level] (defaults to
-       {!Log.Error})}} *)
-
-  val ignore_error : use:'a -> 'a result -> 'a
-  (** [ignore_error ~use r] is like {!on_error} but the error
-      is not logged. *)
-
-  val reword_error : ?replace:bool -> string -> 'a result -> 'a result
-  (** [reword_error msg r] uses [msg] for the error message in case of
-      [`Error]. If replace is [false] (default), [msg] is stacked on
-      top of the old message. *)
-
-  val exn_error : ?msg:(Printexc.raw_backtrace -> exn -> 'a -> string) ->
-    (('a -> 'b) -> ('a -> 'b result))
-
-  val ( >>= ) : 'a result -> ('a -> 'b result) -> 'b result
-  (** [r >>= f] is [bind r f]. *)
-
-  val ( >>| ) : 'a result -> ('a -> 'b) -> 'b result
-  (** [r >>| f] is [map r f]. *)
-
-  (** Infix operators.
-
-      Gathers {!Cmd}'s infix operators. *)
-  module Infix : sig
-
-    (** {1 Infix operators} *)
-
-    val ( >>= ) : 'a result -> ('a -> 'b result) -> 'b result
-    (** [(>>=)] is {!Cmd.( >>= )}. *)
-
-    val ( >>| ) : 'a result -> ('a -> 'b) -> 'b result
-    (** [(>>|)] is {!Cmd.( >>| )}. *)
-  end
-
-  (** {1:io IO and file system operations} *)
-
-  type path = Path.t
-
-  (** Path operations. *)
-  module Path : sig
-
-    (** {1:pathops Path operations} *)
-
-    val exists : ?err:bool -> path -> bool result
-    (** [exists err path] is [true] iff [path] exists.
-        If [err] is [true] (defaults to [false]) an error is returned
-        when the file doesn't exist. *)
-
-    val move : ?force:bool -> path -> path -> unit result
-    (** [move ~force src dst] moves path [src] to [dst]. If [force] is
-        [false] (default) the operation fails if [dst] exists. *)
-  end
-
-  (** File operations. *)
-  module File : sig
-
-    (** {1:fileops File operations}
-
-        {b Note.} When paths are {{!Path.rel}relative} they are expressed
-        relative to the {{!Dir.getcwd}current working directory}. *)
-
-    val exists : ?err:bool -> path -> bool result
-    (** [exists err file] is [true] iff [file] exists and is not a directory.
-        If [err] is [true] (defaults to [false]) an error is returned
-        when the file doesn't exist. *)
-
-    val dev_null : path
-    (** [dev_null] represents a file that discards all writes.
-
-        {b Warning.} Do not use this value to define build actions,
-        use {!Acmd.dev_null}. *)
-
-    val delete : ?maybe:bool -> path -> unit result
-    (** [delete ~maybe file] deletes file [file]. If [maybe] is [false]
-        (default) no error is returned if the file doesn't exit. *)
-
-    val temp : ?dir:path -> string -> path result
-    (** [temp dir suffix] creates a temporary file with suffix
-        [suffix] in [dir] (defaults to {!Filename.get_temp_dir_name})
-        and returns its name. The file is destroyed at the end of
-        program execution. *)
-
-    (** {1:input Input} *)
-
-    val with_inf : (in_channel -> 'a -> 'b result) -> path -> 'a ->
-      'b result
-    (** [with_inf f inf v] opens [inf] as a channel [ic] and returns [f
-        ic v] if no error occurs. In case of error the channel is closed
-        and the error is returned. If [inf] is {!Path.dash}, [ic] is
-        {!Pervasives.stdin} and not closed. *)
-
-    val read : path -> string result
-    (** [read file] is [file]'s content. If [file] is {!Path.dash} reads
-        from {!Pervasives.stdin}. *)
-
-    val read_lines : path -> string list result
-    (** [read_lines file] is [file]'s content splitted at ['\n']. If
-        [file] is {!Path.dash} reads from {!Pervasives.stdin}. *)
-
-    (** {1:output Output} *)
-
-    val with_outf : (out_channel -> 'a -> 'b result) -> path -> 'a ->
-      'b result
-    (** [with_inf f outf v] opens [outf] as a channel [oc] and returns
-        [f oc v] if no error occurs. In case of error the channel is
-        closed and the error is returned. If [outf] is {!Path.dash}, [oc] is
-        {!Pervasives.stdout} and not closed. *)
-
-    val write : path -> string -> unit result
-    (** [write file content] outputs [content] to [file]. If [file]
-        is {!Path.dash}, writes to {!Pervasives.stdout}. If an error is
-        returned [file] is left untouched except if {!Pervasives.stdout}
-        is written.*)
-
-    val write_lines : path -> string list -> unit result
-    (** [write_lines file lines] outputs [lines] separated by ['\n'] to
-        [file]. If [file] is {!Path.dash}, writes to {!Pervasives.stdout}.
-        If an error is returned [file] is left untouched except if
-        {!Pervasives.stdout} is written.*)
-
-    val write_subst : (string * string) list -> path -> string ->
-      unit result
-    (** [write_subst vars file content] outputs [content] to [file]. In
-        [content] patterns of the form ["%%ID%%"] are replaced by the value
-        of [List.assoc "ID" vars] (if any). If [file] is {!Path.dash}, writes
-        to {!Pervasives.stdout}. If an error is returned [file] is left
-        untouched except if {!Pervasives.stdout} is written.
-
-        FIXME: add optional argument [delim] that defaults to [%%],
-        the latter may appear in programs. *)
-  end
-
-  (** Directory operations. *)
-  module Dir : sig
-
-    (** {1:dirops Directory operations}
-
-        {b Note.} When paths are {{!Path.rel}relative} they are expressed
-        relative to the {{!Dir.getcwd}current working directory}. *)
-
-    val exists : ?err:bool -> path -> bool result
-    (** [exists err dir] is [true] if directory [dir] exists.
-        If [err] is [true] (defaults to [false]) an error is returned
-        when the file doesn't exist. *)
-
-    val getcwd : unit -> path result
-    (** [getcwd ()] is the current working directory. *)
-
-    val chdir : path -> unit result
-    (** [chdir dir] changes the current working directory to [dir]. *)
-
-    val fold_files_rec : ?skip:string list -> (string -> 'a -> 'a result) ->
-      'a -> string list -> 'a result
-    (** [fold_files_rec skip f acc paths] folds [f] over the files
-        found in [paths]. Files and directories whose suffix matches an
-        element of [skip] are skipped. {b FIXME} this should be using
-        {!Path.t} and {!Path.ext}. *)
-  end
-
-  (** Version control system operations.
-
-      {b Note.} To remain VCS agnostic use the result of
-      {!find} or {!get} rather than explicitely mentioning your VCS. *)
-  module Vcs : sig
-
-    (** {1:vcsops Version control system operations} *)
-
-    type t = [ `Git | `Hg ]
-    (** The type for version control systems. *)
-
-    val exists : path -> t -> bool result
-    (** [exists d vcs] is [true] if the VCS [vcs] is detected in
-        directory [d]. *)
-
-    val find : path -> t option result
-    (** [find d] looks for an arbitrary VCS in directory [d]. *)
-
-    val get : path -> t result
-    (** [get d] is like {!exists} but returns an error if no VCS
-        was found. *)
-
-    val head : ?dirty:bool -> path -> t -> string result
-    (** [head dirty d vcs] is the HEAD commit identifier of the VCS
-        [vcs] in in directory [d]. If [dirty] is [true] (default)
-        an indicator is appended to the identifier if the working tree
-        is dirty. *)
-
-    val describe : ?dirty:bool -> path -> t -> string result
-    (** [describe dirty d vcs] identifies the HEAD commit using
-        tags from the VCS [vcs] in directory [d]. If [dirty] is
-        [true] (default) an indicator is appended to the identifier if
-        the working tree is dirty. *)
-  end
-
-  (** {1:env_lookup Environment variables lookup} *)
-
-  val env : string -> string option
-  (** [env var] is the value if the environment variable [var], if
-      defined. *)
-
-  val get_env : string -> string result
-  (** [get_env var] is like {!env} but returns an error if [var] is
-      undefined. *)
-
-  (** {1:executing_commands Executing commands} *)
-
-  val exists : ?err:bool -> string -> bool result
-  (** [exists err cmd] is [true] if [cmd] exists and can be invoked.
-      If [err] is [true] (defaults to [false]) an error is returned
-      when the command doesn't exist. *)
-
-  val exec_ret : string -> string list -> int
-  (** [exec_ret cmd args] executes [cmd] with arguments [args] and
-      returns the exit code of the invocation. *)
-
-  val exec : string -> string list -> unit result
-  (** [exec cmd args] executes [cmd] with arguments [args]. On exit
-      code [0] returns [`Ok ()]. Otherwise an error message with
-      the failed invocation and its exit code is returned in [`Error]. *)
-
-  val read : ?trim:bool -> string -> string list -> string result
-  (** [read cmd args] execute [cmd] with arguments [args] and returns
-      its standard output. If [cmd]'s return code is non zero returns
-      an error message. If [trim] is [true] (default) the contents is
-      passed to {!String.trim} before being returned. *)
-
-  val read_lines : string -> string list -> string list result
-  (** [input_lines cmd args] is like [input ~trim:false cmd args] but
-      the input is splitted at ['\n']. *)
-
-  val write : string -> string list -> path -> unit result
-  (** [write cmd args file] execute [cmd] with arguments [args] and writes
-      the invocation's [stdout] to [file]. In [cmd]'s return code is non
-      zero returns an error message and [file] is left intact. *)
+(** Version control system operations.
+
+    {b Note.} To remain VCS agnostic use the result of
+    {!find} or {!get} rather than explicitely mentioning your VCS. *)
+module Vcs : sig
+
+  (** {1:vcsops Version control system operations} *)
+
+  type t = [ `Git | `Hg ]
+  (** The type for version control systems. *)
+
+  val exists : path -> t -> bool Bos.OS.result
+  (** [exists d vcs] is [true] if the VCS [vcs] is detected in
+      directory [d]. *)
+
+  val find : path -> t option Bos.OS.result
+  (** [find d] looks for an arbitrary VCS in directory [d]. *)
+
+  val get : path -> t Bos.OS.result
+  (** [get d] is like {!exists} but returns an error if no VCS
+      was found. *)
+
+  val head : ?dirty:bool -> path -> t -> string Bos.OS.result
+  (** [head dirty d vcs] is the HEAD commit identifier of the VCS
+      [vcs] in in directory [d]. If [dirty] is [true] (default)
+      an indicator is appended to the identifier if the working tree
+      is dirty. *)
+
+  val describe : ?dirty:bool -> path -> t -> string Bos.OS.result
+  (** [describe dirty d vcs] identifies the HEAD commit using
+      tags from the VCS [vcs] in directory [d]. If [dirty] is
+      [true] (default) an indicator is appended to the identifier if
+      the working tree is dirty. *)
 end
 
 (** {1:building Building} *)
@@ -877,7 +170,7 @@ module Conf : sig
       value and vice-versa. There are a few {{!builtin_converters}built-in
       converters}. *)
 
-  type 'a parser = string -> [ `Error of string | `Ok of 'a ]
+  type 'a parser = string -> ('a, R.msg) result
   (** The type for configuration converter parsers. *)
 
   type 'a printer = Format.formatter -> 'a -> unit
@@ -998,11 +291,11 @@ module Conf : sig
 
   (** {2:build_directory_keys Build directory keys} *)
 
-  val root_dir : Path.t key
+  val root_dir : path key
   (** [root_dir] is the absolute path to the project directory (defaults
       to the driver program current directory). *)
 
-  val build_dir : Path.rel key
+  val build_dir : path key
   (** [build_dir] is the path to the build directory expressed relative to the
       {!root_dir} (defaults to ["_build"]). *)
 
@@ -1272,10 +565,10 @@ module Conf : sig
   val path : Path.t converter
   (** [path] converts value with {!Path.of_string}. *)
 
-  val abs_path : Path.abs converter
+  val abs_path : path converter
   (** [path] converts value with {!Path.of_string}. *)
 
-  val rel_path : Path.rel converter
+  val rel_path : path converter
   (** [path] converts value with {!Path.of_string}. *)
 
   val enum : (string * 'a) list -> 'a converter
@@ -1908,7 +1201,7 @@ module Part : sig
   (** The type for parts. *)
 
   val v : ?usage:usage -> ?exists:bool Conf.value -> ?args:Args.t ->
-    ?meta:meta -> ?needs:'a part list -> ?root:Path.rel Conf.value ->
+    ?meta:meta -> ?needs:'a part list -> ?root:path Conf.value ->
     ?actions:(kind part -> Action.t list Conf.value) ->
     ?check:(kind part -> bool Conf.value) -> string -> [> `Base] part
   (** [v ?usage ?exists ?meta ?needs ?args ?actions ?check name] defines
@@ -1957,7 +1250,7 @@ module Part : sig
 
       @raise Invalid_argument if [proj] returns [None]. *)
 
-  val root : 'a part -> Path.rel Conf.value
+  val root : 'a part -> path Conf.value
   (** [root p] is [p]'s root build directory expressed relative to
       {!Conf.root_dir}. Most of the time the actions of a part will
       output their build products in this direcory. This directory may
@@ -2456,7 +1749,7 @@ module Dir : sig
       FIXME a few combinators to quickly devise spec values
       would be welcome, e.g. put a specific part in sub directory, etc.  *)
 
-  type spec = Part.kind Part.t -> (Path.t * Path.rel option) list Conf.value
+  type spec = Part.kind Part.t -> (path * path option) list Conf.value
   (** The type for directory specifier.
 
       Given a part [p] it returns a list of tuples [(prod, path)],
@@ -2581,22 +1874,22 @@ end
 
 (** {1:spec Part specification combinators} *)
 
-type path = Path.t Conf.value
+type cpath = Path.t Conf.value
 (** The type for part paths specifications. *)
 
-val root : path
+val root : cpath
 (** [root] is the {{!Path.current}current directory} relative to the
     project root.  *)
 
-val ( / ) : path -> string -> path
+val ( / ) : cpath -> string -> cpath
 (** [path / seg] is [Conf.(const Path.( / ) $ path $ const seg)]. *)
 
-val ( // ) : path -> Path.rel Conf.value -> path
+val ( // ) : cpath -> cpath -> cpath
 (** [path // rel] is [Conf.(const Path.( // ) $ path $ rel)]. *)
 
 val unit : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
-  ?needs:[< `Lib | `Pkg ] part list -> ?kind:Unit.kind -> ?dir:path -> string ->
-  [> `Unit] part
+  ?needs:[< `Lib | `Pkg ] part list -> ?kind:Unit.kind -> ?dir:cpath ->
+  string -> [> `Unit] part
 (** See {!Unit.v}. [kind] defaults to [`OCaml (`Both, `Normal)]. *)
 
 val lib : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
@@ -2628,7 +1921,7 @@ val file : ?usage:Part.usage -> ?exists:bool Conf.value -> Path.t ->
 (** See {!Part.file}. *)
 
 val run : ?usage:Part.usage -> ?exists:bool Conf.value -> ?args:Args.t ->
-  ?dir:path -> string -> Action.t Conf.value -> [> `Run] part
+  ?dir:cpath -> string -> Action.t Conf.value -> [> `Run] part
 (** See {!Run.v}. FIXME maybe removed that one from the toplevel.  *)
 
 (** {1:projects Projects} *)
@@ -2669,72 +1962,40 @@ val assemble : project -> unit
  *)
 module Private : sig
 
-  (** Log. *)
-  module Log : sig
+  (** {1 Misc}
 
-    (** {1 Log} *)
+      TODO remove that. *)
 
-    include module type of Log with type level = Log.level
-
-    (** {1 Log level and output} *)
-
-    val level : unit -> level option
-    (** [level ()] is the log level (if any). If the log level is [(Some l)]
-        any message whose level is [<= l] is logged. If level is [None]
-        no message is ever logged. Initially the level is [(Some Warning)]. *)
-
-    val set_level : level option -> unit
-    (** [set_level l] sets the log level to [l]. See {!level}. *)
-
-    val set_formatter : [`All | `Level of level ] -> Format.formatter -> unit
-    (** [set_formatter spec ppf] sets the formatter for a given level or
-        for all the levels according to [spec]. Initially the formatter
-        of level [Show] is {!Format.std_formatter} and all the other level
-        formatters are {!Format.err_formatter}. *)
-
-    (** {1 Log monitoring} *)
-
-    val err_count : unit -> int
-    (** [err_count ()] is the number of messages logged with level [Error]. *)
-
-    val warn_count : unit -> int
-    (** [warn_count ()] is the number of messages logged with level
-        [Warning]. *)
+  module Misc : sig
+    val log_driver_fault : ?header:string -> Log.level ->
+      ('a, Format.formatter, unit, unit) format4 -> 'a
   end
 
-  (** Command. *)
-  module Cmd : sig
+  (** Version control systems *)
+  module Vcs : sig
 
-  (** {1 Command} *)
+    (** {1 Version control systems} *)
 
-    (** Version control systems *)
-    module Vcs : sig
+    include module type of Vcs
 
-      (** {1 Version control systems} *)
-
-      include module type of Cmd.Vcs
-
-      val override_kind : unit -> t option
-      (** [override_kind ()] is the current VCS kind override value.
+    val override_kind : unit -> t option
+    (** [override_kind ()] is the current VCS kind override value.
           See {!set_override_kind}. *)
 
-      val set_override_kind : t option -> unit
-      (** [set_override_kind (Some vcs)] has the effect of bypassing
-          VCS discovery. [vcs] will always {!Cmd.Vcs.exists},
-          {!Cmd.Vcs.find} and {!Cmd.Vcs.get} will always always return
-          this [vcs]. *)
+    val set_override_kind : t option -> unit
+    (** [set_override_kind (Some vcs)] has the effect of bypassing
+        VCS discovery. [vcs] will always {!Cmd.Vcs.exists},
+        {!Cmd.Vcs.find} and {!Cmd.Vcs.get} will always always return
+        this [vcs]. *)
 
-      val override_exec : unit -> string option
-      (** [override_bin] is the current VCS executable
-          override. See {!set_override_exec}. *)
+    val override_exec : unit -> string option
+    (** [override_bin] is the current VCS executable
+        override. See {!set_override_exec}. *)
 
-      val set_override_exec : string option -> unit
-      (** [set_override_exec (Some vcs_exec)] uses [vcs_exec] as the
-          VCS executable, use in conjunction with {!set_override_kind}
-          otherwise it has no effect. *)
-    end
-
-    include module type of Cmd with module Vcs := Vcs
+    val set_override_exec : string option -> unit
+    (** [set_override_exec (Some vcs_exec)] uses [vcs_exec] as the
+        VCS executable, use in conjunction with {!set_override_kind}
+        otherwise it has no effect. *)
   end
 
   (** Build configuration. *)

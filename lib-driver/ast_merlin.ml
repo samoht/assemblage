@@ -60,7 +60,7 @@ let of_project p : t =
   let rev_ss =
     let srcs = Project.products ~kind:`Source p in
     let add_dir p acc = match Path.ext p with
-    | Some (`Ml | `Mli) -> Path.Set.add (Path.dirname p) acc
+    | ".ml" | ".mli" -> Path.Set.add (Path.parent p) acc
     | _ -> acc
     in
     let ss = Path.Set.fold add_dir srcs Path.Set.empty in
@@ -69,7 +69,7 @@ let of_project p : t =
   let rev_bs =
     let builds = Project.products ~kind:`Output p in
     let add_dir p acc = match Path.ext p with
-    | Some (`Cmi | `Cmti | `Cmt) -> Path.Set.add (Path.dirname p) acc
+    | ".cmi" | ".cmti" | ".cmt" -> Path.Set.add (Path.parent p) acc
     | _ -> acc
     in
     let bs = Path.Set.fold add_dir builds Path.Set.empty in

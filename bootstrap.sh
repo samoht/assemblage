@@ -5,7 +5,8 @@ set -ex
 OCAMLFIND=${OCAMLFIND:="ocamlfind"}
 
 BDIR="_build/bootstrap"
-PKGS="-package bytes -package astring -package fmt -package cmdliner"
+PKGS="-package bytes -package rresult -package astring -package fmt \
+      -package bos -package cmdliner"
 CMOS=""
 
 # Make sure $BDIR is clean

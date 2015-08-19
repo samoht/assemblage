@@ -15,7 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let str = Printf.sprintf
+open Bos
 
 (* Metadata *)
 
@@ -32,7 +32,7 @@ let pp_kind ppf k = Fmt.string ppf begin match k with
   | `OCaml _ -> "OCaml" | `C _ -> "C" | `Js -> "JavaScript"
   end
 
-type meta = { kind : kind; dir : As_path.t As_conf.value }
+type meta = { kind : kind; dir : path As_conf.value }
 let inj, proj = As_part.meta_key ()
 let get_meta unit = As_part.get_meta proj unit
 let meta ?(dir = As_conf.(value root_dir)) kind = inj { kind; dir }
@@ -57,7 +57,7 @@ let c = is_kind `C
 
 let check p =
   let unit = As_part.coerce `Unit p in
-  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind unit);
+  Log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind unit);
   As_conf.true_
 
 (* Actions *)
@@ -65,8 +65,8 @@ let check p =
 let js_actions unit src_dir dst_dir =
   let actions symlink src_dir dst_dir =
     let name = As_part.name unit in
-    let src = As_path.(src_dir / name + `Js) in
-    let dst = As_path.(dst_dir / name + `Js) in
+    let src = Path.(src_dir / name + ".js") in
+    let dst = Path.(dst_dir / name + ".js") in
     [symlink src dst]
   in
   As_conf.(const actions $ As_action.symlink $ src_dir $ dst_dir)
@@ -77,15 +77,15 @@ let c_actions spec unit src_dir dst_dir =
      Maybe this should be reflected in the metadata. *)
   let actions symlink ocamlc ocamlopt native debug warn_error src_dir dst_dir =
     let open As_acmd.Args in
-    As_log.warn "Full C unit part support is TODO";
+    Log.warn "Full C unit part support is TODO";
     let has_h, has_c = match spec with
     | `H -> true, false | `C -> false, true | `Both -> true, true
     in
     let name = As_part.name unit in
-    let src_h = As_path.(src_dir / name + `H) in
-    let src_c = As_path.(src_dir / name + `C) in
-    let h = As_path.(dst_dir / name + `H) in
-    let c = As_path.(dst_dir / name + `C) in
+    let src_h = Path.(src_dir / name + ".h") in
+    let src_c = Path.(src_dir / name + ".c") in
+    let h = Path.(dst_dir / name + ".h") in
+    let c = Path.(dst_dir / name + ".c") in
     (* ccomp is here so that we don't fail if we don't have ocamlc *)
     let ccomp = if native then ocamlopt else ocamlc in
     let args =
@@ -110,21 +110,21 @@ let ocaml_actions spec unit src_dir dst_dir =
     in
     let _pp =
       let outs = As_action.list_outputs libs_pp_actions in
-      List.filter (As_path.has_ext `Cma) outs
+      List.filter (Path.ext_is ".cma") outs
     in
     let incs_byte, incs_native =
       let outs = As_action.list_outputs libs_actions in
-      List.map As_path.dirname (List.filter (As_path.has_ext `Cma) outs),
-      List.map As_path.dirname (List.filter (As_path.has_ext `Cmxa) outs)
+      List.map Path.parent (List.filter (Path.ext_is ".cma") outs),
+      List.map Path.parent (List.filter (Path.ext_is ".cmxa") outs)
     in
     let all_incs = adds incs_byte @@ adds incs_native @@ [dst_dir] in
     let incs_byte = adds incs_byte @@ [dst_dir]in
     let incs_native = adds incs_native @@ [dst_dir]in
     let name = As_part.name unit in
-    let src_mli = As_path.(src_dir / name + `Mli) in
-    let src_ml = As_path.(src_dir / name + `Ml) in
-    let mli = As_path.(dst_dir / name + `Mli) in
-    let ml = As_path.(dst_dir / name + `Ml) in
+    let src_mli = Path.(src_dir / name + ".mli") in
+    let src_ml = Path.(src_dir / name + ".ml") in
+    let mli = Path.(dst_dir / name + ".mli") in
+    let ml = Path.(dst_dir / name + ".ml") in
     (* mlicomp is here so that we don't fail if we don't have ocamlc *)
     let mlicomp = if native then ocamlopt else ocamlc in
     let args =

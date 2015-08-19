@@ -14,7 +14,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let str = Printf.sprintf
+open Astring
+open Bos
+
 type syntax = [ `Shell | `Makefile ]
 type mode = [ `Static | `Dynamic of [`Shell | `Makefile] ]
 
@@ -26,7 +28,7 @@ let query_static =
   let cache = Hashtbl.create 124 in
   let run (cmd, args as l) = try Hashtbl.find cache l with
   | Not_found ->
-      let r = As_cmd.(on_error ~use:[] @@ read_lines cmd args) in
+      let r = Log.on_error_msg ~use:[] @@ OS.Cmd.exec_read_lines cmd args in
       Hashtbl.add cache l r;
       r
   in
@@ -36,14 +38,14 @@ let query_static =
 
 let query_makefile ?wrap ~opts pkgs =
   let cmd, args = query_args ?wrap ~opts pkgs in
-  [ str "$(shell %s %s)" cmd (String.concat " " args) ]
+  [ strf "$(shell %s %s)" cmd (String.concat ~sep:" " args) ]
 
 let query ~mode = match mode with
 | `Static -> query_static
 | `Dynamic `Shell ->
     fun ?wrap ~opts pkgs ->
       let (cmd, args) = query_args ?wrap ~opts pkgs in
-      [String.concat " " (cmd :: args)]
+      [String.concat ~sep:" " (cmd :: args)]
 | `Dynamic `Makefile -> query_makefile
 
 let cflags ?wrap ~mode pkgs = query ~mode ?wrap ~opts:["--cflags"] pkgs

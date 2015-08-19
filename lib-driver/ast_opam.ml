@@ -88,19 +88,19 @@ module Install = struct
 
   let of_project ?(add = []) proj =
     let add_outputs ?prefix dir_root acc outputs elt =
-      let add_output acc output = match Path.to_rel output with
-      | None -> Log.err err_abs_output Path.pp output; acc
-      | Some output ->
-          match Path.Rel.rem_prefix dir_root output with
+      let add_output acc output = match Path.is_rel output with
+      | false -> Log.err err_abs_output Path.pp output; acc
+      | true ->
+          match Path.rem_prefix dir_root output with
           | None ->
-              Log.err err_no_prefix Path.Rel.pp output Path.Rel.pp dir_root;
+              Log.err err_no_prefix Path.pp output Path.pp dir_root;
               acc
           | Some dst ->
               let dst = match prefix with
-              | None -> Path.of_rel dst
+              | None -> dst
               | Some other -> Path.(other // dst)
               in
-              elt (move (Path.of_rel output) ~dst) :: acc
+              elt (move output ~dst) :: acc
       in
       List.fold_left add_output acc outputs
     in

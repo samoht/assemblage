@@ -19,6 +19,8 @@
 
     See {!Assemblage.Unit}. *)
 
+open Bos
+
 (** {1 Metadata} *)
 
 type ocaml_interface = [ `Normal | `Opaque | `Hidden ]
@@ -29,7 +31,7 @@ type kind = [ `OCaml of ocaml_unit * ocaml_interface | `C of c_unit | `Js ]
 val pp_kind : Format.formatter -> kind -> unit
 
 val kind : [< `Unit] As_part.t -> kind
-val dir : [< `Unit] As_part.t -> As_path.t As_conf.value
+val dir : [< `Unit] As_part.t -> path As_conf.value
 
 val ocaml : 'a As_part.t -> [> `Unit] As_part.t option
 val c : 'a As_part.t -> [> `Unit] As_part.t option
@@ -39,4 +41,4 @@ val js : 'a As_part.t -> [> `Unit] As_part.t option
 
 val v : ?usage:As_part.usage -> ?exists:bool As_conf.value ->
   ?args:As_args.t -> ?needs:[< `Pkg | `Lib ] As_part.t list ->
-  ?dir:As_path.t As_conf.value -> string -> kind -> [> `Unit] As_part.t
+  ?dir:path As_conf.value -> string -> kind -> [> `Unit] As_part.t

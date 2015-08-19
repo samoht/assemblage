@@ -17,12 +17,12 @@
 
 (* Pereliminaries *)
 
+include Rresult
 include Astring
+include Bos
 
 module Fmt = Fmt
-module Path = As_path
-module Log = As_log
-module Cmd = As_cmd
+module Vcs = As_vcs
 
 (* Building *)
 
@@ -48,11 +48,11 @@ type +'a part = 'a As_part.t
 
 (* Part specification combinators *)
 
-type path = Path.t Conf.value
+type cpath = Path.t Conf.value
 
-let root = Conf.(const As_path.empty)
-let ( / ) p seg = Conf.(const Path.add $ p $ const seg)
-let ( // ) p rel = Conf.(const Path.concat $ p $ rel)
+let root = Conf.(const Path.cur_dir)
+let ( / ) p seg = Conf.(const Path.add_seg $ p $ const seg)
+let ( // ) p rel = Conf.(const Path.append $ p $ rel)
 
 let unit ?usage ?exists ?args ?needs ?(kind = `OCaml (`Both, `Normal))
     ?dir name =
@@ -89,8 +89,9 @@ let assemble = Project.assemble
 (* Private API *)
 
 module Private = struct
-  module Log = As_log
-  module Cmd = As_cmd
+
+  module Misc = As_misc
+  module Vcs = As_vcs
   module Conf = As_conf
   module Args = As_args
   module Acmd = struct

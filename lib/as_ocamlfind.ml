@@ -15,11 +15,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
+open Rresult
 open Astring
+open Bos
 
 let run_ocamlfind ocamlfind name =
-  let open As_cmd.Infix in
-  let err pkg = strf "Could not lookup ocamlfind package %s" name in
+  let err pkg _ = R.msgf "Could not lookup ocamlfind package %s" name in
   let args preds =
     let preds = String.concat ~sep:"," @@ match name with
       | "threads.posix" -> "mt" :: "mt_posix" :: preds
@@ -29,13 +30,13 @@ let run_ocamlfind ocamlfind name =
     [ "query"; "-predicates"; preds; "-r"; "-format"; "\"%d|%A|%O\"" ] @ [name]
   in
   begin
-    As_cmd.read_lines ocamlfind (args ["byte"]) >>= fun byte ->
-    As_cmd.read_lines ocamlfind (args ["native"]) >>= fun native ->
-    As_cmd.read_lines ocamlfind (args ["syntax"; "preprocessor"]) >>= fun pp ->
-    As_cmd.ret (byte, native, pp)
+    OS.Cmd.exec_read_lines ocamlfind (args ["byte"]) >>= fun byte ->
+    OS.Cmd.exec_read_lines ocamlfind (args ["native"]) >>= fun native ->
+    OS.Cmd.exec_read_lines ocamlfind (args ["syntax"; "preprocessor"])
+    >>= fun pp -> Ok (byte, native, pp)
   end
-  |> As_cmd.reword_error (err name)
-  |> As_cmd.on_error ~use:([],[],[])
+  |> R.reword_error_msg (err name)
+  |> Log.on_error_msg ~use:([],[],[])
 
 type pkg =
   { byte_incs : string list;
@@ -58,7 +59,7 @@ let parse_lines (byte, native, pp) =
         let flags = List.filter ((<>)"") flags in
         dir :: "-I" :: i, List.rev_append objs o, List.rev_append flags f
     | _ ->
-        As_log.err "ocamlfind lookup could not parse line (%s)" l;
+        Log.err "ocamlfind lookup could not parse line (%s)" l;
         acc
   in
   let parse lines =
@@ -79,8 +80,8 @@ let pkg_lookups ocamlfind name =
   [ As_ctx.v [`OCaml; `Pp], p.pp_incs @ p.pp_objs;
     As_ctx.v [`OCaml; `Compile; `Target `Byte], p.byte_incs;
     As_ctx.v [`OCaml; `Compile; `Target `Native], p.native_incs;
-    As_ctx.v [`OCaml; `Compile; `Target `Byte; `Src `Mli], p.byte_incs;
-    As_ctx.v [`OCaml; `Compile; `Target `Native; `Src `Mli], p.native_incs;
+    As_ctx.v [`OCaml; `Compile; `Target `Byte; `Src "mli"], p.byte_incs;
+    As_ctx.v [`OCaml; `Compile; `Target `Native; `Src "mli"], p.native_incs;
     As_ctx.v [`OCaml; `Link; `Target `Byte], p.byte_objs @ p.byte_link;
     As_ctx.v [`OCaml; `Link; `Target `Native], p.native_objs @ p.native_link; ]
 

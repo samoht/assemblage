@@ -98,16 +98,16 @@ let mk_run_action name gen action = (* treated specially, phony *)
 
 let mk_dep_action gen inputs =
   let add_include incs p =
-    if Path.has_ext `Ml_dep p || Path.has_ext `Mli_dep p
+    if Path.ext_is ".ml.dep" p || Path.ext_is "mli.dep" p
     then Path.Set.add p incs else incs
   in
   let incs = List.fold_left add_include gen.incs inputs in
   { gen with incs }
 
 let mk_prepare gen inputs p =
-  let seen =
-    try Path.Map.find p gen.preps
-    with Not_found -> Path.Set.empty
+  let seen = match Path.Map.find p gen.preps with
+  | Some seen -> seen
+  | None -> Path.Set.empty
   in
   let seen = List.fold_left (fun set x -> Path.Set.add x set) seen inputs in
   let preps = Path.Map.add p seen gen.preps in
@@ -117,9 +117,10 @@ let mk_prepare gen inputs p =
 let mk_action gen action =
   let inputs = Action.inputs action in
   let outputs = Action.outputs action in
-  let prepare, outputs = List.partition (Path.has_ext `Prepare) outputs in
+  let prepare, outputs = List.partition (Path.ext_is ".prepare") outputs in
   if prepare = [] then (
-    let dirs = Path.(Set.elements (Set.of_list (List.rev_map dirname outputs))) in
+    let dirs = Path.(Set.elements (Set.of_list (List.rev_map parent outputs)))
+    in
     let order_only_prereqs = List.rev_map Path.to_string dirs in
     let prereqs = List.(rev (rev_map Path.to_string inputs)) in
     let targets = List.(rev (rev_map Path.to_string outputs)) in

@@ -19,10 +19,13 @@
 
     See {!Assemblage.Dir}. *)
 
+open Rresult
+open Bos
+
 (** {1 Metadata} *)
 
 type kind = [ `Lib | `Bin | `Sbin | `Toplevel | `Share | `Share_root
-            | `Etc | `Doc | `Stublibs | `Man | `Other of As_path.t ]
+            | `Etc | `Doc | `Stublibs | `Man | `Other of path ]
 
 val pp_kind : Format.formatter -> kind -> unit
 
@@ -32,12 +35,12 @@ val install : [< `Dir] As_part.t -> bool
 (** {1 Product selectors} *)
 
 type spec = As_part.kind As_part.t ->
-  (As_path.t * As_path.rel option) list As_conf.value
+  (path * path option) list As_conf.value
 
 val all : spec
 val all_output : spec
 val all_input : spec
-val file_exts : As_path.ext list -> spec
+val file_exts : Path.ext list -> spec
 val bin : spec
 val lib : spec
 val doc : spec

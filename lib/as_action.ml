@@ -16,10 +16,12 @@
 
 (* Actions *)
 
+open Bos
+
 type t =
   { ctx : As_ctx.t;                         (* context to use on evaluation. *)
-    inputs : As_path.t list; (* inputs that need to exist and be up to date. *)
-    outputs : As_path.t list;    (* outputs that need to be touched by cmds. *)
+    inputs : path list; (* inputs that need to exist and be up to date. *)
+    outputs : path list;    (* outputs that need to be touched by cmds. *)
     cmds : As_acmd.t list;                               (* action commands. *)
     args : As_args.t;               (* argument bundle to use on evaluation. *)
     log : string option; }    (* a high-level logging string for the action. *)
@@ -50,8 +52,8 @@ let pp conf ppf a =
     "@[<v>    ctx: @[%a@]@, inputs: @[%a@]@,outputs: @[%a@]@,   cmds: @[%a@]\
      @,   args: @[%a@]@,    log: %a@]"
     As_ctx.pp a.ctx
-    Fmt.(list ~sep:sp As_path.pp) a.inputs
-    Fmt.(list ~sep:sp As_path.pp) a.outputs
+    Fmt.(list ~sep:sp Path.pp) a.inputs
+    Fmt.(list ~sep:sp Path.pp) a.outputs
     Fmt.(list ~sep:cut As_acmd.pp) a.cmds
     (As_args.pp conf) a.args
     Fmt.(option string) a.log

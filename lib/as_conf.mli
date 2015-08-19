@@ -20,6 +20,9 @@
 
 (** {1 Configuration values} *)
 
+open Rresult
+open Bos
+
 type 'a value
 
 val const : 'a -> 'a value
@@ -40,7 +43,7 @@ end
 
 (** {1 Configuration value converters} *)
 
-type 'a parser = string -> [ `Error of string | `Ok of 'a ]
+type 'a parser = string -> ('a, R.msg) result
 type 'a printer = Format.formatter -> 'a -> unit
 type 'a converter = 'a parser * 'a printer
 
@@ -89,9 +92,9 @@ val manual_value : Key.Set.t -> 'a -> 'a value
 val bool : bool converter
 val int : int converter
 val string : string converter
-val path : As_path.t converter
-val abs_path : As_path.abs converter
-val rel_path : As_path.rel converter
+val path : path converter
+val abs_path : path converter
+val rel_path : path converter
 val enum : (string * 'a) list -> 'a converter
 val version : (int * int * int * string option) converter
 
@@ -151,8 +154,8 @@ val target_word_size : int key
 val docs_build_directories : string
 val doc_build_directories : string
 
-val root_dir : As_path.t key
-val build_dir : As_path.rel key
+val root_dir : path key
+val build_dir : path key
 
 (** {2 Build property keys} *)
 

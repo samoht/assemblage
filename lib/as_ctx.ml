@@ -15,7 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let str = Printf.sprintf
+open Astring
+open Bos
 
 (* Context elements *)
 
@@ -25,7 +26,7 @@ type build_phase =
   [ `Gen | `Dep | `Pp | `Compile | `Archive of [ `Static | `Shared ] | `Link
   | `Doc ]
 
-type source = [ `Src of As_path.ext ]
+type source = [ `Src of Path.ext ]
 type target = [ `Target of [`Src | `Byte | `Native | `Js | `Other of string ]]
 type cmd = [ `Cmd of string As_conf.key | `Cmd_static of string ]
 type part_usage = [ `Build | `Dev | `Doc | `Other of string | `Outcome | `Test ]
@@ -83,7 +84,7 @@ module Elt = struct
   | `Part (#part_usage as u) -> Fmt.pf ppf "part-usage:%a" pp_usage u
   | `Part (`Name n) -> Fmt.pf ppf "part-name:%s" n
   | `Pp -> Fmt.string ppf "pp"
-  | `Src ext -> Fmt.pf ppf "src:%a" As_path.pp_ext ext
+  | `Src ext -> Fmt.pf ppf "src:%a" Fmt.string ext
   | `Tag t -> Fmt.pf ppf "tag:%s" t
   | `Target t -> Fmt.pf ppf "target:%a" pp_target t
 end

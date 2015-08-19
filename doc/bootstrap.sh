@@ -5,7 +5,7 @@
 set -e
 
 OCAMLFIND=${OCAMLFIND:="ocamlfind"}
-PKGS="-package cmdliner,compiler-libs.bytecomp"
+PKGS="-package astring,rresult,fmt,bos,cmdliner,compiler-libs.bytecomp"
 
 BDIR=_build/bootstrap-doc
 

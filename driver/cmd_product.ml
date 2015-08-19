@@ -29,10 +29,9 @@ type index =
     outputs : (part_kind Part.t * Action.t) list Path.Map.t; }
 
 let index proj =
-  let add_index part act acc p =
-    match try Some (Path.Map.find p acc) with Not_found -> None with
-    | None -> Path.Map.add p [part, act] acc
-    | Some occs -> Path.Map.add p ((part, act) :: occs) acc
+  let add_index part act acc p = match Path.Map.find p acc with
+  | None -> Path.Map.add p [part, act] acc
+  | Some occs -> Path.Map.add p ((part, act) :: occs) acc
   in
   let add_part acc part =
     let add_action (i, o) act =
@@ -55,7 +54,7 @@ let find_refs index kind selection =
   let outputs = Path.Map.dom index.outputs in
   let sel = match selection with
   | [] -> Path.Set.union inputs outputs
-  | l -> Path.Set.of_list (List.rev_map Path.of_string selection)
+  | l -> Path.Set.of_list (List.rev_map Path.v (* TODO FIXME *) selection)
   in
   let sel = match kind with
   | `Any -> sel

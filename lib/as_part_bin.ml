@@ -15,7 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  *)
 
-let str = Printf.sprintf
+open Astring
+open Bos
 
 (* Metadata *)
 
@@ -57,24 +58,27 @@ let ocaml_toplevel = is_kind `OCaml_toplevel
 
 let check p =
   let bin = As_part.coerce `Bin p in
-  As_log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind bin);
+  Log.warn "%a part check is TODO" As_part.pp_kind (As_part.kind bin);
   As_conf.true_
 
 (* Actions *)
+
+let ext_matches exts p = (* TODO *)
+  List.exists (fun ext -> Path.ext_is ext p) exts
 
 let ocaml_actions bin dst_dir unit_actions =
   let actions ocamlc ocamlopt debug profile ocaml_byte ocaml_native
       pkgs libs_actions dst_dir unit_actions =
     let open As_acmd.Args in
-    let name = As_path.(dst_dir / As_part.name bin) in
+    let name = Path.(dst_dir / As_part.name bin) in
     let unit_outputs = As_action.list_outputs unit_actions in
     let cmas, cmxas =
       let outs = As_action.list_outputs libs_actions in
-      List.filter (As_path.has_ext `Cma) outs,
-      List.filter (As_path.has_ext `Cmxa) outs
+      List.filter (Path.ext_is ".cma") outs,
+      List.filter (Path.ext_is ".cmxa") outs
     in
-    let cmos = List.filter (As_path.ext_matches [`Cmo; `O]) unit_outputs in
-    let cmx_s = List.filter (As_path.ext_matches [`Cmx; `O]) unit_outputs in
+    let cmos = List.filter (ext_matches [".cmo"; ".o"]) unit_outputs in
+    let cmx_s = List.filter (ext_matches [".cmx"; ".o"]) unit_outputs in
     let byte_objs = List.rev_append (List.rev cmas) (List.rev cmos) in
     let native_objs = List.rev_append (List.rev cmxas) (List.rev cmx_s) in
     let byte = byte bin && ocaml_byte in
@@ -114,7 +118,7 @@ let actions p =
   match kind p with
   | `OCaml -> ocaml_actions bin dst_dir unit_actions
   | k ->
-      As_log.warn "%a %a part actions are TODO"
+      Log.warn "%a %a part actions are TODO"
         As_part.pp_kind (As_part.kind bin) pp_kind k;
       As_conf.const []
 
@@ -132,11 +136,13 @@ let to_cmd_path ?(abs = false) ?ext bin =
         match ext with
         | Some _ as ext -> ext
         | None ->
-            if ocaml_native && native bin then Some `Native else Some `Byte
+            if ocaml_native && native bin then Some ".native" else Some ".byte"
     in
-    let p = As_path.Rel.(part_root / As_part.name bin) in
-    let p = if abs then As_path.(proj_root // p) else As_path.of_rel p in
-    match ext with None -> p | Some e -> As_path.(p + e)
+    let p = Path.(part_root / As_part.name bin) in
+    let p = if abs then Path.(proj_root // p) else p in
+    match ext with
+    | None -> p
+    | Some e -> Path.(p + e)
   in
   As_conf.(const mk_path $ value ocaml_native $ value root_dir $
            As_part.root bin)
@@ -145,7 +151,7 @@ let to_cmd_path ?(abs = false) ?ext bin =
    in the resulting build system (see e.g. the generated Makefile).
    The problem is for runs with ~dir argument specified. *)
 let to_cmd ?ext bin =
-  let mk_cmd path = As_acmd.static (As_path.to_string path) in
+  let mk_cmd path = As_acmd.static (Path.to_string path) in
   As_conf.(const mk_cmd $ to_cmd_path ~abs:true ?ext bin)
 
 let exists ?ext bin =
@@ -154,8 +160,8 @@ let exists ?ext bin =
   | `OCaml_toplevel -> part_exists && byt
   | `OCaml ->
       match ext with
-      | Some `Byte -> part_exists && byt && byte bin
-      | Some `Native -> part_exists && nat && native bin
+      | Some ".byte" -> part_exists && byt && byte bin
+      | Some ".native" -> part_exists && nat && native bin
       | _ -> part_exists && (nat && native bin || byt && byte bin)
   in
   As_conf.(const exists $ As_part.exists bin $ value ocaml_native $
@@ -167,7 +173,7 @@ let gen ?usage ?exists:exs ?args ?dir ?name ?ext ?stdin ?stdout ?stderr
     bin cargs
   =
   let name = match name with
-  | None -> str "gen-%s" (As_part.name bin)
+  | None -> strf "gen-%s" (As_part.name bin)
   | Some n -> n
   in
   let exists = match exs with

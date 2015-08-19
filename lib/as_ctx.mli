@@ -21,13 +21,15 @@
 
 (** {1 Context elements} *)
 
+open Bos
+
 type tag = [ `Tag of string ]
 type language = [ `OCaml | `C | `Js | `Lang of string ]
 type build_phase =
   [ `Gen | `Dep | `Pp | `Compile | `Archive of [ `Static | `Shared ] | `Link
   | `Doc ]
 
-type source = [ `Src of As_path.ext ]
+type source = [ `Src of Path.ext ]
 type target = [ `Target of [`Src | `Byte | `Native | `Js | `Other of string ]]
 type cmd = [ `Cmd of string As_conf.key | `Cmd_static of string ]
 type part_usage = [ `Build | `Dev | `Doc | `Other of string | `Outcome | `Test ]

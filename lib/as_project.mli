@@ -21,6 +21,8 @@
 
 (** {1 Project} *)
 
+open Bos
+
 type t
 
 val v : ?exists:bool As_conf.value -> ?args:As_args.t ->
@@ -44,7 +46,7 @@ val eval_key : t -> 'a As_conf.key -> 'a
 (** {1 Configuration dependent value} *)
 
 val version : t -> string
-val products : ?kind:[`Source | `Input | `Output | `Any ] -> t -> As_path.Set.t
+val products : ?kind:[`Source | `Input | `Output | `Any ] -> t -> Path.Set.t
 val watermark_string : ?suffix:string -> t -> string
 val pp_signature : Format.formatter -> t -> unit
 
